@@ -1,19 +1,19 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import Phaser from "phaser";
 import { useGameStore } from "../store/gameStore";
 
 const Game = () => {
-  const gameRef = useRef<HTMLDivElement>(null);
   const turn = useGameStore((state) => state.turn);
 
   useEffect(() => {
-    if (!gameRef.current) return;
+    const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
+    if (!canvas) return;
 
     const config: Phaser.Types.Core.GameConfig = {
-      type: Phaser.AUTO,
+      type: Phaser.WEBGL,
       width: 800,
       height: 600,
-      parent: gameRef.current,
+      canvas: canvas, // Attach Phaser to existing canvas
       scene: {
         preload: function () {
           this.load.image("logo", "https://i0.wp.com/eos.org/wp-content/uploads/2023/04/gas-dwarf-exoplanet.png?w=1200&ssl=1");
@@ -29,9 +29,9 @@ const Game = () => {
     return () => {
       game.destroy(true);
     };
-  }, [turn]); // Re-run if turn changes (optional, depends on how turns affect the game)
+  }, [turn]);
 
-  return <div id="phaser-container" ref={gameRef} />;
+  return null; // No need to return a div since the canvas is already in HTML
 };
 
 export default Game;

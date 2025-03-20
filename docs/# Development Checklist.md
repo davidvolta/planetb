@@ -3,23 +3,21 @@
 ## Project Context
 - Project Name: Planet X
 - Description: A unique turn-based 4x ecological strategy game that dispenses with traditional mechanics and power structures. Planet X models nature and population dynamics to create gameplay that asks the user to balance their growth and exploitation with the world's natural rates of production. 
-- Current Focus: Project Setup
-- Tech Stack: React + Vite, TypeScript, Zustand
 
 ## Environment Setup
 - Node.js environment
-- Phaser + React + Vite
+- React + Vite
 - TypeScript
-- Zustand + immer for state management
+- Zustand + immer for game state management
+- Phaser as our game engine
 
-## Active Tasks
+## Current Focus:
+- Create core game state store in Zustand with turn, player, and board state including tiles (terrain and biomes), habitats and units 
+- Build a simple local game loop that mimics a backend. 
+- Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
-### Platforms
-- [x] Install Node.js, Phaser, Zustand, React and Vite
 
-### Core Game Design
-- [x] Project structure organization
-- [x] Main game routing setup
+## Upcoming Tasks
 - [] Create core game state store with turn, player, and board state
 - [] Create basic game board with tiles
 - [] Implement Coordinate System for tiles
@@ -40,6 +38,7 @@
 - [] Add unit hatching from eggs
 - [] Add unit spawning
 
-
-## Notes
-- Keep track of any performance issues
+## Completed Tasks
+- [x] Install Node.js, Phaser, Zustand, React and Vite
+- [x] Project structure organization
+- [x] Main game routing setup

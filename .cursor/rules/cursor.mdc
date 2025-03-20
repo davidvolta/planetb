@@ -8,7 +8,7 @@ description:
 globs: 
 alwaysApply: true
 ---
- # Cursor Rules for Planet X
+# Cursor Rules for Planet X
 
 ## Project Scope
 - Main Project: Planet X (unique turn-based 4x strategy game)

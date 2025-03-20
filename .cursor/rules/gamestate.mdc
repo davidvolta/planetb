@@ -6,5 +6,7 @@ alwaysApply: true
 
 # State Management
 
-- Build all game state in Zustand including tiles (terrain and biomes), habitats and units 
-- Build aa UI state in React
+- Hold global game state in Zustand (turns, resources, UI)
+- Hold game scene and rendering state in Phaser (rendering, physics, and frame-by-frame updates)
+- Connect them sparingly (use Zustand at turns, not per-frame updates)
+- 

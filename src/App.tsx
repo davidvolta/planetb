@@ -7,7 +7,6 @@ function App() {
 
   return (
     <div>
-      <h1>4X Strategy Game</h1>
       <button onClick={nextTurn}>Next Turn</button>
       <p>Current Turn: {turn}</p>
       <Game />
