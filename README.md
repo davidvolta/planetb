@@ -1,54 +1,53 @@
-# React + TypeScript + Vite
+# Planet X
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A unique turn-based 4x ecological strategy game that dispenses with traditional mechanics and power structures. Planet X models nature and population dynamics to create gameplay that asks the user to balance their growth and exploitation with the world's natural rates of production.
 
-Currently, two official plugins are available:
+## Project Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Planet X is a turn-based strategy game focusing on ecological balance and natural population dynamics rather than traditional power structures.
 
-## Expanding the ESLint configuration
+## Technology Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React + Vite frontend
+- TypeScript for type safety
+- Zustand + immer for state management
+- Phaser as the game engine
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## State Management
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Core Principles
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- **Global Game State**: Held in Zustand (turns, players, board)
+- **Rendering State**: Managed by Phaser (rendering, physics, frame-by-frame updates)
+- **Connection Strategy**: Connect Zustand and Phaser sparingly (use Zustand at turn changes, not per-frame updates)
+- **Separation of Concerns**: Logical game state is separate from visual representation
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+### State Components
+
+- **Turn**: Tracks current game progression
+- **Players**: Player entities with properties like name, color, and active status
+- **Board**: Grid of tiles with terrain types (water, grass, beach, mountain, underwater)
+- **Tiles**: Individual grid cells with coordinates, terrain type, and visibility properties
+- **Units**: (Planned) Player-controlled entities that can move and interact
+- **Habitats**: (Planned) Structures on the board
+
+### State Update Flow
+
+1. User actions trigger state changes via store methods
+2. State updates are processed in Zustand
+3. React components and Phaser scenes respond to state changes
+4. Visual representation updates accordingly
+
+## Development Status
+
+See the [Development Checklist](./docs/%23%20Development%20Checklist.md) for current project status and upcoming tasks.
+
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
 ```
