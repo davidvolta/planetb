@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import Phaser from "phaser";
+import { useGameStore } from "../store/gameStore";
 
-const PhaserGame = () => {
+const Game = () => {
   const gameRef = useRef<HTMLDivElement>(null);
+  const turn = useGameStore((state) => state.turn);
 
   useEffect(() => {
     if (!gameRef.current) return;
@@ -27,9 +29,9 @@ const PhaserGame = () => {
     return () => {
       game.destroy(true);
     };
-  }, []);
+  }, [turn]); // Re-run if turn changes (optional, depends on how turns affect the game)
 
-  return <div ref={gameRef} />;
+  return <div id="phaser-container" ref={gameRef} />;
 };
 
-export default PhaserGame;
+export default Game;

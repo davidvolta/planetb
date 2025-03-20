@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# State Management
+
+- Build all game state in Zustand including tiles (terrain and biomes), habitats and units 
+- Build aa UI state in React
