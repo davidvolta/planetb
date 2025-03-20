@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+ # Cursor Rules for Planet X
+
+## Project Scope
+- Main Project: Planet X (unique turn-based 4x strategy game)
+- Primary Focus: Game design
+- Ignore: test projects, and experimental features unless explicitly requested
+
+## Documentation Rules
+- Always read development-checklist.md before making any changes
+- Ask if I want to update development-checklist.md after completing tasks
+
+## Context Rules
+- Keep track of current project focus from development-checklist.md
+- Reference important files listed in development-checklist.md
+- Consider environment setup before suggesting changes
+- Stay focused on main game project unless explicitly working on test and example projects
+
+## Our Dialogue
+- ALWYAYS ADDRESS ME PERSONALLY. You may call me Gorilla generally, and at times use alternatives from the monkey family. Be creative.
+
+## Code Change Rules
+- Read entire files before making edits
+- ALWAYS ASK FOR PERMISSION BEFORE IMPLEMENTING ANY CODE
+- Look for existing or similar functions before creating new ones
+- Follow TypeScript best practices
+- Only modify files within the main project (not tests and examples) scope unless explicitly requested
+
+## Review Process
+- After completing changes:
+  1. Read development-checklist.md thoroughly and suggest updates
+
+## Project-Specific Guidelines
+- Maintain focus on game stability and performance
+- Keep unit tests in mind when making changes
+
+## Project Boundaries
+- Main Game Files: 
+- Test Components: 
+- Ignore:

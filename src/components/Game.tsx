@@ -14,7 +14,7 @@ const PhaserGame = () => {
       parent: gameRef.current,
       scene: {
         preload: function () {
-          this.load.image("logo", "https://phaser.io/images/img.png");
+          this.load.image("logo", "https://i0.wp.com/eos.org/wp-content/uploads/2023/04/gas-dwarf-exoplanet.png?w=1200&ssl=1");
         },
         create: function () {
           this.add.image(400, 300, "logo");
