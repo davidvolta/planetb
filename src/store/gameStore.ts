@@ -7,7 +7,7 @@ interface Coordinate {
 }
 
 // Terrain types
-enum TerrainType {
+export enum TerrainType {
   WATER = 'water',
   GRASS = 'grass',
   BEACH = 'beach',

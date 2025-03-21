@@ -14,7 +14,7 @@
 }
 
 html, body {
-  background-color: black; /* Match Phaser background */
+  background-color: white; /* Match Phaser background */
 }
 canvas {
   display: block;

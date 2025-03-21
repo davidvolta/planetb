@@ -6,7 +6,7 @@ alwaysApply: true
 
 # State Management
 
-- Hold global game state in Zustand (turns, resources, UI)
-- Hold game scene and rendering state in Phaser (rendering, physics, and frame-by-frame updates)
-- Connect them sparingly (use Zustand at turns, not per-frame updates)
-- 
+✅ Phaser renders tiles, not React → No unnecessary React re-renders.
+✅ Zustand handles state  → No need for prop drilling or React updates.
+✅ Phaser subscribes to state → Tiles update only when needed, not every frame.
+✅ React only controls UI → Buttons, menus, etc., remain separate from game rendering.
