@@ -62,8 +62,12 @@ export default class BoardScene extends Phaser.Scene {
     // Get board data from Zustand
     const board = useGameStore.getState().board;
     if (!board) {
-      console.warn("No board available, initializing default");
-      useGameStore.getState().initializeBoard(20, 20);
+      console.warn("No board available in store");
+      // Add a simple message in the center of the screen
+      this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 
+        "No board data available", 
+        { color: '#ffffff', fontSize: '24px' }
+      ).setOrigin(0.5);
       return;
     }
 
@@ -128,8 +132,6 @@ export default class BoardScene extends Phaser.Scene {
         
         tile.on('pointerdown', () => {
           console.log(`Clicked tile at grid: ${x}, ${y}`);
-          // Optionally add functionality to modify terrain on click
-          // useGameStore.getState().setTerrain(x, y, TerrainType.MOUNTAIN);
         });
       }
     }
