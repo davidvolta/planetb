@@ -15,16 +15,11 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
-- [ ] Add state for player
-- [x] Add game status panel
-  - [ ] Show current player
-  - [x] Display turn number
 - [] Add first unit
 - [] Unit movement
   - [] Add highlight for available moves
   - [] Add unit selector
   - [] Add Secondary (tile) selector
-
 
 - [] State Management Refactoring
   - [] Implement proper subscription system
@@ -57,6 +52,9 @@
 - [] Add unit spawning
 
 ## Completed Tasks
+- [x] Add state for player
+- [x] Add game status panel
+- [x] Display turn number
 - [x] Create basic game board with tiles
 - [x] Implement Coordinate System for tiles
 - [x] Implement terrain generation

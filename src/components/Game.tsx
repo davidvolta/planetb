@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import BoardScene from '../scenes/BoardScene';
+import DebugScene from '../scenes/DebugScene';
 import { useGameStore } from '../store/gameStore';
 
 interface GameProps {
@@ -39,7 +40,7 @@ const Game: React.FC<GameProps> = ({ tileSize = 64 }) => {
         height,
         backgroundColor: '#344055',
         parent: gameContainerRef.current || undefined,
-        scene: [BoardScene],
+        scene: [BoardScene, DebugScene],
       });
       
       // Once the scene is created, set the initial tile size
