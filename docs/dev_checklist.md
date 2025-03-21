@@ -1,8 +1,8 @@
 # Development Checklist
 
 ## Project Context
-- Project Name: Planet X
-- Description: A unique turn-based 4x ecological strategy game that dispenses with traditional mechanics and power structures. Planet X models nature and population dynamics to create gameplay that asks the user to balance their growth and exploitation with the world's natural rates of production. 
+- Project Name: Planet B
+- Description: A unique turn-based 4x ecological strategy game that dispenses with traditional mechanics and power structures. Planet B models nature and population dynamics to create gameplay that asks the user to balance their growth and exploitation with the world's natural rates of production. 
 
 ## Environment Setup
 - Node.js environment
@@ -11,13 +11,11 @@
 - Zustand + immer for game state management
 - Phaser as our game engine
 
-I'm a little teapot
-
 ## Current Focus:
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
-
 ## Upcoming Tasks
+- [ ] Add state for player
 - [x] Add game status panel
   - [ ] Show current player
   - [x] Display turn number
@@ -26,8 +24,25 @@ I'm a little teapot
   - [] Add highlight for available moves
   - [] Add unit selector
   - [] Add Secondary (tile) selector
-- [] Game State Violations
-    - 
+
+
+- [] State Management Refactoring
+  - [] Implement proper subscription system
+    - [] Create a state observer utility for Phaser scenes
+    - [] Use Zustand's subscribe method for fine-grained updates
+    - [] Remove all direct getState() calls from BoardScene.ts
+  - [] Fix initialization issues
+    - [] Move board initialization logic out of BoardScene
+    - [] Implement fallback handling without modifying state
+  - [] Implement unidirectional data flow
+    - [] Create event system for Phaser → React communication
+    - [] Add event handlers in React components for Phaser events
+    - [] Remove state modifications from Phaser code
+  - [] Improve update efficiency
+    - [] Implement incremental board updates 
+    - [] Add dirty checking to only update changed tiles
+    - [] Replace full scene recreation with targeted updates
+    
 - [] Performance optimizations
   - [] Add viewport culling to only render visible tiles
   - [] Tile Object Pooling
@@ -46,7 +61,7 @@ I'm a little teapot
 - [x] Implement Coordinate System for tiles
 - [x] Implement terrain generation
 - [x] Create turn-based system
-- [X] Create core game state store with turn, player, and board state
+- [X] Create core game state store with turn, and board state
 - [x] Main game routing setup
 - [x] Project structure organization
 - [x] Install Node.js, Phaser, Zustand, React and Vite
