@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { generateIslandTerrain } from "../utils/terrainGenerator";
 
 // Coordinate system for tiles
 interface Coordinate {
@@ -13,6 +14,11 @@ export enum TerrainType {
   BEACH = 'beach',
   MOUNTAIN = 'mountain',
   UNDERWATER = 'underwater',
+}
+
+// Only island map generation is available now
+export enum MapGenerationType {
+  ISLAND = 'island'
 }
 
 // Tile structure
@@ -37,6 +43,28 @@ interface Player {
   isActive: boolean;
 }
 
+/**
+ * GameState Interface
+ * 
+ * State Management Rules:
+ * - Zustand store holds global game state (turns, players, board state)
+ * - Phaser handles game scene and rendering state (rendering, physics, frame-by-frame updates)
+ * - Connect Zustand and Phaser sparingly (use Zustand at turn changes, not per-frame updates)
+ * - Separate logical game state from visual representation
+ * 
+ * Game State Components:
+ * - Turn: Tracks current game progression
+ * - Players: All player entities, their status and properties
+ * - Board: The game world grid with terrain and visibility information
+ * - Units: Will be added later to represent player-controlled entities
+ * - Habitats: Will be added to represent structures on the board
+ * 
+ * State Update Flow:
+ * 1. User actions trigger state changes via store methods
+ * 2. State updates are processed in Zustand
+ * 3. React components and Phaser scenes respond to state changes
+ * 4. Visual representation updates accordingly
+ */
 interface GameState {
   turn: number;
   players: Player[];
@@ -45,8 +73,11 @@ interface GameState {
   nextTurn: () => void;
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
-  initializeBoard: (width: number, height: number) => void;
+  initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
   getTile: (x: number, y: number) => Tile | undefined;
+  
+  // Terrain modification
+  setTerrain: (x: number, y: number, terrain: TerrainType) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -78,9 +109,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentPlayerId: playerId
       };
     }),
-  initializeBoard: (width: number, height: number) =>
+  initializeBoard: (width: number, height: number, mapType = MapGenerationType.ISLAND) =>
     set(() => {
-      // Create empty board with default tiles
+      // We only have island generation now
+      const terrainData = generateIslandTerrain(width, height);
+      
+      // Create tiles with the generated terrain
       const tiles: Tile[][] = [];
       
       for (let y = 0; y < height; y++) {
@@ -88,9 +122,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         for (let x = 0; x < width; x++) {
           row.push({
             coordinate: { x, y },
-            terrain: TerrainType.GRASS, // Default terrain
+            terrain: terrainData[y][x],
             explored: false,
-            visible: false,
+            visible: true, // Start with visible for testing
           });
         }
         tiles.push(row);
@@ -112,4 +146,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     return board.tiles[y][x];
   },
+  setTerrain: (x: number, y: number, terrain: TerrainType) =>
+    set((state: GameState) => {
+      const board = state.board;
+      if (!board) return state;
+      if (x < 0 || x >= board.width || y < 0 || y >= board.height) {
+        return state;
+      }
+      
+      // Create a deep copy of the tiles to maintain immutability
+      const newTiles = board.tiles.map(row => [...row]);
+      newTiles[y][x] = {
+        ...newTiles[y][x],
+        terrain
+      };
+      
+      return {
+        board: {
+          ...board,
+          tiles: newTiles
+        }
+      };
+    }),
 }));

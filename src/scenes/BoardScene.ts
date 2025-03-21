@@ -6,6 +6,9 @@ export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.Container[] = [];
   private tileSize = 64;
   private tileHeight = 32;
+  private verticalOffset = 0;
+  private tilesContainer: Phaser.GameObjects.Container | null = null;
+  private controlsSetup = false;
 
   constructor() {
     super({ key: "BoardScene" });
@@ -15,10 +18,56 @@ export default class BoardScene extends Phaser.Scene {
     // No need to preload any PNG assets
   }
 
+  init() {
+    // Clear previous tiles when scene restarts
+    this.tiles = [];
+  }
+
+  // Method to set the tile size and update the board
+  setTileSize(size: number) {
+    if (size !== this.tileSize) {
+      console.log(`Updating tile size from ${this.tileSize} to ${size}`);
+      this.tileSize = size;
+      this.tileHeight = size / 2; // Maintain the isometric ratio
+      this.updateBoard();
+    }
+  }
+
+  // Method to update the board without restarting the scene
+  updateBoard() {
+    console.log("Updating board without fade");
+    
+    // Store a reference to the old tiles container
+    const oldContainer = this.tilesContainer;
+    
+    // Create new tiles immediately
+    this.createTiles();
+    
+    // If there was an old container, destroy it immediately
+    if (oldContainer) {
+      oldContainer.destroy();
+    }
+  }
+  
   create() {
+    console.log("Creating new board scene");
+    this.createTiles();
+  }
+  
+  // Create tiles based on the current board state
+  private createTiles() {
+    // Clear previous tiles
+    this.tiles = [];
+    
     // Get board data from Zustand
     const board = useGameStore.getState().board;
-    if (!board) return;
+    if (!board) {
+      console.warn("No board available, initializing default");
+      useGameStore.getState().initializeBoard(20, 20);
+      return;
+    }
+
+    console.log(`Creating tiles for board: ${board.width}x${board.height}, hash: ${Date.now()}`);
 
     // Calculate map dimensions
     const mapWidth = board.width * this.tileSize;
@@ -29,14 +78,14 @@ export default class BoardScene extends Phaser.Scene {
     const centerY = (board.width + board.height) * this.tileHeight / 4;
     
     // Position container with vertical offset to move grid up
-    const verticalOffset = mapHeight * 0.4; // Move it up by 40% of map height
-    const tilesContainer = this.add.container(centerX, centerY - verticalOffset);
+    this.verticalOffset = mapHeight * 1.4; // Move it up by 110% of map height
+    this.tilesContainer = this.add.container(centerX, centerY - this.verticalOffset);
     
     // Set camera bounds
     this.cameras.main.setBounds(-mapWidth, -mapHeight, mapWidth * 3, mapHeight * 3);
     
     // Center camera on the adjusted position
-    this.cameras.main.centerOn(centerX, centerY - verticalOffset);
+    this.cameras.main.centerOn(centerX, centerY - this.verticalOffset);
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
@@ -50,7 +99,7 @@ export default class BoardScene extends Phaser.Scene {
         const tile = this.createTerrainTile(terrain, isoX, isoY);
         
         // Add tile to the container
-        tilesContainer.add(tile);
+        this.tilesContainer.add(tile);
         this.tiles.push(tile);
         
         // Add a click handler to the tile
@@ -79,10 +128,20 @@ export default class BoardScene extends Phaser.Scene {
         
         tile.on('pointerdown', () => {
           console.log(`Clicked tile at grid: ${x}, ${y}`);
+          // Optionally add functionality to modify terrain on click
+          // useGameStore.getState().setTerrain(x, y, TerrainType.MOUNTAIN);
         });
       }
     }
     
+    // Add panning and zooming for navigation (only if not already set up)
+    if (!this.controlsSetup) {
+      this.setupControls();
+    }
+  }
+  
+  // Set up camera controls
+  private setupControls() {
     // Add panning and zooming for navigation
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (pointer.isDown) {
@@ -97,6 +156,8 @@ export default class BoardScene extends Phaser.Scene {
       const newZoom = Phaser.Math.Clamp(zoom - deltaY * 0.001, 0.5, 2);
       this.cameras.main.setZoom(newZoom);
     });
+    
+    this.controlsSetup = true;
   }
 
   // Create a terrain tile based on terrain type
@@ -124,7 +185,7 @@ export default class BoardScene extends Phaser.Scene {
         shape.fillStyle(0xF5DEB3, 1); // Sand color
         break;
       case TerrainType.MOUNTAIN:
-        shape.fillStyle(0x8B4513, 1); // Brown
+        shape.fillStyle(0x4A5459, 1); // Cool slate gray for base
         break;
       case TerrainType.UNDERWATER:
         shape.fillStyle(0x00008B, 1); // Dark blue
@@ -168,7 +229,7 @@ export default class BoardScene extends Phaser.Scene {
     switch(terrain) {
       case TerrainType.MOUNTAIN:
         // Mountain peak
-        shape.fillStyle(0x696969, 1); // Gray for rock
+        shape.fillStyle(0x2C3539, 1); // Charcoal for rock peak
         shape.beginPath();
         shape.moveTo(0, -this.tileHeight / 3);
         shape.lineTo(halfTile, 0);
@@ -201,6 +262,46 @@ export default class BoardScene extends Phaser.Scene {
           const py = Phaser.Math.Between(-this.tileHeight / 4, this.tileHeight / 4);
           shape.fillStyle(0xFFFACD, 1);
           shape.fillCircle(px, py, 1);
+        }
+        break;
+        
+      case TerrainType.GRASS:
+        // Grass blades
+        shape.lineStyle(1, 0x006400, 0.7);
+        for (let i = 0; i < 4; i++) {
+          const startX = Phaser.Math.Between(-halfTile + 5, halfTile - 5);
+          const startY = Phaser.Math.Between(-this.tileHeight / 4, this.tileHeight / 4);
+          
+          shape.beginPath();
+          shape.moveTo(startX, startY);
+          shape.lineTo(startX + 2, startY - 3);
+          shape.closePath();
+          shape.strokePath();
+          
+          shape.beginPath();
+          shape.moveTo(startX, startY);
+          shape.lineTo(startX - 2, startY - 3);
+          shape.closePath();
+          shape.strokePath();
+        }
+        break;
+        
+      case TerrainType.UNDERWATER:
+        // Underwater bubbles and darker wave
+        shape.lineStyle(1, 0x0000CD, 0.8);
+        shape.beginPath();
+        shape.moveTo(-halfTile + 10, 0);
+        shape.lineTo(halfTile - 10, 0);
+        shape.closePath();
+        shape.strokePath();
+        
+        // Bubbles
+        for (let i = 0; i < 3; i++) {
+          const px = Phaser.Math.Between(-halfTile + 5, halfTile - 5);
+          const py = Phaser.Math.Between(-this.tileHeight / 5, this.tileHeight / 8);
+          const size = Phaser.Math.Between(1, 2);
+          shape.fillStyle(0xADD8E6, 0.6);
+          shape.fillCircle(px, py, size);
         }
         break;
     }
