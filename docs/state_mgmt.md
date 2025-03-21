@@ -50,18 +50,34 @@
 - Phaser tile click handlers would directly call Zustand actions
 - Should be delegating state changes to React components
 
-## Game.tsx Partial Violations
+## Game.tsx Subscription Issues
 
-1. **Proper Subscription**
+1. **Partial Subscription Implementation**
    ```typescript
    const boardState = useGameStore(state => state.board);
    ```
-   - This is correct usage
-
-2. **Improper Reactivity**
-   - Changes to boardState correctly trigger updates, but:
-   - The mechanism forces a full scene restart or updateBoard call
-   - A more granular update mechanism would be more efficient
+   - Game.tsx properly subscribes to board state changes
+   - However, it doesn't create a proper communication channel between Zustand and Phaser
+   - There's no proper state observation system for fine-grained updates
+   
+2. **Inefficient Update Mechanism**
+   - When boardState changes, Game.tsx triggers a full scene update:
+   ```typescript
+   useEffect(() => {
+     if (gameRef.current && boardState) {
+       const scene = gameRef.current.scene.getScene('BoardScene') as BoardScene;
+       if (scene && scene.scene.isActive()) {
+         if (typeof (scene as any).updateBoard === 'function') {
+           (scene as any).updateBoard();
+         } else {
+           scene.scene.restart();
+         }
+       }
+     }
+   }, [boardState]);
+   ```
+   - This forces complete recreation of all tiles instead of updating only changed tiles
+   - A more granular update system would improve performance
 
 ## Architecture Improvements Needed
 

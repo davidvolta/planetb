@@ -11,6 +11,7 @@
 - Zustand + immer for game state management
 - Phaser as our game engine
 
+I'm a little teapot
 
 ## Current Focus:
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
@@ -25,9 +26,12 @@
   - [] Add highlight for available moves
   - [] Add unit selector
   - [] Add Secondary (tile) selector
+- [] Game State Violations
+    - 
 - [] Performance optimizations
-  - [] Implement texture-based rendering for terrain tiles
   - [] Add viewport culling to only render visible tiles
+  - [] Tile Object Pooling
+  - [] Implement texture-based rendering for terrain tiles
   - [] Create incremental updates to avoid full board recreation
   - [] Optimize event listeners with event delegation
 - [] Add fog of war
@@ -67,4 +71,4 @@
 ### Zustand Does:
 ✅ Syncs game state (board state, turn order, resources, etc.)
 ✅ Syncs UI state (menu open/close, debugging tools, etc.)
-✅ Allows Phaser & React to communicate without re-renders
+✅ Allows Phaser & React to communicate without re-renders 
