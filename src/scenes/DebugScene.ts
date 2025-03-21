@@ -4,12 +4,21 @@ export default class DebugScene extends Phaser.Scene {
   private fpsText!: Phaser.GameObjects.Text;
 
   constructor() {
-    super({ key: "DebugScene" });
+    super({ 
+      key: "DebugScene",
+      active: true,
+      visible: true 
+    });
+  }
+
+  init() {
+    // Make this scene transparent so it only shows our UI elements
+    this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
   }
 
   create() {
-    // Position in top right corner with a small margin
-    const x = this.cameras.main.width - 100;
+    // Position in top right corner with a margin
+    const x = this.cameras.main.width - 10;
     const y = 10;
     
     this.fpsText = this.add.text(x, y, "FPS: 0", {

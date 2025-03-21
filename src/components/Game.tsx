@@ -43,6 +43,11 @@ const Game: React.FC<GameProps> = ({ tileSize = 64 }) => {
         scene: [BoardScene, DebugScene],
       });
       
+      // Start the DebugScene explicitly to ensure it appears as an overlay
+      const game = gameRef.current;
+      game.scene.start('BoardScene');
+      game.scene.start('DebugScene');
+      
       // Once the scene is created, set the initial tile size
       gameRef.current.scene.getScenes().forEach(scene => {
         if (scene.sys.settings.key === 'BoardScene' && typeof (scene as any).setTileSize === 'function') {
