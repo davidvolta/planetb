@@ -24,16 +24,24 @@ export default class BoardScene extends Phaser.Scene {
     const mapWidth = board.width * this.tileSize;
     const mapHeight = board.height * this.tileHeight;
     
-    // Create a container for all tiles
-    const tilesContainer = this.add.container(mapWidth / 2, 0);
+    // Calculate the true center of an isometric grid
+    const centerX = (board.width + board.height) * this.tileSize / 4;
+    const centerY = (board.width + board.height) * this.tileHeight / 4;
     
-    // Center the camera on the map
-    this.cameras.main.centerOn(mapWidth / 2, mapHeight / 2);
+    // Position container with vertical offset to move grid up
+    const verticalOffset = mapHeight * 0.4; // Move it up by 40% of map height
+    const tilesContainer = this.add.container(centerX, centerY - verticalOffset);
+    
+    // Set camera bounds
+    this.cameras.main.setBounds(-mapWidth, -mapHeight, mapWidth * 3, mapHeight * 3);
+    
+    // Center camera on the adjusted position
+    this.cameras.main.centerOn(centerX, centerY - verticalOffset);
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
-        // Coordinate calculations for isometric placement
+        // Coordinate calculations for isometric placement (centered around 0,0)
         const isoX = (x - y) * this.tileSize / 2;
         const isoY = (x + y) * this.tileHeight / 2;
         
@@ -75,8 +83,7 @@ export default class BoardScene extends Phaser.Scene {
       }
     }
     
-    // Add camera controls for panning
-    this.cameras.main.setBounds(-mapWidth/2, -mapHeight/2, mapWidth * 2, mapHeight * 2);
+    // Add panning and zooming for navigation
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (pointer.isDown) {
         this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;

@@ -15,10 +15,37 @@ function App() {
   }, [initializeBoard]);
 
   return (
-    <div>
-      <button onClick={nextTurn}>Next Turn</button>
-      <p>Current Turn: {turn}</p>
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+      {/* Game canvas takes the full screen */}
       <Game />
+      
+      {/* UI elements overlay on top */}
+      <div style={{ 
+        position: 'absolute', 
+        top: 10, 
+        left: 10, 
+        zIndex: 10,
+        background: 'rgba(0,0,0,0.5)',
+        padding: '10px',
+        borderRadius: '5px',
+        color: 'white'
+      }}>
+        <button 
+          onClick={nextTurn}
+          style={{
+            padding: '8px 16px',
+            background: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginRight: '10px'
+          }}
+        >
+          Next Turn
+        </button>
+        <span>Current Turn: {turn}</span>
+      </div>
     </div>
   );
 }
