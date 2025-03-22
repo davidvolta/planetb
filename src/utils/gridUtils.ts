@@ -76,4 +76,56 @@ export function gridToScreen(
  */
 export function isInGridBounds(x: number, y: number, width: number, height: number): boolean {
   return x >= 0 && x < width && y >= 0 && y < height;
+}
+
+/**
+ * Checks if a tile position is within any habitat zone
+ * A zone includes the habitat's position and the 8 adjacent tiles (including diagonals)
+ * 
+ * @param x Grid X coordinate to check
+ * @param y Grid Y coordinate to check
+ * @param zonedTiles Set of already zoned tile positions in "x,y" string format
+ * @returns True if the position is within any habitat zone
+ */
+export function isInAnyZone(x: number, y: number, zonedTiles: Set<string>): boolean {
+  // Check if the exact position is already in a zone
+  const positionKey = `${x},${y}`;
+  return zonedTiles.has(positionKey);
+}
+
+/**
+ * Marks a habitat's zone in the zonedTiles set
+ * A zone includes the habitat's position and the 8 adjacent tiles (including diagonals)
+ * 
+ * @param x Grid X coordinate of the habitat
+ * @param y Grid Y coordinate of the habitat
+ * @param zonedTiles Set of zoned tile positions to update
+ * @param width Optional grid width for bounds checking
+ * @param height Optional grid height for bounds checking
+ */
+export function markZone(
+  x: number, 
+  y: number, 
+  zonedTiles: Set<string>,
+  width?: number,
+  height?: number
+): void {
+  // Mark the habitat's position and all 8 adjacent tiles
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const zoneX = x + dx;
+      const zoneY = y + dy;
+      
+      // Skip if out of bounds (if width and height are provided)
+      if (width !== undefined && height !== undefined) {
+        if (!isInGridBounds(zoneX, zoneY, width, height)) {
+          continue;
+        }
+      }
+      
+      // Add to zoned tiles
+      const key = `${zoneX},${zoneY}`;
+      zonedTiles.add(key);
+    }
+  }
 } 

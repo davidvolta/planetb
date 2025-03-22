@@ -16,6 +16,16 @@ export enum TerrainType {
   UNDERWATER = 'underwater',
 }
 
+// Order of terrain types for habitat placement
+// Start with beaches, then move inward (grass, mountain), then outward (water, underwater)
+export const HABITAT_TERRAIN_ORDER: TerrainType[] = [
+  TerrainType.BEACH,    // Start with beaches as the foundation
+  TerrainType.GRASS,    // Move inward to grass
+  TerrainType.MOUNTAIN, // Continue inward to mountains
+  TerrainType.WATER,    // Move outward to water
+  TerrainType.UNDERWATER // Finally to underwater
+];
+
 // Only island map generation is available now
 export enum MapGenerationType {
   ISLAND = 'island'
