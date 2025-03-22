@@ -197,34 +197,101 @@ function addBeaches(terrain: TerrainType[][], width: number, height: number, bea
  * Add underwater tiles adjacent to water tiles
  */
 function addUnderwaterTiles(terrain: TerrainType[][], width: number, height: number): void {
-  // Deep copy the terrain to avoid modification while iterating
-  const terrainCopy = terrain.map(row => [...row]);
+  // First identify all water tiles adjacent to non-water (shoreline)
+  const shoreline: [number, number][] = [];
+  const waterTiles: [number, number][] = [];
   
+  // Find all water tiles and shoreline water tiles
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (terrainCopy[y][x] === TerrainType.WATER) {
-        // Check if it has at least 3 water neighbors
-        let waterNeighbors = 0;
+      if (terrain[y][x] === TerrainType.WATER) {
+        waterTiles.push([x, y]);
         
-        // Check 4 adjacent tiles
-        const neighbors = [
-          [x-1, y], [x+1, y], [x, y-1], [x, y+1]
-        ];
-        
-        for (const [nx, ny] of neighbors) {
-          if (nx >= 0 && nx < width && ny >= 0 && ny < height && 
-              terrainCopy[ny][nx] === TerrainType.WATER) {
-            waterNeighbors++;
-          }
-        }
-        
-        // If enough water neighbors, make it underwater (deeper water)
-        if (waterNeighbors >= 3) {
-          terrain[y][x] = TerrainType.UNDERWATER;
+        // Check if this water tile touches any non-water tile (including diagonals)
+        const isShore = hasNonWaterNeighbor(terrain, x, y, width, height);
+        if (isShore) {
+          shoreline.push([x, y]);
         }
       }
     }
   }
+  
+  // Initialize distance map with infinity for all water tiles
+  const distanceFromShore: Record<string, number> = {};
+  waterTiles.forEach(([x, y]) => {
+    distanceFromShore[`${x},${y}`] = Infinity;
+  });
+  
+  // Set shoreline distances to 0
+  shoreline.forEach(([x, y]) => {
+    distanceFromShore[`${x},${y}`] = 0;
+  });
+  
+  // Perform breadth-first flood fill from shoreline
+  let queue = [...shoreline];
+  
+  while (queue.length > 0) {
+    const [x, y] = queue.shift()!;
+    const currentDist = distanceFromShore[`${x},${y}`];
+    
+    // Check 4 adjacent neighbors
+    const neighbors = [
+      [x-1, y], [x+1, y], [x, y-1], [x, y+1]
+    ];
+    
+    for (const [nx, ny] of neighbors) {
+      // Skip if out of bounds or not water
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height || 
+          terrain[ny][nx] !== TerrainType.WATER) {
+        continue;
+      }
+      
+      const key = `${nx},${ny}`;
+      // If we found a shorter path, update distance and add to queue
+      if (distanceFromShore[key] > currentDist + 1) {
+        distanceFromShore[key] = currentDist + 1;
+        queue.push([nx, ny]);
+      }
+    }
+  }
+  
+  // Convert water tiles to underwater based on distance threshold
+  // Water tiles with distance >= 2 from shore become underwater
+  waterTiles.forEach(([x, y]) => {
+    const distance = distanceFromShore[`${x},${y}`];
+    if (distance >= 2) {
+      terrain[y][x] = TerrainType.UNDERWATER;
+    }
+  });
+}
+
+/**
+ * Helper function to check if a water tile has any non-water neighbors
+ */
+function hasNonWaterNeighbor(
+  terrain: TerrainType[][], 
+  x: number, 
+  y: number, 
+  width: number, 
+  height: number
+): boolean {
+  // Check all 8 surrounding tiles (including diagonals)
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue; // Skip center
+      
+      const nx = x + dx;
+      const ny = y + dy;
+      
+      // If neighbor is in bounds and not water/underwater, this is a shore tile
+      if (nx >= 0 && nx < width && ny >= 0 && ny < height && 
+          terrain[ny][nx] !== TerrainType.WATER && 
+          terrain[ny][nx] !== TerrainType.UNDERWATER) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
