@@ -1,5 +1,5 @@
 import { useGameStore } from "../store/gameStore";
-import { StoreApi, UseBoundStore } from "zustand";
+import { GameState } from "../store/gameStore";
 
 /**
  * StateObserver utility
@@ -21,7 +21,7 @@ export class StateObserver {
    */
   static subscribe<T>(
     sceneKey: string,
-    selector: (state: any) => T,
+    selector: (state: GameState) => T,
     onChange: (selectedState: T) => void
   ): () => void {
     // Unsubscribe existing subscription for this scene key if it exists

@@ -57,16 +57,10 @@ interface Animal {
   position: Coordinate;
 }
 
-// Animal templates (movement, abilities, etc.)
-const animalTemplates: Record<string, Partial<Animal>> = {
-  buffalo: { type: "buffalo" },
-  bunny: { type: "bunny" },
-  snake: { type: "snake" },
-  fish: { type: "fish" },
-};
+
 
 // Game state interface
-interface GameState {
+export interface GameState {
   turn: number;
   players: Player[];
   currentPlayerId: number;
@@ -76,7 +70,7 @@ interface GameState {
   nextTurn: () => void;
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
-  initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
+  initializeBoard: (width: number, height: number) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   
   addAnimal: (x: number, y: number, type?: string) => void;
@@ -112,7 +106,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { players: updatedPlayers, currentPlayerId: playerId };
     }),
 
-  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND) =>
+  initializeBoard: (width, height) =>
     set(() => {
       const terrainData = generateIslandTerrain(width, height);
       const tiles: Tile[][] = [];

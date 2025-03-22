@@ -25,6 +25,20 @@ const DEFAULT_OPTIONS: GameInitOptions = {
   mapType: MapGenerationType.ISLAND
 };
 
+// Current game board cached for retrieval without accessing store directly
+let cachedBoard: {
+  width: number;
+  height: number;
+  tiles: { coordinate: { x: number; y: number }; terrain: TerrainType; explored: boolean; visible: boolean; }[][];
+} | null = null;
+
+// Update the cached board when state changes
+useGameStore.subscribe((state) => {
+  if (state.board) {
+    cachedBoard = state.board;
+  }
+});
+
 export class GameInitializer {
   /**
    * Initializes the game board with the provided options
@@ -90,12 +104,18 @@ export class GameInitializer {
   }
   
   /**
-   * Gets the current board from state or creates a fallback if needed
+   * Gets the current board from cached state or creates a fallback if needed
    */
   static getBoard() {
-    const store = useGameStore.getState();
-    if (store.board) {
-      return store.board;
+    if (cachedBoard) {
+      return cachedBoard;
+    }
+    
+    // Try to get from store
+    const storeBoard = useGameStore.getState().board;
+    if (storeBoard) {
+      cachedBoard = storeBoard;
+      return storeBoard;
     }
     
     // Generate a fallback board without saving to state

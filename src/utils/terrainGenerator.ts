@@ -79,7 +79,6 @@ function generateIslandHeightMap(width: number, height: number, seed: number): n
   // Calculate center point and maximum distance to edge
   const centerX = width / 2;
   const centerY = height / 2;
-  const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
   
   // Generate heightmap with island pattern
   for (let y = 0; y < height; y++) {
@@ -228,7 +227,7 @@ function addUnderwaterTiles(terrain: TerrainType[][], width: number, height: num
   });
   
   // Perform breadth-first flood fill from shoreline
-  let queue = [...shoreline];
+  const queue = [...shoreline];
   
   while (queue.length > 0) {
     const [x, y] = queue.shift()!;

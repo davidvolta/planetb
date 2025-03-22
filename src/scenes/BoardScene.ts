@@ -1,8 +1,25 @@
 import Phaser from "phaser";
-import { useGameStore } from "../store/gameStore";
 import { TerrainType } from "../store/gameStore";
 import { GameInitializer } from "../services/gameInitializer";
 import { StateObserver } from "../utils/stateObserver";
+import { AnimalState } from "../store/gameStore";
+
+// Define the Animal interface to avoid 'any' type
+interface Animal {
+  id: string;
+  type: string;
+  state: AnimalState;
+  position: {
+    x: number;
+    y: number;
+  };
+}
+
+// Custom event names
+export const EVENTS = {
+  ANIMAL_CLICKED: 'animalClicked',
+  TILE_CLICKED: 'tileClicked'
+};
 
 export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.Container[] = [];
@@ -38,7 +55,7 @@ export default class BoardScene extends Phaser.Scene {
     // Clear previous tiles when scene restarts
     this.tiles = [];
     
-    // Subscribe to board changes
+    // Subscribe to state changes
     this.setupStateSubscriptions();
   }
   
@@ -46,12 +63,21 @@ export default class BoardScene extends Phaser.Scene {
   private setupStateSubscriptions() {
     // Subscribe to board state changes
     StateObserver.subscribe(
-      'BoardScene',
+      'BoardScene.board',
       (state) => state.board,
       (board) => {
         if (board) {
           this.updateBoard();
         }
+      }
+    );
+    
+    // Subscribe to animals state changes
+    StateObserver.subscribe(
+      'BoardScene.animals',
+      (state) => state.animals,
+      (animals) => {
+        this.updateAnimals(animals);
       }
     );
   }
@@ -78,9 +104,6 @@ export default class BoardScene extends Phaser.Scene {
     if (oldContainer) {
       oldContainer.destroy();
     }
-    
-    // Now that tiles container exists, create animal sprites
-    this.createAnimalSprites();
   }
   
   create() {
@@ -89,22 +112,18 @@ export default class BoardScene extends Phaser.Scene {
     this.setupControls();
     
     // Note: We'll create animals after the tiles container is ready
-    // This is handled by subscribing to the board state
-    // The board state subscription will trigger updateBoard() which creates the tilesContainer
-    
-    // Subscribe to animal changes
-    useGameStore.subscribe((state) => {
-      this.updateAnimals(state.animals);
-    });
+    // This is handled by subscribing to the board and animal state through StateObserver
   }
 
-  evolveAnimal(animalId: string, sprite: Phaser.GameObjects.Sprite) {
-    // Only evolves the animal's state (from DORMANT/egg to ACTIVE)
-    useGameStore.getState().evolveAnimal(animalId);
+  // Handle animal click events - emit event instead of directly modifying state
+  onAnimalClicked(animalId: string) {
+    // Emit an event for the React component to handle
+    this.events.emit(EVENTS.ANIMAL_CLICKED, animalId);
+    console.log(`Animal clicked: ${animalId}`);
   }
 
   // New consolidated method for creating/updating animal sprites
-  private createOrUpdateAnimalSprite(animal) {
+  private createOrUpdateAnimalSprite(animal: Animal) {
     // Try to find an existing sprite for this animal
     const existingSprite = this.children.list.find(
       (child) => child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === animal.id
@@ -115,7 +134,7 @@ export default class BoardScene extends Phaser.Scene {
     const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
 
     // Determine the texture based on state
-    const textureKey = animal.state === 'dormant' ? 'egg' : animal.type;
+    const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
 
     if (existingSprite) {
       // Update existing sprite
@@ -138,7 +157,7 @@ export default class BoardScene extends Phaser.Scene {
       sprite.setData('animalType', animal.type);
       
       sprite.setInteractive();
-      sprite.on("pointerdown", () => this.evolveAnimal(animal.id, sprite));
+      sprite.on("pointerdown", () => this.onAnimalClicked(animal.id));
       
       // Add to tiles container
       if (this.tilesContainer) {
@@ -151,7 +170,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Updated method using the consolidated approach
-  updateAnimals(animals) {
+  updateAnimals(animals: Animal[]) {
     console.log("Updating animals:", animals);
     
     // Check if tilesContainer exists before proceeding
@@ -168,7 +187,7 @@ export default class BoardScene extends Phaser.Scene {
       .filter(child => {
         if (!(child instanceof Phaser.GameObjects.Sprite)) return false;
         const animalId = child.getData('animalId');
-        return animalId && !animals.some(a => a.id === animalId);
+        return animalId && !animals.some((a: Animal) => a.id === animalId);
       })
       .forEach(sprite => {
         console.log(`Removing sprite for deleted animal ${sprite.getData('animalId')}`);
@@ -176,23 +195,15 @@ export default class BoardScene extends Phaser.Scene {
       });
   }
   
-  // Simplified method using the consolidated approach
-  createAnimalSprites() {
-    console.log("Creating animal sprites now that tiles container exists");
-    
-    // Get animals from store
-    const animals = useGameStore.getState().animals;
-    console.log("Animals in store:", animals);
-    console.log("Number of animals:", animals.length);
-    
-    // Process each animal
-    animals.forEach(animal => this.createOrUpdateAnimalSprite(animal));
-  }
-
   // Clean up when scene is shut down
   shutdown() {
     // Unsubscribe from state changes to prevent memory leaks
-    StateObserver.unsubscribe('BoardScene');
+    StateObserver.unsubscribe('BoardScene.board');
+    StateObserver.unsubscribe('BoardScene.animals');
+    
+    // Remove all event listeners
+    this.events.removeAllListeners(EVENTS.ANIMAL_CLICKED);
+    this.events.removeAllListeners(EVENTS.TILE_CLICKED);
   }
   
   // Create tiles based on the current board state
@@ -288,7 +299,10 @@ export default class BoardScene extends Phaser.Scene {
         const tile = gameObject as Phaser.GameObjects.Container;
         const x = tile.getData('gridX');
         const y = tile.getData('gridY');
-        console.log(`Clicked tile at grid: ${x}, ${y}`);
+        
+        // Emit tile clicked event instead of console logging
+        this.events.emit(EVENTS.TILE_CLICKED, x, y);
+        console.log(`Emitted tile click event for (${x}, ${y})`);
       }
     });
   }
@@ -304,7 +318,7 @@ export default class BoardScene extends Phaser.Scene {
     });
     
     // Add mouse wheel zoom
-    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any, deltaX: number, deltaY: number) => {
+    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number) => {
       const zoom = this.cameras.main.zoom;
       const newZoom = Phaser.Math.Clamp(zoom - deltaY * 0.001, 0.5, 2);
       this.cameras.main.setZoom(newZoom);

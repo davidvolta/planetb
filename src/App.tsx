@@ -3,7 +3,7 @@ import State from "./components/State";
 import { useGameStore } from "./store/gameStore";
 import { useEffect, useState } from "react";
 import { MapGenerationType } from "./store/gameStore";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { GameInitializer } from "./services/gameInitializer";
 
 function App() {
