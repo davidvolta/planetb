@@ -15,6 +15,24 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
+- [] Tile Selection Implementation
+  - [] Phase 1: Basic Selection Layer
+    - [x] Create a single selection indicator object in BoardScene
+    - [x] Implement scene-level mouse tracking (replacing tile-level hover events)
+    - [x] Add a grid coordinate conversion utility (screen coords → tile coords)
+    - [] Implement logic to move selection indicator to the tile under cursor
+    - [x] Remove all individual tile hover listeners
+  - [] Phase 2: Enhanced Selection Features
+    - [] Add visual states for the selection indicator (hover, selected, invalid)
+    - [] Implement click handling using the selection layer
+    - [] Add keyboard navigation support for selection
+    - [] Connect selection events to game state
+  - [] Phase 3: Multi-selection and Actions
+    - [] Implement secondary selection for target tiles
+    - [] Add visual indication for available moves/actions
+    - [] Connect selection to unit movement mechanics
+    - [] Implement action validation and preview
+
 - [] Fix Corners of Terrain Generation
 - [] Add first unit
 - [] Unit movement
@@ -28,24 +46,6 @@
   - [] Implement texture-based rendering for terrain tiles
   - [] Create incremental updates to avoid full board recreation
   - [] Optimize event listeners with event delegation
-
-- [] Selection Layer Implementation
-  - [] Phase 1: Basic Selection Layer
-    - [] Create a single selection indicator object in BoardScene
-    - [] Implement scene-level mouse tracking (replacing tile-level hover events)
-    - [] Add a grid coordinate conversion utility (screen coords → tile coords)
-    - [] Implement logic to move selection indicator to the tile under cursor
-    - [] Remove all individual tile hover listeners
-  - [] Phase 2: Enhanced Selection Features
-    - [] Add visual states for the selection indicator (hover, selected, invalid)
-    - [] Implement click handling using the selection layer
-    - [] Add keyboard navigation support for selection
-    - [] Connect selection events to game state
-  - [] Phase 3: Multi-selection and Actions
-    - [] Implement secondary selection for target tiles
-    - [] Add visual indication for available moves/actions
-    - [] Connect selection to unit movement mechanics
-    - [] Implement action validation and preview
 
 - [] Add fog of war
 - [] Implement habitats

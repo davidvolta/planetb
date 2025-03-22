@@ -428,5 +428,27 @@ export default class BoardScene extends Phaser.Scene {
     // Update hovered grid position
     const pointer = this.input.activePointer;
     this.hoveredGridPosition = this.getGridPositionAt(pointer.x, pointer.y);
+    
+    // Update selection indicator position
+    if (this.selectionIndicator && this.tilesContainer) {
+      if (this.hoveredGridPosition) {
+        // Calculate isometric position for the indicator
+        const gridX = this.hoveredGridPosition.x;
+        const gridY = this.hoveredGridPosition.y;
+        
+        // Convert grid coordinates to isometric coordinates
+        const isoX = (gridX - gridY) * this.tileSize / 2;
+        const isoY = (gridX + gridY) * this.tileHeight / 2;
+        
+        // Position the indicator
+        this.selectionIndicator.setPosition(isoX, isoY);
+        
+        // Make the indicator visible
+        this.selectionIndicator.setVisible(true);
+      } else {
+        // Hide the indicator when not hovering over a valid tile
+        this.selectionIndicator.setVisible(false);
+      }
+    }
   }
 }
