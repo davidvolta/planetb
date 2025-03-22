@@ -11,7 +11,7 @@ export default class BoardScene extends Phaser.Scene {
   private verticalOffset = 0;
   private tilesContainer: Phaser.GameObjects.Container | null = null;
   private controlsSetup = false;
-
+  
   constructor() {
     super({ key: "BoardScene" });
   }
@@ -36,7 +36,6 @@ export default class BoardScene extends Phaser.Scene {
       (state) => state.board,
       (board) => {
         if (board) {
-          console.log('Board state changed - updating scene');
           this.updateBoard();
         }
       }
@@ -55,8 +54,6 @@ export default class BoardScene extends Phaser.Scene {
 
   // Method to update the board without restarting the scene
   updateBoard() {
-  
-    
     // Store a reference to the old tiles container
     const oldContainer = this.tilesContainer;
     
@@ -70,8 +67,9 @@ export default class BoardScene extends Phaser.Scene {
   }
   
   create() {
-    console.log("Creating new board scene");
-    this.createTiles();
+    // Setup camera and controls, but don't create tiles directly
+    // Tiles will be created by the state subscription
+    this.setupControls();
   }
   
   // Clean up when scene is shut down
@@ -97,7 +95,7 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
 
-    console.log(`Creating tiles for board: ${board.width}x${board.height}, hash: ${Date.now()}`);
+    console.log(`Creating tiles for board: ${board.width}x${board.height}`);
 
     // Calculate map dimensions
     const mapWidth = board.width * this.tileSize;

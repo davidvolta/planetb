@@ -17,15 +17,13 @@ function App() {
   // Track tile size
   const [tileSize, setTileSize] = useState(64);
   
-  // Initialize the board when the app loads
+  // Single initialization and update effect
   useEffect(() => {
-    // Initialize with island generation using the GameInitializer service
     GameInitializer.initializeBoard({
       width: mapWidth,
       height: mapHeight,
       mapType: MapGenerationType.ISLAND
     });
-    console.log("Board initialized with island generation");
   }, [mapWidth, mapHeight]);
 
   return (
@@ -119,7 +117,6 @@ function App() {
               
               <button
                 onClick={() => {
-                  console.log("Generating new map");
                   GameInitializer.initializeBoard({
                     width: mapWidth,
                     height: mapHeight,

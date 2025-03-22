@@ -27,8 +27,8 @@ const Game: React.FC<GameProps> = ({ tileSize = 64 }) => {
 
   useEffect(() => {
     // Get the container dimensions
-    const width = gameContainerRef.current?.clientWidth || 800;
-    const height = gameContainerRef.current?.clientHeight || 600;
+    const width = gameContainerRef.current?.clientWidth || 1280;
+    const height = gameContainerRef.current?.clientHeight || 720;
 
     if (!gameRef.current) {
       // Initialize Phaser game only once
@@ -58,8 +58,8 @@ const Game: React.FC<GameProps> = ({ tileSize = 64 }) => {
     const handleResize = () => {
       if (gameRef.current) {
         gameRef.current.scale.resize(
-          gameContainerRef.current?.clientWidth || 800,
-          gameContainerRef.current?.clientHeight || 600
+          gameContainerRef.current?.clientWidth || 1280,
+          gameContainerRef.current?.clientHeight || 720
         );
       }
     };
