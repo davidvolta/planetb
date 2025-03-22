@@ -135,6 +135,27 @@ function App() {
               >
                 Generate New Map
               </button>
+              
+              <button
+                onClick={() => {
+                  const centerX = Math.floor(mapWidth / 2);
+                  const centerY = Math.floor(mapHeight / 2);
+                  console.log(`Adding test animal at (${centerX}, ${centerY})`);
+                  useGameStore.getState().addAnimal(centerX, centerY);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: '#9C27B0',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  marginTop: '10px'
+                }}
+              >
+                Add Test Animal
+              </button>
             </div>
           </div>
         </div>

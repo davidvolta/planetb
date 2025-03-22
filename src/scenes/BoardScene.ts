@@ -75,32 +75,21 @@ export default class BoardScene extends Phaser.Scene {
     if (oldContainer) {
       oldContainer.destroy();
     }
+    
+    // Now that tiles container exists, create animal sprites
+    this.createAnimalSprites();
   }
   
   create() {
     // Setup camera and controls, but don't create tiles directly
     // Tiles will be created by the state subscription
     this.setupControls();
-    const { x, y } = this.gridToScreen(8, 8); // Convert grid (3,3) to screen coords
     
-    // Add the buffalo raised 10px vertically
-    //const buffalo = this.add.image(x, y - 12, "buffalo"); // Add unit at that position, displaced 10px up
-    //buffalo.setOrigin(0.5);
+    // Note: We'll create animals after the tiles container is ready
+    // This is handled by subscribing to the board state
+    // The board state subscription will trigger updateBoard() which creates the tilesContainer
     
-    const animals = useGameStore.getState().animals;
-
-    animals.forEach((animal) => {
-      const { x, y } = this.gridToScreen(animal.position.x, animal.position.y);
-      const sprite = this.add.sprite(
-        x, 
-        y - 12, // Keep the vertical offset for better appearance
-        animal.type
-      );
-
-      sprite.setInteractive();
-      sprite.on("pointerdown", () => this.evolveAnimal(animal.id, sprite));
-    });
-
+    // Subscribe to animal changes
     useGameStore.subscribe((state) => {
       this.updateAnimals(state.animals);
     });
@@ -114,15 +103,68 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   updateAnimals(animals) {
+    console.log("Updating animals:", animals);
+    
+    // Check if tilesContainer exists before proceeding
+    if (!this.tilesContainer) {
+      console.warn("Cannot update animals - tilesContainer not available");
+      return;
+    }
+    
+    // For each animal in state, find or create a sprite
     animals.forEach((animal) => {
       const existingSprite = this.children.list.find(
-        (child) => child instanceof Phaser.GameObjects.Sprite && child.texture.key === animal.id
+        (child) => child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === animal.id
       );
 
       if (existingSprite) {
-        existingSprite.setTexture(animal.type); // Change texture on evolution
+        console.log(`Updating sprite for animal ${animal.id} to texture ${animal.type}`);
+        // Cast to Sprite before using setTexture
+        (existingSprite as Phaser.GameObjects.Sprite).setTexture(animal.type);
+      } else {
+        console.log(`Creating new sprite for animal ${animal.id}`);
+        // Animal doesn't have a sprite yet, create one
+        
+        // Calculate isometric position
+        const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
+        const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
+        
+        console.log(`Creating sprite at iso (${isoX},${isoY})`);
+        
+        // Create the sprite
+        const sprite = this.add.sprite(
+          isoX, 
+          isoY - 12, // Keep the vertical offset for better appearance
+          animal.type
+        );
+        
+        sprite.setOrigin(0.5);
+        sprite.setData('animalId', animal.id);
+        
+        sprite.setInteractive();
+        sprite.on("pointerdown", () => this.evolveAnimal(animal.id, sprite));
+        
+        // Add to tiles container
+        if (this.tilesContainer) {
+          this.tilesContainer.add(sprite);
+          console.log(`Added new sprite for animal ${animal.id} to tiles container`);
+        } else {
+          console.warn("tilesContainer not available, sprite may not be positioned correctly");
+        }
       }
     });
+    
+    // Remove sprites for animals that no longer exist
+    this.children.list
+      .filter(child => {
+        if (!(child instanceof Phaser.GameObjects.Sprite)) return false;
+        const animalId = child.getData('animalId');
+        return animalId && !animals.some(a => a.id === animalId);
+      })
+      .forEach(sprite => {
+        console.log(`Removing sprite for deleted animal ${sprite.getData('animalId')}`);
+        sprite.destroy();
+      });
   }
 
   // Clean up when scene is shut down
@@ -302,9 +344,7 @@ export default class BoardScene extends Phaser.Scene {
     shape.closePath();
     shape.strokePath();
     
-    // Add terrains specific details
-    //this.addTerrainDetails(shape, terrain);
-    
+   
     // Add the shape to the container
     container.add(shape);
     
@@ -522,5 +562,52 @@ export default class BoardScene extends Phaser.Scene {
     
     // Fallback if tiles container doesn't exist yet
     return { x: isoX, y: isoY };
+  }
+
+  // New method to create animal sprites
+  createAnimalSprites() {
+    console.log("Creating animal sprites now that tiles container exists");
+    
+    // Get animals from store
+    const animals = useGameStore.getState().animals;
+    console.log("Animals in store:", animals);
+    console.log("Number of animals:", animals.length);
+    
+    // Clear any existing animal sprites first
+    if (this.tilesContainer) {
+      this.tilesContainer.list
+        .filter(child => child instanceof Phaser.GameObjects.Sprite)
+        .forEach(sprite => sprite.destroy());
+    }
+    
+    animals.forEach((animal) => {
+      // Calculate isometric position for the sprite
+      const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
+      const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
+      
+      console.log(`Creating sprite for animal at grid (${animal.position.x},${animal.position.y}), iso (${isoX},${isoY})`);
+      
+      // Create the sprite
+      const sprite = this.add.sprite(
+        isoX, 
+        isoY - 12, // Keep the vertical offset for better appearance
+        animal.type
+      );
+      
+      console.log(`Created sprite with texture: ${animal.type}`);
+      sprite.setOrigin(0.5);
+      sprite.setData('animalId', animal.id);
+      
+      sprite.setInteractive();
+      sprite.on("pointerdown", () => this.evolveAnimal(animal.id, sprite));
+      
+      // Add to tiles container
+      if (this.tilesContainer) {
+        this.tilesContainer.add(sprite);
+        console.log("Added sprite to tiles container");
+      } else {
+        console.warn("tilesContainer not available, sprite may not be positioned correctly");
+      }
+    });
   }
 }
