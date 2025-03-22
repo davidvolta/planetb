@@ -11,8 +11,8 @@ function App() {
   const nextTurn = useGameStore((state) => state.nextTurn);
   
   // Track map size
-  const [mapWidth, setMapWidth] = useState(20);
-  const [mapHeight, setMapHeight] = useState(20);
+  const [mapWidth, setMapWidth] = useState(30);
+  const [mapHeight, setMapHeight] = useState(30);
   
   // Track tile size
   const [tileSize, setTileSize] = useState(64);

@@ -20,8 +20,8 @@ interface GameInitOptions {
 }
 
 const DEFAULT_OPTIONS: GameInitOptions = {
-  width: 20,
-  height: 20,
+  width: 30,
+  height: 30,
   mapType: MapGenerationType.ISLAND
 };
 
