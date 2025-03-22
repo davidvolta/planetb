@@ -24,9 +24,12 @@ export default class BoardScene extends Phaser.Scene {
 
 
   preload() {
-    this.load.image("egg", "assets/egg.png");
+    // Load all animal sprites
+    this.load.image("egg", "assets/egg.png");      // Dormant state for all animals
     this.load.image("buffalo", "assets/buffalo.png");
     this.load.image("eagle", "assets/eagle.png");
+    this.load.image("snake", "assets/snake.png");
+    this.load.image("fish", "assets/fish.png");
 
   }
   
@@ -96,10 +99,8 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   evolveAnimal(animalId: string, sprite: Phaser.GameObjects.Sprite) {
-    const animalType = "buffalo"; // Later, make this dynamic
-    useGameStore.getState().evolveAnimal(animalId, animalType);
-
-    sprite.setTexture(animalType); // Update sprite texture
+    // Only evolves the animal's state (from DORMANT/egg to ACTIVE)
+    useGameStore.getState().evolveAnimal(animalId);
   }
 
   // New consolidated method for creating/updating animal sprites
@@ -109,27 +110,32 @@ export default class BoardScene extends Phaser.Scene {
       (child) => child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === animal.id
     ) as Phaser.GameObjects.Sprite | undefined;
 
+    // Calculate isometric position
+    const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
+    const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
+
+    // Determine the texture based on state
+    const textureKey = animal.state === 'dormant' ? 'egg' : animal.type;
+
     if (existingSprite) {
       // Update existing sprite
-      console.log(`Updating sprite for animal ${animal.id} to texture ${animal.type}`);
-      existingSprite.setTexture(animal.type);
+      console.log(`Updating sprite for animal ${animal.id} to texture ${textureKey}`);
+      existingSprite.setTexture(textureKey);
+      existingSprite.setPosition(isoX, isoY - 12);
     } else {
       // Animal doesn't have a sprite yet, create one
-      console.log(`Creating new sprite for animal ${animal.id}`);
-      
-      // Calculate isometric position
-      const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
-      const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
+      console.log(`Creating new sprite for animal ${animal.id} with texture ${textureKey}`);
       
       // Create the sprite
       const sprite = this.add.sprite(
         isoX, 
         isoY - 12, // Keep the vertical offset for better appearance
-        animal.type
+        textureKey
       );
       
       sprite.setOrigin(0.5);
       sprite.setData('animalId', animal.id);
+      sprite.setData('animalType', animal.type);
       
       sprite.setInteractive();
       sprite.on("pointerdown", () => this.evolveAnimal(animal.id, sprite));

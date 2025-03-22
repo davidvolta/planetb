@@ -141,7 +141,7 @@ function App() {
                   const centerX = Math.floor(mapWidth / 2);
                   const centerY = Math.floor(mapHeight / 2);
                   console.log(`Adding test animal at (${centerX}, ${centerY})`);
-                  useGameStore.getState().addAnimal(centerX, centerY);
+                  useGameStore.getState().addAnimal(centerX, centerY, "buffalo");
                 }}
                 style={{
                   padding: '8px 16px',
@@ -154,7 +154,28 @@ function App() {
                   marginTop: '10px'
                 }}
               >
-                Add Test Animal
+                Add Test Buffalo
+              </button>
+              
+              <button
+                onClick={() => {
+                  const centerX = Math.floor(mapWidth / 2) - 3;
+                  const centerY = Math.floor(mapHeight / 2) - 3;
+                  console.log(`Adding test eagle at (${centerX}, ${centerY})`);
+                  useGameStore.getState().addAnimal(centerX, centerY, "eagle");
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: '#FFC107',
+                  color: 'black',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  marginTop: '10px'
+                }}
+              >
+                Add Test Eagle
               </button>
             </div>
           </div>

@@ -59,8 +59,10 @@ interface Animal {
 
 // Animal templates (movement, abilities, etc.)
 const animalTemplates: Record<string, Partial<Animal>> = {
-  egg: { type: "egg", state: AnimalState.DORMANT }, // Egg starts in the dormant state
   buffalo: { type: "buffalo" },
+  eagle: { type: "eagle" },
+  snake: { type: "snake" },
+  fish: { type: "fish" },
 };
 
 // Game state interface
@@ -77,8 +79,8 @@ interface GameState {
   initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   
-  addAnimal: (x: number, y: number) => void;
-  evolveAnimal: (id: string, newType: string) => void;
+  addAnimal: (x: number, y: number, type?: string) => void;
+  evolveAnimal: (id: string) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -138,22 +140,22 @@ export const useGameStore = create<GameState>((set, get) => ({
     return board.tiles[y][x];
   },
 
-  addAnimal: (x, y) =>
+  addAnimal: (x, y, type = "buffalo") =>
     set((state) => {
       const newAnimal: Animal = {
         id: `animal-${state.animals.length}`,
-        type: "egg",
+        type: type,
         state: AnimalState.DORMANT,
         position: { x, y },
       };
       return { animals: [...state.animals, newAnimal] };
     }),
 
-  evolveAnimal: (id, newType) =>
+  evolveAnimal: (id) =>
     set((state) => {
       const evolvedAnimals = state.animals.map(animal =>
         animal.id === id
-          ? { ...animal, type: newType, state: AnimalState.ACTIVE }
+          ? { ...animal, state: AnimalState.ACTIVE }
           : animal
       );
       return { animals: evolvedAnimals };
