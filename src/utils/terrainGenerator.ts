@@ -17,7 +17,7 @@ interface TerrainGenerationOptions {
 const defaultOptions: TerrainGenerationOptions = {
   seed: undefined, // This will be randomized for each call
   waterRatio: 0.4,
-  mountainRatio: 0.2,
+  mountainRatio: 0.05,
   beachWidth: 2,
   smoothingPasses: 3,
 };

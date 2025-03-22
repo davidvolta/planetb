@@ -20,8 +20,8 @@ alwaysApply: true
 - Ask if I want to update development-checklist.md after completing tasks
 
 ## Context Rules
-- Keep track of current project focus from development-checklist.md
-- Reference important files listed in development-checklist.md
+- Keep track of current project focus from dev_checklist.md
+- Reference important files listed in dev_checklist.md
 - Consider environment setup before suggesting changes
 - Stay focused on main game project unless explicitly working on test and example projects
 

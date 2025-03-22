@@ -6,67 +6,15 @@
 - ✅ Phaser subscribes to state → Tiles update only when needed, not every frame
 - ✅ React only controls UI → Buttons, menus, etc., remain separate from game rendering
 
-## Direct State Access Violations
-
-### BoardScene.ts
-1. **Direct State Reading** (Line 62)
-   ```typescript
-   const board = useGameStore.getState().board;
-   ```
-   - Violation: Phaser directly accesses Zustand state without subscription
-   - Correct Pattern: BoardScene should receive state via subscription or props
-
 
 ## Architectural Violations
-
 ### Missing Subscription Mechanism
-- BoardScene doesn't subscribe to state changes
-- It uses direct `getState()` calls instead of responding to change events
-- No clear mechanism for Phaser to be notified of state updates without polling
-
 ### Bidirectional Data Flow
-- React components (App.tsx) initiate board state changes
-- Phaser (BoardScene.ts) reads and modifies state directly
-- No clear unidirectional data flow
-
-### Initialization in Wrong Places
-- BoardScene initializes game state with fallback values
-- State initialization should only happen in React components or initialization logic
-
 ### Event Handling Violations
-- Phaser tile click handlers would directly call Zustand actions
-- Should be delegating state changes to React components
 
 ## Game.tsx Subscription Issues
 
-1. **Partial Subscription Implementation**
-   ```typescript
-   const boardState = useGameStore(state => state.board);
-   ```
-   - Game.tsx properly subscribes to board state changes
-   - However, it doesn't create a proper communication channel between Zustand and Phaser
-   - There's no proper state observation system for fine-grained updates
-   
-2. **Inefficient Update Mechanism**
-   - When boardState changes, Game.tsx triggers a full scene update:
-   ```typescript
-   useEffect(() => {
-     if (gameRef.current && boardState) {
-       const scene = gameRef.current.scene.getScene('BoardScene') as BoardScene;
-       if (scene && scene.scene.isActive()) {
-         if (typeof (scene as any).updateBoard === 'function') {
-           (scene as any).updateBoard();
-         } else {
-           scene.scene.restart();
-         }
-       }
-     }
-   }, [boardState]);
-   ```
-   - This forces complete recreation of all tiles instead of updating only changed tiles
-   - A more granular update system would improve performance
-
-## Architecture Improvements Needed
+## Game Architecture
 
 1. **Subscription Model**
    - Implement a proper Observer pattern for Phaser to subscribe to state changes

@@ -15,8 +15,14 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
-- [] Fix Corners of Terrain Generation
-- [] Add first unit
+- [] Implement habitats
+- [] Add unit production (eggs)
+- [] Add unit spawning
+
+- [] Implement habitat improvement
+
+- [] Add fog of war
+
 - [] Unit movement
   - [] Add highlight for available moves
   - [] Add unit selector
@@ -29,14 +35,11 @@
   - [] Create incremental updates to avoid full board recreation
   - [] Optimize event listeners with event delegation
 
-- [] Add fog of war
-- [] Implement habitats
-- [] Implement habitat improvement
-- [] Add unit production (eggs)
-- [] Add unit hatching from eggs
-- [] Add unit spawning
 
 ## Completed Tasks
+- [x] Add unit hatching from eggs
+- [x] Fix Corners of Terrain Generation
+- [x] Add first unit
 - [x] Add state for player
 - [x] Add game status panel
 - [x] Display turn number
