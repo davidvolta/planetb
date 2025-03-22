@@ -148,17 +148,6 @@ export default class BoardScene extends Phaser.Scene {
         tile.setData('gridX', x);
         tile.setData('gridY', y);
         tile.setData('baseY', isoY);
-        
-        // Keep hover effects on individual tiles for better responsiveness
-        tile.on('pointerover', () => {
-          tile.setScale(1.05);
-          tile.y = tile.getData('baseY') - 5;
-        });
-        
-        tile.on('pointerout', () => {
-          tile.setScale(1);
-          tile.y = tile.getData('baseY');
-        });
       }
     }
     
@@ -411,7 +400,7 @@ export default class BoardScene extends Phaser.Scene {
     
     // Adjust for tile container position
     const localX = worldPoint.x - this.tilesContainer.x;
-    const localY = worldPoint.y - this.tilesContainer.y;
+    const localY = worldPoint.y - this.tilesContainer.y + this.tileHeight / 2;
     
     // Convert to isometric grid coordinates
     const gridX = Math.floor((localY / (this.tileHeight / 2) + localX / (this.tileSize / 2)) / 2);

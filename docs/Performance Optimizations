@@ -1,11 +1,11 @@
 ## Performance Optimizations (Biggest Bang for Buck)
 
-1. **Replace Graphics with Textures/Sprites** (Highest Impact)
+1. **Replace Graphics with Textures/Sprites** (🕓)
    - Your current approach recreates Graphics objects for every tile on every board update
    - Instead: Generate textures once during preload and reuse them for all tiles
    - Expected gain: 50-70% FPS improvement as Graphics rendering is extremely CPU intensive
 
-2. **Implement Viewport Culling** (High Impact)
+2. **Implement Viewport Culling** (🕓)
    - You're currently rendering all tiles even if they're off-screen
    - Only render tiles that are visible in the current viewport
    - Expected gain: 30-40% improvement for large maps when zoomed in
@@ -23,19 +23,3 @@
 5. **Object Pooling for Tiles** (Medium Impact)
    - Reuse tile objects instead of destroying and recreating them
    - Expected gain: 10-20% improvement during board updates
-
-## State Architecture Violations
-
-1. **Improper Subscription Pattern**
-   - Although you've improved with StateObserver, your BoardScene.updateBoard() method still destroys and recreates all tiles
-   - Issue: Heavy performance penalty for any state change
-   
-2. **Rendering Logic in Game Component**
-   - Your Game.tsx had logic for deciding when to update/restart scenes
-   - This has been partially fixed, but the approach still involves total recreation
-
-3. **Phaser Scene Making Direct Graphics Calls**
-   - Your BoardScene.createTerrainTile creates graphic objects on every update
-   - This violates the principle of separating rendering from state management
-
-Would you like me to elaborate on any of these points or suggest implementation strategies for any specific optimization? I'll wait for your permission before providing any code.
