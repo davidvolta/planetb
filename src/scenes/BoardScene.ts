@@ -18,7 +18,8 @@ interface Animal {
 // Custom event names
 export const EVENTS = {
   ANIMAL_CLICKED: 'animalClicked',
-  TILE_CLICKED: 'tileClicked'
+  TILE_CLICKED: 'tileClicked',
+  HABITAT_CLICKED: 'habitatClicked'
 };
 
 export default class BoardScene extends Phaser.Scene {
@@ -78,6 +79,15 @@ export default class BoardScene extends Phaser.Scene {
       (state) => state.animals,
       (animals) => {
         this.updateAnimals(animals);
+      }
+    );
+    
+    // Subscribe to habitats state changes
+    StateObserver.subscribe(
+      'BoardScene.habitats',
+      (state) => state.habitats,
+      (habitats) => {
+        this.updateHabitats(habitats);
       }
     );
   }
@@ -201,6 +211,7 @@ export default class BoardScene extends Phaser.Scene {
     // Unsubscribe from state changes to prevent memory leaks
     StateObserver.unsubscribe('BoardScene.board');
     StateObserver.unsubscribe('BoardScene.animals');
+    StateObserver.unsubscribe('BoardScene.habitats');
     
     // Remove all event listeners
     this.events.removeAllListeners(EVENTS.ANIMAL_CLICKED);
@@ -280,20 +291,6 @@ export default class BoardScene extends Phaser.Scene {
     // Add panning and zooming for navigation (only if not already set up)
     if (!this.controlsSetup) {
       this.setupControls();
-    }
-    
-    // Create a test habitat graphic at grid position (0,0) which should be visible
-    if (this.tilesContainer) {
-      // Convert grid coordinates to isometric coordinates
-      const gridX = 15;
-      const gridY = 15;
-      const isoX = (gridX - gridY) * this.tileSize / 2;
-      const isoY = (gridX + gridY) * this.tileHeight / 2;
-      
-      // Create the habitat and add it to the tiles container
-      const habitat = this.createHabitatGraphic(isoX, isoY, 'potential');
-      this.tilesContainer.add(habitat);
-      console.log(`Created habitat at grid position (${gridX}, ${gridY})`);
     }
     
     // Setup click event delegation at the container level
@@ -685,5 +682,75 @@ export default class BoardScene extends Phaser.Scene {
     
     // Return the container
     return container;
+  }
+
+  // Update habitats based on the state
+  updateHabitats(habitats: any[]) {
+    console.log("Updating habitats:", habitats);
+    
+    // Check if tilesContainer exists before proceeding
+    if (!this.tilesContainer) {
+      console.warn("Cannot update habitats - tilesContainer not available");
+      return;
+    }
+    
+    // First, remove all existing habitat graphics
+    this.removeAllHabitatGraphics();
+    
+    // Then create new habitat graphics for each habitat in state
+    habitats.forEach(habitat => {
+      const gridX = habitat.position.x;
+      const gridY = habitat.position.y;
+      
+      // Convert grid coordinates to isometric coordinates
+      const isoX = (gridX - gridY) * this.tileSize / 2;
+      const isoY = (gridX + gridY) * this.tileHeight / 2;
+      
+      // Create the habitat graphic based on its state
+      const habitatGraphic = this.createHabitatGraphic(
+        isoX, 
+        isoY, 
+        habitat.state === 'POTENTIAL' ? 'potential' : 'shelter'
+      );
+      
+      // Store the habitat id for later reference
+      habitatGraphic.setData('habitatId', habitat.id);
+      
+      // We know tilesContainer exists here because we checked at the beginning of the method
+      this.tilesContainer!.add(habitatGraphic);
+      
+      // Make the habitat interactive and listen for clicks
+      habitatGraphic.setInteractive();
+      habitatGraphic.on('pointerdown', () => {
+        console.log(`Habitat clicked: ${habitat.id}`);
+        this.events.emit(EVENTS.HABITAT_CLICKED, habitat.id);
+      });
+      
+      console.log(`Created habitat graphic at (${gridX}, ${gridY}) with id ${habitat.id}`);
+    });
+  }
+  
+  // Helper method to remove all existing habitat graphics
+  private removeAllHabitatGraphics() {
+    if (!this.tilesContainer) return;
+    
+    // Find habitat graphics by checking children with getData method
+    const habitatGraphics: Phaser.GameObjects.GameObject[] = [];
+    
+    this.tilesContainer.list.forEach(child => {
+      // Check if child is a GameObject with habitatId data
+      if (child && 'getData' in child && typeof child.getData === 'function') {
+        const gameObj = child as Phaser.GameObjects.GameObject;
+        if (gameObj.getData('habitatId')) {
+          habitatGraphics.push(gameObj);
+        }
+      }
+    });
+    
+    // Remove all found habitat graphics
+    habitatGraphics.forEach(graphic => {
+      console.log(`Removing habitat graphic: ${graphic.getData('habitatId')}`);
+      graphic.destroy();
+    });
   }
 }

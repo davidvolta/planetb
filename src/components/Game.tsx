@@ -10,6 +10,7 @@ const Game: React.FC = () => {
   
   // Get state update functions from Zustand
   const evolveAnimal = useGameStore(state => state.evolveAnimal);
+  const improveHabitat = useGameStore(state => state.improveHabitat);
 
   // Create and initialize the game
   useEffect(() => {
@@ -27,6 +28,12 @@ const Game: React.FC = () => {
       // Listen for tile click events
       boardScene.events.on(EVENTS.TILE_CLICKED, (coords: { x: number, y: number }) => {
         console.log(`Tile clicked at: ${coords.x}, ${coords.y}`);
+      });
+
+      // Listen for habitat click events
+      boardScene.events.on(EVENTS.HABITAT_CLICKED, (habitatId: string) => {
+        console.log(`Habitat clicked: ${habitatId}`);
+        improveHabitat(habitatId);
       });
     };
 
@@ -95,7 +102,7 @@ const Game: React.FC = () => {
         gameRef.current = null;
       }
     };
-  }, [evolveAnimal]);
+  }, [evolveAnimal, improveHabitat]);
 
   return (
     <div

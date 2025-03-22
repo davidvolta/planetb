@@ -9,6 +9,8 @@ import { GameInitializer } from "./services/gameInitializer";
 function App() {
   const turn = useGameStore((state) => state.turn);
   const nextTurn = useGameStore((state) => state.nextTurn);
+  const addPotentialHabitat = useGameStore((state) => state.addPotentialHabitat);
+  const habitats = useGameStore((state) => state.habitats);
   
   // Track map size
   const [mapWidth, setMapWidth] = useState(30);
@@ -23,6 +25,14 @@ function App() {
     });
   }, [mapWidth, mapHeight]);
 
+  // Function to add a potential habitat at a random valid position
+  const addRandomHabitat = () => {
+    const x = Math.floor(Math.random() * mapWidth);
+    const y = Math.floor(Math.random() * mapHeight);
+    addPotentialHabitat(x, y);
+    console.log(`Added potential habitat at (${x}, ${y})`);
+  };
+  
   return (
     <Routes>
       <Route path="/state" element={
@@ -61,13 +71,30 @@ function App() {
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  marginRight: '10px'
+                  marginBottom: '10px',
+                  width: '100%'
                 }}
               >
                 Next Turn
               </button>
-              <span>Current Turn: {turn}</span>
+              
+              <button 
+                onClick={addRandomHabitat}
+                style={{
+                  padding: '8px 16px',
+                  background: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginBottom: '10px',
+                  width: '100%'
+                }}
+              >
+                Add Random Habitat
+              </button>
             </div>
+            <div>Turn: {turn}</div>
             
             <div style={{ marginTop: '10px' }}>
               <h3 style={{ margin: '0 0 8px 0' }}>Map Generation</h3>
