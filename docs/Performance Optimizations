@@ -11,9 +11,7 @@
    - Expected gain: 30-40% improvement for large maps when zoomed in
 
 3. **Optimize Event Listeners** (Medium Impact)
-   - Your current implementation adds event listeners to every tile
-   - Use event delegation (one listener on the container instead of one per tile)
-   - Expected gain: 10-15% improvement, especially on larger boards
+   - ⚠️ Partial Optimization: Each tile still has setInteractive() called on it individually, which is necessary for Phaser to detect which specific tile was clicked, but isn't the most optimal approach from a pure performance perspective.For 100% optimization, you'd need to replace the individual setInteractive() calls with a custom hit detection system, but that would be more complex and might not be worth the effort given the current performance.
 
 4. **Incremental Board Updates** (Medium Impact)
    - You're recreating the entire board when state changes
