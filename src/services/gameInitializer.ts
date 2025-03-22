@@ -17,12 +17,14 @@ interface GameInitOptions {
   width?: number;
   height?: number;
   mapType?: MapGenerationType;
+  forceHabitatGeneration?: boolean;
 }
 
 const DEFAULT_OPTIONS: GameInitOptions = {
   width: 30,
   height: 30,
-  mapType: MapGenerationType.ISLAND
+  mapType: MapGenerationType.ISLAND,
+  forceHabitatGeneration: false
 };
 
 // Current game board cached for retrieval without accessing store directly
@@ -49,7 +51,7 @@ export class GameInitializer {
     try {
       // Merge default options with provided options
       const opts = { ...DEFAULT_OPTIONS, ...options };
-      const { width, height, mapType } = opts;
+      const { width, height, mapType, forceHabitatGeneration } = opts;
       
       if (!width || !height) {
         console.error("Invalid board dimensions", width, height);
@@ -57,7 +59,7 @@ export class GameInitializer {
       }
       
       // Initialize the board in the store
-      useGameStore.getState().initializeBoard(width, height, mapType);
+      useGameStore.getState().initializeBoard(width, height, mapType, forceHabitatGeneration);
       console.log(`Board initialized: ${width}x${height}, type: ${mapType}`);
       return true;
     } catch (error) {

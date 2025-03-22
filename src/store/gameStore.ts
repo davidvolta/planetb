@@ -97,7 +97,7 @@ export interface GameState {
   nextTurn: () => void;
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
-  initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
+  initializeBoard: (width: number, height: number, mapType?: MapGenerationType, forceHabitatGeneration?: boolean) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   
   addAnimal: (x: number, y: number, type?: string) => void;
@@ -140,7 +140,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { players: updatedPlayers, currentPlayerId: playerId };
     }),
 
-  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND) =>
+  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND, forceHabitatGeneration = false) =>
     set((state) => {
       const terrainData = generateIslandTerrain(width, height);
       const tiles: Tile[][] = [];
@@ -158,9 +158,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         tiles.push(row);
       }
 
-      // Generate initial habitats if this is first initialization
+      // Generate initial habitats if this is first initialization or if forced
       let habitats: Habitat[] = [];
-      if (!state.isInitialized) {
+      if (!state.isInitialized || forceHabitatGeneration) {
         // Create a map to track which terrain types we've placed habitats on
         const terrainTypesWithHabitats = new Set<TerrainType>();
         
@@ -207,8 +207,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { 
         board: { width, height, tiles },
         isInitialized: true,
-        // Use new habitats if first initialization, otherwise keep existing ones
-        habitats: state.isInitialized ? state.habitats : habitats
+        // Use new habitats if generating, otherwise keep existing ones
+        habitats: (!state.isInitialized || forceHabitatGeneration) ? habitats : state.habitats
       };
     }),
 

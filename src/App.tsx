@@ -26,14 +26,6 @@ function App() {
       mapType: MapGenerationType.ISLAND
     });
   }, [mapWidth, mapHeight]);
-
-  // Function to add a potential habitat at a random valid position
-  const addRandomHabitat = () => {
-    const x = Math.floor(Math.random() * mapWidth);
-    const y = Math.floor(Math.random() * mapHeight);
-    addPotentialHabitat(x, y);
-    console.log(`Added potential habitat at (${x}, ${y})`);
-  };
   
   return (
     <Routes>
@@ -63,39 +55,6 @@ function App() {
             gap: '10px',
             maxWidth: '300px'
           }}>
-            <div>
-              <button 
-                onClick={nextTurn}
-                style={{
-                  padding: '8px 16px',
-                  background: '#4CAF50',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  marginBottom: '10px',
-                  width: '100%'
-                }}
-              >
-                Next Turn
-              </button>
-              
-              <button 
-                onClick={addRandomHabitat}
-                style={{
-                  padding: '8px 16px',
-                  background: '#2196F3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  marginBottom: '10px',
-                  width: '100%'
-                }}
-              >
-                Add Random Habitat
-              </button>
-            </div>
             <div>Turn: {turn}</div>
             
             <div style={{ marginTop: '10px' }}>
@@ -132,7 +91,8 @@ function App() {
                   GameInitializer.initializeBoard({
                     width: mapWidth,
                     height: mapHeight,
-                    mapType: MapGenerationType.ISLAND
+                    mapType: MapGenerationType.ISLAND,
+                    forceHabitatGeneration: true
                   });
                 }}
                 style={{
@@ -147,6 +107,22 @@ function App() {
                 }}
               >
                 Generate New Map
+              </button>
+              
+              <button 
+                onClick={nextTurn}
+                style={{
+                  padding: '8px 16px',
+                  background: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginBottom: '10px',
+                  width: '100%'
+                }}
+              >
+                Next Turn
               </button>
               
               <button
@@ -171,7 +147,6 @@ function App() {
                   borderRadius: '4px',
                   cursor: 'pointer',
                   width: '100%',
-                  marginTop: '10px'
                 }}
               >
                 Add Random Animal
