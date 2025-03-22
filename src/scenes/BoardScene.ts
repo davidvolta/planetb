@@ -423,6 +423,14 @@ export default class BoardScene extends Phaser.Scene {
     return this.hoveredGridPosition;
   }
   
+  // Method to get the terrain type at a grid position
+  getTerrainAtPosition(x: number, y: number): TerrainType | null {
+    const board = GameInitializer.getBoard();
+    if (!board || !board.tiles[y] || !board.tiles[y][x]) return null;
+    
+    return board.tiles[y][x].terrain;
+  }
+  
   // Update method to track the mouse position
   update() {
     // Update hovered grid position

@@ -5,6 +5,7 @@ export default class DebugScene extends Phaser.Scene {
   private fpsText!: Phaser.GameObjects.Text;
   private mousePositionText!: Phaser.GameObjects.Text;
   private gridCoordinatesText!: Phaser.GameObjects.Text;
+  private terrainTypeText!: Phaser.GameObjects.Text;
   private boardScene: BoardScene | null = null;
 
   constructor() {
@@ -66,6 +67,20 @@ export default class DebugScene extends Phaser.Scene {
     // Right-align the text
     this.gridCoordinatesText.setOrigin(1, 0);
     
+    // Add terrain type text (starts 10px below grid coordinates)
+    this.terrainTypeText = this.add.text(rightX, topY + 75, "Terrain: --", {
+      fontSize: "14px",
+      fontFamily: "monospace",
+      color: "#00FF00",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      padding: { x: 5, y: 2 },
+    })
+    .setScrollFactor(0)
+    .setDepth(1000);
+    
+    // Right-align the text
+    this.terrainTypeText.setOrigin(1, 0);
+    
     // Get the board scene
     this.boardScene = this.scene.get('BoardScene') as BoardScene;
   }
@@ -85,9 +100,18 @@ export default class DebugScene extends Phaser.Scene {
       if (hoveredPosition) {
         // Show grid coordinates
         this.gridCoordinatesText.setText(`Grid: X: ${hoveredPosition.x}, Y: ${hoveredPosition.y}`);
+        
+        // Show terrain type
+        const terrain = this.boardScene.getTerrainAtPosition(hoveredPosition.x, hoveredPosition.y);
+        if (terrain) {
+          this.terrainTypeText.setText(`Terrain: ${terrain}`);
+        } else {
+          this.terrainTypeText.setText(`Terrain: --`);
+        }
       } else {
         // Show placeholder when not hovering a valid tile
         this.gridCoordinatesText.setText(`Grid: X: --, Y: --`);
+        this.terrainTypeText.setText(`Terrain: --`);
       }
     }
   }
