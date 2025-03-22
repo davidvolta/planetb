@@ -42,6 +42,7 @@ const Game: React.FC = () => {
       backgroundColor: '#1c1117',
       parent: gameContainerRef.current,
       scene: [BoardScene, DebugScene],
+      pixelArt: true, // Ensures sharp pixel rendering
       scale: {
         mode: Phaser.Scale.RESIZE,
         width: '100%',

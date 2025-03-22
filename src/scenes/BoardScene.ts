@@ -121,9 +121,14 @@ export default class BoardScene extends Phaser.Scene {
   // New consolidated method for creating/updating animal sprites
   private createOrUpdateAnimalSprite(animal: Animal) {
     // Try to find an existing sprite for this animal
-    const existingSprite = this.children.list.find(
-      (child) => child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === animal.id
-    ) as Phaser.GameObjects.Sprite | undefined;
+    // Instead of searching scene.children, search tilesContainer.list for existing sprites
+    let existingSprite: Phaser.GameObjects.Sprite | undefined;
+    
+    if (this.tilesContainer) {
+      existingSprite = this.tilesContainer.list.find(
+        (child) => child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === animal.id
+      ) as Phaser.GameObjects.Sprite | undefined;
+    }
 
     // Calculate isometric position
     const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
@@ -179,7 +184,7 @@ export default class BoardScene extends Phaser.Scene {
     animals.forEach(animal => this.createOrUpdateAnimalSprite(animal));
     
     // Remove sprites for animals that no longer exist
-    this.children.list
+    this.tilesContainer.list
       .filter(child => {
         if (!(child instanceof Phaser.GameObjects.Sprite)) return false;
         const animalId = child.getData('animalId');
