@@ -213,6 +213,7 @@ const State: React.FC = () => {
                   <div style={styles.itemsList as any}>
                     <div style={styles.item}>units</div>
                     <div style={styles.item}>habitats</div>
+                    <div style={styles.item}>animals</div>
                   </div>
                 </div>
               </div>
@@ -235,6 +236,7 @@ const State: React.FC = () => {
                   <div style={styles.item}>turn: number</div>
                   <div style={styles.item}>players: Player[]</div>
                   <div style={styles.item}>currentPlayerId: number</div>
+                  <div style={styles.item}>animals: Animal[]</div>
                 </div>
               </div>
               <div style={styles.component}>
@@ -250,7 +252,9 @@ const State: React.FC = () => {
                   <div style={styles.item}>addPlayer()</div>
                   <div style={styles.item}>setActivePlayer()</div>
                   <div style={styles.item}>initializeBoard()</div>
-                  <div style={styles.item}>setTerrain()</div>
+                  <div style={styles.item}>getTile()</div>
+                  <div style={styles.item}>addAnimal()</div>
+                  <div style={styles.item}>evolveAnimal()</div>
                 </div>
               </div>
             </div>

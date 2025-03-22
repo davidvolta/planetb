@@ -43,41 +43,44 @@ interface Player {
   isActive: boolean;
 }
 
-/**
- * GameState Interface
- * 
- * State Management Rules:
- * - Zustand store holds global game state (turns, players, board state)
- * - Phaser handles game scene and rendering state (rendering, physics, frame-by-frame updates)
- * - Connect Zustand and Phaser sparingly (use Zustand at turn changes, not per-frame updates)
- * - Separate logical game state from visual representation
- * 
- * Game State Components:
- * - Turn: Tracks current game progression
- * - Players: All player entities, their status and properties
- * - Board: The game world grid with terrain and visibility information
- * - Units: Will be added later to represent player-controlled entities
- * - Habitats: Will be added to represent structures on the board
- * 
- * State Update Flow:
- * 1. User actions trigger state changes via store methods
- * 2. State updates are processed in Zustand
- * 3. React components and Phaser scenes respond to state changes
- * 4. Visual representation updates accordingly
- */
+// Animal states
+export enum AnimalState {
+  DORMANT = 'dormant',
+  ACTIVE = 'active',
+}
+
+// Base animal structure
+interface Animal {
+  id: string;
+  type: string;
+  state: AnimalState;
+  position: Coordinate;
+}
+
+// Animal templates (movement, abilities, etc.)
+const animalTemplates: Record<string, Partial<Animal>> = {
+  buffalo: { type: "buffalo" },
+  eagle: { type: "eagle" },
+  snake: { type: "snake" },
+  fish: { type: "fish" },
+};
+
+// Game state interface
 interface GameState {
   turn: number;
   players: Player[];
   currentPlayerId: number;
   board: Board | null;
+  animals: Animal[];
+  
   nextTurn: () => void;
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
   initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   
-  // Terrain modification
-  setTerrain: (x: number, y: number, terrain: TerrainType) => void;
+  addAnimal: (x: number, y: number) => void;
+  evolveAnimal: (id: string, newType: string) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -85,38 +88,35 @@ export const useGameStore = create<GameState>((set, get) => ({
   players: [],
   currentPlayerId: 0,
   board: null,
-  nextTurn: () => set((state: GameState) => ({ turn: state.turn + 1 })),
+  animals: [],
+
+  nextTurn: () => set((state) => ({ turn: state.turn + 1 })),
+
   addPlayer: (name: string, color: string) => 
-    set((state: GameState) => {
+    set((state) => {
       const newPlayer: Player = {
         id: state.players.length,
         name,
         color,
-        isActive: state.players.length === 0 // First player is active by default
+        isActive: state.players.length === 0, // First player starts active
       };
-      
       return { players: [...state.players, newPlayer] };
     }),
+
   setActivePlayer: (playerId: number) =>
-    set((state: GameState) => {
+    set((state) => {
       const updatedPlayers = state.players.map(player => ({
         ...player,
         isActive: player.id === playerId
       }));
-      
-      return { 
-        players: updatedPlayers,
-        currentPlayerId: playerId
-      };
+      return { players: updatedPlayers, currentPlayerId: playerId };
     }),
-  initializeBoard: (width: number, height: number, mapType = MapGenerationType.ISLAND) =>
+
+  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND) =>
     set(() => {
-      // We only have island generation now
       const terrainData = generateIslandTerrain(width, height);
-      
-      // Create tiles with the generated terrain
       const tiles: Tile[][] = [];
-      
+
       for (let y = 0; y < height; y++) {
         const row: Tile[] = [];
         for (let x = 0; x < width; x++) {
@@ -124,48 +124,40 @@ export const useGameStore = create<GameState>((set, get) => ({
             coordinate: { x, y },
             terrain: terrainData[y][x],
             explored: false,
-            visible: true, // Start with visible for testing
+            visible: true,
           });
         }
         tiles.push(row);
       }
-      
-      return { 
-        board: {
-          width,
-          height,
-          tiles
-        }
-      };
+
+      return { board: { width, height, tiles } };
     }),
-  getTile: (x: number, y: number) => {
+
+  getTile: (x, y) => {
     const board = get().board;
     if (!board) return undefined;
-    if (x < 0 || x >= board.width || y < 0 || y >= board.height) {
-      return undefined;
-    }
+    if (x < 0 || x >= board.width || y < 0 || y >= board.height) return undefined;
     return board.tiles[y][x];
   },
-  setTerrain: (x: number, y: number, terrain: TerrainType) =>
-    set((state: GameState) => {
-      const board = state.board;
-      if (!board) return state;
-      if (x < 0 || x >= board.width || y < 0 || y >= board.height) {
-        return state;
-      }
-      
-      // Create a deep copy of the tiles to maintain immutability
-      const newTiles = board.tiles.map(row => [...row]);
-      newTiles[y][x] = {
-        ...newTiles[y][x],
-        terrain
+
+  addAnimal: (x, y) =>
+    set((state) => {
+      const newAnimal: Animal = {
+        id: `animal-${state.animals.length}`,
+        type: "egg",
+        state: AnimalState.DORMANT,
+        position: { x, y },
       };
-      
-      return {
-        board: {
-          ...board,
-          tiles: newTiles
-        }
-      };
+      return { animals: [...state.animals, newAnimal] };
+    }),
+
+  evolveAnimal: (id, newType) =>
+    set((state) => {
+      const evolvedAnimals = state.animals.map(animal =>
+        animal.id === id
+          ? { ...animal, type: newType, state: AnimalState.ACTIVE }
+          : animal
+      );
+      return { animals: evolvedAnimals };
     }),
 }));
