@@ -59,10 +59,8 @@ interface Animal {
 
 // Animal templates (movement, abilities, etc.)
 const animalTemplates: Record<string, Partial<Animal>> = {
+  egg: { type: "egg", state: AnimalState.DORMANT }, // Egg starts in the dormant state
   buffalo: { type: "buffalo" },
-  eagle: { type: "eagle" },
-  snake: { type: "snake" },
-  fish: { type: "fish" },
 };
 
 // Game state interface

@@ -24,7 +24,10 @@ export default class BoardScene extends Phaser.Scene {
 
 
   preload() {
-    this.load.image("buffalo", "assets/Buffalo.png"); 
+    this.load.image("egg", "assets/egg.png");
+    this.load.image("buffalo", "assets/buffalo.png");
+    this.load.image("eagle", "assets/eagle.png");
+
   }
   
 
@@ -81,10 +84,47 @@ export default class BoardScene extends Phaser.Scene {
     const { x, y } = this.gridToScreen(8, 8); // Convert grid (3,3) to screen coords
     
     // Add the buffalo raised 10px vertically
-    const buffalo = this.add.image(x, y - 12, "buffalo"); // Add unit at that position, displaced 10px up
-    buffalo.setOrigin(0.5);
+    //const buffalo = this.add.image(x, y - 12, "buffalo"); // Add unit at that position, displaced 10px up
+    //buffalo.setOrigin(0.5);
+    
+    const animals = useGameStore.getState().animals;
+
+    animals.forEach((animal) => {
+      const { x, y } = this.gridToScreen(animal.position.x, animal.position.y);
+      const sprite = this.add.sprite(
+        x, 
+        y - 12, // Keep the vertical offset for better appearance
+        animal.type
+      );
+
+      sprite.setInteractive();
+      sprite.on("pointerdown", () => this.evolveAnimal(animal.id, sprite));
+    });
+
+    useGameStore.subscribe((state) => {
+      this.updateAnimals(state.animals);
+    });
   }
-  
+
+  evolveAnimal(animalId: string, sprite: Phaser.GameObjects.Sprite) {
+    const animalType = "buffalo"; // Later, make this dynamic
+    useGameStore.getState().evolveAnimal(animalId, animalType);
+
+    sprite.setTexture(animalType); // Update sprite texture
+  }
+
+  updateAnimals(animals) {
+    animals.forEach((animal) => {
+      const existingSprite = this.children.list.find(
+        (child) => child instanceof Phaser.GameObjects.Sprite && child.texture.key === animal.id
+      );
+
+      if (existingSprite) {
+        existingSprite.setTexture(animal.type); // Change texture on evolution
+      }
+    });
+  }
+
   // Clean up when scene is shut down
   shutdown() {
     // Unsubscribe from state changes to prevent memory leaks
