@@ -161,22 +161,47 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Generate initial habitats if this is first initialization
       let habitats: Habitat[] = [];
       if (!state.isInitialized) {
-        // Add 6 random habitats
-        for (let i = 0; i < 6; i++) {
-          const x = Math.floor(Math.random() * width);
-          const y = Math.floor(Math.random() * height);
+        // Create a map to track which terrain types we've placed habitats on
+        const terrainTypesWithHabitats = new Set<TerrainType>();
+        
+        // Create an array of all terrain types to ensure we place exactly one habitat per type
+        const allTerrainTypes = Object.values(TerrainType);
+        
+        // For each terrain type, find a suitable location and place a habitat
+        allTerrainTypes.forEach(terrainType => {
+          // Collect all tiles of this terrain type
+          const tilesOfType: {x: number, y: number}[] = [];
           
-          const newHabitat: Habitat = {
-            id: `habitat-${i}`,
-            position: { x, y },
-            state: HabitatState.POTENTIAL,
-            shelterType: null,
-            ownerId: null,
-            resources: 0,
-          };
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              if (terrainData[y][x] === terrainType) {
+                tilesOfType.push({ x, y });
+              }
+            }
+          }
           
-          habitats.push(newHabitat);
-        }
+          // If we have tiles of this type, place a habitat on one randomly
+          if (tilesOfType.length > 0) {
+            const randomIndex = Math.floor(Math.random() * tilesOfType.length);
+            const { x, y } = tilesOfType[randomIndex];
+            
+            const habitatId = terrainTypesWithHabitats.size;
+            const newHabitat: Habitat = {
+              id: `habitat-${habitatId}`,
+              position: { x, y },
+              state: HabitatState.POTENTIAL,
+              shelterType: null,
+              ownerId: null,
+              resources: 0,
+            };
+            
+            habitats.push(newHabitat);
+            terrainTypesWithHabitats.add(terrainType);
+          }
+        });
+        
+        // Verify we've placed exactly one habitat per available terrain type
+        console.log(`Initialized ${habitats.length} habitats on ${terrainTypesWithHabitats.size} terrain types`);
       }
 
       return { 
