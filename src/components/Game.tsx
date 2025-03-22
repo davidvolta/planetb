@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import BoardScene from '../scenes/BoardScene';
 import DebugScene from '../scenes/DebugScene';
-import { useGameStore } from '../store/gameStore';
 
 interface GameProps {
   tileSize?: number;
@@ -11,7 +10,6 @@ interface GameProps {
 const Game: React.FC<GameProps> = ({ tileSize = 64 }) => {
   const gameContainerRef = React.useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
-  const boardState = useGameStore(state => state.board);
   const tileSizeRef = useRef<number>(tileSize);
 
   // Update the ref when tileSize changes
@@ -77,23 +75,6 @@ const Game: React.FC<GameProps> = ({ tileSize = 64 }) => {
       }
     };
   }, []);
-
-  // This effect runs when boardState changes
-  useEffect(() => {
-    if (gameRef.current && boardState) {
-      const scene = gameRef.current.scene.getScene('BoardScene') as BoardScene;
-      
-      if (scene && scene.scene.isActive()) {
-        // Try to use the updateBoard method for smooth transitions if available
-        if (typeof (scene as any).updateBoard === 'function') {
-          (scene as any).updateBoard();
-        } else {
-          // Fallback: restart the scene if updateBoard is not available
-          scene.scene.restart();
-        }
-      }
-    }
-  }, [boardState]);
 
   return (
     <div

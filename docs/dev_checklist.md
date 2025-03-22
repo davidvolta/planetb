@@ -22,17 +22,17 @@
   - [] Add Secondary (tile) selector
 
 - [] State Management Refactoring
-  - [] Implement proper subscription system
-    - [] Create a state observer utility for Phaser scenes
-    - [] Use Zustand's subscribe method for fine-grained updates
-    - [] Remove all direct getState() calls from BoardScene.ts
-  - [] Fix initialization issues
-    - [] Move board initialization logic out of BoardScene
-    - [] Implement fallback handling without modifying state
   - [] Implement unidirectional data flow
-    - [] Create event system for Phaser → React communication
-    - [] Add event handlers in React components for Phaser events
-    - [] Remove state modifications from Phaser code
+      - [] Create event system for Phaser → React communication
+      - [] Add event handlers in React components for Phaser events
+      - [] Remove state modifications from Phaser code
+  - [x] Fix initialization issues
+    - [x] Move board initialization logic out of BoardScene
+    - [x] Implement fallback handling without modifying state
+  - [x] Implement proper subscription system
+    - [x] Create a state observer utility for Phaser scenes
+    - [x] Use Zustand's subscribe method for fine-grained updates
+    - [x] Remove all direct getState() calls from BoardScene.ts
   - [] Improve update efficiency
     - [] Implement incremental board updates 
     - [] Add dirty checking to only update changed tiles
@@ -63,6 +63,8 @@
 - [x] Main game routing setup
 - [x] Project structure organization
 - [x] Install Node.js, Phaser, Zustand, React and Vite
+- [x] Implement GameInitializer service for centralized game initialization
+- [x] Create StateObserver utility for safe Phaser-Zustand communication
 
 
 ## State Management

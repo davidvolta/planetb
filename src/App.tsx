@@ -4,11 +4,11 @@ import { useGameStore } from "./store/gameStore";
 import { useEffect, useState } from "react";
 import { MapGenerationType } from "./store/gameStore";
 import { Routes, Route, Link } from "react-router-dom";
+import { GameInitializer } from "./services/gameInitializer";
 
 function App() {
   const turn = useGameStore((state) => state.turn);
   const nextTurn = useGameStore((state) => state.nextTurn);
-  const initializeBoard = useGameStore((state) => state.initializeBoard);
   
   // Track map size
   const [mapWidth, setMapWidth] = useState(20);
@@ -19,10 +19,14 @@ function App() {
   
   // Initialize the board when the app loads
   useEffect(() => {
-    // Initialize with island generation (the only available type now)
-    initializeBoard(mapWidth, mapHeight, MapGenerationType.ISLAND);
+    // Initialize with island generation using the GameInitializer service
+    GameInitializer.initializeBoard({
+      width: mapWidth,
+      height: mapHeight,
+      mapType: MapGenerationType.ISLAND
+    });
     console.log("Board initialized with island generation");
-  }, [initializeBoard, mapWidth, mapHeight]);
+  }, [mapWidth, mapHeight]);
 
   return (
     <Routes>
@@ -116,7 +120,11 @@ function App() {
               <button
                 onClick={() => {
                   console.log("Generating new map");
-                  initializeBoard(mapWidth, mapHeight, MapGenerationType.ISLAND);
+                  GameInitializer.initializeBoard({
+                    width: mapWidth,
+                    height: mapHeight,
+                    mapType: MapGenerationType.ISLAND
+                  });
                 }}
                 style={{
                   padding: '8px 16px',

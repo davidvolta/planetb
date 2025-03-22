@@ -16,19 +16,6 @@
    - Violation: Phaser directly accesses Zustand state without subscription
    - Correct Pattern: BoardScene should receive state via subscription or props
 
-2. **Direct State Modification** (Line 65)
-   ```typescript
-   useGameStore.getState().initializeBoard(20, 20);
-   ```
-   - Violation: Phaser directly modifies Zustand state
-   - Correct Pattern: Only React components should trigger state changes
-
-3. **Commented but Potential Violation** (Line 131)
-   ```typescript
-   // useGameStore.getState().setTerrain(x, y, TerrainType.MOUNTAIN);
-   ```
-   - Violation: Would directly modify state from Phaser event handler
-   - Correct Pattern: Should emit events that React handles to update state
 
 ## Architectural Violations
 

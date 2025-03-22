@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { useGameStore } from "../store/gameStore";
 import { TerrainType } from "../store/gameStore";
+import { GameInitializer } from "../services/gameInitializer";
+import { StateObserver } from "../utils/stateObserver";
 
 export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.Container[] = [];
@@ -21,6 +23,24 @@ export default class BoardScene extends Phaser.Scene {
   init() {
     // Clear previous tiles when scene restarts
     this.tiles = [];
+    
+    // Subscribe to board changes
+    this.setupStateSubscriptions();
+  }
+  
+  // Set up subscriptions to state updates
+  private setupStateSubscriptions() {
+    // Subscribe to board state changes
+    StateObserver.subscribe(
+      'BoardScene',
+      (state) => state.board,
+      (board) => {
+        if (board) {
+          console.log('Board state changed - updating scene');
+          this.updateBoard();
+        }
+      }
+    );
   }
 
   // Method to set the tile size and update the board
@@ -35,7 +55,7 @@ export default class BoardScene extends Phaser.Scene {
 
   // Method to update the board without restarting the scene
   updateBoard() {
-    console.log("Updating board without fade");
+  
     
     // Store a reference to the old tiles container
     const oldContainer = this.tilesContainer;
@@ -54,15 +74,21 @@ export default class BoardScene extends Phaser.Scene {
     this.createTiles();
   }
   
+  // Clean up when scene is shut down
+  shutdown() {
+    // Unsubscribe from state changes to prevent memory leaks
+    StateObserver.unsubscribe('BoardScene');
+  }
+  
   // Create tiles based on the current board state
   private createTiles() {
     // Clear previous tiles
     this.tiles = [];
     
-    // Get board data from Zustand
-    const board = useGameStore.getState().board;
+    // Get board data using GameInitializer
+    const board = GameInitializer.getBoard();
     if (!board) {
-      console.warn("No board available in store");
+      console.warn("No board available, even after fallback");
       // Add a simple message in the center of the screen
       this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 
         "No board data available", 
