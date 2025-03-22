@@ -12,6 +12,12 @@ export default class BoardScene extends Phaser.Scene {
   private tilesContainer: Phaser.GameObjects.Container | null = null;
   private controlsSetup = false;
   
+  // Selection indicator for hover/selection
+  private selectionIndicator: Phaser.GameObjects.Graphics | null = null;
+  
+  // Properties to track mouse position over the grid
+  private hoveredGridPosition: { x: number, y: number } | null = null;
+  
   constructor() {
     super({ key: "BoardScene" });
   }
@@ -155,6 +161,9 @@ export default class BoardScene extends Phaser.Scene {
         });
       }
     }
+    
+    // Create the selection indicator after all tiles
+    this.createSelectionIndicator();
     
     // Add panning and zooming for navigation (only if not already set up)
     if (!this.controlsSetup) {
@@ -349,5 +358,86 @@ export default class BoardScene extends Phaser.Scene {
         }
         break;
     }
+  }
+
+  // Create the selection indicator graphic
+  private createSelectionIndicator() {
+    // Remove previous selection indicator if it exists
+    if (this.selectionIndicator) {
+      this.selectionIndicator.destroy();
+    }
+    
+    // Create a new selection indicator
+    this.selectionIndicator = this.add.graphics();
+    
+    // Create a diamond shape with a thick red stroke and no fill
+    this.selectionIndicator.lineStyle(3, 0xFF0000, 1); // Thick red line
+    
+    // Create diamond points based on tile size
+    const diamondPoints = [
+      { x: 0, y: -this.tileHeight / 2 },
+      { x: this.tileSize / 2, y: 0 },
+      { x: 0, y: this.tileHeight / 2 },
+      { x: -this.tileSize / 2, y: 0 }
+    ];
+    
+    // Draw the diamond shape
+    this.selectionIndicator.beginPath();
+    this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
+    for (let i = 1; i < diamondPoints.length; i++) {
+      this.selectionIndicator.lineTo(diamondPoints[i].x, diamondPoints[i].y);
+    }
+    this.selectionIndicator.closePath();
+    this.selectionIndicator.strokePath();
+    
+    // Initially hide the selection indicator
+    this.selectionIndicator.setVisible(false);
+    
+    // If we have a tiles container, add the indicator to it
+    if (this.tilesContainer) {
+      this.tilesContainer.add(this.selectionIndicator);
+    }
+    
+    return this.selectionIndicator;
+  }
+
+  // Method to convert screen coordinates to grid coordinates
+  // This can be called by other scenes (like DebugScene)
+  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
+    if (!this.tilesContainer) return null;
+    
+    // Get world point from screen coordinates
+    const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
+    
+    // Adjust for tile container position
+    const localX = worldPoint.x - this.tilesContainer.x;
+    const localY = worldPoint.y - this.tilesContainer.y;
+    
+    // Convert to isometric grid coordinates
+    const gridX = Math.floor((localY / (this.tileHeight / 2) + localX / (this.tileSize / 2)) / 2);
+    const gridY = Math.floor((localY / (this.tileHeight / 2) - localX / (this.tileSize / 2)) / 2);
+    
+    // Get current board state
+    const board = GameInitializer.getBoard();
+    if (!board) return null;
+    
+    // Check if grid position is valid
+    if (gridX >= 0 && gridX < board.width && gridY >= 0 && gridY < board.height) {
+      return { x: gridX, y: gridY };
+    }
+    
+    return null;
+  }
+  
+  // Method to get the currently hovered grid position
+  getHoveredGridPosition(): { x: number, y: number } | null {
+    return this.hoveredGridPosition;
+  }
+  
+  // Update method to track the mouse position
+  update() {
+    // Update hovered grid position
+    const pointer = this.input.activePointer;
+    this.hoveredGridPosition = this.getGridPositionAt(pointer.x, pointer.y);
   }
 }

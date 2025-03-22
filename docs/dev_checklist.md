@@ -15,28 +15,12 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
+- [] Fix Corners of Terrain Generation
 - [] Add first unit
 - [] Unit movement
   - [] Add highlight for available moves
   - [] Add unit selector
   - [] Add Secondary (tile) selector
-
-- [] State Management Refactoring
-  - [] Implement unidirectional data flow
-      - [] Create event system for Phaser → React communication
-      - [] Add event handlers in React components for Phaser events
-      - [] Remove state modifications from Phaser code
-  - [x] Fix initialization issues
-    - [x] Move board initialization logic out of BoardScene
-    - [x] Implement fallback handling without modifying state
-  - [x] Implement proper subscription system
-    - [x] Create a state observer utility for Phaser scenes
-    - [x] Use Zustand's subscribe method for fine-grained updates
-    - [x] Remove all direct getState() calls from BoardScene.ts
-  - [] Improve update efficiency
-    - [] Implement incremental board updates 
-    - [] Add dirty checking to only update changed tiles
-    - [] Replace full scene recreation with targeted updates
     
 - [] Performance optimizations
   - [] Add viewport culling to only render visible tiles
@@ -44,6 +28,25 @@
   - [] Implement texture-based rendering for terrain tiles
   - [] Create incremental updates to avoid full board recreation
   - [] Optimize event listeners with event delegation
+
+- [] Selection Layer Implementation
+  - [] Phase 1: Basic Selection Layer
+    - [] Create a single selection indicator object in BoardScene
+    - [] Implement scene-level mouse tracking (replacing tile-level hover events)
+    - [] Add a grid coordinate conversion utility (screen coords → tile coords)
+    - [] Implement logic to move selection indicator to the tile under cursor
+    - [] Remove all individual tile hover listeners
+  - [] Phase 2: Enhanced Selection Features
+    - [] Add visual states for the selection indicator (hover, selected, invalid)
+    - [] Implement click handling using the selection layer
+    - [] Add keyboard navigation support for selection
+    - [] Connect selection events to game state
+  - [] Phase 3: Multi-selection and Actions
+    - [] Implement secondary selection for target tiles
+    - [] Add visual indication for available moves/actions
+    - [] Connect selection to unit movement mechanics
+    - [] Implement action validation and preview
+
 - [] Add fog of war
 - [] Implement habitats
 - [] Implement habitat improvement
@@ -65,25 +68,3 @@
 - [x] Install Node.js, Phaser, Zustand, React and Vite
 - [x] Implement GameInitializer service for centralized game initialization
 - [x] Create StateObserver utility for safe Phaser-Zustand communication
-
-
-## State Management
-- Phaser renders tiles, not React → No unnecessary React re-renders.
-- Zustand handles state  → No need for prop drilling or React updates.
-- Phaser subscribes to state → Tiles update only when needed, not every frame.
-- React only controls UI → Buttons, menus, etc., remain separate from game rendering.
-
-### React Handles:
-✅ UI elements like menus, buttons, settings, overlays
-✅ Debugging panels, player stats, chat windows
-✅ Anything that's not part of the game world
-
-### Phaser Handles:
-✅ Game world interactions (clicking tiles, moving units, attacking, etc.)
-✅ Rendering the game board & animations
-✅ Detecting player input inside the game world (drag, zoom, click, etc.)
-
-### Zustand Does:
-✅ Syncs game state (board state, turn order, resources, etc.)
-✅ Syncs UI state (menu open/close, debugging tools, etc.)
-✅ Allows Phaser & React to communicate without re-renders 
