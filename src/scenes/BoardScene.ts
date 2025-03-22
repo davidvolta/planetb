@@ -22,9 +22,11 @@ export default class BoardScene extends Phaser.Scene {
     super({ key: "BoardScene" });
   }
 
+
   preload() {
-    // No need to preload any PNG assets
+    this.load.image("buffalo", "assets/Buffalo.png"); 
   }
+  
 
   init() {
     // Clear previous tiles when scene restarts
@@ -76,6 +78,11 @@ export default class BoardScene extends Phaser.Scene {
     // Setup camera and controls, but don't create tiles directly
     // Tiles will be created by the state subscription
     this.setupControls();
+    const { x, y } = this.gridToScreen(8, 8); // Convert grid (3,3) to screen coords
+    
+    // Add the buffalo raised 10px vertically
+    const buffalo = this.add.image(x, y - 12, "buffalo"); // Add unit at that position, displaced 10px up
+    buffalo.setOrigin(0.5);
   }
   
   // Clean up when scene is shut down
@@ -390,34 +397,6 @@ export default class BoardScene extends Phaser.Scene {
     return this.selectionIndicator;
   }
 
-  // Method to convert screen coordinates to grid coordinates
-  // This can be called by other scenes (like DebugScene)
-  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
-    if (!this.tilesContainer) return null;
-    
-    // Get world point from screen coordinates
-    const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
-    
-    // Adjust for tile container position
-    const localX = worldPoint.x - this.tilesContainer.x;
-    const localY = worldPoint.y - this.tilesContainer.y + this.tileHeight / 2;
-    
-    // Convert to isometric grid coordinates
-    const gridX = Math.floor((localY / (this.tileHeight / 2) + localX / (this.tileSize / 2)) / 2);
-    const gridY = Math.floor((localY / (this.tileHeight / 2) - localX / (this.tileSize / 2)) / 2);
-    
-    // Get current board state
-    const board = GameInitializer.getBoard();
-    if (!board) return null;
-    
-    // Check if grid position is valid
-    if (gridX >= 0 && gridX < board.width && gridY >= 0 && gridY < board.height) {
-      return { x: gridX, y: gridY };
-    }
-    
-    return null;
-  }
-  
   // Method to get the currently hovered grid position
   getHoveredGridPosition(): { x: number, y: number } | null {
     return this.hoveredGridPosition;
@@ -458,5 +437,50 @@ export default class BoardScene extends Phaser.Scene {
         this.selectionIndicator.setVisible(false);
       }
     }
+  }
+
+  // Method to convert screen coordinates to grid coordinates
+  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
+    if (!this.tilesContainer) return null;
+    
+    // Get world point from screen coordinates
+    const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
+    
+    // Adjust for tile container position
+    const localX = worldPoint.x - this.tilesContainer.x;
+    const localY = worldPoint.y - this.tilesContainer.y + this.tileHeight / 2;
+    
+    // Convert to isometric grid coordinates
+    const gridX = Math.floor((localY / (this.tileHeight / 2) + localX / (this.tileSize / 2)) / 2);
+    const gridY = Math.floor((localY / (this.tileHeight / 2) - localX / (this.tileSize / 2)) / 2);
+    
+    // Get current board state
+    const board = GameInitializer.getBoard();
+    if (!board) return null;
+    
+    // Check if grid position is valid
+    if (gridX >= 0 && gridX < board.width && gridY >= 0 && gridY < board.height) {
+      return { x: gridX, y: gridY };
+    }
+    
+    return null;
+  }
+  
+  // Method to convert grid coordinates to screen coordinates
+  gridToScreen(gridX: number, gridY: number): { x: number, y: number } {
+    // Convert grid coordinates to isometric coordinates
+    const isoX = (gridX - gridY) * this.tileSize / 2;
+    const isoY = (gridX + gridY) * this.tileHeight / 2;
+    
+    // If we have a tiles container, adjust for its position
+    if (this.tilesContainer) {
+      return { 
+        x: this.tilesContainer.x + isoX, 
+        y: this.tilesContainer.y + isoY 
+      };
+    }
+    
+    // Fallback if tiles container doesn't exist yet
+    return { x: isoX, y: isoY };
   }
 }
