@@ -15,7 +15,6 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
-- [] Implement habitats
 - [] Add unit production (eggs)
 - [] Add unit spawning
 
@@ -37,6 +36,8 @@
 
 
 ## Completed Tasks
+- [x] Implement habitats
+
 - [x] Add unit hatching from eggs
 - [x] Fix Corners of Terrain Generation
 - [x] Add first unit
