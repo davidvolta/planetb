@@ -60,7 +60,7 @@ interface Animal {
 // Animal templates (movement, abilities, etc.)
 const animalTemplates: Record<string, Partial<Animal>> = {
   buffalo: { type: "buffalo" },
-  eagle: { type: "eagle" },
+  bunny: { type: "bunny" },
   snake: { type: "snake" },
   fish: { type: "fish" },
 };

@@ -130,7 +130,8 @@ function App() {
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  width: '100%'
+                  width: '100%',
+                  marginBottom: '10px'
                 }}
               >
                 Generate New Map
@@ -138,10 +139,17 @@ function App() {
               
               <button
                 onClick={() => {
-                  const centerX = Math.floor(mapWidth / 2);
-                  const centerY = Math.floor(mapHeight / 2);
-                  console.log(`Adding test animal at (${centerX}, ${centerY})`);
-                  useGameStore.getState().addAnimal(centerX, centerY, "buffalo");
+                  // Available animal types
+                  const animalTypes = ["buffalo", "bunny", "snake", "fish"];
+                  // Pick a random animal type
+                  const randomType = animalTypes[Math.floor(Math.random() * animalTypes.length)];
+                  
+                  // Pick a random position on the map
+                  const randomX = Math.floor(Math.random() * mapWidth);
+                  const randomY = Math.floor(Math.random() * mapHeight);
+                  
+                  console.log(`Adding random ${randomType} at (${randomX}, ${randomY})`);
+                  useGameStore.getState().addAnimal(randomX, randomY, randomType);
                 }}
                 style={{
                   padding: '8px 16px',
@@ -154,28 +162,7 @@ function App() {
                   marginTop: '10px'
                 }}
               >
-                Add Test Buffalo
-              </button>
-              
-              <button
-                onClick={() => {
-                  const centerX = Math.floor(mapWidth / 2) - 3;
-                  const centerY = Math.floor(mapHeight / 2) - 3;
-                  console.log(`Adding test eagle at (${centerX}, ${centerY})`);
-                  useGameStore.getState().addAnimal(centerX, centerY, "eagle");
-                }}
-                style={{
-                  padding: '8px 16px',
-                  background: '#FFC107',
-                  color: 'black',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  width: '100%',
-                  marginTop: '10px'
-                }}
-              >
-                Add Test Eagle
+                Add Random Animal
               </button>
             </div>
           </div>

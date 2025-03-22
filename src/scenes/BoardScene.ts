@@ -27,7 +27,7 @@ export default class BoardScene extends Phaser.Scene {
     // Load all animal sprites
     this.load.image("egg", "assets/egg.png");      // Dormant state for all animals
     this.load.image("buffalo", "assets/buffalo.png");
-    this.load.image("eagle", "assets/eagle.png");
+    this.load.image("bunny", "assets/bunny.png");
     this.load.image("snake", "assets/snake.png");
     this.load.image("fish", "assets/fish.png");
 
