@@ -3,6 +3,7 @@ import { TerrainType } from "../store/gameStore";
 import { GameInitializer } from "../services/gameInitializer";
 import { StateObserver } from "../utils/stateObserver";
 import { AnimalState } from "../store/gameStore";
+import { useGameStore } from "../store/gameStore";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -109,6 +110,15 @@ export default class BoardScene extends Phaser.Scene {
     // If there was an old container, destroy it immediately
     if (oldContainer) {
       oldContainer.destroy();
+    }
+    
+    // After board is created, explicitly update animals and habitats
+    const state = useGameStore.getState();
+    if (state.animals.length > 0) {
+      this.updateAnimals(state.animals);
+    }
+    if (state.habitats.length > 0) {
+      this.updateHabitats(state.habitats);
     }
   }
   
@@ -658,8 +668,6 @@ export default class BoardScene extends Phaser.Scene {
 
   // Update habitats based on the state
   updateHabitats(habitats: any[]) {
-    console.log("Updating habitats:", habitats);
-    
     // Check if tilesContainer exists before proceeding
     if (!this.tilesContainer) {
       console.warn("Cannot update habitats - tilesContainer not available");
@@ -697,8 +705,6 @@ export default class BoardScene extends Phaser.Scene {
         console.log(`Habitat clicked: ${habitat.id}`);
         this.events.emit(EVENTS.HABITAT_CLICKED, habitat.id);
       });
-      
-      console.log(`Created habitat graphic at (${gridX}, ${gridY}) with id ${habitat.id}`);
     });
   }
   
@@ -721,7 +727,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Remove all found habitat graphics
     habitatGraphics.forEach(graphic => {
-      console.log(`Removing habitat graphic: ${graphic.getData('habitatId')}`);
       graphic.destroy();
     });
   }

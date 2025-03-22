@@ -11,6 +11,7 @@ function App() {
   const nextTurn = useGameStore((state) => state.nextTurn);
   const addPotentialHabitat = useGameStore((state) => state.addPotentialHabitat);
   const habitats = useGameStore((state) => state.habitats);
+  const isInitialized = useGameStore((state) => state.isInitialized);
   
   // Track map size
   const [mapWidth, setMapWidth] = useState(30);
@@ -18,6 +19,7 @@ function App() {
   
   // Single initialization and update effect
   useEffect(() => {
+    // Initialize the board
     GameInitializer.initializeBoard({
       width: mapWidth,
       height: mapHeight,

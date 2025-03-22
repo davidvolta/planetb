@@ -92,11 +92,12 @@ export interface GameState {
   board: Board | null;
   animals: Animal[];
   habitats: Habitat[];
+  isInitialized: boolean;  // Flag to track if the game has been initialized
   
   nextTurn: () => void;
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
-  initializeBoard: (width: number, height: number) => void;
+  initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   
   addAnimal: (x: number, y: number, type?: string) => void;
@@ -115,6 +116,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   board: null,
   animals: [],
   habitats: [],
+  isInitialized: false,
 
   nextTurn: () => set((state) => ({ turn: state.turn + 1 })),
 
@@ -138,8 +140,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { players: updatedPlayers, currentPlayerId: playerId };
     }),
 
-  initializeBoard: (width, height) =>
-    set(() => {
+  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND) =>
+    set((state) => {
       const terrainData = generateIslandTerrain(width, height);
       const tiles: Tile[][] = [];
 
@@ -156,7 +158,33 @@ export const useGameStore = create<GameState>((set, get) => ({
         tiles.push(row);
       }
 
-      return { board: { width, height, tiles } };
+      // Generate initial habitats if this is first initialization
+      let habitats: Habitat[] = [];
+      if (!state.isInitialized) {
+        // Add 6 random habitats
+        for (let i = 0; i < 6; i++) {
+          const x = Math.floor(Math.random() * width);
+          const y = Math.floor(Math.random() * height);
+          
+          const newHabitat: Habitat = {
+            id: `habitat-${i}`,
+            position: { x, y },
+            state: HabitatState.POTENTIAL,
+            shelterType: null,
+            ownerId: null,
+            resources: 0,
+          };
+          
+          habitats.push(newHabitat);
+        }
+      }
+
+      return { 
+        board: { width, height, tiles },
+        isInitialized: true,
+        // Use new habitats if first initialization, otherwise keep existing ones
+        habitats: state.isInitialized ? state.habitats : habitats
+      };
     }),
 
   getTile: (x, y) => {

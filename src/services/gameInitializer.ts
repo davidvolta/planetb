@@ -67,6 +67,14 @@ export class GameInitializer {
   }
   
   /**
+   * Checks if the game has been initialized
+   * @returns Boolean indicating if game is initialized
+   */
+  static isInitialized(): boolean {
+    return useGameStore.getState().isInitialized;
+  }
+  
+  /**
    * Generates a fallback board when needed without storing in state
    * Used when the board is needed but not available in state
    */
