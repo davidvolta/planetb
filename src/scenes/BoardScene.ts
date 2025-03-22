@@ -23,8 +23,8 @@ export const EVENTS = {
 
 export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.Container[] = [];
-  private tileSize = 64;
-  private tileHeight = 32;
+  private tileSize = 64; // Fixed tile size
+  private tileHeight = 32; // Half of tile size for isometric view
   private verticalOffset = 0;
   private tilesContainer: Phaser.GameObjects.Container | null = null;
   private controlsSetup = false;
@@ -82,14 +82,10 @@ export default class BoardScene extends Phaser.Scene {
     );
   }
 
-  // Method to set the tile size and update the board
+  // Method is kept for compatibility but will log that tile size is now fixed
   setTileSize(size: number) {
-    if (size !== this.tileSize) {
-      console.log(`Updating tile size from ${this.tileSize} to ${size}`);
-      this.tileSize = size;
-      this.tileHeight = size / 2; // Maintain the isometric ratio
-      this.updateBoard();
-    }
+    console.log("Note: Tile size is now fixed at 64px.");
+    // No longer changing the tile size
   }
 
   // Method to update the board without restarting the scene

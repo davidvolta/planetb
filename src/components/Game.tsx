@@ -4,30 +4,12 @@ import BoardScene, { EVENTS } from '../scenes/BoardScene';
 import DebugScene from '../scenes/DebugScene';
 import { useGameStore } from '../store/gameStore';
 
-interface GameProps {
-  tileSize?: number;
-}
-
-const Game: React.FC<GameProps> = ({ tileSize = 64 }) => {
+const Game: React.FC = () => {
   const gameContainerRef = React.useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
-  const tileSizeRef = useRef<number>(tileSize);
   
   // Get state update functions from Zustand
   const evolveAnimal = useGameStore(state => state.evolveAnimal);
-
-  // Update the ref when tileSize changes
-  useEffect(() => {
-    tileSizeRef.current = tileSize;
-    
-    // If game exists and board scene is active, update tile size
-    if (gameRef.current) {
-      const scene = gameRef.current.scene.getScene('BoardScene') as BoardScene;
-      if (scene && scene.scene.isActive() && typeof (scene as BoardScene).setTileSize === 'function') {
-        (scene as BoardScene).setTileSize(tileSize);
-      }
-    }
-  }, [tileSize]);
 
   // Create and initialize the game
   useEffect(() => {

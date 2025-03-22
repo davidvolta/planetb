@@ -14,9 +14,6 @@ function App() {
   const [mapWidth, setMapWidth] = useState(30);
   const [mapHeight, setMapHeight] = useState(30);
   
-  // Track tile size
-  const [tileSize, setTileSize] = useState(64);
-  
   // Single initialization and update effect
   useEffect(() => {
     GameInitializer.initializeBoard({
@@ -37,7 +34,7 @@ function App() {
       <Route path="/" element={
         <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
           {/* Game canvas takes the full screen */}
-          <Game tileSize={tileSize} />
+          <Game />
           
           {/* UI elements overlay on top */}
           <div style={{ 
@@ -99,20 +96,6 @@ function App() {
                   style={{ flex: 1 }}
                 />
                 <span style={{ marginLeft: '10px', minWidth: '30px' }}>{mapHeight}</span>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ marginRight: '10px', minWidth: '80px' }}>Tile Size:</label>
-                <input 
-                  type="range" 
-                  min="32" 
-                  max="160" 
-                  step="8"
-                  value={tileSize} 
-                  onChange={(e) => setTileSize(parseInt(e.target.value))}
-                  style={{ flex: 1 }}
-                />
-                <span style={{ marginLeft: '10px', minWidth: '30px' }}>{tileSize}</span>
               </div>
               
               <button
