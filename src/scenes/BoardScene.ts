@@ -141,9 +141,9 @@ export default class BoardScene extends Phaser.Scene {
         // Store coordinates for later reference
         tile.setData('gridX', x);
         tile.setData('gridY', y);
-        
-        // Add hover effect
         tile.setData('baseY', isoY);
+        
+        // Keep hover effects on individual tiles for better responsiveness
         tile.on('pointerover', () => {
           tile.setScale(1.05);
           tile.y = tile.getData('baseY') - 5;
@@ -153,10 +153,6 @@ export default class BoardScene extends Phaser.Scene {
           tile.setScale(1);
           tile.y = tile.getData('baseY');
         });
-        
-        tile.on('pointerdown', () => {
-          console.log(`Clicked tile at grid: ${x}, ${y}`);
-        });
       }
     }
     
@@ -164,6 +160,28 @@ export default class BoardScene extends Phaser.Scene {
     if (!this.controlsSetup) {
       this.setupControls();
     }
+    
+    // Setup click event delegation at the container level
+    this.setupClickEventDelegation();
+  }
+  
+  // Set up click event delegation at the container level
+  private setupClickEventDelegation() {
+    if (!this.tilesContainer) return;
+    
+    // Remove any existing listeners to prevent duplicates
+    this.tilesContainer.off('pointerdown');
+    
+    // Add a single click event listener at the container level
+    this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      // Only process if the clicked object is one of our tiles
+      if (this.tiles.includes(gameObject as Phaser.GameObjects.Container)) {
+        const tile = gameObject as Phaser.GameObjects.Container;
+        const x = tile.getData('gridX');
+        const y = tile.getData('gridY');
+        console.log(`Clicked tile at grid: ${x}, ${y}`);
+      }
+    });
   }
   
   // Set up camera controls
@@ -240,7 +258,7 @@ export default class BoardScene extends Phaser.Scene {
     shape.strokePath();
     
     // Add terrains specific details
-    this.addTerrainDetails(shape, terrain);
+    //this.addTerrainDetails(shape, terrain);
     
     // Add the shape to the container
     container.add(shape);
