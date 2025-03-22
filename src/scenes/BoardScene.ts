@@ -619,7 +619,7 @@ export default class BoardScene extends Phaser.Scene {
     const graphics = this.add.graphics();
     
     // Calculate scale factor (approximately 5px smaller on each side)
-    const scaleFactor = 0.75; // This will make the diamond about 5px smaller on a 64px tile
+    const scaleFactor = 0.85; // This will make the diamond about 5px smaller on a 64px tile
     
     // Create scaled diamond points
     const diamondPoints = [
@@ -629,50 +629,23 @@ export default class BoardScene extends Phaser.Scene {
       { x: -this.tileSize / 2 * scaleFactor, y: 0 }
     ];
     
-    // Set style based on habitat state
-    if (state === 'potential') {
-      // Potential habitat - black fill with 75% opacity
-      graphics.fillStyle(0x000000, 0.5); // Black with 75% opacity
-      
-      // Draw the filled shape
-      graphics.beginPath();
-      graphics.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-      for (let i = 1; i < diamondPoints.length; i++) {
-        graphics.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-      }
-      graphics.closePath();
-      graphics.fillPath();
-      
-    } else {
-      // Shelter - solid with fill
-      graphics.fillStyle(0x000000, 0.7); // Black, semi-transparent
-      graphics.lineStyle(2, 0x000000, 0.9); // Black for outline
-      
-      // Draw the filled shape
-      graphics.beginPath();
-      graphics.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-      for (let i = 1; i < diamondPoints.length; i++) {
-        graphics.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-      }
-      graphics.closePath();
-      graphics.fillPath();
-      graphics.strokePath();
-      
-      // Add a small roof-like shape to indicate a shelter
-      graphics.fillStyle(0x000000, 0.9);
-      graphics.beginPath();
-      graphics.moveTo(0, -this.tileHeight / 4);
-      graphics.lineTo(this.tileSize / 6, 0);
-      graphics.lineTo(0, this.tileHeight / 8);
-      graphics.lineTo(-this.tileSize / 6, 0);
-      graphics.closePath();
-      graphics.fillPath();
+    // Use the same graphics for both potential and shelter habitats
+    // Black fill with 50% opacity
+    graphics.fillStyle(0x000000, 0.5);
+    
+    // Draw the filled shape
+    graphics.beginPath();
+    graphics.moveTo(diamondPoints[0].x, diamondPoints[0].y);
+    for (let i = 1; i < diamondPoints.length; i++) {
+      graphics.lineTo(diamondPoints[i].x, diamondPoints[i].y);
     }
+    graphics.closePath();
+    graphics.fillPath();
     
     // Add the graphics to the container
     container.add(graphics);
     
-    // Make it interactive (for testing)
+    // Make it interactive
     container.setInteractive(new Phaser.Geom.Polygon([
       { x: 0, y: -this.tileHeight / 2 },
       { x: this.tileSize / 2, y: 0 },
@@ -680,7 +653,6 @@ export default class BoardScene extends Phaser.Scene {
       { x: -this.tileSize / 2, y: 0 }
     ]), Phaser.Geom.Polygon.Contains);
     
-    // Return the container
     return container;
   }
 
