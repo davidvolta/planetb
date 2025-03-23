@@ -1,10 +1,11 @@
+import React, { useState } from 'react';
 import Game from "./components/Game";
 import State from "./components/State";
 import { useGameStore } from "./store/gameStore";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { MapGenerationType } from "./store/gameStore";
-import { Routes, Route } from "react-router-dom";
-import { GameInitializer } from "./services/gameInitializer";
+import { Routes, Route, Link } from "react-router-dom";
+import * as actions from './store/actions';
 
 function App() {
   const turn = useGameStore((state) => state.turn);
@@ -22,7 +23,7 @@ function App() {
     const newWidth = parseInt(e.target.value);
     setMapWidth(newWidth);
     // Immediately update the map
-    GameInitializer.initializeBoard({
+    actions.initializeBoard({
       width: newWidth,
       height: mapHeight,
       mapType: MapGenerationType.ISLAND,
@@ -35,7 +36,7 @@ function App() {
     const newHeight = parseInt(e.target.value);
     setMapHeight(newHeight);
     // Immediately update the map
-    GameInitializer.initializeBoard({
+    actions.initializeBoard({
       width: mapWidth,
       height: newHeight,
       mapType: MapGenerationType.ISLAND,
@@ -105,7 +106,7 @@ function App() {
               <button
                 onClick={() => {
                   console.log(`Manually generating new map: ${mapWidth}x${mapHeight}`);
-                  GameInitializer.initializeBoard({
+                  actions.initializeBoard({
                     width: mapWidth,
                     height: mapHeight,
                     mapType: MapGenerationType.ISLAND,

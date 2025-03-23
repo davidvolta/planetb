@@ -2,9 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import BoardScene, { EVENTS } from '../scenes/BoardScene';
 import DebugScene from '../scenes/DebugScene';
-import { useGameStore } from '../store/gameStore';
-import { GameInitializer } from '../services/gameInitializer';
-import { MapGenerationType } from '../store/gameStore';
+import { useGameStore, MapGenerationType } from '../store/gameStore';
+import * as actions from '../store/actions';
+import { StateObserver } from '../utils/stateObserver';
 
 const Game: React.FC = () => {
   const gameContainerRef = React.useRef<HTMLDivElement>(null);
@@ -50,16 +50,16 @@ const Game: React.FC = () => {
       // Listen for habitat click events
       scene.events.on(EVENTS.HABITAT_CLICKED, (habitatId: string) => {
         console.log(`Habitat clicked: ${habitatId}`);
-        improveHabitat(habitatId);
+        actions.improveHabitat(habitatId);
       });
 
       // Listen for assets loaded event
       scene.events.on(EVENTS.ASSETS_LOADED, () => {
         console.log('Assets loaded, checking initialization');
         // Only initialize if not already initialized
-        if (!GameInitializer.isInitialized()) {
+        if (!useGameStore.getState().isInitialized) {
           console.log('Board not initialized, initializing now');
-          GameInitializer.initializeBoard({
+          actions.initializeBoard({
             width: 30,
             height: 30,
             mapType: MapGenerationType.ISLAND

@@ -16,31 +16,11 @@
 
 ## Upcoming Tasks
 
-- [ ] Implement Game State Machine for Initialization
-  - Phase 1: Create Foundation
-    - [ ] Define GameInitState enum (UNINITIALIZED, LOADING_ASSETS, CREATING_BOARD, PLACING_HABITATS, PLACING_ANIMALS, READY)
-    - [ ] Update GameInitializer Service with state tracking
-    - [ ] Create state transition guards and validation
-
-  - Phase 2: Sequential Initialization
-    - [ ] Refactor Asset Loading into GameInitializer
-    - [ ] Create separate Board Initialization Stage
-    - [ ] Implement separate Entity Placement Stages
-
-  - Phase 3: Integration
-    - [ ] Update BoardScene to follow state machine
-    - [ ] Refactor Game Component to handle initialization states
-    - [ ] Implement Clean Restart Process for map size changes
-
-  - Phase 4: Cleanup & Polish
-    - [ ] Remove Redundant Code and console warnings
-    - [ ] Add Error Recovery and timeout detection
-    - [ ] Add Initialization Progress UI
-
-  - Phase 5: Testing & Verification
-    - [ ] Test Edge Cases (rapid changes, missing assets)
-    - [ ] Measure Performance improvements
-    - [ ] Final Polish and documentation
+- [] Architecture improvements
+  - [] Replace direct getState() calls with StateObserver subscriptions
+  - [] Use action dispatchers in React components instead of directly calling GameInitializer
+  - [] Consolidate subscription management in BoardScene
+  - [] Improve StateObserver with better typing and more efficient change detection
 
 - [] Implement habitat improvement
 

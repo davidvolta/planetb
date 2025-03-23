@@ -1,9 +1,9 @@
 import Phaser from "phaser";
 import { TerrainType } from "../store/gameStore";
-import { GameInitializer } from "../services/gameInitializer";
 import { StateObserver } from "../utils/stateObserver";
 import { AnimalState } from "../store/gameStore";
 import { useGameStore } from "../store/gameStore";
+import * as actions from "../store/actions";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -306,8 +306,8 @@ export default class BoardScene extends Phaser.Scene {
     // Clear previous tiles
     this.tiles = [];
     
-    // Get board data using GameInitializer
-    const board = GameInitializer.getBoard();
+    // Get board data using actions instead of GameInitializer
+    const board = actions.getBoard();
     if (!board) {
       console.warn("No board available, even after fallback");
       // Add a simple message in the center of the screen
@@ -615,7 +615,7 @@ export default class BoardScene extends Phaser.Scene {
   
   // Method to get the terrain type at a grid position
   getTerrainAtPosition(x: number, y: number): TerrainType | null {
-    const board = GameInitializer.getBoard();
+    const board = actions.getBoard();
     if (!board || !board.tiles[y] || !board.tiles[y][x]) return null;
     
     return board.tiles[y][x].terrain;
@@ -666,7 +666,7 @@ export default class BoardScene extends Phaser.Scene {
     const gridY = Math.floor((localY / (this.tileHeight / 2) - localX / (this.tileSize / 2)) / 2);
     
     // Get current board state
-    const board = GameInitializer.getBoard();
+    const board = actions.getBoard();
     if (!board) return null;
     
     // Check if grid position is valid

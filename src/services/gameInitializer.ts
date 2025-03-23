@@ -1,5 +1,6 @@
 import { TerrainType, MapGenerationType, useGameStore } from "../store/gameStore";
 import { generateIslandTerrain } from "../utils/terrainGenerator";
+import { StateObserver } from "../utils/stateObserver";
 
 /**
  * GameInitializer service
@@ -34,12 +35,35 @@ let cachedBoard: {
   tiles: { coordinate: { x: number; y: number }; terrain: TerrainType; explored: boolean; visible: boolean; }[][];
 } | null = null;
 
+// Cache for isInitialized state
+let cachedIsInitialized: boolean = false;
+
+// Initialize cache values from current state
+// This ensures we have valid values right from the start
+cachedIsInitialized = useGameStore.getState().isInitialized;
+if (useGameStore.getState().board) {
+  cachedBoard = useGameStore.getState().board;
+}
+
 // Update the cached board when state changes
-useGameStore.subscribe((state) => {
-  if (state.board) {
-    cachedBoard = state.board;
+StateObserver.subscribe(
+  'GameInitializer.board',
+  (state) => state.board,
+  (board) => {
+    if (board) {
+      cachedBoard = board;
+    }
   }
-});
+);
+
+// Update the cached initialization state
+StateObserver.subscribe(
+  'GameInitializer.isInitialized',
+  (state) => state.isInitialized,
+  (isInitialized) => {
+    cachedIsInitialized = isInitialized;
+  }
+);
 
 export class GameInitializer {
   /**
@@ -73,7 +97,8 @@ export class GameInitializer {
    * @returns Boolean indicating if game is initialized
    */
   static isInitialized(): boolean {
-    return useGameStore.getState().isInitialized;
+    // Use cached value instead of direct getState() call
+    return cachedIsInitialized;
   }
   
   /**
@@ -119,13 +144,6 @@ export class GameInitializer {
   static getBoard() {
     if (cachedBoard) {
       return cachedBoard;
-    }
-    
-    // Try to get from store
-    const storeBoard = useGameStore.getState().board;
-    if (storeBoard) {
-      cachedBoard = storeBoard;
-      return storeBoard;
     }
     
     // Generate a fallback board without saving to state
