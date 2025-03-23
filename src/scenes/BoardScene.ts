@@ -94,7 +94,7 @@ export default class BoardScene extends Phaser.Scene {
       'BoardScene.animals',
       (state) => state.animals,
       (animals) => {
-        this.updateAnimals(animals);
+        this.renderAnimalSprites(animals);
       }
     );
     
@@ -103,7 +103,7 @@ export default class BoardScene extends Phaser.Scene {
       'BoardScene.habitats',
       (state) => state.habitats,
       (habitats) => {
-        this.updateHabitats(habitats);
+        this.renderHabitatGraphics(habitats);
       }
     );
   }
@@ -130,10 +130,10 @@ export default class BoardScene extends Phaser.Scene {
     // After board is created, explicitly update animals and habitats
     const state = useGameStore.getState();
     if (state.animals.length > 0) {
-      this.updateAnimals(state.animals);
+      this.renderAnimalSprites(state.animals);
     }
     if (state.habitats.length > 0) {
-      this.updateHabitats(state.habitats);
+      this.renderHabitatGraphics(state.habitats);
     }
   }
   
@@ -146,7 +146,7 @@ export default class BoardScene extends Phaser.Scene {
       'BoardScene.animals',
       (state) => state.animals,
       (animals) => {
-        this.updateAnimals(animals);
+        this.renderAnimalSprites(animals);
       }
     );
     
@@ -155,23 +155,18 @@ export default class BoardScene extends Phaser.Scene {
       'BoardScene.habitats',
       (state) => state.habitats,
       (habitats) => {
-        this.updateHabitats(habitats);
+        this.renderHabitatGraphics(habitats);
       }
     );
     
-    // Initial updates from state (if any are already present)
-    const state = useGameStore.getState();
-    if (state.board) {
-      this.updateBoard();
+    // Only update the board if tilesContainer hasn't been created yet
+    // This prevents double initialization when the scene loads
+    if (!this.tilesContainer) {
+      const state = useGameStore.getState();
+      if (state.board) {
+        this.updateBoard();
+      }
     }
-    
-    // Don't call these here - they'll be called by subscription after tilesContainer exists
-    // if (state.animals && state.animals.length > 0) {
-    //   this.updateAnimals(state.animals);
-    // }
-    // if (state.habitats && state.habitats.length > 0) {
-    //  this.updateHabitats(state.habitats);
-    // }
   }
 
   // Handle animal click events - emit event instead of directly modifying state
@@ -181,86 +176,106 @@ export default class BoardScene extends Phaser.Scene {
     console.log(`Animal clicked: ${animalId}`);
   }
 
-  // New consolidated method for creating/updating animal sprites
-  private createOrUpdateAnimalSprite(animal: Animal) {
-    // Try to find an existing sprite for this animal
-    // Instead of searching scene.children, search tilesContainer.list for existing sprites
-    let existingSprite: Phaser.GameObjects.Sprite | undefined;
-    
-    if (this.tilesContainer) {
-      existingSprite = this.tilesContainer.list.find(
-        (child) => child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === animal.id
-      ) as Phaser.GameObjects.Sprite | undefined;
+  // Updated method using the consolidated approach
+  renderAnimalSprites(animals: Animal[]) {
+    // Check if tilesContainer exists before proceeding
+    if (!this.tilesContainer) {
+      console.warn("Cannot render animal sprites - tilesContainer not available");
+      return;
     }
 
+    // Get a map of current animal sprites by ID
+    const existingSprites = new Map();
+    this.tilesContainer.list.forEach(child => {
+      if (child instanceof Phaser.GameObjects.Sprite) {
+        const animalId = child.getData('animalId');
+        if (animalId) {
+          existingSprites.set(animalId, {
+            sprite: child,
+            used: false
+          });
+        }
+      }
+    });
+    
+    // Process each animal - create new or update existing
+    animals.forEach(animal => {
+      // Check if we have an existing sprite
+      const existing = existingSprites.get(animal.id);
+      
+      if (existing) {
+        // Mark as used so we don't delete it later
+        existing.used = true;
+        
+        // Calculate isometric position
+        const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
+        const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
+        
+        // Determine the texture based on state
+        const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
+        
+        // Only update if position or texture changed
+        let updated = false;
+        
+        if (existing.sprite.x !== isoX || existing.sprite.y !== isoY - 12) {
+          existing.sprite.setPosition(isoX, isoY - 12);
+          updated = true;
+        }
+        
+        if (existing.sprite.texture.key !== textureKey) {
+          console.log(`Updating sprite texture for animal ${animal.id} from ${existing.sprite.texture.key} to ${textureKey}`);
+          existing.sprite.setTexture(textureKey);
+          updated = true;
+        }
+        
+        if (updated) {
+          console.log(`Updated sprite for animal ${animal.id}`);
+        }
+      } else {
+        // No existing sprite, create a new one
+        this.createAnimalSprite(animal);
+      }
+    });
+    
+    // Remove sprites for animals that no longer exist
+    existingSprites.forEach((value, key) => {
+      if (!value.used) {
+        console.log(`Removing sprite for deleted animal ${key}`);
+        value.sprite.destroy();
+      }
+    });
+  }
+  
+  // Separated sprite creation into its own method
+  private createAnimalSprite(animal: Animal) {
     // Calculate isometric position
     const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
     const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
 
     // Determine the texture based on state
     const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
-    console.log(`Updating animal sprite:`, {
-      id: animal.id,
-      type: animal.type,
-      state: animal.state,
+    console.log(`Creating new sprite for animal: ${animal.id} (${textureKey})`);
+    
+    // Create the sprite
+    const sprite = this.add.sprite(
+      isoX, 
+      isoY - 12, // Keep the vertical offset for better appearance
       textureKey
-    });
-
-    if (existingSprite) {
-      // Update existing sprite
-      console.log(`Updating existing sprite for animal ${animal.id} from ${existingSprite.texture.key} to ${textureKey}`);
-      existingSprite.setTexture(textureKey);
-      existingSprite.setPosition(isoX, isoY - 12);
+    );
+    
+    sprite.setOrigin(0.5);
+    sprite.setData('animalId', animal.id);
+    sprite.setData('animalType', animal.type);
+    
+    sprite.setInteractive();
+    sprite.on("pointerdown", () => this.onAnimalClicked(animal.id));
+    
+    // Add to tiles container
+    if (this.tilesContainer) {
+      this.tilesContainer.add(sprite);
     } else {
-      // Animal doesn't have a sprite yet, create one
-      
-      // Create the sprite
-      const sprite = this.add.sprite(
-        isoX, 
-        isoY - 12, // Keep the vertical offset for better appearance
-        textureKey
-      );
-      
-      sprite.setOrigin(0.5);
-      sprite.setData('animalId', animal.id);
-      sprite.setData('animalType', animal.type);
-      
-      sprite.setInteractive();
-      sprite.on("pointerdown", () => this.onAnimalClicked(animal.id));
-      
-      // Add to tiles container
-      if (this.tilesContainer) {
-        this.tilesContainer.add(sprite);
-      } else {
-        console.warn("tilesContainer not available, sprite may not be positioned correctly");
-      }
+      console.warn("tilesContainer not available, sprite may not be positioned correctly");
     }
-  }
-
-  // Updated method using the consolidated approach
-  updateAnimals(animals: Animal[]) {
-    console.log("Updating animals:", animals);
-    
-    // Check if tilesContainer exists before proceeding
-    if (!this.tilesContainer) {
-      console.warn("Cannot update animals - tilesContainer not available");
-      return;
-    }
-    
-    // Process each animal
-    animals.forEach(animal => this.createOrUpdateAnimalSprite(animal));
-    
-    // Remove sprites for animals that no longer exist
-    this.tilesContainer.list
-      .filter(child => {
-        if (!(child instanceof Phaser.GameObjects.Sprite)) return false;
-        const animalId = child.getData('animalId');
-        return animalId && !animals.some((a: Animal) => a.id === animalId);
-      })
-      .forEach(sprite => {
-        console.log(`Removing sprite for deleted animal ${sprite.getData('animalId')}`);
-        sprite.destroy();
-      });
   }
   
   // Clean up when scene is shut down
@@ -714,10 +729,10 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Update habitats based on the state
-  updateHabitats(habitats: any[]) {
+  renderHabitatGraphics(habitats: any[]) {
     // Check if tilesContainer exists before proceeding
     if (!this.tilesContainer) {
-      console.warn("Cannot update habitats - tilesContainer not available");
+      console.warn("Cannot render habitat graphics - tilesContainer not available");
       return;
     }
     
