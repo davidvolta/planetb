@@ -17,16 +17,6 @@ function App() {
   const [mapWidth, setMapWidth] = useState(30);
   const [mapHeight, setMapHeight] = useState(30);
   
-  // Single initialization and update effect
-  useEffect(() => {
-    // Initialize the board
-    GameInitializer.initializeBoard({
-      width: mapWidth,
-      height: mapHeight,
-      mapType: MapGenerationType.ISLAND
-    });
-  }, [mapWidth, mapHeight]);
-  
   return (
     <Routes>
       <Route path="/state" element={

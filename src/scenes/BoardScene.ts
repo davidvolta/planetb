@@ -20,7 +20,8 @@ interface Animal {
 export const EVENTS = {
   ANIMAL_CLICKED: 'animalClicked',
   TILE_CLICKED: 'tileClicked',
-  HABITAT_CLICKED: 'habitatClicked'
+  HABITAT_CLICKED: 'habitatClicked',
+  ASSETS_LOADED: 'assetsLoaded'
 };
 
 export default class BoardScene extends Phaser.Scene {
@@ -50,6 +51,9 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("snake", "assets/snake.png");
     this.load.image("fish", "assets/fish.png");
 
+    this.load.on('complete', () => {
+      this.events.emit(EVENTS.ASSETS_LOADED);
+    });
   }
   
 

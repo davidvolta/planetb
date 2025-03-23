@@ -3,6 +3,8 @@ import Phaser from 'phaser';
 import BoardScene, { EVENTS } from '../scenes/BoardScene';
 import DebugScene from '../scenes/DebugScene';
 import { useGameStore } from '../store/gameStore';
+import { GameInitializer } from '../services/gameInitializer';
+import { MapGenerationType } from '../store/gameStore';
 
 const Game: React.FC = () => {
   const gameContainerRef = React.useRef<HTMLDivElement>(null);
@@ -34,6 +36,16 @@ const Game: React.FC = () => {
       boardScene.events.on(EVENTS.HABITAT_CLICKED, (habitatId: string) => {
         console.log(`Habitat clicked: ${habitatId}`);
         improveHabitat(habitatId);
+      });
+
+      // Listen for assets loaded event
+      boardScene.events.on(EVENTS.ASSETS_LOADED, () => {
+        console.log('Assets loaded, initializing board');
+        GameInitializer.initializeBoard({
+          width: 30,
+          height: 30,
+          mapType: MapGenerationType.ISLAND
+        });
       });
     };
 
