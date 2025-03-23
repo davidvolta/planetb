@@ -19,11 +19,11 @@ export enum TerrainType {
 
 // Map terrain types to animal types
 const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
-  [TerrainType.GRASS]: 'buffalo',
+  [TerrainType.GRASS]: 'bunny',
   [TerrainType.MOUNTAIN]: 'bird',
   [TerrainType.WATER]: 'fish',
   [TerrainType.UNDERWATER]: 'snake',
-  [TerrainType.BEACH]: 'buffalo', // Default to buffalo for beach
+  [TerrainType.BEACH]: 'bunny', // Default to bunny for beach
 };
 
 // Order of terrain types for habitat placement
@@ -244,7 +244,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 // Create new egg
                 const newAnimal = {
                   id: `animal-${animals.length}`,
-                  type: TERRAIN_ANIMAL_MAP[terrainData[y][x]],
+                  type: TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
                   state: AnimalState.DORMANT,
                   position: tile,
                 };
@@ -397,7 +397,7 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
       // Create new egg
       const newAnimal = {
         id: `animal-${newAnimals.length}`,
-        type: TERRAIN_ANIMAL_MAP[state.board!.tiles[habitat.position.y][habitat.position.x].terrain],
+        type: TERRAIN_ANIMAL_MAP[state.board!.tiles[tile.y][tile.x].terrain],
         state: AnimalState.DORMANT,
         position: tile
       };
