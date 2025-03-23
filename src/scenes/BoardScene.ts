@@ -135,6 +135,10 @@ export default class BoardScene extends Phaser.Scene {
     // Setup camera and controls
     this.setupControls();
     
+    // First unsubscribe from existing subscriptions to prevent duplicates
+    StateObserver.unsubscribe('BoardScene.animals');
+    StateObserver.unsubscribe('BoardScene.habitats');
+    
     // Subscribe to animals and habitats only after scene is created
     StateObserver.subscribe(
       'BoardScene.animals',
@@ -155,6 +159,9 @@ export default class BoardScene extends Phaser.Scene {
     
     // Subscribe to a one-time board check to initialize if needed
     if (!this.tilesContainer) {
+      // First unsubscribe if it exists
+      StateObserver.unsubscribe('BoardScene.checkBoard');
+      
       // Using a one-time subscription to check board state without getState()
       const checkBoardSubscription = StateObserver.subscribe(
         'BoardScene.checkBoard',
@@ -175,7 +182,6 @@ export default class BoardScene extends Phaser.Scene {
   onAnimalClicked(animalId: string) {
     // Emit an event for the React component to handle
     this.events.emit(EVENTS.ANIMAL_CLICKED, animalId);
-    console.log(`Animal clicked: ${animalId}`);
   }
 
   // Updated method using the consolidated approach
@@ -222,16 +228,13 @@ export default class BoardScene extends Phaser.Scene {
         if (existing.sprite.x !== isoX || existing.sprite.y !== isoY - 12) {
           existing.sprite.setPosition(isoX, isoY - 12);
           updated = true;
+          console.log(`Updated position for animal ${animal.id}`);
         }
         
         if (existing.sprite.texture.key !== textureKey) {
           console.log(`Updating sprite texture for animal ${animal.id} from ${existing.sprite.texture.key} to ${textureKey}`);
           existing.sprite.setTexture(textureKey);
           updated = true;
-        }
-        
-        if (updated) {
-          console.log(`Updated sprite for animal ${animal.id}`);
         }
       } else {
         // No existing sprite, create a new one
@@ -269,7 +272,13 @@ export default class BoardScene extends Phaser.Scene {
     sprite.setData('animalId', animal.id);
     sprite.setData('animalType', animal.type);
     
+    // Make sprite interactive
     sprite.setInteractive();
+    
+    // Remove any existing listeners before adding a new one
+    sprite.removeAllListeners('pointerdown');
+    
+    // Add the click handler
     sprite.on("pointerdown", () => this.onAnimalClicked(animal.id));
     
     // Add to tiles container

@@ -9,6 +9,7 @@ import { MapGenerationType } from '../store/gameStore';
 const Game: React.FC = () => {
   const gameContainerRef = React.useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
+  const listenersAttachedRef = useRef<boolean>(false);
   
   // Get state update functions from Zustand
   const evolveAnimal = useGameStore(state => state.evolveAnimal);
@@ -20,26 +21,40 @@ const Game: React.FC = () => {
     if (!gameContainerRef.current) return;
 
     // Setup event listeners for the board scene
-    const setupEventListeners = (boardScene: BoardScene) => {
+    const setupEventListeners = (scene: BoardScene) => {
+      // Skip if listeners are already attached
+      if (listenersAttachedRef.current) {
+        console.log('Event listeners already attached, skipping');
+        return;
+      }
+      
+      console.log('Setting up event listeners');
+      
+      // Remove any existing listeners first
+      scene.events.removeAllListeners(EVENTS.ANIMAL_CLICKED);
+      scene.events.removeAllListeners(EVENTS.TILE_CLICKED);
+      scene.events.removeAllListeners(EVENTS.HABITAT_CLICKED);
+      scene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
+      
       // Listen for animal click events
-      boardScene.events.on(EVENTS.ANIMAL_CLICKED, (animalId: string) => {
+      scene.events.on(EVENTS.ANIMAL_CLICKED, (animalId: string) => {
         console.log(`Animal clicked: ${animalId}`);
         evolveAnimal(animalId);
       });
 
       // Listen for tile click events
-      boardScene.events.on(EVENTS.TILE_CLICKED, (coords: { x: number, y: number }) => {
+      scene.events.on(EVENTS.TILE_CLICKED, (coords: { x: number, y: number }) => {
         console.log(`Tile clicked at: ${coords.x}, ${coords.y}`);
       });
 
       // Listen for habitat click events
-      boardScene.events.on(EVENTS.HABITAT_CLICKED, (habitatId: string) => {
+      scene.events.on(EVENTS.HABITAT_CLICKED, (habitatId: string) => {
         console.log(`Habitat clicked: ${habitatId}`);
         improveHabitat(habitatId);
       });
 
       // Listen for assets loaded event
-      boardScene.events.on(EVENTS.ASSETS_LOADED, () => {
+      scene.events.on(EVENTS.ASSETS_LOADED, () => {
         console.log('Assets loaded, checking initialization');
         // Only initialize if not already initialized
         if (!GameInitializer.isInitialized()) {
@@ -53,6 +68,9 @@ const Game: React.FC = () => {
           console.log('Board already initialized, skipping');
         }
       });
+      
+      // Mark listeners as attached
+      listenersAttachedRef.current = true;
     };
 
     // Calculate initial size
