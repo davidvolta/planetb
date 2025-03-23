@@ -3,6 +3,9 @@
  * for isometric grids.
  */
 
+import { Habitat, GameState, AnimalState, Animal, Board } from '../store/gameStore';
+import { Coordinate } from '../store/gameStore';
+
 /**
  * Convert screen coordinates to grid coordinates
  * @param screenX Screen X coordinate
@@ -128,4 +131,54 @@ export function markZone(
       zonedTiles.add(key);
     }
   }
+}
+
+interface ValidEggPlacementState {
+  board: Board;
+  animals: Animal[];
+}
+
+/**
+ * Gets all valid tiles for egg placement around a habitat
+ * A valid tile is one of the 8 adjacent tiles that doesn't already have an egg
+ * 
+ * @param habitat The habitat to check around
+ * @param state Simplified game state containing only board and animals
+ * @returns Array of valid tile coordinates for egg placement
+ */
+export function getValidEggPlacementTiles(
+  habitat: Habitat,
+  state: ValidEggPlacementState
+): Coordinate[] {
+  const validTiles: Coordinate[] = [];
+  const board = state.board;
+  
+  if (!board) return validTiles;
+  
+  // Check all 8 adjacent tiles
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = habitat.position.x + dx;
+      const y = habitat.position.y + dy;
+      
+      // Skip the habitat's own position
+      if (dx === 0 && dy === 0) continue;
+      
+      // Skip if out of bounds
+      if (!isInGridBounds(x, y, board.width, board.height)) continue;
+      
+      // Check if tile already has an egg
+      const hasEgg = state.animals.some(animal => 
+        animal.state === AnimalState.DORMANT &&
+        animal.position.x === x &&
+        animal.position.y === y
+      );
+      
+      if (!hasEgg) {
+        validTiles.push({ x, y });
+      }
+    }
+  }
+  
+  return validTiles;
 } 

@@ -393,7 +393,7 @@ export default class BoardScene extends Phaser.Scene {
     shape.fillPath();
     
     // Add a 75% transparent black stroke
-    shape.lineStyle(1, 0x000000, 0.25);
+    shape.lineStyle(1, 0x808080, 0.25);
     shape.beginPath();
     shape.moveTo(diamondPoints[0].x, diamondPoints[0].y);
     for (let i = 1; i < diamondPoints.length; i++) {
