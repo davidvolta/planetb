@@ -16,23 +16,6 @@
 
 ## Upcoming Tasks
 
-
-- [] Implement habitat improvement
-
-- [] Add fog of war
-
-- [] Unit movement
-  - [] Add highlight for available moves
-  - [] Add unit selector
-  - [] Add Secondary (tile) selector
-    
-- [] Performance optimizations
-  - [] Add viewport culling to only render visible tiles
-  - [] Tile Object Pooling
-  - [] Implement texture-based rendering for terrain tiles
-  - [] Create incremental updates to avoid full board recreation
-  - [] Optimize event listeners with event delegation
-
 - [] Implement Layer-Based Architecture
   - [] Phase 1: Preparation and Planning
     - [] Review existing container-based implementation
@@ -63,6 +46,24 @@
     - [] Fix TypeScript errors and add comments
   - [] Phase 10: Testing and Verification
     - [] Test rendering order and interactions
+
+
+- [] Implement habitat improvement
+
+- [] Add fog of war
+
+- [] Unit movement
+  - [] Add highlight for available moves
+  - [] Add unit selector
+  - [] Add Secondary (tile) selector
+    
+- [] Performance optimizations
+  - [] Add viewport culling to only render visible tiles
+  - [] Tile Object Pooling
+  - [] Implement texture-based rendering for terrain tiles
+  - [] Create incremental updates to avoid full board recreation
+  - [] Optimize event listeners with event delegation
+
 
 
 ## Completed Tasks
