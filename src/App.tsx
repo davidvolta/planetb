@@ -17,6 +17,32 @@ function App() {
   const [mapWidth, setMapWidth] = useState(30);
   const [mapHeight, setMapHeight] = useState(30);
   
+  // Handle width slider change with immediate map update
+  const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newWidth = parseInt(e.target.value);
+    setMapWidth(newWidth);
+    // Immediately update the map
+    GameInitializer.initializeBoard({
+      width: newWidth,
+      height: mapHeight,
+      mapType: MapGenerationType.ISLAND,
+      forceHabitatGeneration: true
+    });
+  };
+  
+  // Handle height slider change with immediate map update
+  const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newHeight = parseInt(e.target.value);
+    setMapHeight(newHeight);
+    // Immediately update the map
+    GameInitializer.initializeBoard({
+      width: mapWidth,
+      height: newHeight,
+      mapType: MapGenerationType.ISLAND,
+      forceHabitatGeneration: true
+    });
+  };
+  
   return (
     <Routes>
       <Route path="/state" element={
@@ -57,7 +83,7 @@ function App() {
                   min="10" 
                   max="40" 
                   value={mapWidth} 
-                  onChange={(e) => setMapWidth(parseInt(e.target.value))}
+                  onChange={handleWidthChange}
                   style={{ flex: 1 }}
                 />
                 <span style={{ marginLeft: '10px', minWidth: '30px' }}>{mapWidth}</span>
@@ -70,13 +96,35 @@ function App() {
                   min="10" 
                   max="40" 
                   value={mapHeight} 
-                  onChange={(e) => setMapHeight(parseInt(e.target.value))}
+                  onChange={handleHeightChange}
                   style={{ flex: 1 }}
                 />
                 <span style={{ marginLeft: '10px', minWidth: '30px' }}>{mapHeight}</span>
               </div>
               
-              
+              <button
+                onClick={() => {
+                  console.log(`Manually generating new map: ${mapWidth}x${mapHeight}`);
+                  GameInitializer.initializeBoard({
+                    width: mapWidth,
+                    height: mapHeight,
+                    mapType: MapGenerationType.ISLAND,
+                    forceHabitatGeneration: true
+                  });
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  marginBottom: '10px'
+                }}
+              >
+                Generate New Map
+              </button>
               
               <button 
                 onClick={nextTurn}
@@ -92,33 +140,6 @@ function App() {
                 }}
               >
                 Next Turn
-              </button>
-              
-              <button
-                onClick={() => {
-                  // Available animal types
-                  const animalTypes = ["buffalo", "bunny", "snake", "fish"];
-                  // Pick a random animal type
-                  const randomType = animalTypes[Math.floor(Math.random() * animalTypes.length)];
-                  
-                  // Pick a random position on the map
-                  const randomX = Math.floor(Math.random() * mapWidth);
-                  const randomY = Math.floor(Math.random() * mapHeight);
-                  
-                  console.log(`Adding random ${randomType} at (${randomX}, ${randomY})`);
-                  useGameStore.getState().addAnimal(randomX, randomY, randomType);
-                }}
-                style={{
-                  padding: '8px 16px',
-                  background: '#9C27B0',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  width: '100%',
-                }}
-              >
-                Add Random Animal
               </button>
             </div>
           </div>

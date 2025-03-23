@@ -268,8 +268,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         isInitialized: true,
         // Use new habitats if generating, otherwise keep existing ones
         habitats: (!state.isInitialized || forceHabitatGeneration) ? habitats : state.habitats,
-        // Add any new animals to the state
-        animals: [...state.animals, ...animals],
+        // Replace animals when force generating, otherwise add to existing
+        animals: (!state.isInitialized || forceHabitatGeneration) ? animals : [...state.animals, ...animals],
       };
     }),
 
