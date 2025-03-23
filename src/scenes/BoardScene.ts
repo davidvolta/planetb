@@ -243,7 +243,6 @@ export default class BoardScene extends Phaser.Scene {
     );
     
     sprite.setOrigin(0.5);
-    sprite.setDepth(10); // Positive depth value to ensure eggs appear above habitats
     sprite.setData('animalId', animal.id);
     sprite.setData('animalType', animal.type);
     
@@ -673,7 +672,6 @@ export default class BoardScene extends Phaser.Scene {
   private createHabitatGraphic(x: number, y: number, state: 'potential' | 'shelter' = 'potential'): Phaser.GameObjects.Container {
     // Create a container for the habitat
     const container = this.add.container(x, y);
-    container.setDepth(-10); // Negative depth value to ensure habitats appear below eggs
     const graphics = this.add.graphics();
     
     // Calculate scale factor (approximately 5px smaller on each side)

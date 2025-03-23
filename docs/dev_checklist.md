@@ -33,6 +33,37 @@
   - [] Create incremental updates to avoid full board recreation
   - [] Optimize event listeners with event delegation
 
+- [] Implement Layer-Based Architecture
+  - [] Phase 1: Preparation and Planning
+    - [] Review existing container-based implementation
+    - [] List all game object types that need rendering
+    - [] Define layer hierarchy with appropriate depths
+  - [] Phase 2: Core Layer Structure Implementation
+    - [] Replace tilesContainer with separate layer properties
+    - [] Modify createTiles() to initialize all layers
+    - [] Update camera setup to work with layers
+  - [] Phase 3: Terrain Layer Implementation
+    - [] Refactor createTerrainTile() to use Graphics objects
+    - [] Update tile creation to add tiles to terrain layer
+  - [] Phase 4: Selection Layer Implementation
+    - [] Move selection indicator to selection layer
+    - [] Update selection indicator handling
+  - [] Phase 5: Static Objects Layer Implementation
+    - [] Refactor habitat graphics to use layers
+    - [] Implement efficient habitat updating
+  - [] Phase 6: Units Layer Implementation
+    - [] Update animal sprites to use units layer
+    - [] Verify unit interaction
+  - [] Phase 7: UI Layer Preparation
+    - [] Set up UI layer structure
+  - [] Phase 8: State Management Integration
+    - [] Update state subscribers for layer architecture
+  - [] Phase 9: Clean-up and Optimization
+    - [] Remove unused container code
+    - [] Fix TypeScript errors and add comments
+  - [] Phase 10: Testing and Verification
+    - [] Test rendering order and interactions
+
 
 ## Completed Tasks
 - [x] Add unit production (eggs)
