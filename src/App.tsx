@@ -76,28 +76,7 @@ function App() {
                 <span style={{ marginLeft: '10px', minWidth: '30px' }}>{mapHeight}</span>
               </div>
               
-              <button
-                onClick={() => {
-                  GameInitializer.initializeBoard({
-                    width: mapWidth,
-                    height: mapHeight,
-                    mapType: MapGenerationType.ISLAND,
-                    forceHabitatGeneration: true
-                  });
-                }}
-                style={{
-                  padding: '8px 16px',
-                  background: '#2196F3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  width: '100%',
-                  marginBottom: '10px'
-                }}
-              >
-                Generate New Map
-              </button>
+              
               
               <button 
                 onClick={nextTurn}

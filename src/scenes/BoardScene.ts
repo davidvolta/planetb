@@ -62,8 +62,18 @@ export default class BoardScene extends Phaser.Scene {
     // Clear previous tiles when scene restarts
     this.tiles = [];
     
-    // Subscribe to state changes
-    this.setupStateSubscriptions();
+    // Subscribe to state changes for board only
+    StateObserver.subscribe(
+      'BoardScene.board',
+      (state) => state.board,
+      (board) => {
+        if (board) {
+          this.updateBoard();
+        }
+      }
+    );
+    
+    // We'll subscribe to animals and habitats in create() after tilesContainer is ready
   }
   
   // Set up subscriptions to state updates
@@ -128,12 +138,40 @@ export default class BoardScene extends Phaser.Scene {
   }
   
   create() {
-    // Setup camera and controls, but don't create tiles directly
-    // Tiles will be created by the state subscription
+    // Setup camera and controls
     this.setupControls();
     
-    // Note: We'll create animals after the tiles container is ready
-    // This is handled by subscribing to the board and animal state through StateObserver
+    // Subscribe to animals and habitats only after scene is created
+    StateObserver.subscribe(
+      'BoardScene.animals',
+      (state) => state.animals,
+      (animals) => {
+        this.updateAnimals(animals);
+      }
+    );
+    
+    // Subscribe to habitats state changes
+    StateObserver.subscribe(
+      'BoardScene.habitats',
+      (state) => state.habitats,
+      (habitats) => {
+        this.updateHabitats(habitats);
+      }
+    );
+    
+    // Initial updates from state (if any are already present)
+    const state = useGameStore.getState();
+    if (state.board) {
+      this.updateBoard();
+    }
+    
+    // Don't call these here - they'll be called by subscription after tilesContainer exists
+    // if (state.animals && state.animals.length > 0) {
+    //   this.updateAnimals(state.animals);
+    // }
+    // if (state.habitats && state.habitats.length > 0) {
+    //  this.updateHabitats(state.habitats);
+    // }
   }
 
   // Handle animal click events - emit event instead of directly modifying state

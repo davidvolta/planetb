@@ -40,12 +40,18 @@ const Game: React.FC = () => {
 
       // Listen for assets loaded event
       boardScene.events.on(EVENTS.ASSETS_LOADED, () => {
-        console.log('Assets loaded, initializing board');
-        GameInitializer.initializeBoard({
-          width: 30,
-          height: 30,
-          mapType: MapGenerationType.ISLAND
-        });
+        console.log('Assets loaded, checking initialization');
+        // Only initialize if not already initialized
+        if (!GameInitializer.isInitialized()) {
+          console.log('Board not initialized, initializing now');
+          GameInitializer.initializeBoard({
+            width: 30,
+            height: 30,
+            mapType: MapGenerationType.ISLAND
+          });
+        } else {
+          console.log('Board already initialized, skipping');
+        }
       });
     };
 
@@ -62,6 +68,9 @@ const Game: React.FC = () => {
       parent: gameContainerRef.current,
       scene: [BoardScene, DebugScene],
       pixelArt: true, // Ensures sharp pixel rendering
+      audio: {
+        noAudio: true // Properly disable audio system
+      },
       scale: {
         mode: Phaser.Scale.RESIZE,
         width: '100%',

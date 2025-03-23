@@ -15,8 +15,32 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
-- [] Add unit production (eggs)
-- [] Add unit spawning
+
+- [ ] Implement Game State Machine for Initialization
+  - Phase 1: Create Foundation
+    - [ ] Define GameInitState enum (UNINITIALIZED, LOADING_ASSETS, CREATING_BOARD, PLACING_HABITATS, PLACING_ANIMALS, READY)
+    - [ ] Update GameInitializer Service with state tracking
+    - [ ] Create state transition guards and validation
+
+  - Phase 2: Sequential Initialization
+    - [ ] Refactor Asset Loading into GameInitializer
+    - [ ] Create separate Board Initialization Stage
+    - [ ] Implement separate Entity Placement Stages
+
+  - Phase 3: Integration
+    - [ ] Update BoardScene to follow state machine
+    - [ ] Refactor Game Component to handle initialization states
+    - [ ] Implement Clean Restart Process for map size changes
+
+  - Phase 4: Cleanup & Polish
+    - [ ] Remove Redundant Code and console warnings
+    - [ ] Add Error Recovery and timeout detection
+    - [ ] Add Initialization Progress UI
+
+  - Phase 5: Testing & Verification
+    - [ ] Test Edge Cases (rapid changes, missing assets)
+    - [ ] Measure Performance improvements
+    - [ ] Final Polish and documentation
 
 - [] Implement habitat improvement
 
@@ -36,8 +60,9 @@
 
 
 ## Completed Tasks
+- [x] Add unit production (eggs)
+- [x] Add unit spawning
 - [x] Implement habitats
-
 - [x] Add unit hatching from eggs
 - [x] Fix Corners of Terrain Generation
 - [x] Add first unit
