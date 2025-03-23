@@ -17,6 +17,15 @@ export enum TerrainType {
   UNDERWATER = 'underwater',
 }
 
+// Map terrain types to animal types
+const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
+  [TerrainType.GRASS]: 'buffalo',
+  [TerrainType.MOUNTAIN]: 'bird',
+  [TerrainType.WATER]: 'fish',
+  [TerrainType.UNDERWATER]: 'snake',
+  [TerrainType.BEACH]: 'buffalo', // Default to buffalo for beach
+};
+
 // Order of terrain types for habitat placement
 // Start with beaches, then move inward (grass, mountain), then outward (water, underwater)
 export const HABITAT_TERRAIN_ORDER: TerrainType[] = [
@@ -128,7 +137,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   habitats: [],
   isInitialized: false,
 
-  nextTurn: () => set((state) => ({ turn: state.turn + 1 })),
+  nextTurn: () => set((state) => {
+    // Process habitat production
+    const updatedState = processHabitatProduction(state);
+    
+    return { 
+      ...updatedState,
+      turn: state.turn + 1,
+    };
+  }),
 
   addPlayer: (name: string, color: string) => 
     set((state) => {
@@ -204,7 +221,7 @@ export const useGameStore = create<GameState>((set, get) => ({
               state: HabitatState.POTENTIAL,
               shelterType: null,
               ownerId: null,
-              productionRate: 2,
+              productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
               lastProductionTurn: 1,
             };
             
@@ -224,10 +241,10 @@ export const useGameStore = create<GameState>((set, get) => ({
                 const tile = validTiles[randomTileIndex];
                 validTiles.splice(randomTileIndex, 1);
 
-                // Use the existing addAnimal function
+                // Create new egg
                 const newAnimal = {
                   id: `animal-${animals.length}`,
-                  type: "buffalo",
+                  type: TERRAIN_ANIMAL_MAP[terrainData[y][x]],
                   state: AnimalState.DORMANT,
                   position: tile,
                 };
@@ -287,8 +304,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         state: HabitatState.POTENTIAL,
         shelterType: null,
         ownerId: null,
-        productionRate: 2,
-        lastProductionTurn: state.turn,
+        productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
+        lastProductionTurn: 1,
       };
       return { habitats: [...state.habitats, newHabitat] };
     }),
@@ -334,8 +351,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           state: HabitatState.SHELTER,
           shelterType,
           ownerId: state.currentPlayerId,
-          productionRate: 2, // Initial production rate when habitat becomes a shelter
-          lastProductionTurn: habitat.lastProductionTurn // Preserve the last production turn
+          productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
+          lastProductionTurn: state.turn,
         };
       });
       
@@ -350,3 +367,52 @@ export const useGameStore = create<GameState>((set, get) => ({
     );
   },
 }));
+
+// Process production for all habitats
+const processHabitatProduction = (state: GameState): Partial<GameState> => {
+  const newAnimals = [...state.animals];
+  const updatedHabitats = state.habitats.map(habitat => {
+    // Skip if no production
+    if (habitat.productionRate <= 0) return habitat;
+
+    // Calculate turns since last production
+    const turnsSinceProduction = state.turn - habitat.lastProductionTurn;
+    if (turnsSinceProduction <= 0) return habitat;
+
+    // Calculate how many eggs to create
+    const eggsToCreate = habitat.productionRate * turnsSinceProduction;
+
+    // Find valid tiles for egg placement
+    const validTiles = getValidEggPlacementTiles(habitat, {
+      board: state.board!,
+      animals: newAnimals
+    });
+
+    // Place eggs on valid tiles
+    for (let i = 0; i < Math.min(eggsToCreate, validTiles.length); i++) {
+      const randomIndex = Math.floor(Math.random() * validTiles.length);
+      const tile = validTiles[randomIndex];
+      validTiles.splice(randomIndex, 1);
+
+      // Create new egg
+      const newAnimal = {
+        id: `animal-${newAnimals.length}`,
+        type: TERRAIN_ANIMAL_MAP[state.board!.tiles[habitat.position.y][habitat.position.x].terrain],
+        state: AnimalState.DORMANT,
+        position: tile
+      };
+      newAnimals.push(newAnimal);
+    }
+
+    // Update habitat's last production turn
+    return {
+      ...habitat,
+      lastProductionTurn: state.turn
+    };
+  });
+
+  return {
+    animals: newAnimals,
+    habitats: updatedHabitats
+  };
+};
