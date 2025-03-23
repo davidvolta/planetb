@@ -14,6 +14,42 @@ interface BoardInitOptions {
   forceHabitatGeneration?: boolean;
 }
 
+//
+// Getter Functions (for non-React contexts like Phaser scenes)
+//
+
+/**
+ * Get the current turn number
+ */
+export function getTurn(): number {
+  return useGameStore.getState().turn;
+}
+
+/**
+ * Get the function to advance to the next turn
+ */
+export function getNextTurn(): () => void {
+  return useGameStore.getState().nextTurn;
+}
+
+/**
+ * Get all habitats in the game
+ */
+export function getHabitats(): any[] {
+  return useGameStore.getState().habitats;
+}
+
+/**
+ * Add a potential habitat at the specified coordinates
+ */
+export function addPotentialHabitat(x: number, y: number): void {
+  useGameStore.getState().addPotentialHabitat(x, y);
+}
+
+//
+// Board Actions
+//
+
 /**
  * Initialize the game board with the specified dimensions and options
  */
@@ -35,6 +71,10 @@ export function isInitialized(): boolean {
   return !!useGameStore.getState().isInitialized;
 }
 
+//
+// Animal Actions
+//
+
 /**
  * Add a new animal at the specified coordinates
  */
@@ -48,6 +88,10 @@ export function addAnimal(x: number, y: number, type?: string): void {
 export function evolveAnimal(id: string): void {
   useGameStore.getState().evolveAnimal(id);
 }
+
+//
+// Habitat Actions
+//
 
 /**
  * Improve a habitat by ID

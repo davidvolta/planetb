@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import BoardScene, { EVENTS } from '../scenes/BoardScene';
 import DebugScene from '../scenes/DebugScene';
-import { useGameStore, MapGenerationType } from '../store/gameStore';
+import { MapGenerationType } from '../store/gameStore';
 import * as actions from '../store/actions';
 import { StateObserver } from '../utils/stateObserver';
 
@@ -11,20 +11,15 @@ const Game: React.FC = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
   const listenersAttachedRef = useRef<boolean>(false);
   
-  // Get state update functions from Zustand
-  const evolveAnimal = useGameStore(state => state.evolveAnimal);
-  const improveHabitat = useGameStore(state => state.improveHabitat);
-
   // Create and initialize the game
   useEffect(() => {
     // Don't create the game if the container doesn't exist
     if (!gameContainerRef.current) return;
 
-    // Setup event listeners for the board scene
-    const setupEventListeners = (scene: BoardScene) => {
-      // Skip if listeners are already attached
+    const attachSceneListeners = (scene: Phaser.Scene) => {
+      // Don't attach listeners if already attached
       if (listenersAttachedRef.current) {
-        console.log('Event listeners already attached, skipping');
+        console.log('Listeners already attached, skipping');
         return;
       }
       
@@ -39,7 +34,7 @@ const Game: React.FC = () => {
       // Listen for animal click events
       scene.events.on(EVENTS.ANIMAL_CLICKED, (animalId: string) => {
         console.log(`Animal clicked: ${animalId}`);
-        evolveAnimal(animalId);
+        actions.evolveAnimal(animalId);
       });
 
       // Listen for tile click events
@@ -57,7 +52,7 @@ const Game: React.FC = () => {
       scene.events.on(EVENTS.ASSETS_LOADED, () => {
         console.log('Assets loaded, checking initialization');
         // Only initialize if not already initialized
-        if (!useGameStore.getState().isInitialized) {
+        if (!actions.isInitialized()) {
           console.log('Board not initialized, initializing now');
           actions.initializeBoard({
             width: 30,
@@ -118,7 +113,7 @@ const Game: React.FC = () => {
       if (gameRef.current) {
         const boardScene = gameRef.current.scene.getScene('BoardScene') as BoardScene;
         if (boardScene) {
-          setupEventListeners(boardScene);
+          attachSceneListeners(boardScene);
           return true;
         }
       }
@@ -141,7 +136,7 @@ const Game: React.FC = () => {
         gameRef.current = null;
       }
     };
-  }, [evolveAnimal, improveHabitat]);
+  }, []);
 
   return (
     <div

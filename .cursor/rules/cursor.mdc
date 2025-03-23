@@ -15,8 +15,9 @@ alwaysApply: true
 - Primary Focus: Game design
 - Ignore: test projects, and experimental features unless explicitly requested
 
-## Documentation Rules
-- Always read development-checklist.md before making any changes
+## Rules For Coding
+- Always read app_guide.md before you speak to me
+- Always read dev_checklist.md before you speak to me
 - Ask if I want to update development-checklist.md after completing tasks
 
 ## Context Rules
@@ -37,7 +38,7 @@ alwaysApply: true
 
 ## Review Process
 - After completing changes:
-  1. Read development-checklist.md thoroughly and suggest updates
+  1. Read dev_checklist.md thoroughly and suggest updates
 
 ## Project-Specific Guidelines
 - Maintain focus on game stability and performance

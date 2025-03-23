@@ -16,11 +16,6 @@
 
 ## Upcoming Tasks
 
-- [] Architecture improvements
-  - [] Replace direct getState() calls with StateObserver subscriptions
-  - [] Use action dispatchers in React components instead of directly calling GameInitializer
-  - [] Consolidate subscription management in BoardScene
-  - [] Improve StateObserver with better typing and more efficient change detection
 
 - [] Implement habitat improvement
 

@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import Game from "./components/Game";
 import State from "./components/State";
-import { useGameStore } from "./store/gameStore";
+import { useGameStore, MapGenerationType } from "./store/gameStore";
 import { useEffect } from "react";
-import { MapGenerationType } from "./store/gameStore";
 import { Routes, Route, Link } from "react-router-dom";
 import * as actions from './store/actions';
 
 function App() {
+  // Use direct Zustand hooks for state reading
   const turn = useGameStore((state) => state.turn);
   const nextTurn = useGameStore((state) => state.nextTurn);
-  const addPotentialHabitat = useGameStore((state) => state.addPotentialHabitat);
   const habitats = useGameStore((state) => state.habitats);
   const isInitialized = useGameStore((state) => state.isInitialized);
   

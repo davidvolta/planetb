@@ -1,5 +1,11 @@
 # Application Architecture Guide: React, Zustand & Phaser
 
+## Fundamental Architecture Principle
+
+Our core architectural pattern follows: **"Components trigger actions, actions modify state"**
+
+This creates a unidirectional data flow where React components and Phaser scenes never directly mutate the state. Instead, they trigger actions, which encapsulate state mutation logic in a centralized location.
+
 ## Architecture Principles and Patterns
 
 1. **Rendering Responsibility**
@@ -34,11 +40,12 @@
    - ❌ DON'T: Mix event handling with rendering logic
 
 5. **State Access Pattern**
-   - ✅ DO: Access state exclusively through action functions
+   - ✅ DO: Use direct Zustand hooks for reading state in React components
+   - ✅ DO: Use action functions for ALL state mutations
    - ✅ DO: Create action functions in a central location (actions.ts)
-   - ✅ DO: Centralize state access in actions to avoid prop drilling
-   - ❌ DON'T: Import useGameStore and call getState() directly in components
-   - ❌ DON'T: Spread state access logic throughout the application
+   - ✅ DO: Use action functions for state access in non-React contexts (like Phaser scenes)
+   - ❌ DON'T: Call getState() directly in components or Phaser scenes
+   - ❌ DON'T: Perform state mutations directly in components
 
 6. **Clear Separation of Concerns**
    - ✅ DO: Phaser: Rendering and input handling only
@@ -47,6 +54,20 @@
    - ✅ DO: Actions: Centralized state access and modification
    - ❌ DON'T: Mix responsibilities across boundaries
    - ❌ DON'T: Allow implementation details to leak between layers 
+
+## Why This Architecture Works
+
+Our approach balances pragmatism with maintainability:
+
+1. **Reading State**: React components use direct Zustand hooks for reading state, leveraging Zustand's efficient subscription system and keeping components simple.
+
+2. **Modifying State**: ALL state mutations go through action functions, creating a centralized place for mutation logic which makes the codebase more maintainable, testable, and easier to debug.
+
+3. **Single Source of Truth**: Actions serve as the API for state changes, ensuring consistent mutation patterns across the codebase.
+
+4. **Component Decoupling**: Components don't need to know about the internal structure of the state; they just call action functions with the necessary parameters.
+
+Remember the core pattern: **"Components trigger actions, actions modify state"**
 
 ## Utilities and Implementation Details
 

@@ -19,7 +19,7 @@ export enum TerrainType {
 
 // Map terrain types to animal types
 const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
-  [TerrainType.GRASS]: 'bunny',
+  [TerrainType.GRASS]: 'buffalo',
   [TerrainType.MOUNTAIN]: 'bird',
   [TerrainType.WATER]: 'fish',
   [TerrainType.UNDERWATER]: 'snake',

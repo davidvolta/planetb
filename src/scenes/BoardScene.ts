@@ -2,7 +2,6 @@ import Phaser from "phaser";
 import { TerrainType } from "../store/gameStore";
 import { StateObserver } from "../utils/stateObserver";
 import { AnimalState } from "../store/gameStore";
-import { useGameStore } from "../store/gameStore";
 import * as actions from "../store/actions";
 
 // Define the Animal interface to avoid 'any' type
