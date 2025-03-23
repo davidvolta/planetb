@@ -8,10 +8,10 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Cursor Rules for Planet X
+# Cursor Rules for Planet B
 
 ## Project Scope
-- Main Project: Planet X (unique turn-based 4x strategy game)
+- Main Project: Planet B (unique turn-based 4x strategy game)
 - Primary Focus: Game design
 - Ignore: test projects, and experimental features unless explicitly requested
 
@@ -43,8 +43,3 @@ alwaysApply: true
 ## Project-Specific Guidelines
 - Maintain focus on game stability and performance
 - Keep unit tests in mind when making changes
-
-## Project Boundaries
-- Main Game Files: 
-- Test Components: 
-- Ignore:

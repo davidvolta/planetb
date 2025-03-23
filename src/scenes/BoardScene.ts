@@ -243,6 +243,7 @@ export default class BoardScene extends Phaser.Scene {
     );
     
     sprite.setOrigin(0.5);
+    sprite.setDepth(10); // Positive depth value to ensure eggs appear above habitats
     sprite.setData('animalId', animal.id);
     sprite.setData('animalType', animal.type);
     
@@ -672,6 +673,7 @@ export default class BoardScene extends Phaser.Scene {
   private createHabitatGraphic(x: number, y: number, state: 'potential' | 'shelter' = 'potential'): Phaser.GameObjects.Container {
     // Create a container for the habitat
     const container = this.add.container(x, y);
+    container.setDepth(-10); // Negative depth value to ensure habitats appear below eggs
     const graphics = this.add.graphics();
     
     // Calculate scale factor (approximately 5px smaller on each side)
@@ -720,41 +722,77 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // First, remove all existing habitat graphics
-    this.removeAllHabitatGraphics();
+    // Get a map of current habitat graphics by ID
+    const existingHabitats = new Map();
+    this.tilesContainer.list.forEach(child => {
+      if (child && 'getData' in child && typeof child.getData === 'function') {
+        const habitatId = child.getData('habitatId');
+        if (habitatId) {
+          existingHabitats.set(habitatId, {
+            graphic: child,
+            used: false
+          });
+        }
+      }
+    });
     
-    // Then create new habitat graphics for each habitat in state
+    // Process each habitat - create new or update existing
     habitats.forEach(habitat => {
+      // Calculate position
       const gridX = habitat.position.x;
       const gridY = habitat.position.y;
-      
-      // Convert grid coordinates to isometric coordinates
       const isoX = (gridX - gridY) * this.tileSize / 2;
       const isoY = (gridX + gridY) * this.tileHeight / 2;
       
-      // Create the habitat graphic based on its state
-      const habitatGraphic = this.createHabitatGraphic(
-        isoX, 
-        isoY, 
-        habitat.state === 'POTENTIAL' ? 'potential' : 'shelter'
-      );
+      // Check if we have an existing graphic
+      const existing = existingHabitats.get(habitat.id);
       
-      // Store the habitat id for later reference
-      habitatGraphic.setData('habitatId', habitat.id);
-      
-      // We know tilesContainer exists here because we checked at the beginning of the method
-      this.tilesContainer!.add(habitatGraphic);
-      
-      // Make the habitat interactive and listen for clicks
-      habitatGraphic.setInteractive();
-      habitatGraphic.on('pointerdown', () => {
-        console.log(`Habitat clicked: ${habitat.id}`);
-        this.events.emit(EVENTS.HABITAT_CLICKED, habitat.id);
-      });
+      if (existing) {
+        // Mark as used so we don't delete it later
+        existing.used = true;
+        
+        // Update position if needed
+        if (existing.graphic.x !== isoX || existing.graphic.y !== isoY) {
+          existing.graphic.setPosition(isoX, isoY);
+          console.log(`Updated position for habitat ${habitat.id}`);
+        }
+        
+        // Note: If we need to update other properties of the habitat graphic
+        // like appearance based on its state, we would do that here
+      } else {
+        // No existing graphic, create a new one
+        const habitatGraphic = this.createHabitatGraphic(
+          isoX, 
+          isoY, 
+          habitat.state === 'POTENTIAL' ? 'potential' : 'shelter'
+        );
+        
+        // Store the habitat id for later reference
+        habitatGraphic.setData('habitatId', habitat.id);
+        
+        // Add to tiles container
+        this.tilesContainer!.add(habitatGraphic);
+        
+        // Make the habitat interactive and listen for clicks
+        habitatGraphic.setInteractive();
+        habitatGraphic.on('pointerdown', () => {
+          console.log(`Habitat clicked: ${habitat.id}`);
+          this.events.emit(EVENTS.HABITAT_CLICKED, habitat.id);
+        });
+      }
+    });
+    
+    // Remove graphics for habitats that no longer exist
+    existingHabitats.forEach((value, key) => {
+      if (!value.used) {
+        console.log(`Removing graphic for deleted habitat ${key}`);
+        value.graphic.destroy();
+      }
     });
   }
   
-  // Helper method to remove all existing habitat graphics
+  // Helper method to remove all existing habitat graphics - no longer needed with our new approach
+  // but keeping it for potential future use
   private removeAllHabitatGraphics() {
     if (!this.tilesContainer) return;
     
