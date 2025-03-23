@@ -161,15 +161,20 @@ export default class BoardScene extends Phaser.Scene {
 
     // Determine the texture based on state
     const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
+    console.log(`Updating animal sprite:`, {
+      id: animal.id,
+      type: animal.type,
+      state: animal.state,
+      textureKey
+    });
 
     if (existingSprite) {
       // Update existing sprite
-      console.log(`Updating sprite for animal ${animal.id} to texture ${textureKey}`);
+      console.log(`Updating existing sprite for animal ${animal.id} from ${existingSprite.texture.key} to ${textureKey}`);
       existingSprite.setTexture(textureKey);
       existingSprite.setPosition(isoX, isoY - 12);
     } else {
       // Animal doesn't have a sprite yet, create one
-      console.log(`Creating new sprite for animal ${animal.id} with texture ${textureKey}`);
       
       // Create the sprite
       const sprite = this.add.sprite(
@@ -188,7 +193,6 @@ export default class BoardScene extends Phaser.Scene {
       // Add to tiles container
       if (this.tilesContainer) {
         this.tilesContainer.add(sprite);
-        console.log(`Added sprite for animal ${animal.id} to tiles container`);
       } else {
         console.warn("tilesContainer not available, sprite may not be positioned correctly");
       }

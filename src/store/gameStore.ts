@@ -244,10 +244,15 @@ export const useGameStore = create<GameState>((set, get) => ({
                 // Create new egg
                 const newAnimal = {
                   id: `animal-${animals.length}`,
-                  type: TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
+                  type: TERRAIN_ANIMAL_MAP[tiles[tile.y][tile.x].terrain],
                   state: AnimalState.DORMANT,
                   position: tile,
                 };
+                console.log(`Created new animal during init:`, { 
+                  id: newAnimal.id, 
+                  type: newAnimal.type, 
+                  terrain: tiles[tile.y][tile.x].terrain 
+                });
                 animals.push(newAnimal);
               }
             }
@@ -293,6 +298,12 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? { ...animal, state: AnimalState.ACTIVE }
           : animal
       );
+      const evolvedAnimal = evolvedAnimals.find(a => a.id === id);
+      console.log(`Evolving animal:`, { 
+        id, 
+        type: evolvedAnimal?.type, 
+        newState: AnimalState.ACTIVE 
+      });
       return { animals: evolvedAnimals };
     }),
 
@@ -401,6 +412,11 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
         state: AnimalState.DORMANT,
         position: tile
       };
+      console.log(`Created new animal during production:`, { 
+        id: newAnimal.id, 
+        type: newAnimal.type, 
+        terrain: state.board!.tiles[tile.y][tile.x].terrain 
+      });
       newAnimals.push(newAnimal);
     }
 
