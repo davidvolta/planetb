@@ -24,6 +24,13 @@ export const EVENTS = {
   ASSETS_LOADED: 'assetsLoaded'
 };
 
+// Define subscription keys to ensure consistency
+const SUBSCRIPTIONS = {
+  BOARD: 'BoardScene.board',
+  ANIMALS: 'BoardScene.animals',
+  HABITATS: 'BoardScene.habitats',
+};
+
 export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.Container[] = [];
   private tileSize = 64; // Fixed tile size
@@ -62,50 +69,57 @@ export default class BoardScene extends Phaser.Scene {
     // Clear previous tiles when scene restarts
     this.tiles = [];
     
-    // Subscribe to state changes for board only
-    StateObserver.subscribe(
-      'BoardScene.board',
-      (state) => state.board,
-      (board) => {
-        if (board) {
-          this.updateBoard();
-        }
-      }
-    );
+    // Ensure all old subscriptions are cleaned up before creating new ones
+    this.unsubscribeAll();
     
-    // We'll subscribe to animals and habitats in create() after tilesContainer is ready
+    // Set up all subscriptions in one place
+    this.setupSubscriptions();
   }
   
-  // Set up subscriptions to state updates
-  private setupStateSubscriptions() {
+  // Set up all state subscriptions in one centralized method
+  private setupSubscriptions() {
     // Subscribe to board state changes
     StateObserver.subscribe(
-      'BoardScene.board',
+      SUBSCRIPTIONS.BOARD,
       (state) => state.board,
       (board) => {
         if (board) {
           this.updateBoard();
         }
-      }
+      },
+      { debug: false } // Optional configuration
     );
     
-    // Subscribe to animals state changes
+    // Subscribe to animals state changes with more efficient change detection
     StateObserver.subscribe(
-      'BoardScene.animals',
+      SUBSCRIPTIONS.ANIMALS,
       (state) => state.animals,
-      (animals) => {
-        this.renderAnimalSprites(animals);
+      (animals, prevAnimals) => {
+        if (this.tilesContainer) {
+          // We now receive previous state as well
+          this.renderAnimalSprites(animals);
+        }
       }
     );
     
     // Subscribe to habitats state changes
     StateObserver.subscribe(
-      'BoardScene.habitats',
+      SUBSCRIPTIONS.HABITATS,
       (state) => state.habitats,
       (habitats) => {
-        this.renderHabitatGraphics(habitats);
+        if (this.tilesContainer) {
+          this.renderHabitatGraphics(habitats);
+        }
       }
     );
+  }
+  
+  // Clean up subscriptions to avoid memory leaks
+  private unsubscribeAll() {
+    // Unsubscribe from all known subscriptions
+    Object.values(SUBSCRIPTIONS).forEach(key => {
+      StateObserver.unsubscribe(key);
+    });
   }
 
   // Method is kept for compatibility but will log that tile size is now fixed
@@ -126,55 +140,16 @@ export default class BoardScene extends Phaser.Scene {
     if (oldContainer) {
       oldContainer.destroy();
     }
-    
-    // After board is created, trigger state check to update animals/habitats
-    // No need to directly use getState - StateObserver subscriptions will handle this
   }
   
   create() {
     // Setup camera and controls
     this.setupControls();
     
-    // First unsubscribe from existing subscriptions to prevent duplicates
-    StateObserver.unsubscribe('BoardScene.animals');
-    StateObserver.unsubscribe('BoardScene.habitats');
-    
-    // Subscribe to animals and habitats only after scene is created
-    StateObserver.subscribe(
-      'BoardScene.animals',
-      (state) => state.animals,
-      (animals) => {
-        this.renderAnimalSprites(animals);
-      }
-    );
-    
-    // Subscribe to habitats state changes
-    StateObserver.subscribe(
-      'BoardScene.habitats',
-      (state) => state.habitats,
-      (habitats) => {
-        this.renderHabitatGraphics(habitats);
-      }
-    );
-    
-    // Subscribe to a one-time board check to initialize if needed
-    if (!this.tilesContainer) {
-      // First unsubscribe if it exists
-      StateObserver.unsubscribe('BoardScene.checkBoard');
-      
-      // Using a one-time subscription to check board state without getState()
-      const checkBoardSubscription = StateObserver.subscribe(
-        'BoardScene.checkBoard',
-        (state) => state.board,
-        (board) => {
-          // If board exists and tiles container doesn't, update board
-          if (board && !this.tilesContainer) {
-            this.updateBoard();
-          }
-          // Unsubscribe after first update to avoid future updates
-          StateObserver.unsubscribe('BoardScene.checkBoard');
-        }
-      );
+    // Check if board data exists and create board if needed
+    const board = actions.getBoard();
+    if (board && !this.tilesContainer) {
+      this.updateBoard();
     }
   }
 
@@ -291,14 +266,13 @@ export default class BoardScene extends Phaser.Scene {
   
   // Clean up when scene is shut down
   shutdown() {
-    // Unsubscribe from state changes to prevent memory leaks
-    StateObserver.unsubscribe('BoardScene.board');
-    StateObserver.unsubscribe('BoardScene.animals');
-    StateObserver.unsubscribe('BoardScene.habitats');
+    // Ensure we clean up all subscriptions when scene shuts down
+    this.unsubscribeAll();
     
-    // Remove all event listeners
-    this.events.removeAllListeners(EVENTS.ANIMAL_CLICKED);
-    this.events.removeAllListeners(EVENTS.TILE_CLICKED);
+    // Clear references
+    this.tilesContainer = null;
+    this.tiles = [];
+    this.selectionIndicator = null;
   }
   
   // Create tiles based on the current board state
