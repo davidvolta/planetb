@@ -127,14 +127,8 @@ export default class BoardScene extends Phaser.Scene {
       oldContainer.destroy();
     }
     
-    // After board is created, explicitly update animals and habitats
-    const state = useGameStore.getState();
-    if (state.animals.length > 0) {
-      this.renderAnimalSprites(state.animals);
-    }
-    if (state.habitats.length > 0) {
-      this.renderHabitatGraphics(state.habitats);
-    }
+    // After board is created, trigger state check to update animals/habitats
+    // No need to directly use getState - StateObserver subscriptions will handle this
   }
   
   create() {
@@ -159,13 +153,21 @@ export default class BoardScene extends Phaser.Scene {
       }
     );
     
-    // Only update the board if tilesContainer hasn't been created yet
-    // This prevents double initialization when the scene loads
+    // Subscribe to a one-time board check to initialize if needed
     if (!this.tilesContainer) {
-      const state = useGameStore.getState();
-      if (state.board) {
-        this.updateBoard();
-      }
+      // Using a one-time subscription to check board state without getState()
+      const checkBoardSubscription = StateObserver.subscribe(
+        'BoardScene.checkBoard',
+        (state) => state.board,
+        (board) => {
+          // If board exists and tiles container doesn't, update board
+          if (board && !this.tilesContainer) {
+            this.updateBoard();
+          }
+          // Unsubscribe after first update to avoid future updates
+          StateObserver.unsubscribe('BoardScene.checkBoard');
+        }
+      );
     }
   }
 
