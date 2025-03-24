@@ -725,9 +725,17 @@ export default class BoardScene extends Phaser.Scene {
     const localX = worldPoint.x - this.anchorX;
     const localY = worldPoint.y - this.anchorY;
     
-    // Convert to isometric grid coordinates
-    const gridX = Math.floor((localY / (this.tileHeight / 2) + localX / (this.tileSize / 2)) / 2);
-    const gridY = Math.floor((localY / (this.tileHeight / 2) - localX / (this.tileSize / 2)) / 2);
+    // Add small offset to compensate for visual vs. logical grid mismatch
+    const offsetX = 0;
+    const offsetY = -this.tileHeight / 2;
+    
+    // Convert to isometric grid coordinates with adjustment
+    let gridX = Math.floor(((localY + offsetY) / (this.tileHeight / 2) + (localX + offsetX) / (this.tileSize / 2)) / 2);
+    let gridY = Math.floor(((localY + offsetY) / (this.tileHeight / 2) - (localX + offsetX) / (this.tileSize / 2)) / 2);
+    
+    // Add +1 to both coordinates to fix the off-by-one error
+    gridX += 1;
+    gridY += 1;
     
     // Check if grid position is valid
     if (gridX >= 0 && gridX < board.width && gridY >= 0 && gridY < board.height) {
