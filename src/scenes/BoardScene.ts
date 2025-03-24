@@ -31,10 +31,14 @@ const SUBSCRIPTIONS = {
 };
 
 export default class BoardScene extends Phaser.Scene {
-  private tiles: Phaser.GameObjects.Container[] = [];
+  private tiles: Phaser.GameObjects.GameObject[] = [];
   private tileSize = 64; // Fixed tile size
   private tileHeight = 32; // Half of tile size for isometric view
   private verticalOffset = 0;
+  
+  // Store fixed anchor positions for the grid
+  private anchorX = 0; 
+  private anchorY = 0;
   
   // Add layer properties with appropriate typing
   private backgroundLayer: Phaser.GameObjects.Layer | null = null;
@@ -213,15 +217,15 @@ export default class BoardScene extends Phaser.Scene {
 
   // Updated method using the consolidated approach
   renderAnimalSprites(animals: Animal[]) {
-    // Check if tilesContainer exists before proceeding
-    if (!this.tilesContainer) {
-      console.warn("Cannot render animal sprites - tilesContainer not available");
+    // Check if unitsLayer exists before proceeding
+    if (!this.unitsLayer) {
+      console.warn("Cannot render animal sprites - unitsLayer not available");
       return;
     }
 
     // Get a map of current animal sprites by ID
     const existingSprites = new Map();
-    this.tilesContainer.list.forEach(child => {
+    this.unitsLayer.getAll().forEach(child => {
       if (child instanceof Phaser.GameObjects.Sprite) {
         const animalId = child.getData('animalId');
         if (animalId) {
@@ -235,6 +239,16 @@ export default class BoardScene extends Phaser.Scene {
     
     // Process each animal - create new or update existing
     animals.forEach(animal => {
+      // Calculate position
+      const gridX = animal.position.x;
+      const gridY = animal.position.y;
+      const isoX = (gridX - gridY) * this.tileSize / 2;
+      const isoY = (gridX + gridY) * this.tileHeight / 2;
+      
+      // Position using anchor points
+      const worldX = this.anchorX + isoX;
+      const worldY = this.anchorY + isoY;
+      
       // Check if we have an existing sprite
       const existing = existingSprites.get(animal.id);
       
@@ -242,78 +256,40 @@ export default class BoardScene extends Phaser.Scene {
         // Mark as used so we don't delete it later
         existing.used = true;
         
-        // Calculate isometric position
-        const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
-        const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
-        
-        // Determine the texture based on state
-        const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
-        
-        // Only update if position or texture changed
-        let updated = false;
-        
-        if (existing.sprite.x !== isoX || existing.sprite.y !== isoY - 12) {
-          existing.sprite.setPosition(isoX, isoY - 12);
-          updated = true;
-          console.log(`Updated position for animal ${animal.id}`);
-        }
-        
-        if (existing.sprite.texture.key !== textureKey) {
-          console.log(`Updating sprite texture for animal ${animal.id} from ${existing.sprite.texture.key} to ${textureKey}`);
-          existing.sprite.setTexture(textureKey);
-          updated = true;
-        }
+        // Update position
+        existing.sprite.setPosition(worldX, worldY);
       } else {
-        // No existing sprite, create a new one
-        this.createAnimalSprite(animal);
+        // Create a new sprite for this animal
+        const animalSprite = this.add.sprite(worldX, worldY, 'egg');
+        
+        // Set appropriate scale
+        animalSprite.setScale(0.75);
+        
+        // Store the animal ID on the sprite
+        animalSprite.setData('animalId', animal.id);
+        animalSprite.setData('gridX', gridX);
+        animalSprite.setData('gridY', gridY);
+        
+        // Make the sprite interactive
+        animalSprite.setInteractive();
+        
+        // Add a click handler
+        animalSprite.on('pointerdown', () => {
+          console.log(`Animal clicked: ${animal.id} at ${gridX},${gridY}`);
+          this.events.emit(EVENTS.ANIMAL_CLICKED, animal);
+        });
+        
+        // Add the new sprite to the units layer
+        this.unitsLayer!.add(animalSprite);
       }
     });
     
     // Remove sprites for animals that no longer exist
-    existingSprites.forEach((value, key) => {
-      if (!value.used) {
-        console.log(`Removing sprite for deleted animal ${key}`);
-        value.sprite.destroy();
+    existingSprites.forEach((data, id) => {
+      if (!data.used) {
+        data.sprite.destroy();
       }
     });
-  }
-  
-  // Separated sprite creation into its own method
-  private createAnimalSprite(animal: Animal) {
-    // Calculate isometric position
-    const isoX = (animal.position.x - animal.position.y) * this.tileSize / 2;
-    const isoY = (animal.position.x + animal.position.y) * this.tileHeight / 2;
-
-    // Determine the texture based on state
-    const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
-    console.log(`Creating new sprite for animal: ${animal.id} (${textureKey})`);
-    
-    // Create the sprite
-    const sprite = this.add.sprite(
-      isoX, 
-      isoY - 12, // Keep the vertical offset for better appearance
-      textureKey
-    );
-    
-    sprite.setOrigin(0.5);
-    sprite.setData('animalId', animal.id);
-    sprite.setData('animalType', animal.type);
-    
-    // Make sprite interactive
-    sprite.setInteractive();
-    
-    // Remove any existing listeners before adding a new one
-    sprite.removeAllListeners('pointerdown');
-    
-    // Add the click handler
-    sprite.on("pointerdown", () => this.onAnimalClicked(animal.id));
-    
-    // Add to tiles container
-    if (this.tilesContainer) {
-      this.tilesContainer.add(sprite);
-    } else {
-      console.warn("tilesContainer not available, sprite may not be positioned correctly");
-    }
   }
   
   // Clean up when scene is shut down
@@ -340,6 +316,11 @@ export default class BoardScene extends Phaser.Scene {
     // Clear previous tiles
     this.tiles = [];
     
+    // Clear existing terrain graphics from the terrainLayer
+    if (this.terrainLayer) {
+      this.terrainLayer.removeAll(true); // true to destroy the objects
+    }
+    
     // Get board data using actions instead of GameInitializer
     const board = actions.getBoard();
     if (!board) {
@@ -354,45 +335,51 @@ export default class BoardScene extends Phaser.Scene {
 
     console.log(`Creating tiles for board: ${board.width}x${board.height}`);
 
-    // Calculate map dimensions
+    // Calculate map dimensions for camera bounds
     const mapWidth = board.width * this.tileSize;
     const mapHeight = board.height * this.tileHeight;
     
-    // Calculate the true center of an isometric grid
-    const centerX = (board.width + board.height) * this.tileSize / 4;
-    const centerY = (board.width + board.height) * this.tileHeight / 4;
+    // Fixed anchor coordinates - center of the screen
+    const anchorX = this.cameras.main.width / 2;
+    const anchorY = this.cameras.main.height / 3; // Position at 1/3 of screen height
     
-    // Position container with vertical offset to move grid up
-    this.verticalOffset = mapHeight * 1.4; // Move it up by 110% of map height
+    // Store these anchor positions for coordinate conversions
+    this.anchorX = anchorX;
+    this.anchorY = anchorY;
     
     // Set up all layers (new approach)
     this.setupLayers();
     
-    // Create tilesContainer for backward compatibility
-    this.tilesContainer = this.add.container(centerX, centerY - this.verticalOffset);
+    // Create tilesContainer for backward compatibility at a fixed position
+    this.tilesContainer = this.add.container(anchorX, anchorY);
     
     // Set camera bounds
-    this.cameras.main.setBounds(-mapWidth, -mapHeight, mapWidth * 3, mapHeight * 3);
+    this.cameras.main.setBounds(
+      anchorX - mapWidth, 
+      anchorY - mapHeight, 
+      mapWidth * 3, 
+      mapHeight * 3
+    );
     
-    // Center camera on the adjusted position
-    this.cameras.main.centerOn(centerX, centerY - this.verticalOffset);
+    // Center camera on the anchor position
+    this.cameras.main.centerOn(anchorX, anchorY);
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
-        // Coordinate calculations for isometric placement (centered around 0,0)
+        // Coordinate calculations for isometric placement
         const isoX = (x - y) * this.tileSize / 2;
         const isoY = (x + y) * this.tileHeight / 2;
         
         // Get terrain type and create appropriate shape
         const terrain = board.tiles[y]?.[x]?.terrain || TerrainType.GRASS;
-        const tile = this.createTerrainTile(terrain, isoX, isoY);
+        const tile = this.createTerrainTile(terrain, anchorX + isoX, anchorY + isoY);
         
-        // Add tile to both the container (for backward compatibility) and to the terrain layer
-        this.tilesContainer.add(tile);
+        // Add tile to the terrain layer
         if (this.terrainLayer) {
-          // We can't add the same object to two parents, so we'll only use the tilesContainer for now
-          // In future phases, we'll create separate objects for each layer
+          this.terrainLayer.add(tile);
+        } else {
+          console.warn("terrainLayer not available, cannot add tile");
         }
         
         this.tiles.push(tile);
@@ -408,7 +395,6 @@ export default class BoardScene extends Phaser.Scene {
         // Store coordinates for later reference
         tile.setData('gridX', x);
         tile.setData('gridY', y);
-        tile.setData('baseY', isoY);
       }
     }
     
@@ -422,26 +408,41 @@ export default class BoardScene extends Phaser.Scene {
     
     // Setup click event delegation at the container level
     this.setupClickEventDelegation();
+    
+    // Log layer information for debugging
+    this.logLayerInfo();
   }
   
   // Set up click event delegation at the container level
   private setupClickEventDelegation() {
-    if (!this.tilesContainer) return;
+    // We don't need the tilesContainer for click event delegation anymore
     
     // Remove any existing listeners to prevent duplicates
-    this.tilesContainer.off('pointerdown');
+    this.input.off('gameobjectdown');
     
-    // Add a single click event listener at the container level
+    // Add a single click event listener for the entire scene
     this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
       // Only process if the clicked object is one of our tiles
-      if (this.tiles.includes(gameObject as Phaser.GameObjects.Container)) {
-        const tile = gameObject as Phaser.GameObjects.Container;
-        const x = tile.getData('gridX');
-        const y = tile.getData('gridY');
+      if (this.tiles.includes(gameObject)) {
+        const x = gameObject.getData('gridX');
+        const y = gameObject.getData('gridY');
         
-        // Emit tile clicked event instead of console logging
-        this.events.emit(EVENTS.TILE_CLICKED, x, y);
-        console.log(`Emitted tile click event for (${x}, ${y})`);
+        // Update selection indicator position if it exists
+        if (this.selectionIndicator && this.selectionLayer) {
+          // Calculate isometric position for the indicator
+          const isoX = (x - y) * this.tileSize / 2;
+          const isoY = (x + y) * this.tileHeight / 2;
+          
+          // Position the indicator
+          this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
+          
+          // Make the indicator visible
+          this.selectionIndicator.setVisible(true);
+        }
+        
+        // Emit an event when a tile is clicked
+        const eventData = { x, y, pointer };
+        this.events.emit(EVENTS.TILE_CLICKED, eventData);
       }
     });
   }
@@ -467,9 +468,12 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Create a terrain tile based on terrain type
-  private createTerrainTile(terrain: TerrainType, x: number, y: number): Phaser.GameObjects.Container {
-    const container = this.add.container(x, y);
+  private createTerrainTile(terrain: TerrainType, x: number, y: number): Phaser.GameObjects.Graphics {
+    // Create graphics object directly without a container
     const shape = this.add.graphics();
+    
+    // Set position directly on the graphics object
+    shape.setPosition(x, y);
     
     // Diamond shape for the tile base
     const diamondPoints = [
@@ -519,11 +523,12 @@ export default class BoardScene extends Phaser.Scene {
     shape.closePath();
     shape.strokePath();
     
-   
-    // Add the shape to the container
-    container.add(shape);
+    // Add terrain-specific details
+    if (terrain === TerrainType.MOUNTAIN) {
+      this.addTerrainDetails(shape, terrain);
+    }
     
-    return container;
+    return shape;
   }
   
   // Add specific details to each terrain type
@@ -611,20 +616,24 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Create the selection indicator graphic
+  // Create a selection indicator to show the currently selected tile
   private createSelectionIndicator() {
-    // Remove previous selection indicator if it exists
+    // Destroy existing selection indicator if it exists
     if (this.selectionIndicator) {
       this.selectionIndicator.destroy();
+      this.selectionIndicator = null;
     }
     
-    // Create a new selection indicator
+    // Check if selectionLayer exists
+    if (!this.selectionLayer) {
+      console.warn("selectionLayer not available, cannot create selection indicator");
+      return null;
+    }
+    
+    // Create a new graphics object for the selection indicator
     this.selectionIndicator = this.add.graphics();
     
-    // Create a diamond shape with a thick red stroke and no fill
-    this.selectionIndicator.lineStyle(3, 0xFF0000, 1); // Thick red line
-    
-    // Create diamond points based on tile size
+    // Diamond shape for the selection indicator
     const diamondPoints = [
       { x: 0, y: -this.tileHeight / 2 },
       { x: this.tileSize / 2, y: 0 },
@@ -632,7 +641,8 @@ export default class BoardScene extends Phaser.Scene {
       { x: -this.tileSize / 2, y: 0 }
     ];
     
-    // Draw the diamond shape
+    // Draw the selection indicator (a yellow diamond)
+    this.selectionIndicator.lineStyle(3, 0xFFFF00, 1); // Thick yellow line
     this.selectionIndicator.beginPath();
     this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
     for (let i = 1; i < diamondPoints.length; i++) {
@@ -641,13 +651,20 @@ export default class BoardScene extends Phaser.Scene {
     this.selectionIndicator.closePath();
     this.selectionIndicator.strokePath();
     
-    // Initially hide the selection indicator
+    // Hide the selection indicator initially
     this.selectionIndicator.setVisible(false);
     
-    // If we have a tiles container, add the indicator to it
-    if (this.tilesContainer) {
-      this.tilesContainer.add(this.selectionIndicator);
-    }
+    // Add selection indicator to selection layer
+    this.selectionLayer.add(this.selectionIndicator);
+    
+    // Add a pulsing animation to make it more visible
+    this.tweens.add({
+      targets: this.selectionIndicator,
+      alpha: 0.6,
+      duration: 500,
+      yoyo: true,
+      repeat: -1
+    });
     
     return this.selectionIndicator;
   }
@@ -667,12 +684,12 @@ export default class BoardScene extends Phaser.Scene {
   
   // Update method to track the mouse position
   update() {
-    // Update hovered grid position
+    // Update the hovered grid position based on pointer position
     const pointer = this.input.activePointer;
     this.hoveredGridPosition = this.getGridPositionAt(pointer.x, pointer.y);
     
     // Update selection indicator position
-    if (this.selectionIndicator && this.tilesContainer) {
+    if (this.selectionIndicator && this.selectionLayer) {
       if (this.hoveredGridPosition) {
         // Calculate isometric position for the indicator
         const gridX = this.hoveredGridPosition.x;
@@ -682,8 +699,8 @@ export default class BoardScene extends Phaser.Scene {
         const isoX = (gridX - gridY) * this.tileSize / 2;
         const isoY = (gridX + gridY) * this.tileHeight / 2;
         
-        // Position the indicator
-        this.selectionIndicator.setPosition(isoX, isoY);
+        // Position the indicator using anchor position
+        this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
         
         // Make the indicator visible
         this.selectionIndicator.setVisible(true);
@@ -696,22 +713,20 @@ export default class BoardScene extends Phaser.Scene {
 
   // Method to convert screen coordinates to grid coordinates
   getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
-    if (!this.tilesContainer) return null;
+    // Get current board state
+    const board = actions.getBoard();
+    if (!board) return null;
     
     // Get world point from screen coordinates
     const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
     
-    // Adjust for tile container position
-    const localX = worldPoint.x - this.tilesContainer.x;
-    const localY = worldPoint.y - this.tilesContainer.y + this.tileHeight / 2;
+    // Adjust for fixed anchor position
+    const localX = worldPoint.x - this.anchorX;
+    const localY = worldPoint.y - this.anchorY;
     
     // Convert to isometric grid coordinates
     const gridX = Math.floor((localY / (this.tileHeight / 2) + localX / (this.tileSize / 2)) / 2);
     const gridY = Math.floor((localY / (this.tileHeight / 2) - localX / (this.tileSize / 2)) / 2);
-    
-    // Get current board state
-    const board = actions.getBoard();
-    if (!board) return null;
     
     // Check if grid position is valid
     if (gridX >= 0 && gridX < board.width && gridY >= 0 && gridY < board.height) {
@@ -727,16 +742,11 @@ export default class BoardScene extends Phaser.Scene {
     const isoX = (gridX - gridY) * this.tileSize / 2;
     const isoY = (gridX + gridY) * this.tileHeight / 2;
     
-    // If we have a tiles container, adjust for its position
-    if (this.tilesContainer) {
-      return { 
-        x: this.tilesContainer.x + isoX, 
-        y: this.tilesContainer.y + isoY 
-      };
-    }
-    
-    // Fallback if tiles container doesn't exist yet
-    return { x: isoX, y: isoY };
+    // Return screen coordinates using anchor position
+    return { 
+      x: this.anchorX + isoX, 
+      y: this.anchorY + isoY 
+    };
   }
 
   // Create a habitat graphic based on its state (potential or shelter)
@@ -785,15 +795,15 @@ export default class BoardScene extends Phaser.Scene {
 
   // Update habitats based on the state
   renderHabitatGraphics(habitats: any[]) {
-    // Check if tilesContainer exists before proceeding
-    if (!this.tilesContainer) {
-      console.warn("Cannot render habitat graphics - tilesContainer not available");
+    // Check if staticObjectsLayer exists before proceeding
+    if (!this.staticObjectsLayer) {
+      console.warn("Cannot render habitat graphics - staticObjectsLayer not available");
       return;
     }
     
     // Get a map of current habitat graphics by ID
     const existingHabitats = new Map();
-    this.tilesContainer.list.forEach(child => {
+    this.staticObjectsLayer.getAll().forEach(child => {
       if (child && 'getData' in child && typeof child.getData === 'function') {
         const habitatId = child.getData('habitatId');
         if (habitatId) {
@@ -813,6 +823,10 @@ export default class BoardScene extends Phaser.Scene {
       const isoX = (gridX - gridY) * this.tileSize / 2;
       const isoY = (gridX + gridY) * this.tileHeight / 2;
       
+      // Position using anchor points
+      const worldX = this.anchorX + isoX;
+      const worldY = this.anchorY + isoY;
+      
       // Check if we have an existing graphic
       const existing = existingHabitats.get(habitat.id);
       
@@ -820,42 +834,36 @@ export default class BoardScene extends Phaser.Scene {
         // Mark as used so we don't delete it later
         existing.used = true;
         
-        // Update position if needed
-        if (existing.graphic.x !== isoX || existing.graphic.y !== isoY) {
-          existing.graphic.setPosition(isoX, isoY);
-          console.log(`Updated position for habitat ${habitat.id}`);
+        // Update position
+        existing.graphic.setPosition(worldX, worldY);
+        
+        // Update state if needed
+        if (existing.graphic.getData('habitatState') !== habitat.state) {
+          existing.graphic.setData('habitatState', habitat.state);
         }
-        
-        // Note: If we need to update other properties of the habitat graphic
-        // like appearance based on its state, we would do that here
       } else {
-        // No existing graphic, create a new one
-        const habitatGraphic = this.createHabitatGraphic(
-          isoX, 
-          isoY, 
-          habitat.state === 'POTENTIAL' ? 'potential' : 'shelter'
-        );
+        // Create a new habitat graphic
+        const habitatState = habitat.state || 'potential';
+        const habitatGraphic = this.createHabitatGraphic(worldX, worldY, habitatState);
         
-        // Store the habitat id for later reference
+        // Store the habitat ID for reference
         habitatGraphic.setData('habitatId', habitat.id);
         
-        // Add to tiles container
-        this.tilesContainer!.add(habitatGraphic);
-        
-        // Make the habitat interactive and listen for clicks
-        habitatGraphic.setInteractive();
+        // Add click handler
         habitatGraphic.on('pointerdown', () => {
-          console.log(`Habitat clicked: ${habitat.id}`);
-          this.events.emit(EVENTS.HABITAT_CLICKED, habitat.id);
+          console.log(`Habitat clicked: ${habitat.id} at ${gridX},${gridY}`);
+          this.events.emit(EVENTS.HABITAT_CLICKED, habitat);
         });
+        
+        // Add the new graphic to the layer
+        this.staticObjectsLayer!.add(habitatGraphic);
       }
     });
     
-    // Remove graphics for habitats that no longer exist
-    existingHabitats.forEach((value, key) => {
-      if (!value.used) {
-        console.log(`Removing graphic for deleted habitat ${key}`);
-        value.graphic.destroy();
+    // Remove any habitats that no longer exist
+    existingHabitats.forEach((data, id) => {
+      if (!data.used) {
+        data.graphic.destroy();
       }
     });
   }

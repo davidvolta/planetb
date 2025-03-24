@@ -17,26 +17,26 @@
 ## Upcoming Tasks
 
 - [] Implement Layer-Based Architecture
-  - [] Phase 1: Preparation and Planning
-    - [] Review existing container-based implementation
-    - [] List all game object types that need rendering
-    - [] Define layer hierarchy with appropriate depths
-  - [] Phase 2: Core Layer Structure Implementation
-    - [] Replace tilesContainer with separate layer properties
-    - [] Modify createTiles() to initialize all layers
-    - [] Update camera setup to work with layers
-  - [] Phase 3: Terrain Layer Implementation
-    - [] Refactor createTerrainTile() to use Graphics objects
-    - [] Update tile creation to add tiles to terrain layer
-  - [] Phase 4: Selection Layer Implementation
-    - [] Move selection indicator to selection layer
-    - [] Update selection indicator handling
-  - [] Phase 5: Static Objects Layer Implementation
-    - [] Refactor habitat graphics to use layers
-    - [] Implement efficient habitat updating
-  - [] Phase 6: Units Layer Implementation
-    - [] Update animal sprites to use units layer
-    - [] Verify unit interaction
+  - [x] Phase 1: Preparation and Planning
+    - [x] Review existing container-based implementation
+    - [x] List all game object types that need rendering
+    - [x] Define layer hierarchy with appropriate depths
+  - [x] Phase 2: Core Layer Structure Implementation
+    - [x] Replace tilesContainer with separate layer properties
+    - [x] Modify createTiles() to initialize all layers
+    - [x] Update camera setup to work with layers
+  - [x] Phase 3: Terrain Layer Implementation
+    - [x] Refactor createTerrainTile() to use Graphics objects
+    - [x] Update tile creation to add tiles to terrain layer
+  - [x] Phase 4: Selection Layer Implementation
+    - [x] Move selection indicator to selection layer
+    - [x] Update selection indicator handling
+  - [x] Phase 5: Static Objects Layer Implementation
+    - [x] Refactor habitat graphics to use layers
+    - [x] Implement efficient habitat updating
+  - [x] Phase 6: Units Layer Implementation
+    - [x] Update animal sprites to use units layer
+    - [x] Verify unit interaction
   - [] Phase 7: UI Layer Preparation
     - [] Set up UI layer structure
   - [] Phase 8: State Management Integration
