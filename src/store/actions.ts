@@ -91,4 +91,50 @@ export function getHabitats(): any[] {
  */
 export function improveHabitat(habitatId: string): void {
   useGameStore.getState().improveHabitat(habitatId);
+}
+
+//
+// Movement Actions
+//
+
+/**
+ * Select a unit and calculate its valid moves
+ */
+export function selectUnit(unitId: string | null): void {
+  useGameStore.getState().selectUnit(unitId);
+}
+
+/**
+ * Deselect the currently selected unit
+ */
+export function deselectUnit(): void {
+  useGameStore.getState().selectUnit(null);
+}
+
+/**
+ * Move a unit to a new position
+ */
+export function moveUnit(unitId: string, x: number, y: number): void {
+  useGameStore.getState().moveUnit(unitId, x, y);
+}
+
+/**
+ * Get the currently selected unit ID
+ */
+export function getSelectedUnitId(): string | null {
+  return useGameStore.getState().selectedUnitId;
+}
+
+/**
+ * Get the valid moves for the currently selected unit
+ */
+export function getValidMoves(): { x: number, y: number }[] {
+  return useGameStore.getState().validMoves;
+}
+
+/**
+ * Check if the game is in move mode
+ */
+export function isMoveMode(): boolean {
+  return useGameStore.getState().moveMode;
 } 

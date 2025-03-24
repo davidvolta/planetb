@@ -16,12 +16,68 @@
 
 ## Upcoming Tasks
 
+- [] Unit movement
+  ### Phase 1: State Management & Setup
+  - [x] Add Movement State
+    - [x] Extend Zustand store with `selectedUnit`, `validMoves`, and `moveMode` fields
+    - [x] Create interfaces for movement-related data structures
+    - [x] Implement unit movement range parameters (movement points)
+
+  - [x] Create Action Functions
+    - [x] `selectUnit(unitId)` - Handle unit selection and calculate valid moves
+    - [x] `deselectUnit()` - Clear selection state
+    - [x] `moveUnit(unitId, destination)` - Handle unit movement logic
+    - [x] `getValidMoves(unitId)` - Calculate tiles a unit can move to
+
+  - [x] Movement Range Algorithm
+    - [x] Implement breadth-first search to calculate valid moves
+    - [x] Configure algorithm to allow free movement (no terrain restrictions)
+    - [x] Enforce rule: Units can move onto tiles with eggs, but not onto tiles with other units
+
+  ### Phase 2: Layer Structure & Visual Feedback
+  - [x] Update Layer Structure
+    - [x] Add new `moveRangeLayer` between selection layer and static objects layer
+    - [x] Adjust depth values for all subsequent layers
+    - [x] Update the `setupLayers()` method to include the new layer
+
+  - [x] Move Range Highlight System
+    - [x] Create circular highlight graphics for valid moves
+    - [x] Use same style as selection indicator (3px light grey with 50% transparency) but in circle shape
+    - [x] Ensure highlights fit inside the diamond tile shapes
+    - [x] Update BoardScene to show/hide highlights based on state
+
+  - [x] Fix Tile Click Detection
+    - [x] Modify input handling to detect clicks on tiles even when units are present
+    - [x] Implement proper event propagation or hit testing
+
+  ### Phase 3: Input Flow & Movement Logic
+  - [x] Input Handling Flow
+    - [x] Update event handlers for unit selection → show valid moves → destination selection
+    - [x] Ensure movement validation enforces the "can move onto eggs but not units" rule
+
+  - [x] Movement Animation
+    - [x] Implement `animateUnitMovement(unitId, path)` in BoardScene
+    - [x] Use Phaser tweens for smooth animation between tiles
+    - [x] Handle depth sorting during movement for proper layering
+
+  ### Phase 4: Integration & Testing
+  - [x] State Observer Integration
+    - [x] Set up proper subscriptions for movement-related state
+    - [x] Ensure Phaser only visualizes movement, not determines it
+
+  - [x] Edge Cases & Error Handling
+    - [x] Handle interrupted movements
+    - [x] Prevent movement during animations
+    - [x] Add validation to prevent illegal moves
+
+  ### Phase 5: Optimization
+  - [] Performance Optimization
+    - [] Batch rendering of move highlights
+    - [] Reuse graphics objects
+    - [] Implement object pooling for movement effects
+
 - [] Implement habitat improvement
 - [] Add fog of war
-- [] Unit movement
-  - [] Add highlight for available moves
-  - [] Add unit selector
-  - [] Add Secondary (tile) selector
     
 - [] Performance optimizations
   - [] Add viewport culling to only render visible tiles

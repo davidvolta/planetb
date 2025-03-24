@@ -103,6 +103,12 @@ export enum AnimalState {
   ACTIVE = 'active',
 }
 
+// Movement-related interfaces
+export interface ValidMove {
+  x: number;
+  y: number;
+}
+
 // Game state interface
 export interface GameState {
   turn: number;
@@ -113,6 +119,11 @@ export interface GameState {
   habitats: Habitat[];
   isInitialized: boolean;  // Flag to track if the game has been initialized
   
+  // Movement state
+  selectedUnitId: string | null;
+  validMoves: ValidMove[];
+  moveMode: boolean;
+  
   nextTurn: () => void;
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
@@ -121,6 +132,11 @@ export interface GameState {
   
   addAnimal: (x: number, y: number, type?: string) => void;
   evolveAnimal: (id: string) => void;
+  
+  // Movement-related methods
+  selectUnit: (id: string | null) => void;
+  moveUnit: (id: string, x: number, y: number) => void;
+  getValidMoves: (id: string) => ValidMove[];
   
   // Habitat-related methods
   addPotentialHabitat: (x: number, y: number) => void;
@@ -136,6 +152,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   animals: [],
   habitats: [],
   isInitialized: false,
+  
+  // Initialize movement state
+  selectedUnitId: null,
+  validMoves: [],
+  moveMode: false,
 
   nextTurn: () => set((state) => {
     // Process habitat production
@@ -245,7 +266,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 const newAnimal = {
                   id: `animal-${animals.length}`,
                   type: TERRAIN_ANIMAL_MAP[tiles[tile.y][tile.x].terrain],
-                  state: AnimalState.DORMANT,
+                  state: AnimalState.ACTIVE,
                   position: tile,
                 };
                 console.log(`Created new animal during init:`, { 
@@ -377,6 +398,59 @@ export const useGameStore = create<GameState>((set, get) => ({
       habitat.position.x === x && habitat.position.y === y
     );
   },
+
+  // Movement-related methods
+  selectUnit: (id: string | null) => 
+    set((state) => {
+      if (!id) {
+        // Deselecting a unit
+        return { 
+          selectedUnitId: null, 
+          validMoves: [], 
+          moveMode: false 
+        };
+      }
+      
+      // Select the unit and calculate valid moves
+      const validMoves = calculateValidMoves(id, state);
+      
+      return {
+        selectedUnitId: id,
+        validMoves,
+        moveMode: true
+      };
+    }),
+    
+  moveUnit: (id: string, x: number, y: number) =>
+    set((state) => {
+      // Verify this is a valid move
+      const isValidMove = state.validMoves.some(move => move.x === x && move.y === y);
+      
+      if (!isValidMove) {
+        console.warn(`Invalid move to ${x},${y} for unit ${id}`);
+        return state;
+      }
+      
+      // Update the animal's position
+      const updatedAnimals = state.animals.map(animal => 
+        animal.id === id 
+          ? { ...animal, position: { x, y } } 
+          : animal
+      );
+      
+      // Clear movement state after move
+      return {
+        animals: updatedAnimals,
+        selectedUnitId: null,
+        validMoves: [],
+        moveMode: false
+      };
+    }),
+    
+  getValidMoves: (id: string) => {
+    const state = get();
+    return calculateValidMoves(id, state);
+  },
 }));
 
 // Process production for all habitats
@@ -431,4 +505,75 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
     animals: newAnimals,
     habitats: updatedHabitats
   };
+};
+
+// Helper function to calculate valid moves for a unit
+const calculateValidMoves = (unitId: string, state: GameState): ValidMove[] => {
+  const board = state.board;
+  if (!board) return [];
+  
+  const unit = state.animals.find(a => a.id === unitId);
+  if (!unit || unit.state === AnimalState.DORMANT) return [];
+  
+  // Start position
+  const startX = unit.position.x;
+  const startY = unit.position.y;
+  
+  // Use a breadth-first search to find all valid moves
+  const validMoves: ValidMove[] = [];
+  const visited = new Set<string>();
+  const queue: [number, number, number][] = [[startX, startY, 0]]; // [x, y, distance]
+  
+  // Add starting position to visited set
+  visited.add(`${startX},${startY}`);
+  
+  // For now, set a fixed movement range of 3 tiles
+  const maxDistance = 3;
+  
+  while (queue.length > 0) {
+    const [x, y, distance] = queue.shift()!;
+    
+    // Don't count the starting position as a valid move
+    if (distance > 0) {
+      validMoves.push({ x, y });
+    }
+    
+    // If we've reached max distance, don't explore further
+    if (distance >= maxDistance) continue;
+    
+    // Check all 4 adjacent tiles
+    const directions = [
+      [0, -1], // north
+      [1, 0],  // east
+      [0, 1],  // south
+      [-1, 0]  // west
+    ];
+    
+    for (const [dx, dy] of directions) {
+      const newX = x + dx;
+      const newY = y + dy;
+      const key = `${newX},${newY}`;
+      
+      // Skip if already visited or out of bounds
+      if (visited.has(key) || newX < 0 || newX >= board.width || newY < 0 || newY >= board.height) {
+        continue;
+      }
+      
+      // Check if the tile has a non-dormant unit (can't move to tiles with active units)
+      const hasActiveUnit = state.animals.some(a => 
+        a.position.x === newX && 
+        a.position.y === newY && 
+        a.state === AnimalState.ACTIVE &&
+        a.id !== unitId
+      );
+      
+      if (hasActiveUnit) continue;
+      
+      // Mark as visited and add to queue
+      visited.add(key);
+      queue.push([newX, newY, distance + 1]);
+    }
+  }
+  
+  return validMoves;
 };

@@ -3,6 +3,7 @@ import { TerrainType } from "../store/gameStore";
 import { StateObserver } from "../utils/stateObserver";
 import { AnimalState } from "../store/gameStore";
 import * as actions from "../store/actions";
+import { ValidMove } from "../store/gameStore";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -28,7 +29,15 @@ const SUBSCRIPTIONS = {
   BOARD: 'BoardScene.board',
   ANIMALS: 'BoardScene.animals',
   HABITATS: 'BoardScene.habitats',
+  VALID_MOVES: 'BoardScene.validMoves',
 };
+
+// Define a type for pending animations
+interface PendingAnimation {
+  unitId: string;
+  targetX: number;
+  targetY: number;
+}
 
 export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.GameObject[] = [];
@@ -43,6 +52,7 @@ export default class BoardScene extends Phaser.Scene {
   private backgroundLayer: Phaser.GameObjects.Layer | null = null;
   private terrainLayer: Phaser.GameObjects.Layer | null = null;
   private selectionLayer: Phaser.GameObjects.Layer | null = null;
+  private moveRangeLayer: Phaser.GameObjects.Layer | null = null; // New layer for movement range
   private staticObjectsLayer: Phaser.GameObjects.Layer | null = null;
   private unitsLayer: Phaser.GameObjects.Layer | null = null;
   private uiLayer: Phaser.GameObjects.Layer | null = null;
@@ -57,6 +67,13 @@ export default class BoardScene extends Phaser.Scene {
   // Properties to track mouse position over the grid
   private hoveredGridPosition: { x: number, y: number } | null = null;
   
+  // Array to store move range highlight graphics
+  private moveRangeHighlights: Phaser.GameObjects.Graphics[] = [];
+  
+  // Track animations in progress
+  private animationInProgress: boolean = false;
+  private pendingAnimations: PendingAnimation[] = [];
+
   constructor() {
     super({ key: "BoardScene" });
   }
@@ -149,6 +166,19 @@ export default class BoardScene extends Phaser.Scene {
       }
     );
     
+    // Subscribe to valid moves changes
+    StateObserver.subscribe(
+      SUBSCRIPTIONS.VALID_MOVES,
+      (state) => ({ 
+        validMoves: state.validMoves, 
+        moveMode: state.moveMode 
+      }),
+      (moveState) => {
+        console.log("Valid moves changed:", moveState);
+        this.renderMoveRange(moveState.validMoves, moveState.moveMode);
+      }
+    );
+    
     // Mark subscriptions as set up
     this.subscriptionsSetup = true;
   }
@@ -165,7 +195,8 @@ export default class BoardScene extends Phaser.Scene {
   updateBoard() {
     // Check if we need to setup the layers
     const needsSetup = !this.terrainLayer || !this.selectionLayer || 
-                       !this.staticObjectsLayer || !this.unitsLayer;
+                      !this.moveRangeLayer || !this.staticObjectsLayer || 
+                      !this.unitsLayer;
     
     // Log what we're doing
     console.log("Updating board using layer-based rendering");
@@ -195,6 +226,7 @@ export default class BoardScene extends Phaser.Scene {
     logLayer("Background Layer", this.backgroundLayer);
     logLayer("Terrain Layer", this.terrainLayer);
     logLayer("Selection Layer", this.selectionLayer);
+    logLayer("Move Range Layer", this.moveRangeLayer);
     logLayer("Static Objects Layer", this.staticObjectsLayer);
     logLayer("Units Layer", this.unitsLayer);
     logLayer("UI Layer", this.uiLayer);
@@ -265,6 +297,12 @@ export default class BoardScene extends Phaser.Scene {
       console.warn("Cannot render animal sprites - unitsLayer not available");
       return;
     }
+    
+    // If an animation is in progress, queue it for after the animation
+    if (this.animationInProgress) {
+      console.log("Animation in progress, deferring animal sprite update");
+      return;
+    }
 
     // Get a map of current animal sprites by ID
     const existingSprites = new Map();
@@ -282,6 +320,37 @@ export default class BoardScene extends Phaser.Scene {
     
     // Process each animal - create new or update existing
     animals.forEach(animal => {
+      // Check if we have a pending animation for this animal
+      const pendingAnimationIndex = this.pendingAnimations.findIndex(
+        anim => anim.unitId === animal.id
+      );
+      
+      // If there's a pending animation, animate instead of instant update
+      if (pendingAnimationIndex >= 0) {
+        const pendingAnimation = this.pendingAnimations[pendingAnimationIndex];
+        
+        // Get the existing sprite
+        const existing = existingSprites.get(animal.id);
+        if (existing) {
+          // Mark as used
+          existing.used = true;
+          
+          // Animate the movement
+          this.animateUnitMovement(
+            animal.id,
+            existing.sprite,
+            animal.position.x,
+            animal.position.y,
+            pendingAnimation.targetX,
+            pendingAnimation.targetY
+          );
+          
+          // Remove from pending animations
+          this.pendingAnimations.splice(pendingAnimationIndex, 1);
+        }
+        return;
+      }
+      
       // Calculate position
       const gridX = animal.position.x;
       const gridY = animal.position.y;
@@ -365,6 +434,7 @@ export default class BoardScene extends Phaser.Scene {
     this.backgroundLayer = null;
     this.terrainLayer = null;
     this.selectionLayer = null;
+    this.moveRangeLayer = null;
     this.staticObjectsLayer = null;
     this.unitsLayer = null;
     this.uiLayer = null;
@@ -375,6 +445,13 @@ export default class BoardScene extends Phaser.Scene {
     
     // Clear tiles array
     this.tiles = [];
+    
+    // Clear move range highlights
+    this.moveRangeHighlights = [];
+    
+    // Reset animation state
+    this.animationInProgress = false;
+    this.pendingAnimations = [];
     
     // Clear selection indicator
     this.selectionIndicator = null;
@@ -482,10 +559,76 @@ export default class BoardScene extends Phaser.Scene {
     
     // Add a single click event listener for the entire scene
     this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
-      // Only process if the clicked object is one of our tiles
-      if (this.tiles.includes(gameObject)) {
+      // Don't process clicks during animations
+      if (this.animationInProgress) {
+        console.log("Animation in progress, ignoring click");
+        return;
+      }
+      
+      // If clicked on a unit
+      if (gameObject instanceof Phaser.GameObjects.Sprite && gameObject.getData('animalId')) {
+        const animalId = gameObject.getData('animalId');
+        const gridX = gameObject.getData('gridX');
+        const gridY = gameObject.getData('gridY');
+        
+        console.log(`Unit clicked: ${animalId} at ${gridX},${gridY}`);
+        
+        // Get the animal state and handle accordingly
+        const animal = actions.getAnimals().find(a => a.id === animalId);
+        if (animal) {
+          if (animal.state === AnimalState.DORMANT) {
+            // Handle egg click - evolve it
+            this.events.emit(EVENTS.ANIMAL_CLICKED, animalId);
+          } else {
+            // Handle active unit click - select for movement
+            const selectedUnitId = actions.getSelectedUnitId();
+            
+            if (selectedUnitId && actions.isMoveMode()) {
+              // If we already have a unit selected, check if this is a valid move target
+              const validMoves = actions.getValidMoves();
+              const canMoveHere = validMoves.some(move => move.x === gridX && move.y === gridY);
+              
+              if (canMoveHere) {
+                // Valid move target, perform movement
+                actions.moveUnit(selectedUnitId, gridX, gridY);
+                
+                // Add pending animation
+                this.pendingAnimations.push({
+                  unitId: selectedUnitId,
+                  targetX: gridX,
+                  targetY: gridY
+                });
+              } else {
+                // Not a valid move target, select this unit instead
+                actions.selectUnit(animalId);
+              }
+            } else {
+              // No unit selected, select this one
+              actions.selectUnit(animalId);
+            }
+          }
+        }
+        
+        // Get the tile under this unit for selection highlighting
+        const tileUnderUnit = this.getTileAtGridPosition(gridX, gridY);
+        if (tileUnderUnit && this.selectionIndicator && this.selectionLayer) {
+          // Calculate the tile position for the indicator
+          const isoX = (gridX - gridY) * this.tileSize / 2;
+          const isoY = (gridX + gridY) * this.tileHeight / 2;
+          
+          // Position the indicator
+          this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
+          
+          // Make the indicator visible
+          this.selectionIndicator.setVisible(true);
+        }
+      }
+      // If clicked on a tile
+      else if (this.tiles.includes(gameObject)) {
         const x = gameObject.getData('gridX');
         const y = gameObject.getData('gridY');
+        
+        console.log(`Tile clicked at ${x},${y}`);
         
         // Update selection indicator position if it exists
         if (this.selectionIndicator && this.selectionLayer) {
@@ -500,16 +643,50 @@ export default class BoardScene extends Phaser.Scene {
           this.selectionIndicator.setVisible(true);
         }
         
-        // Emit an event when a tile is clicked
-        const eventData = { x, y, pointer };
-        this.events.emit(EVENTS.TILE_CLICKED, eventData);
+        // Check if we have a selected unit and are in move mode
+        const selectedUnitId = actions.getSelectedUnitId();
+        if (selectedUnitId && actions.isMoveMode()) {
+          // Check if this is a valid move destination
+          const validMoves = actions.getValidMoves();
+          const isValidMove = validMoves.some(move => move.x === x && move.y === y);
+          
+          if (isValidMove) {
+            // Execute the move
+            actions.moveUnit(selectedUnitId, x, y);
+            
+            // Add pending animation
+            this.pendingAnimations.push({
+              unitId: selectedUnitId,
+              targetX: x,
+              targetY: y
+            });
+          } else {
+            // Not a valid move, deselect the unit
+            actions.deselectUnit();
+          }
+        } else {
+          // Emit an event when a tile is clicked
+          const eventData = { x, y, pointer };
+          this.events.emit(EVENTS.TILE_CLICKED, eventData);
+        }
       } else {
+        // If clicked somewhere else, deselect the unit
+        actions.deselectUnit();
+        
         // If the user clicked something that's not a tile, we can optionally hide the selection indicator
         if (this.selectionIndicator) {
           this.selectionIndicator.setVisible(false);
         }
       }
     });
+  }
+  
+  // Helper method to find a tile at grid coordinates
+  private getTileAtGridPosition(gridX: number, gridY: number): Phaser.GameObjects.GameObject | null {
+    return this.tiles.find(tile => 
+      tile.getData('gridX') === gridX && 
+      tile.getData('gridY') === gridY
+    ) || null;
   }
   
   // Set up camera controls
@@ -864,13 +1041,161 @@ export default class BoardScene extends Phaser.Scene {
     this.backgroundLayer = this.add.layer().setDepth(0);
     this.terrainLayer = this.add.layer().setDepth(1);
     this.selectionLayer = this.add.layer().setDepth(2);
-    this.staticObjectsLayer = this.add.layer().setDepth(3);
-    this.unitsLayer = this.add.layer().setDepth(4);
+    this.moveRangeLayer = this.add.layer().setDepth(3); // New layer for movement range
+    this.staticObjectsLayer = this.add.layer().setDepth(4); // Updated depth
+    this.unitsLayer = this.add.layer().setDepth(5); // Updated depth
     this.uiLayer = this.add.layer().setDepth(10);
     
     // Mark layers as initialized
     this.layersSetup = true;
     
     console.log("Layers initialized with proper depth order");
+  }
+
+  // Create circular highlight for a move tile
+  private createMoveHighlight(x: number, y: number): Phaser.GameObjects.Graphics {
+    // Calculate isometric position
+    const isoX = (x - y) * this.tileSize / 2;
+    const isoY = (x + y) * this.tileHeight / 2;
+    
+    // Calculate world position
+    const worldX = this.anchorX + isoX;
+    const worldY = this.anchorY + isoY;
+    
+    // Create a graphics object for the move highlight
+    const highlight = this.add.graphics();
+    
+    // Set the position
+    highlight.setPosition(worldX, worldY);
+    
+    // Draw a circular highlight with the same style as selection indicator
+    highlight.lineStyle(3, 0xD3D3D3, 0.5); // 3px light grey line with 50% transparency
+    highlight.beginPath();
+    
+    // Draw a circle with radius that fits inside the tile
+    // Make the radius slightly smaller than half the tile size
+    const circleRadius = this.tileSize / 3;
+    highlight.arc(0, 0, circleRadius, 0, Math.PI * 2);
+    
+    highlight.closePath();
+    highlight.strokePath();
+    
+    return highlight;
+  }
+  
+  // Render move range highlights
+  renderMoveRange(validMoves: ValidMove[], moveMode: boolean) {
+    // If an animation is in progress, don't update the move range
+    if (this.animationInProgress) {
+      return;
+    }
+    
+    // Clear existing highlights
+    this.clearMoveHighlights();
+    
+    // If not in move mode or no valid moves, we're done
+    if (!moveMode || !validMoves.length || !this.moveRangeLayer) {
+      return;
+    }
+    
+    console.log(`Rendering ${validMoves.length} valid move highlights`);
+    
+    // Create highlight for each valid move
+    validMoves.forEach(move => {
+      const highlight = this.createMoveHighlight(move.x, move.y);
+      this.moveRangeHighlights.push(highlight);
+      
+      // Add the highlight to the move range layer
+      this.moveRangeLayer!.add(highlight);
+    });
+  }
+  
+  // Clear move highlights
+  clearMoveHighlights() {
+    // Destroy all existing highlights
+    this.moveRangeHighlights.forEach(highlight => {
+      highlight.destroy();
+    });
+    
+    // Reset the array
+    this.moveRangeHighlights = [];
+    
+    // Also clear the layer if it exists
+    if (this.moveRangeLayer) {
+      this.moveRangeLayer.removeAll(true);
+    }
+  }
+
+  // Animate unit movement with tweens
+  private animateUnitMovement(
+    unitId: string,
+    sprite: Phaser.GameObjects.Sprite,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number
+  ) {
+    // Convert grid coordinates to world coordinates
+    const startIsoX = (fromX - fromY) * this.tileSize / 2;
+    const startIsoY = (fromX + fromY) * this.tileHeight / 2;
+    const endIsoX = (toX - toY) * this.tileSize / 2;
+    const endIsoY = (toX + toY) * this.tileHeight / 2;
+    
+    const startWorldX = this.anchorX + startIsoX;
+    const startWorldY = this.anchorY + startIsoY;
+    const endWorldX = this.anchorX + endIsoX;
+    const endWorldY = this.anchorY + endIsoY;
+    
+    // Apply vertical offset
+    const verticalOffset = -12;
+    
+    // Mark animation as in progress
+    this.animationInProgress = true;
+    
+    // Clear move highlights during animation
+    this.clearMoveHighlights();
+    
+    // Calculate movement duration based on distance
+    const distance = Math.sqrt(
+      Math.pow(endWorldX - startWorldX, 2) + 
+      Math.pow(endWorldY - startWorldY, 2)
+    );
+    const baseDuration = 500; // Base duration in ms
+    const duration = baseDuration * (distance / this.tileSize);
+    
+    // Create the tween
+    this.tweens.add({
+      targets: sprite,
+      x: endWorldX,
+      y: endWorldY + verticalOffset,
+      duration: duration,
+      ease: 'Cubic.easeInOut',
+      onUpdate: () => {
+        // Update depth during movement to ensure proper layering
+        if (this.unitsLayer) {
+          // Get current y position and use it for depth sorting
+          const currentY = sprite.y - verticalOffset;
+          const normalizedY = currentY / this.tileHeight;
+          
+          // Set depth within the units layer based on Y position
+          sprite.setDepth(normalizedY);
+        }
+      },
+      onComplete: () => {
+        // Update the sprite's stored grid coordinates
+        sprite.setData('gridX', toX);
+        sprite.setData('gridY', toY);
+        
+        console.log(`Animation complete for unit ${unitId}`);
+        
+        // Mark animation as complete
+        this.animationInProgress = false;
+        
+        // Process any pending animations
+        if (this.pendingAnimations.length > 0) {
+          this.renderAnimalSprites(actions.getAnimals());
+        }
+      }
+    });
   }
 }
