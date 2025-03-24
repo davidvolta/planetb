@@ -77,14 +77,18 @@ export default class BoardScene extends Phaser.Scene {
   
 
   init() {
+    console.log("BoardScene init() called");
+    
     // Clear previous tiles when scene restarts
     this.tiles = [];
     
     // Ensure all old subscriptions are cleaned up before creating new ones
     this.unsubscribeAll();
     
-    // Set up all subscriptions in one place
-    this.setupSubscriptions();
+    // Set up layers immediately to ensure they exist before any state updates
+    this.setupLayers();
+    
+    // We'll setup subscriptions in create() after layers are initialized
   }
   
   // Set up all state subscriptions in one centralized method
@@ -107,9 +111,13 @@ export default class BoardScene extends Phaser.Scene {
       SUBSCRIPTIONS.ANIMALS,
       (state) => state.animals,
       (animals, prevAnimals) => {
-        console.log("Animals state changed, updating sprites...");
-        // No need to check for tilesContainer, we always have layers
-        this.renderAnimalSprites(animals);
+        // Only render if unitsLayer exists
+        if (this.unitsLayer) {
+          console.log("Animals state changed, updating sprites...");
+          this.renderAnimalSprites(animals);
+        } else {
+          console.log("Animals state changed, but unitsLayer not ready yet");
+        }
       }
     );
     
@@ -118,9 +126,13 @@ export default class BoardScene extends Phaser.Scene {
       SUBSCRIPTIONS.HABITATS,
       (state) => state.habitats,
       (habitats) => {
-        console.log("Habitats state changed, updating graphics...");
-        // No need to check for tilesContainer, we always have layers
-        this.renderHabitatGraphics(habitats);
+        // Only render if staticObjectsLayer exists
+        if (this.staticObjectsLayer) {
+          console.log("Habitats state changed, updating graphics...");
+          this.renderHabitatGraphics(habitats);
+        } else {
+          console.log("Habitats state changed, but staticObjectsLayer not ready yet");
+        }
       }
     );
   }
@@ -141,7 +153,7 @@ export default class BoardScene extends Phaser.Scene {
 
   // Method to update the board without restarting the scene
   updateBoard() {
-    // Check if we need to set up layers
+    // Check if we need to setup the layers
     const needsSetup = !this.terrainLayer || !this.selectionLayer || 
                        !this.staticObjectsLayer || !this.unitsLayer;
     
@@ -151,8 +163,7 @@ export default class BoardScene extends Phaser.Scene {
     // Create new tiles using the layer-based approach
     this.createTiles();
     
-    // Debug log the layer information
-    this.logLayerInfo();
+    // We don't need to log layer info here since createTiles already does it
     
     console.log("Board updated with layer-based structure");
   }
@@ -185,10 +196,7 @@ export default class BoardScene extends Phaser.Scene {
   }
   
   create() {
-    console.log("BoardScene created");
-    
-    // Set up listeners for state changes
-    this.setupSubscriptions();
+    console.log("BoardScene create() called");
     
     // Set up camera controls
     this.setupControls();
@@ -208,9 +216,24 @@ export default class BoardScene extends Phaser.Scene {
     // Get board data
     const board = actions.getBoard();
     
-    // If we have board data and no terrain layer, create the board
-    if (board && !this.terrainLayer) {
+    // If we have board data, create the board
+    if (board) {
       this.updateBoard();
+      
+      // Now that the board and layers are set up, set up state subscriptions
+      this.setupSubscriptions();
+      
+      // Render initial state of animals and habitats
+      const animals = actions.getAnimals();
+      const habitats = actions.getHabitats();
+      
+      if (animals && this.unitsLayer) {
+        this.renderAnimalSprites(animals);
+      }
+      
+      if (habitats && this.staticObjectsLayer) {
+        this.renderHabitatGraphics(habitats);
+      }
     }
   }
 
@@ -836,6 +859,8 @@ export default class BoardScene extends Phaser.Scene {
 
   // Set up all layers with appropriate depths
   private setupLayers() {
+    console.log("BoardScene setupLayers() called");
+    
     // Initialize each layer with its appropriate depth
     this.backgroundLayer = this.add.layer().setDepth(0);
     this.terrainLayer = this.add.layer().setDepth(1);

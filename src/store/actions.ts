@@ -40,6 +40,13 @@ export function getHabitats(): any[] {
 }
 
 /**
+ * Get all animals in the game
+ */
+export function getAnimals(): any[] {
+  return useGameStore.getState().animals;
+}
+
+/**
  * Add a potential habitat at the specified coordinates
  */
 export function addPotentialHabitat(x: number, y: number): void {
