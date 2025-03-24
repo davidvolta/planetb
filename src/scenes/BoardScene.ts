@@ -341,7 +341,7 @@ export default class BoardScene extends Phaser.Scene {
     
     // Fixed anchor coordinates - center of the screen
     const anchorX = this.cameras.main.width / 2;
-    const anchorY = this.cameras.main.height / 3; // Position at 1/3 of screen height
+    const anchorY = this.cameras.main.height / 2; // Center vertically
     
     // Store these anchor positions for coordinate conversions
     this.anchorX = anchorX;
@@ -361,8 +361,9 @@ export default class BoardScene extends Phaser.Scene {
       mapHeight * 3
     );
     
-    // Center camera on the anchor position
-    this.cameras.main.centerOn(anchorX, anchorY);
+    // Center camera on the anchor position but shifted downward
+    const cameraYOffset = 400; // Move camera down by 400 pixels
+    this.cameras.main.centerOn(anchorX, anchorY + cameraYOffset);
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
