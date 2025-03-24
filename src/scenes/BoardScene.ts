@@ -70,6 +70,9 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("bunny", "assets/bunny.png");
     this.load.image("snake", "assets/snake.png");
     this.load.image("fish", "assets/fish.png");
+    
+    // Load the selection indicator asset
+    this.load.image("selector", "assets/selector.png");
 
     this.load.on('complete', () => {
       this.events.emit(EVENTS.ASSETS_LOADED);
@@ -500,6 +503,11 @@ export default class BoardScene extends Phaser.Scene {
         // Emit an event when a tile is clicked
         const eventData = { x, y, pointer };
         this.events.emit(EVENTS.TILE_CLICKED, eventData);
+      } else {
+        // If the user clicked something that's not a tile, we can optionally hide the selection indicator
+        if (this.selectionIndicator) {
+          this.selectionIndicator.setVisible(false);
+        }
       }
     });
   }
@@ -609,8 +617,8 @@ export default class BoardScene extends Phaser.Scene {
       { x: -this.tileSize / 2, y: 0 }
     ];
     
-    // Draw the selection indicator (a yellow diamond)
-    this.selectionIndicator.lineStyle(3, 0xFFFF00, 1); // Thick yellow line
+    // Draw the selection indicator
+    this.selectionIndicator.lineStyle(3, 0xD3D3D3, 0.5); // 3px light grey line with 50% transparency
     this.selectionIndicator.beginPath();
     this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
     for (let i = 1; i < diamondPoints.length; i++) {
@@ -624,15 +632,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Add selection indicator to selection layer
     this.selectionLayer.add(this.selectionIndicator);
-    
-    // Add a pulsing animation to make it more visible
-    this.tweens.add({
-      targets: this.selectionIndicator,
-      alpha: 0.6,
-      duration: 500,
-      yoyo: true,
-      repeat: -1
-    });
     
     return this.selectionIndicator;
   }
@@ -656,27 +655,8 @@ export default class BoardScene extends Phaser.Scene {
     const pointer = this.input.activePointer;
     this.hoveredGridPosition = this.getGridPositionAt(pointer.x, pointer.y);
     
-    // Update selection indicator position
-    if (this.selectionIndicator && this.selectionLayer) {
-      if (this.hoveredGridPosition) {
-        // Calculate isometric position for the indicator
-        const gridX = this.hoveredGridPosition.x;
-        const gridY = this.hoveredGridPosition.y;
-        
-        // Convert grid coordinates to isometric coordinates
-        const isoX = (gridX - gridY) * this.tileSize / 2;
-        const isoY = (gridX + gridY) * this.tileHeight / 2;
-        
-        // Position the indicator using anchor position
-        this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
-        
-        // Make the indicator visible
-        this.selectionIndicator.setVisible(true);
-      } else {
-        // Hide the indicator when not hovering over a valid tile
-        this.selectionIndicator.setVisible(false);
-      }
-    }
+    // We no longer update the selection indicator in the update method
+    // because we only want it to update when a tile is clicked
   }
 
   // Method to convert screen coordinates to grid coordinates
