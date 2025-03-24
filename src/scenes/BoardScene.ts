@@ -48,8 +48,6 @@ export default class BoardScene extends Phaser.Scene {
   private unitsLayer: Phaser.GameObjects.Layer | null = null;
   private uiLayer: Phaser.GameObjects.Layer | null = null;
   
-  // Keep tilesContainer for backward compatibility during transition
-  private tilesContainer: Phaser.GameObjects.Container | null = null;
   private controlsSetup = false;
   
   // Selection indicator for hover/selection
@@ -110,10 +108,8 @@ export default class BoardScene extends Phaser.Scene {
       (state) => state.animals,
       (animals, prevAnimals) => {
         console.log("Animals state changed, updating sprites...");
-        if (this.tilesContainer) {
-          // We now receive previous state as well
-          this.renderAnimalSprites(animals);
-        }
+        // No need to check for tilesContainer, we always have layers
+        this.renderAnimalSprites(animals);
       }
     );
     
@@ -123,9 +119,8 @@ export default class BoardScene extends Phaser.Scene {
       (state) => state.habitats,
       (habitats) => {
         console.log("Habitats state changed, updating graphics...");
-        if (this.tilesContainer) {
-          this.renderHabitatGraphics(habitats);
-        }
+        // No need to check for tilesContainer, we always have layers
+        this.renderHabitatGraphics(habitats);
       }
     );
   }
@@ -146,20 +141,15 @@ export default class BoardScene extends Phaser.Scene {
 
   // Method to update the board without restarting the scene
   updateBoard() {
-    // Store a reference to the old tiles container
-    const oldContainer = this.tilesContainer;
-    
     // Check if we need to set up layers
     const needsSetup = !this.terrainLayer || !this.selectionLayer || 
                        !this.staticObjectsLayer || !this.unitsLayer;
     
-    // Create new tiles immediately
-    this.createTiles();
+    // Log what we're doing
+    console.log("Updating board using layer-based rendering");
     
-    // If there was an old container, destroy it immediately
-    if (oldContainer) {
-      oldContainer.destroy();
-    }
+    // Create new tiles using the layer-based approach
+    this.createTiles();
     
     // Debug log the layer information
     this.logLayerInfo();
@@ -188,12 +178,8 @@ export default class BoardScene extends Phaser.Scene {
     logLayer("Units Layer", this.unitsLayer);
     logLayer("UI Layer", this.uiLayer);
     
-    // Log tilesContainer info for comparison
-    if (this.tilesContainer) {
-      console.log(`Tiles Container: Children=${this.tilesContainer.list.length}`);
-    } else {
-      console.log("Tiles Container: Not initialized");
-    }
+    // Log tile count
+    console.log(`Total tiles: ${this.tiles.length}`);
     
     console.log("=========================");
   }
@@ -222,8 +208,8 @@ export default class BoardScene extends Phaser.Scene {
     // Get board data
     const board = actions.getBoard();
     
-    // If we have board data and no tiles container, create the board
-    if (board && (!this.tilesContainer || !this.terrainLayer)) {
+    // If we have board data and no terrain layer, create the board
+    if (board && !this.terrainLayer) {
       this.updateBoard();
     }
   }
@@ -345,10 +331,13 @@ export default class BoardScene extends Phaser.Scene {
     this.unitsLayer = null;
     this.uiLayer = null;
     
-    // Clear other references (for backward compatibility)
-    this.tilesContainer = null;
+    // Clear tiles array
     this.tiles = [];
+    
+    // Clear selection indicator
     this.selectionIndicator = null;
+    
+    console.log("BoardScene shutdown complete - all references cleared");
   }
   
   // Create tiles based on the current board state
@@ -395,9 +384,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Set up all layers (new approach)
     this.setupLayers();
-    
-    // Create tilesContainer for backward compatibility at a fixed position
-    this.tilesContainer = this.add.container(anchorX, anchorY);
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
@@ -825,12 +811,12 @@ export default class BoardScene extends Phaser.Scene {
   // Helper method to remove all existing habitat graphics - no longer needed with our new approach
   // but keeping it for potential future use
   private removeAllHabitatGraphics() {
-    if (!this.tilesContainer) return;
+    if (!this.staticObjectsLayer) return;
     
     // Find habitat graphics by checking children with getData method
     const habitatGraphics: Phaser.GameObjects.GameObject[] = [];
     
-    this.tilesContainer.list.forEach(child => {
+    this.staticObjectsLayer.getAll().forEach(child => {
       // Check if child is a GameObject with habitatId data
       if (child && 'getData' in child && typeof child.getData === 'function') {
         const gameObj = child as Phaser.GameObjects.GameObject;
@@ -844,6 +830,8 @@ export default class BoardScene extends Phaser.Scene {
     habitatGraphics.forEach(graphic => {
       graphic.destroy();
     });
+    
+    console.log(`Removed ${habitatGraphics.length} habitat graphics from staticObjectsLayer`);
   }
 
   // Set up all layers with appropriate depths

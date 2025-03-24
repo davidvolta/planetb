@@ -17,23 +17,22 @@
 ## Upcoming Tasks
 
 - [] Implement Layer-Based Architecture
- 
   - [] Phase 8: State Management Integration
-    - [] Update state subscribers for layer architecture
-    - [] Refactor setupSubscriptions method to more deeply embrace layer architecture
-    - [] Enhance updateBoard method to better leverage the layer system when rebuilding board state
+    - [x] Update state subscribers for layer architecture
+    - [x] Refactor setupSubscriptions method to more deeply embrace layer architecture
+    - [x] Enhance updateBoard method to better leverage the layer system when rebuilding board state
   - [] Phase 9: Clean-up and Optimization
-    - [] Remove unused container code
+    - [x] Remove unused container code
     - [] Migrate remaining methods from container-based to layer-based:
-      - [] updateBoard() - Remove tilesContainer dependency
-      - [] getHoveredTile() - Use layer-based approach instead of tilesContainer
-      - [] setupClickEventDelegation() - Refactor to fully embrace layers
-      - [] createTiles() - Remove "backward compatibility" container creation
-      - [] setupControls() - Update camera controls to use layers
-      - [] onDragStart() and onDragEnd() - Update to work with layers
-      - [] shutdown() - Update cleanup to handle layers
-      - [] onAnimalClicked() - Remove or update for layer architecture
-      - [] worldToGrid() - Use layer-independent coordinate conversion
+      - [x] updateBoard() - Remove tilesContainer dependency
+      - [x] getHoveredTile() - Use layer-based approach instead of tilesContainer
+      - [x] setupClickEventDelegation() - Refactor to fully embrace layers
+      - [x] createTiles() - Remove "backward compatibility" container creation
+      - [x] setupControls() - Update camera controls to use layers
+      - [x] onDragStart() and onDragEnd() - Update to work with layers
+      - [x] shutdown() - Update cleanup to handle layers
+      - [x] onAnimalClicked() - Remove or update for layer architecture
+      - [x] worldToGrid() - Use layer-independent coordinate conversion
     - [] Fix TypeScript errors and add comments
   - [] Phase 10: Testing and Verification
     - [] Test rendering order and interactions
