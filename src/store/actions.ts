@@ -32,27 +32,6 @@ export function getNextTurn(): () => void {
   return useGameStore.getState().nextTurn;
 }
 
-/**
- * Get all habitats in the game
- */
-export function getHabitats(): any[] {
-  return useGameStore.getState().habitats;
-}
-
-/**
- * Get all animals in the game
- */
-export function getAnimals(): any[] {
-  return useGameStore.getState().animals;
-}
-
-/**
- * Add a potential habitat at the specified coordinates
- */
-export function addPotentialHabitat(x: number, y: number): void {
-  useGameStore.getState().addPotentialHabitat(x, y);
-}
-
 //
 // Board Actions
 //
@@ -83,10 +62,10 @@ export function isInitialized(): boolean {
 //
 
 /**
- * Add a new animal at the specified coordinates
+ * Get all animals in the game
  */
-export function addAnimal(x: number, y: number, type?: string): void {
-  useGameStore.getState().addAnimal(x, y, type);
+export function getAnimals(): any[] {
+  return useGameStore.getState().animals;
 }
 
 /**
@@ -99,6 +78,13 @@ export function evolveAnimal(id: string): void {
 //
 // Habitat Actions
 //
+
+/**
+ * Get all habitats in the game
+ */
+export function getHabitats(): any[] {
+  return useGameStore.getState().habitats;
+}
 
 /**
  * Improve a habitat by ID

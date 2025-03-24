@@ -34,7 +34,6 @@ export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.GameObject[] = [];
   private tileSize = 64; // Fixed tile size
   private tileHeight = 32; // Half of tile size for isometric view
-  private verticalOffset = 0;
   
   // Store fixed anchor positions for the grid
   private anchorX = 0; 
@@ -50,9 +49,7 @@ export default class BoardScene extends Phaser.Scene {
   
   private controlsSetup = false;
   private layersSetup = false;
-  
-  // Track last board update time to prevent duplicates
-  private lastBoardUpdateTime = 0;
+  private subscriptionsSetup = false; // Track if subscriptions have been set up
   
   // Selection indicator for hover/selection
   private selectionIndicator: Phaser.GameObjects.Graphics | null = null;
@@ -89,6 +86,9 @@ export default class BoardScene extends Phaser.Scene {
     // Ensure all old subscriptions are cleaned up before creating new ones
     this.unsubscribeAll();
     
+    // Reset subscriptions setup flag
+    this.subscriptionsSetup = false;
+    
     // Set up layers immediately to ensure they exist before any state updates
     this.setupLayers();
     
@@ -97,24 +97,23 @@ export default class BoardScene extends Phaser.Scene {
   
   // Set up all state subscriptions in one centralized method
   private setupSubscriptions() {
+    // Check if subscriptions are already set up
+    if (this.subscriptionsSetup) {
+      console.log("Subscriptions already set up, skipping");
+      return;
+    }
+    
     // Subscribe to board state changes
     StateObserver.subscribe(
       SUBSCRIPTIONS.BOARD,
       (state) => state.board,
       (board) => {
         if (board) {
-          // Check if this is a duplicate update (can happen at init)
-          const now = Date.now();
-          if (now - this.lastBoardUpdateTime < 500) {
-            console.log("Skipping duplicate board update (too soon after previous update)");
-            return;
-          }
-          
           console.log("Board state changed, updating scene with layer-based rendering...");
           this.updateBoard();
         }
       },
-      { debug: false } // Optional configuration
+      { immediate: false, debug: false } // Set immediate: false to prevent callback on subscription
     );
     
     // Subscribe to animals state changes with more efficient change detection
@@ -146,6 +145,9 @@ export default class BoardScene extends Phaser.Scene {
         }
       }
     );
+    
+    // Mark subscriptions as set up
+    this.subscriptionsSetup = true;
   }
   
   // Clean up subscriptions to avoid memory leaks
@@ -156,20 +158,11 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  // Method is kept for compatibility but will log that tile size is now fixed
-  setTileSize(size: number) {
-    console.log("Note: Tile size is now fixed at 64px.");
-    // No longer changing the tile size
-  }
-
   // Method to update the board without restarting the scene
   updateBoard() {
     // Check if we need to setup the layers
     const needsSetup = !this.terrainLayer || !this.selectionLayer || 
                        !this.staticObjectsLayer || !this.unitsLayer;
-    
-    // Update the timestamp to prevent duplicate updates
-    this.lastBoardUpdateTime = Date.now();
     
     // Log what we're doing
     console.log("Updating board using layer-based rendering");

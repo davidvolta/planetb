@@ -16,12 +16,6 @@
 
 ## Upcoming Tasks
 
-- [] Implement Layer-Based Architecture
-    - [] Fix TypeScript errors and add comments
-  - [] Phase 10: Testing and Verification
-    - [] Test rendering order and interactions
-
-
 - [] Implement habitat improvement
 
 - [] Add fog of war
@@ -38,9 +32,8 @@
   - [] Create incremental updates to avoid full board recreation
   - [] Optimize event listeners with event delegation
 
-
-
 ## Completed Tasks
+- [x] Created Tile Layers (Removed Tile Container)
 - [x] Add unit production (eggs)
 - [x] Add unit spawning
 - [x] Implement habitats
