@@ -16,7 +16,8 @@
 
 ## Upcoming Tasks
 
-- [] Unit movement
+- [] Move Unit range to a new kind of structure where each animal has its abilities stored
+- [x] Unit movement
   ### Phase 1: State Management & Setup
   - [x] Add Movement State
     - [x] Extend Zustand store with `selectedUnit`, `validMoves`, and `moveMode` fields
@@ -33,6 +34,12 @@
     - [x] Implement breadth-first search to calculate valid moves
     - [x] Configure algorithm to allow free movement (no terrain restrictions)
     - [x] Enforce rule: Units can move onto tiles with eggs, but not onto tiles with other units
+    - [x] Implement different movement ranges for each animal type:
+      - Buffalo: 2 tiles
+      - Bird: 4 tiles
+      - Fish: 3 tiles
+      - Snake: 2 tiles
+      - Bunny: 3 tiles
 
   ### Phase 2: Layer Structure & Visual Feedback
   - [x] Update Layer Structure
@@ -41,9 +48,8 @@
     - [x] Update the `setupLayers()` method to include the new layer
 
   - [x] Move Range Highlight System
-    - [x] Create circular highlight graphics for valid moves
-    - [x] Use same style as selection indicator (3px light grey with 50% transparency) but in circle shape
-    - [x] Ensure highlights fit inside the diamond tile shapes
+    - [x] Create diamond-shaped highlight graphics for valid moves (yellow with glow effect)
+    - [x] Scale highlights to 85% of tile size
     - [x] Update BoardScene to show/hide highlights based on state
 
   - [x] Fix Tile Click Detection
@@ -69,6 +75,11 @@
     - [x] Handle interrupted movements
     - [x] Prevent movement during animations
     - [x] Add validation to prevent illegal moves
+
+  - [x] UI Integration
+    - [x] Add unit information panel showing movement range
+    - [x] Display valid moves count in the UI
+    - [x] Add ability to deselect units
 
   ### Phase 5: Optimization
   - [] Performance Optimization

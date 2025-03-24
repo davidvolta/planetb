@@ -26,6 +26,15 @@ const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
   [TerrainType.BEACH]: 'bunny', // Default to bunny for beach
 };
 
+// Movement range for each animal type
+const MOVEMENT_RANGE_BY_TYPE: Record<string, number> = {
+  'buffalo': 2,  // Buffalo are strong but slower
+  'bird': 4,     // Birds have highest mobility
+  'fish': 3,     // Fish are fast in water
+  'snake': 2,    // Snakes are slower
+  'bunny': 3     // Bunnies are quick
+};
+
 // Order of terrain types for habitat placement
 // Start with beaches, then move inward (grass, mountain), then outward (water, underwater)
 export const HABITAT_TERRAIN_ORDER: TerrainType[] = [
@@ -527,8 +536,8 @@ const calculateValidMoves = (unitId: string, state: GameState): ValidMove[] => {
   // Add starting position to visited set
   visited.add(`${startX},${startY}`);
   
-  // For now, set a fixed movement range of 3 tiles
-  const maxDistance = 3;
+  // Get movement range based on animal type
+  const maxDistance = MOVEMENT_RANGE_BY_TYPE[unit.type] || 3; // Default to 3 if type not found
   
   while (queue.length > 0) {
     const [x, y, distance] = queue.shift()!;

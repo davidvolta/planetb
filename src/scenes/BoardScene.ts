@@ -1068,15 +1068,34 @@ export default class BoardScene extends Phaser.Scene {
     // Set the position
     highlight.setPosition(worldX, worldY);
     
-    // Draw a circular highlight with the same style as selection indicator
-    highlight.lineStyle(3, 0xD3D3D3, 0.5); // 3px light grey line with 50% transparency
+    // Apply scaling factor
+    const scaleFactor = 0.85;
+    
+    // Create scaled diamond points
+    const diamondPoints = [
+      { x: 0, y: -this.tileHeight / 2 * scaleFactor },
+      { x: this.tileSize / 2 * scaleFactor, y: 0 },
+      { x: 0, y: this.tileHeight / 2 * scaleFactor },
+      { x: -this.tileSize / 2 * scaleFactor, y: 0 }
+    ];
+    
+    // Draw outer glow (slightly larger, more transparent)
+    highlight.lineStyle(5, 0xFFFF00, 0.3); // Yellow with 30% opacity, thicker line for glow effect
     highlight.beginPath();
+    highlight.moveTo(diamondPoints[0].x, diamondPoints[0].y);
+    for (let i = 1; i < diamondPoints.length; i++) {
+      highlight.lineTo(diamondPoints[i].x, diamondPoints[i].y);
+    }
+    highlight.closePath();
+    highlight.strokePath();
     
-    // Draw a circle with radius that fits inside the tile
-    // Make the radius slightly smaller than half the tile size
-    const circleRadius = this.tileSize / 3;
-    highlight.arc(0, 0, circleRadius, 0, Math.PI * 2);
-    
+    // Draw the main diamond shape
+    highlight.lineStyle(3, 0xFFFF00, 0.7); // Yellow with 70% opacity, standard line width
+    highlight.beginPath();
+    highlight.moveTo(diamondPoints[0].x, diamondPoints[0].y);
+    for (let i = 1; i < diamondPoints.length; i++) {
+      highlight.lineTo(diamondPoints[i].x, diamondPoints[i].y);
+    }
     highlight.closePath();
     highlight.strokePath();
     
