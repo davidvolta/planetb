@@ -199,11 +199,30 @@ export default class BoardScene extends Phaser.Scene {
   }
   
   create() {
-    // Setup camera and controls
+    console.log("BoardScene created");
+    
+    // Set up listeners for state changes
+    this.setupSubscriptions();
+    
+    // Set up camera controls
     this.setupControls();
     
-    // Check if board data exists and create board if needed
+    // Set fixed camera bounds that are large enough for any reasonable map size
+    // These bounds won't change when the map is resized
+    const worldWidth = this.cameras.main.width * 4;
+    const worldHeight = this.cameras.main.height * 4;
+    this.cameras.main.setBounds(-worldWidth/2, -worldHeight/2, worldWidth, worldHeight);
+    
+    // Set a fixed camera position with downward offset
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+    const cameraYOffset = 400; // Move camera down by this amount
+    this.cameras.main.centerOn(centerX, centerY + cameraYOffset);
+    
+    // Get board data
     const board = actions.getBoard();
+    
+    // If we have board data and no tiles container, create the board
     if (board && (!this.tilesContainer || !this.terrainLayer)) {
       this.updateBoard();
     }
@@ -337,9 +356,15 @@ export default class BoardScene extends Phaser.Scene {
     // Clear previous tiles
     this.tiles = [];
     
-    // Clear existing terrain graphics from the terrainLayer
+    // Clear existing graphics from all layers
     if (this.terrainLayer) {
       this.terrainLayer.removeAll(true); // true to destroy the objects
+    }
+    if (this.staticObjectsLayer) {
+      this.staticObjectsLayer.removeAll(true);
+    }
+    if (this.unitsLayer) {
+      this.unitsLayer.removeAll(true);
     }
     
     // Get board data using actions instead of GameInitializer
@@ -373,18 +398,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Create tilesContainer for backward compatibility at a fixed position
     this.tilesContainer = this.add.container(anchorX, anchorY);
-    
-    // Set camera bounds
-    this.cameras.main.setBounds(
-      anchorX - mapWidth, 
-      anchorY - mapHeight, 
-      mapWidth * 3, 
-      mapHeight * 3
-    );
-    
-    // Center camera on the anchor position but shifted downward
-    const cameraYOffset = 400; // Move camera down by 400 pixels
-    this.cameras.main.centerOn(anchorX, anchorY + cameraYOffset);
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
