@@ -17,9 +17,7 @@
 ## Upcoming Tasks
 
 - [] Implement habitat improvement
-
 - [] Add fog of war
-
 - [] Unit movement
   - [] Add highlight for available moves
   - [] Add unit selector

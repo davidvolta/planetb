@@ -219,6 +219,7 @@ export default class BoardScene extends Phaser.Scene {
     const centerY = this.cameras.main.height / 2;
     const cameraYOffset = 400; // Move camera down by this amount
     this.cameras.main.centerOn(centerX, centerY + cameraYOffset);
+    this.cameras.main.setZoom(1.2); // Set default zoom level closer to the board
     
     // Get board data
     const board = actions.getBoard();
