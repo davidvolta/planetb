@@ -35,6 +35,16 @@ export default class BoardScene extends Phaser.Scene {
   private tileSize = 64; // Fixed tile size
   private tileHeight = 32; // Half of tile size for isometric view
   private verticalOffset = 0;
+  
+  // Add layer properties with appropriate typing
+  private backgroundLayer: Phaser.GameObjects.Layer | null = null;
+  private terrainLayer: Phaser.GameObjects.Layer | null = null;
+  private selectionLayer: Phaser.GameObjects.Layer | null = null;
+  private staticObjectsLayer: Phaser.GameObjects.Layer | null = null;
+  private unitsLayer: Phaser.GameObjects.Layer | null = null;
+  private uiLayer: Phaser.GameObjects.Layer | null = null;
+  
+  // Keep tilesContainer for backward compatibility during transition
   private tilesContainer: Phaser.GameObjects.Container | null = null;
   private controlsSetup = false;
   
@@ -83,6 +93,7 @@ export default class BoardScene extends Phaser.Scene {
       (state) => state.board,
       (board) => {
         if (board) {
+          console.log("Board state changed, updating scene with layer-based rendering...");
           this.updateBoard();
         }
       },
@@ -94,6 +105,7 @@ export default class BoardScene extends Phaser.Scene {
       SUBSCRIPTIONS.ANIMALS,
       (state) => state.animals,
       (animals, prevAnimals) => {
+        console.log("Animals state changed, updating sprites...");
         if (this.tilesContainer) {
           // We now receive previous state as well
           this.renderAnimalSprites(animals);
@@ -106,6 +118,7 @@ export default class BoardScene extends Phaser.Scene {
       SUBSCRIPTIONS.HABITATS,
       (state) => state.habitats,
       (habitats) => {
+        console.log("Habitats state changed, updating graphics...");
         if (this.tilesContainer) {
           this.renderHabitatGraphics(habitats);
         }
@@ -132,6 +145,10 @@ export default class BoardScene extends Phaser.Scene {
     // Store a reference to the old tiles container
     const oldContainer = this.tilesContainer;
     
+    // Check if we need to set up layers
+    const needsSetup = !this.terrainLayer || !this.selectionLayer || 
+                       !this.staticObjectsLayer || !this.unitsLayer;
+    
     // Create new tiles immediately
     this.createTiles();
     
@@ -139,6 +156,42 @@ export default class BoardScene extends Phaser.Scene {
     if (oldContainer) {
       oldContainer.destroy();
     }
+    
+    // Debug log the layer information
+    this.logLayerInfo();
+    
+    console.log("Board updated with layer-based structure");
+  }
+  
+  // Debug method to log information about our layers
+  private logLayerInfo() {
+    console.log("=== LAYER INFORMATION ===");
+    
+    // Function to safely log layer info
+    const logLayer = (name: string, layer: Phaser.GameObjects.Layer | null) => {
+      if (layer) {
+        console.log(`${name}: Depth=${layer.depth}, Children=${layer.getChildren().length}`);
+      } else {
+        console.log(`${name}: Not initialized`);
+      }
+    };
+    
+    // Log each layer's information
+    logLayer("Background Layer", this.backgroundLayer);
+    logLayer("Terrain Layer", this.terrainLayer);
+    logLayer("Selection Layer", this.selectionLayer);
+    logLayer("Static Objects Layer", this.staticObjectsLayer);
+    logLayer("Units Layer", this.unitsLayer);
+    logLayer("UI Layer", this.uiLayer);
+    
+    // Log tilesContainer info for comparison
+    if (this.tilesContainer) {
+      console.log(`Tiles Container: Children=${this.tilesContainer.list.length}`);
+    } else {
+      console.log("Tiles Container: Not initialized");
+    }
+    
+    console.log("=========================");
   }
   
   create() {
@@ -147,7 +200,7 @@ export default class BoardScene extends Phaser.Scene {
     
     // Check if board data exists and create board if needed
     const board = actions.getBoard();
-    if (board && !this.tilesContainer) {
+    if (board && (!this.tilesContainer || !this.terrainLayer)) {
       this.updateBoard();
     }
   }
@@ -268,7 +321,15 @@ export default class BoardScene extends Phaser.Scene {
     // Ensure we clean up all subscriptions when scene shuts down
     this.unsubscribeAll();
     
-    // Clear references
+    // Clear references to all layers
+    this.backgroundLayer = null;
+    this.terrainLayer = null;
+    this.selectionLayer = null;
+    this.staticObjectsLayer = null;
+    this.unitsLayer = null;
+    this.uiLayer = null;
+    
+    // Clear other references (for backward compatibility)
     this.tilesContainer = null;
     this.tiles = [];
     this.selectionIndicator = null;
@@ -303,6 +364,11 @@ export default class BoardScene extends Phaser.Scene {
     
     // Position container with vertical offset to move grid up
     this.verticalOffset = mapHeight * 1.4; // Move it up by 110% of map height
+    
+    // Set up all layers (new approach)
+    this.setupLayers();
+    
+    // Create tilesContainer for backward compatibility
     this.tilesContainer = this.add.container(centerX, centerY - this.verticalOffset);
     
     // Set camera bounds
@@ -322,8 +388,13 @@ export default class BoardScene extends Phaser.Scene {
         const terrain = board.tiles[y]?.[x]?.terrain || TerrainType.GRASS;
         const tile = this.createTerrainTile(terrain, isoX, isoY);
         
-        // Add tile to the container
+        // Add tile to both the container (for backward compatibility) and to the terrain layer
         this.tilesContainer.add(tile);
+        if (this.terrainLayer) {
+          // We can't add the same object to two parents, so we'll only use the tilesContainer for now
+          // In future phases, we'll create separate objects for each layer
+        }
+        
         this.tiles.push(tile);
         
         // Add a click handler to the tile
@@ -811,5 +882,18 @@ export default class BoardScene extends Phaser.Scene {
     habitatGraphics.forEach(graphic => {
       graphic.destroy();
     });
+  }
+
+  // Set up all layers with appropriate depths
+  private setupLayers() {
+    // Initialize each layer with its appropriate depth
+    this.backgroundLayer = this.add.layer().setDepth(0);
+    this.terrainLayer = this.add.layer().setDepth(1);
+    this.selectionLayer = this.add.layer().setDepth(2);
+    this.staticObjectsLayer = this.add.layer().setDepth(3);
+    this.unitsLayer = this.add.layer().setDepth(4);
+    this.uiLayer = this.add.layer().setDepth(10);
+    
+    console.log("Layers initialized with proper depth order");
   }
 }
