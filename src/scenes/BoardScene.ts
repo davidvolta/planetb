@@ -249,6 +249,12 @@ export default class BoardScene extends Phaser.Scene {
       const worldX = this.anchorX + isoX;
       const worldY = this.anchorY + isoY;
       
+      // Apply vertical offset to raise the sprite above the tile
+      const verticalOffset = -12; // Lift the sprite up by 12 pixels
+      
+      // Determine the texture based on animal state
+      const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
+      
       // Check if we have an existing sprite
       const existing = existingSprites.get(animal.id);
       
@@ -256,27 +262,42 @@ export default class BoardScene extends Phaser.Scene {
         // Mark as used so we don't delete it later
         existing.used = true;
         
-        // Update position
-        existing.sprite.setPosition(worldX, worldY);
+        // Update position with vertical offset
+        existing.sprite.setPosition(worldX, worldY + verticalOffset);
+        
+        // Update texture if animal state changed
+        if (existing.sprite.texture.key !== textureKey) {
+          console.log(`Updating sprite texture for animal ${animal.id} from ${existing.sprite.texture.key} to ${textureKey}`);
+          existing.sprite.setTexture(textureKey);
+        }
       } else {
-        // Create a new sprite for this animal
-        const animalSprite = this.add.sprite(worldX, worldY, 'egg');
+        // Create a new sprite for this animal with the correct texture
+        const animalSprite = this.add.sprite(worldX, worldY + verticalOffset, textureKey);
         
         // Set appropriate scale
-        animalSprite.setScale(0.75);
+        animalSprite.setScale(1);
         
-        // Store the animal ID on the sprite
+        // Store the animal ID and type on the sprite
         animalSprite.setData('animalId', animal.id);
+        animalSprite.setData('animalType', animal.type);
         animalSprite.setData('gridX', gridX);
         animalSprite.setData('gridY', gridY);
         
         // Make the sprite interactive
         animalSprite.setInteractive();
         
-        // Add a click handler
+        // Add a click handler that handles state evolution
         animalSprite.on('pointerdown', () => {
           console.log(`Animal clicked: ${animal.id} at ${gridX},${gridY}`);
-          this.events.emit(EVENTS.ANIMAL_CLICKED, animal);
+          
+          // Check if the animal is a dormant egg and can be hatched
+          if (animal.state === AnimalState.DORMANT) {
+            // Emit the animal clicked event for the React UI to handle evolution
+            this.events.emit(EVENTS.ANIMAL_CLICKED, animal.id);
+          } else {
+            // Regular animal click handling
+            this.events.emit(EVENTS.ANIMAL_CLICKED, animal);
+          }
         });
         
         // Add the new sprite to the units layer
@@ -524,98 +545,9 @@ export default class BoardScene extends Phaser.Scene {
     shape.closePath();
     shape.strokePath();
     
-    // Add terrain-specific details
-    if (terrain === TerrainType.MOUNTAIN) {
-      this.addTerrainDetails(shape, terrain);
-    }
-    
     return shape;
   }
   
-  // Add specific details to each terrain type
-  private addTerrainDetails(shape: Phaser.GameObjects.Graphics, terrain: TerrainType): void {
-    const halfTile = this.tileSize / 4;
-    
-    switch(terrain) {
-      case TerrainType.MOUNTAIN:
-        // Mountain peak
-        shape.fillStyle(0x2C3539, 1); // Charcoal for rock peak
-        shape.beginPath();
-        shape.moveTo(0, -this.tileHeight / 3);
-        shape.lineTo(halfTile, 0);
-        shape.lineTo(0, this.tileHeight / 4);
-        shape.lineTo(-halfTile, 0);
-        shape.closePath();
-        shape.fillPath();
-        break;
-        
-      case TerrainType.WATER:
-        // Water waves
-        shape.lineStyle(1, 0xADD8E6, 0.8);
-        shape.beginPath();
-        shape.moveTo(-halfTile, -2);
-        shape.lineTo(halfTile, -2);
-        shape.closePath();
-        shape.strokePath();
-        
-        shape.beginPath();
-        shape.moveTo(-halfTile + 5, 2);
-        shape.lineTo(halfTile - 5, 2);
-        shape.closePath();
-        shape.strokePath();
-        break;
-        
-      case TerrainType.BEACH:
-        // Beach particles
-        for (let i = 0; i < 5; i++) {
-          const px = Phaser.Math.Between(-halfTile, halfTile);
-          const py = Phaser.Math.Between(-this.tileHeight / 4, this.tileHeight / 4);
-          shape.fillStyle(0xFFFACD, 1);
-          shape.fillCircle(px, py, 1);
-        }
-        break;
-        
-      case TerrainType.GRASS:
-        // Grass blades
-        shape.lineStyle(1, 0x006400, 0.7);
-        for (let i = 0; i < 4; i++) {
-          const startX = Phaser.Math.Between(-halfTile + 5, halfTile - 5);
-          const startY = Phaser.Math.Between(-this.tileHeight / 4, this.tileHeight / 4);
-          
-          shape.beginPath();
-          shape.moveTo(startX, startY);
-          shape.lineTo(startX + 2, startY - 3);
-          shape.closePath();
-          shape.strokePath();
-          
-          shape.beginPath();
-          shape.moveTo(startX, startY);
-          shape.lineTo(startX - 2, startY - 3);
-          shape.closePath();
-          shape.strokePath();
-        }
-        break;
-        
-      case TerrainType.UNDERWATER:
-        // Underwater bubbles and darker wave
-        shape.lineStyle(1, 0x0000CD, 0.8);
-        shape.beginPath();
-        shape.moveTo(-halfTile + 10, 0);
-        shape.lineTo(halfTile - 10, 0);
-        shape.closePath();
-        shape.strokePath();
-        
-        // Bubbles
-        for (let i = 0; i < 3; i++) {
-          const px = Phaser.Math.Between(-halfTile + 5, halfTile - 5);
-          const py = Phaser.Math.Between(-this.tileHeight / 5, this.tileHeight / 8);
-          const size = Phaser.Math.Between(1, 2);
-          shape.fillStyle(0xADD8E6, 0.6);
-          shape.fillCircle(px, py, size);
-        }
-        break;
-    }
-  }
 
   // Create a selection indicator to show the currently selected tile
   private createSelectionIndicator() {
