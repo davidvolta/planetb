@@ -17,32 +17,23 @@
 ## Upcoming Tasks
 
 - [] Implement Layer-Based Architecture
-  - [x] Phase 1: Preparation and Planning
-    - [x] Review existing container-based implementation
-    - [x] List all game object types that need rendering
-    - [x] Define layer hierarchy with appropriate depths
-  - [x] Phase 2: Core Layer Structure Implementation
-    - [x] Replace tilesContainer with separate layer properties
-    - [x] Modify createTiles() to initialize all layers
-    - [x] Update camera setup to work with layers
-  - [x] Phase 3: Terrain Layer Implementation
-    - [x] Refactor createTerrainTile() to use Graphics objects
-    - [x] Update tile creation to add tiles to terrain layer
-  - [x] Phase 4: Selection Layer Implementation
-    - [x] Move selection indicator to selection layer
-    - [x] Update selection indicator handling
-  - [x] Phase 5: Static Objects Layer Implementation
-    - [x] Refactor habitat graphics to use layers
-    - [x] Implement efficient habitat updating
-  - [x] Phase 6: Units Layer Implementation
-    - [x] Update animal sprites to use units layer
-    - [x] Verify unit interaction
-  - [] Phase 7: UI Layer Preparation
-    - [] Set up UI layer structure
+ 
   - [] Phase 8: State Management Integration
     - [] Update state subscribers for layer architecture
+    - [] Refactor setupSubscriptions method to more deeply embrace layer architecture
+    - [] Enhance updateBoard method to better leverage the layer system when rebuilding board state
   - [] Phase 9: Clean-up and Optimization
     - [] Remove unused container code
+    - [] Migrate remaining methods from container-based to layer-based:
+      - [] updateBoard() - Remove tilesContainer dependency
+      - [] getHoveredTile() - Use layer-based approach instead of tilesContainer
+      - [] setupClickEventDelegation() - Refactor to fully embrace layers
+      - [] createTiles() - Remove "backward compatibility" container creation
+      - [] setupControls() - Update camera controls to use layers
+      - [] onDragStart() and onDragEnd() - Update to work with layers
+      - [] shutdown() - Update cleanup to handle layers
+      - [] onAnimalClicked() - Remove or update for layer architecture
+      - [] worldToGrid() - Use layer-independent coordinate conversion
     - [] Fix TypeScript errors and add comments
   - [] Phase 10: Testing and Verification
     - [] Test rendering order and interactions
