@@ -49,6 +49,10 @@ export default class BoardScene extends Phaser.Scene {
   private uiLayer: Phaser.GameObjects.Layer | null = null;
   
   private controlsSetup = false;
+  private layersSetup = false;
+  
+  // Track last board update time to prevent duplicates
+  private lastBoardUpdateTime = 0;
   
   // Selection indicator for hover/selection
   private selectionIndicator: Phaser.GameObjects.Graphics | null = null;
@@ -76,8 +80,8 @@ export default class BoardScene extends Phaser.Scene {
   }
   
 
-  init() {
-    console.log("BoardScene init() called");
+  init(data?: any) {
+    console.log("BoardScene init() called", data ? `with data: ${JSON.stringify(data)}` : "without data");
     
     // Clear previous tiles when scene restarts
     this.tiles = [];
@@ -99,6 +103,13 @@ export default class BoardScene extends Phaser.Scene {
       (state) => state.board,
       (board) => {
         if (board) {
+          // Check if this is a duplicate update (can happen at init)
+          const now = Date.now();
+          if (now - this.lastBoardUpdateTime < 500) {
+            console.log("Skipping duplicate board update (too soon after previous update)");
+            return;
+          }
+          
           console.log("Board state changed, updating scene with layer-based rendering...");
           this.updateBoard();
         }
@@ -157,13 +168,16 @@ export default class BoardScene extends Phaser.Scene {
     const needsSetup = !this.terrainLayer || !this.selectionLayer || 
                        !this.staticObjectsLayer || !this.unitsLayer;
     
+    // Update the timestamp to prevent duplicate updates
+    this.lastBoardUpdateTime = Date.now();
+    
     // Log what we're doing
     console.log("Updating board using layer-based rendering");
     
     // Create new tiles using the layer-based approach
     this.createTiles();
     
-    // We don't need to log layer info here since createTiles already does it
+    // Debug log the layer information (handled by createTiles now)
     
     console.log("Board updated with layer-based structure");
   }
@@ -196,7 +210,7 @@ export default class BoardScene extends Phaser.Scene {
   }
   
   create() {
-    console.log("BoardScene create() called");
+    console.log("BoardScene create() called", this.scene.key);
     
     // Set up camera controls
     this.setupControls();
@@ -234,6 +248,10 @@ export default class BoardScene extends Phaser.Scene {
       if (habitats && this.staticObjectsLayer) {
         this.renderHabitatGraphics(habitats);
       }
+      
+      // Log final layer state after everything is rendered
+      console.log("FINAL LAYER STATE AFTER RENDERING ANIMALS AND HABITATS:");
+      this.logLayerInfo();
     }
   }
 
@@ -354,6 +372,10 @@ export default class BoardScene extends Phaser.Scene {
     this.unitsLayer = null;
     this.uiLayer = null;
     
+    // Reset flags
+    this.layersSetup = false;
+    this.controlsSetup = false;
+    
     // Clear tiles array
     this.tiles = [];
     
@@ -404,9 +426,6 @@ export default class BoardScene extends Phaser.Scene {
     // Store these anchor positions for coordinate conversions
     this.anchorX = anchorX;
     this.anchorY = anchorY;
-    
-    // Set up all layers (new approach)
-    this.setupLayers();
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
@@ -859,6 +878,12 @@ export default class BoardScene extends Phaser.Scene {
 
   // Set up all layers with appropriate depths
   private setupLayers() {
+    // Skip if layers are already set up
+    if (this.layersSetup) {
+      console.log("Layers already initialized, skipping setupLayers()");
+      return;
+    }
+    
     console.log("BoardScene setupLayers() called");
     
     // Initialize each layer with its appropriate depth
@@ -868,6 +893,9 @@ export default class BoardScene extends Phaser.Scene {
     this.staticObjectsLayer = this.add.layer().setDepth(3);
     this.unitsLayer = this.add.layer().setDepth(4);
     this.uiLayer = this.add.layer().setDepth(10);
+    
+    // Mark layers as initialized
+    this.layersSetup = true;
     
     console.log("Layers initialized with proper depth order");
   }
