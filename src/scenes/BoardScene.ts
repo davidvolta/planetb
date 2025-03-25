@@ -598,29 +598,30 @@ export default class BoardScene extends Phaser.Scene {
                   targetX: gridX,
                   targetY: gridY
                 });
+                
+                // Hide selection indicator during movement
+                if (this.selectionIndicator) {
+                  this.selectionIndicator.setVisible(false);
+                }
               } else {
                 // Not a valid move target, select this unit instead
                 actions.selectUnit(animalId);
+                
+                // When selecting a unit, don't show the tile selection indicator
+                if (this.selectionIndicator) {
+                  this.selectionIndicator.setVisible(false);
+                }
               }
             } else {
               // No unit selected, select this one
               actions.selectUnit(animalId);
+              
+              // When selecting a unit, don't show the tile selection indicator
+              if (this.selectionIndicator) {
+                this.selectionIndicator.setVisible(false);
+              }
             }
           }
-        }
-        
-        // Get the tile under this unit for selection highlighting
-        const tileUnderUnit = this.getTileAtGridPosition(gridX, gridY);
-        if (tileUnderUnit && this.selectionIndicator && this.selectionLayer) {
-          // Calculate the tile position for the indicator
-          const isoX = (gridX - gridY) * this.tileSize / 2;
-          const isoY = (gridX + gridY) * this.tileHeight / 2;
-          
-          // Position the indicator
-          this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
-          
-          // Make the indicator visible
-          this.selectionIndicator.setVisible(true);
         }
       }
       // If clicked on a tile
@@ -629,19 +630,6 @@ export default class BoardScene extends Phaser.Scene {
         const y = gameObject.getData('gridY');
         
         console.log(`Tile clicked at ${x},${y}`);
-        
-        // Update selection indicator position if it exists
-        if (this.selectionIndicator && this.selectionLayer) {
-          // Calculate isometric position for the indicator
-          const isoX = (x - y) * this.tileSize / 2;
-          const isoY = (x + y) * this.tileHeight / 2;
-          
-          // Position the indicator
-          this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
-          
-          // Make the indicator visible
-          this.selectionIndicator.setVisible(true);
-        }
         
         // Check if we have a selected unit and are in move mode
         const selectedUnitId = actions.getSelectedUnitId();
@@ -660,11 +648,44 @@ export default class BoardScene extends Phaser.Scene {
               targetX: x,
               targetY: y
             });
+            
+            // Hide selection indicator when moving a unit
+            if (this.selectionIndicator) {
+              this.selectionIndicator.setVisible(false);
+            }
           } else {
             // Not a valid move, deselect the unit
             actions.deselectUnit();
+            
+            // Hide the selection indicator
+            if (this.selectionIndicator) {
+              this.selectionIndicator.setVisible(false);
+            }
           }
         } else {
+          // Not in move mode, just a regular tile click
+          
+          // Check if there's a unit at this tile before showing the selection indicator
+          const animals = actions.getAnimals();
+          const unitAtTile = animals.find(animal => 
+            animal.position.x === x && 
+            animal.position.y === y && 
+            animal.state !== AnimalState.DORMANT
+          );
+          
+          // Only show selection indicator if there's no active unit on this tile
+          if (!unitAtTile && this.selectionIndicator && this.selectionLayer) {
+            // Calculate isometric position for the indicator
+            const isoX = (x - y) * this.tileSize / 2;
+            const isoY = (x + y) * this.tileHeight / 2;
+            
+            // Position the indicator
+            this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
+            
+            // Make the indicator visible
+            this.selectionIndicator.setVisible(true);
+          }
+          
           // Emit an event when a tile is clicked
           const eventData = { x, y, pointer };
           this.events.emit(EVENTS.TILE_CLICKED, eventData);
@@ -1173,6 +1194,11 @@ export default class BoardScene extends Phaser.Scene {
     
     // Clear move highlights during animation
     this.clearMoveHighlights();
+    
+    // Hide selection indicator during animation
+    if (this.selectionIndicator) {
+      this.selectionIndicator.setVisible(false);
+    }
     
     // Calculate movement duration based on distance
     const distance = Math.sqrt(
