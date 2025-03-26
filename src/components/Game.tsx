@@ -29,7 +29,6 @@ const Game: React.FC = () => {
       // Remove any existing listeners first
       scene.events.removeAllListeners(EVENTS.ANIMAL_CLICKED);
       scene.events.removeAllListeners(EVENTS.TILE_CLICKED);
-      scene.events.removeAllListeners(EVENTS.HABITAT_CLICKED);
       scene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
       
       // Listen for animal click events
@@ -42,12 +41,6 @@ const Game: React.FC = () => {
       // Listen for tile click events
       scene.events.on(EVENTS.TILE_CLICKED, (coords: { x: number, y: number }) => {
         // Handle tile clicks if needed
-      });
-
-      // Listen for habitat click events
-      scene.events.on(EVENTS.HABITAT_CLICKED, (habitatId: string) => {
-        console.log(`Habitat clicked: ${habitatId}`);
-        actions.improveHabitat(habitatId);
       });
 
       // Listen for assets loaded event

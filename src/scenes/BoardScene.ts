@@ -21,10 +21,7 @@ interface Animal {
 export const EVENTS = {
   ANIMAL_CLICKED: 'animalClicked',
   TILE_CLICKED: 'tileClicked',
-  HABITAT_CLICKED: 'habitatClicked',
-  DORMANT_ANIMAL_SELECTED: 'dormantAnimalSelected',
-  ASSETS_LOADED: 'assetsLoaded',
-  UNIT_SPAWNED: 'unit_spawned'
+  ASSETS_LOADED: 'assetsLoaded'
 };
 
 // Define subscription keys to ensure consistency
