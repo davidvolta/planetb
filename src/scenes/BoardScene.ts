@@ -525,8 +525,62 @@ export default class BoardScene extends Phaser.Scene {
         return;
       }
       
+      // Check if this is a habitat click first
+      if (gameObject instanceof Phaser.GameObjects.Container && gameObject.getData && gameObject.getData('habitatId')) {
+        const habitatId = gameObject.getData('habitatId');
+        const gridX = gameObject.getData('gridX');
+        const gridY = gameObject.getData('gridY');
+        
+        console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}`);
+        
+        // Check if we have a selected unit and are in move mode
+        const selectedUnitId = actions.getSelectedUnitId();
+        if (selectedUnitId && actions.isMoveMode()) {
+          // Check if this is a valid move destination
+          const validMoves = actions.getValidMoves();
+          const isValidMove = validMoves.some(move => move.x === gridX && move.y === gridY);
+          
+          if (isValidMove) {
+            // Get current position of selected unit
+            const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
+            if (selectedUnit) {
+              // Start movement animation
+              this.startUnitMovement(
+                selectedUnitId, 
+                selectedUnit.position.x, 
+                selectedUnit.position.y, 
+                gridX, 
+                gridY
+              );
+            }
+            
+            // Hide selection indicator during movement
+            if (this.selectionIndicator) {
+              this.selectionIndicator.setVisible(false);
+            }
+          } else {
+            // Not a valid move, deselect the unit
+            actions.deselectUnit();
+            
+            // Hide the selection indicator
+            if (this.selectionIndicator) {
+              this.selectionIndicator.setVisible(false);
+            }
+          }
+        } else {
+          // Standard habitat click handling
+          const habitat = actions.getHabitats().find(h => h.id === habitatId);
+          if (habitat) {
+            this.events.emit(EVENTS.HABITAT_CLICKED, habitat);
+            
+            // Show the selection indicator at the habitat position
+            this.showSelectionIndicatorAt(gridX, gridY);
+          }
+        }
+        return; // Important: Stop processing after handling habitat click
+      }
       // If clicked on a unit
-      if (gameObject instanceof Phaser.GameObjects.Sprite && gameObject.getData('animalId')) {
+      else if (gameObject instanceof Phaser.GameObjects.Sprite && gameObject.getData('animalId')) {
         const animalId = gameObject.getData('animalId');
         const gridX = gameObject.getData('gridX');
         const gridY = gameObject.getData('gridY');
@@ -641,15 +695,7 @@ export default class BoardScene extends Phaser.Scene {
           
           // Only show selection indicator if there's no active unit on this tile
           if (!unitAtTile && this.selectionIndicator && this.selectionLayer) {
-            // Calculate isometric position for the indicator
-            const isoX = (x - y) * this.tileSize / 2;
-            const isoY = (x + y) * this.tileHeight / 2;
-            
-            // Position the indicator
-            this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
-            
-            // Make the indicator visible
-            this.selectionIndicator.setVisible(true);
+            this.showSelectionIndicatorAt(x, y);
           }
           
           // Emit an event when a tile is clicked
@@ -902,12 +948,12 @@ export default class BoardScene extends Phaser.Scene {
     // Add the graphics to the container
     container.add(graphics);
     
-    // Make it interactive with a precisely shaped hit area matching the visible diamond
+    // Make it interactive using the full tile size for easier selection
     container.setInteractive(new Phaser.Geom.Polygon([
-      { x: diamondPoints[0].x, y: diamondPoints[0].y },
-      { x: diamondPoints[1].x, y: diamondPoints[1].y },
-      { x: diamondPoints[2].x, y: diamondPoints[2].y },
-      { x: diamondPoints[3].x, y: diamondPoints[3].y }
+      { x: 0, y: -this.tileHeight / 2 },
+      { x: this.tileSize / 2, y: 0 },
+      { x: 0, y: this.tileHeight / 2 },
+      { x: -this.tileSize / 2, y: 0 }
     ]), Phaser.Geom.Polygon.Contains);
     
     return container;
@@ -969,49 +1015,11 @@ export default class BoardScene extends Phaser.Scene {
         // Store the habitat ID for reference
         habitatGraphic.setData('habitatId', habitat.id);
         
-        // Add click handler
-        habitatGraphic.on('pointerdown', () => {
-          console.log(`Habitat clicked: ${habitat.id} at ${gridX},${gridY}`);
-          
-          // Check if we have a selected unit and are in move mode
-          const selectedUnitId = actions.getSelectedUnitId();
-          if (selectedUnitId && actions.isMoveMode()) {
-            // Check if this is a valid move destination
-            const validMoves = actions.getValidMoves();
-            const isValidMove = validMoves.some(move => move.x === gridX && move.y === gridY);
-            
-            if (isValidMove) {
-              // Get current position of selected unit
-              const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
-              if (selectedUnit) {
-                // Start movement animation
-                this.startUnitMovement(
-                  selectedUnitId, 
-                  selectedUnit.position.x, 
-                  selectedUnit.position.y, 
-                  gridX, 
-                  gridY
-                );
-              }
-              
-              // Hide selection indicator when moving a unit
-              if (this.selectionIndicator) {
-                this.selectionIndicator.setVisible(false);
-              }
-            } else {
-              // Not a valid move, deselect the unit
-              actions.deselectUnit();
-              
-              // Hide the selection indicator
-              if (this.selectionIndicator) {
-                this.selectionIndicator.setVisible(false);
-              }
-            }
-          } else {
-            // Standard habitat click handling
-            this.events.emit(EVENTS.HABITAT_CLICKED, habitat);
-          }
-        });
+        // Store grid coordinates for reference in click handling
+        habitatGraphic.setData('gridX', gridX);
+        habitatGraphic.setData('gridY', gridY);
+        
+        // Remove direct click handler - now handled by global click delegation
         
         // Add the new graphic to the layer
         this.staticObjectsLayer!.add(habitatGraphic);
@@ -1240,7 +1248,7 @@ export default class BoardScene extends Phaser.Scene {
       Math.pow(endWorldX - startWorldX, 2) + 
       Math.pow(endWorldY - startWorldY, 2)
     );
-    const baseDuration = 100; // Further reduced duration for zippier movement
+    const baseDuration = 75; // Moderate duration for smooth movement
     const duration = baseDuration * (distance / this.tileSize);
     
     // Create a single direct tween for instant movement
@@ -1275,5 +1283,33 @@ export default class BoardScene extends Phaser.Scene {
         this.animationInProgress = false;
       }
     });
+  }
+
+  // Helper method to show the selection indicator at a specific grid position
+  private showSelectionIndicatorAt(x: number, y: number) {
+    if (!this.selectionIndicator) {
+      console.warn("Cannot show selection indicator - selectionIndicator is null");
+      return;
+    }
+    
+    // Calculate isometric position for the indicator
+    const isoX = (x - y) * this.tileSize / 2;
+    const isoY = (x + y) * this.tileHeight / 2;
+    
+    // Position the indicator
+    this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
+    
+    // Make the indicator visible
+    this.selectionIndicator.setVisible(true);
+    
+    // Ensure it's at the top of its layer
+    if (this.selectionLayer) {
+      // Re-add to make sure it's at the top of its layer
+      this.selectionLayer.remove(this.selectionIndicator);
+      this.selectionLayer.add(this.selectionIndicator);
+      console.log(`Selection indicator set at grid position (${x},${y}) and world position (${this.anchorX + isoX}, ${this.anchorY + isoY})`);
+    } else {
+      console.warn("Cannot add selection indicator to layer - selectionLayer is null");
+    }
   }
 }
