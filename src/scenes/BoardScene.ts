@@ -150,9 +150,24 @@ export default class BoardScene extends Phaser.Scene {
       (displacementEvent) => {
         // Only animate if displacement actually occurred
         if (displacementEvent && displacementEvent.occurred && displacementEvent.unitId) {
+          // Use type assertion to ensure TypeScript understands the type
           this.handleUnitDisplacement(displacementEvent);
           // Clear the displacement event after handling it
           actions.clearDisplacementEvent();
+        }
+      }
+    );
+    
+    // Subscribe to spawn events
+    StateObserver.subscribe(
+      'BoardScene.spawn',
+      (state) => state.spawnEvent,
+      (spawnEvent) => {
+        // Handle spawn events (hide selection indicator)
+        if (spawnEvent && spawnEvent.occurred) {
+          this.handleUnitSpawned();
+          // Clear the spawn event after handling it
+          actions.clearSpawnEvent();
         }
       }
     );
@@ -283,9 +298,6 @@ export default class BoardScene extends Phaser.Scene {
       console.log("FINAL LAYER STATE AFTER RENDERING ANIMALS AND HABITATS:");
       this.logLayerInfo();
     }
-    
-    // Listen for unit_spawned event from UIScene to hide the selection indicator
-    this.scene.get('UIScene').events.on(EVENTS.UNIT_SPAWNED, this.hideSelectionIndicator, this);
   }
 
   // Handle animal click events - emit event instead of directly modifying state
@@ -479,9 +491,6 @@ export default class BoardScene extends Phaser.Scene {
   shutdown() {
     // Ensure we clean up all subscriptions when scene shuts down
     this.unsubscribeAll();
-    
-    // Remove the unit_spawned event listener
-    this.scene.get('UIScene').events.off(EVENTS.UNIT_SPAWNED, this.hideSelectionIndicator, this);
     
     // Clear references to all layers
     this.backgroundLayer = null;
@@ -1465,14 +1474,16 @@ export default class BoardScene extends Phaser.Scene {
   private handleUnitDisplacement(displacementInfo: {
     occurred: boolean;
     unitId: string | null;
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
-    timestamp: number;
+    fromX: number | null;
+    fromY: number | null;
+    toX: number | null;
+    toY: number | null;
+    timestamp: number | null;
   }) {
-    // Skip if no unit ID or occurred flag is false
-    if (!displacementInfo.unitId || !displacementInfo.occurred) {
+    // Skip if no unit ID or occurred flag is false, or if coordinates are null
+    if (!displacementInfo.unitId || !displacementInfo.occurred || 
+        displacementInfo.fromX === null || displacementInfo.fromY === null || 
+        displacementInfo.toX === null || displacementInfo.toY === null) {
       return;
     }
     
@@ -1488,7 +1499,13 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    console.log(`Animating displacement of unit ${displacementInfo.unitId} from (${displacementInfo.fromX},${displacementInfo.fromY}) to (${displacementInfo.toX},${displacementInfo.toY})`);
+    // Now we know the coordinates are not null, we can use them
+    const fromX = displacementInfo.fromX;
+    const fromY = displacementInfo.fromY;
+    const toX = displacementInfo.toX;
+    const toY = displacementInfo.toY;
+    
+    console.log(`Animating displacement of unit ${displacementInfo.unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
     // Set animation flag
     this.animationInProgress = true;
@@ -1498,8 +1515,8 @@ export default class BoardScene extends Phaser.Scene {
     const verticalOffset = -12;
     
     // Calculate world coordinates for destination
-    const toIsoX = (displacementInfo.toX - displacementInfo.toY) * this.tileSize / 2;
-    const toIsoY = (displacementInfo.toX + displacementInfo.toY) * this.tileHeight / 2;
+    const toIsoX = (toX - toY) * this.tileSize / 2;
+    const toIsoY = (toX + toY) * this.tileHeight / 2;
     const endWorldX = this.anchorX + toIsoX;
     const endWorldY = this.anchorY + toIsoY;
     
@@ -1527,11 +1544,11 @@ export default class BoardScene extends Phaser.Scene {
       },
       onComplete: () => {
         // Update the sprite data
-        unitSprite.setData('gridX', displacementInfo.toX);
-        unitSprite.setData('gridY', displacementInfo.toY);
+        unitSprite.setData('gridX', toX);
+        unitSprite.setData('gridY', toY);
         
         // Set final depth at destination
-        unitSprite.setDepth(this.calculateUnitDepth(displacementInfo.toY, true));
+        unitSprite.setDepth(this.calculateUnitDepth(toY, true));
         
         // Reset animation flag
         this.animationInProgress = false;
@@ -1539,5 +1556,11 @@ export default class BoardScene extends Phaser.Scene {
         console.log(`Displacement animation complete for unit ${displacementInfo.unitId}`);
       }
     });
+  }
+
+  // Add a method to handle spawn events
+  private handleUnitSpawned() {
+    // Implement the logic to hide the selection indicator when a unit is spawned
+    this.hideSelectionIndicator();
   }
 }

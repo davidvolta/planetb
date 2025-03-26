@@ -90,11 +90,45 @@ export function clearDisplacementEvent(): void {
     displacementEvent: {
       occurred: false,
       unitId: null,
-      fromX: 0,
-      fromY: 0,
-      toX: 0,
-      toY: 0,
-      timestamp: 0
+      fromX: null,
+      fromY: null,
+      toX: null,
+      toY: null,
+      timestamp: null
+    }
+  });
+}
+
+/**
+ * Get information about the current spawn event
+ */
+export function getSpawnEvent(): any {
+  return useGameStore.getState().spawnEvent;
+}
+
+/**
+ * Record a spawn event in the state
+ * @param unitId ID of the unit that was spawned
+ */
+export function recordSpawnEvent(unitId: string): void {
+  useGameStore.setState({
+    spawnEvent: {
+      occurred: true,
+      unitId: unitId,
+      timestamp: Date.now()
+    }
+  });
+}
+
+/**
+ * Clear the current spawn event
+ */
+export function clearSpawnEvent(): void {
+  useGameStore.setState({
+    spawnEvent: {
+      occurred: false,
+      unitId: null,
+      timestamp: null
     }
   });
 }

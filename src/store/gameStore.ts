@@ -137,13 +137,20 @@ export interface GameState {
   
   // Displacement tracking (for animation and UI feedback)
   displacementEvent: {
-    occurred: boolean;          // Whether displacement has occurred in the current action
-    unitId: string | null;      // ID of the displaced unit
-    fromX: number;              // Original X position
-    fromY: number;              // Original Y position
-    toX: number;                // New X position
-    toY: number;                // New Y position
-    timestamp: number;          // When the displacement occurred
+    occurred: boolean;         // Whether displacement has occurred in the current action
+    unitId: string | null;     // ID of the displaced unit
+    fromX: number | null;      // Original X position
+    fromY: number | null;      // Original Y position
+    toX: number | null;        // New X position
+    toY: number | null;        // New Y position
+    timestamp: number | null;  // When the displacement occurred
+  };
+  
+  // Spawn event tracking
+  spawnEvent: {
+    occurred: boolean;        // Whether a unit was just spawned
+    unitId: string | null;    // ID of the unit that was spawned
+    timestamp: number | null; // When the spawn occurred
   };
   
   nextTurn: () => void;
@@ -186,12 +193,19 @@ export const useGameStore = create<GameState>((set, get) => ({
   displacementEvent: {
     occurred: false,
     unitId: null,
-    fromX: 0,
-    fromY: 0,
-    toX: 0,
-    toY: 0,
-    timestamp: 0
+    fromX: null,
+    fromY: null,
+    toX: null,
+    toY: null,
+    timestamp: null
   } as GameState['displacementEvent'], // Force type alignment
+
+  // Initialize spawn event with default values
+  spawnEvent: {
+    occurred: false,
+    unitId: null,
+    timestamp: null
+  } as GameState['spawnEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
     // Process habitat production
@@ -210,18 +224,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     const resetDisplacementEvent = {
       occurred: false,
       unitId: null,
-      fromX: 0,
-      fromY: 0,
-      toX: 0,
-      toY: 0,
-      timestamp: 0
+      fromX: null,
+      fromY: null,
+      toX: null,
+      toY: null,
+      timestamp: null
     } as GameState['displacementEvent']; // Force type alignment
+    
+    // Reset spawn event
+    const resetSpawnEvent = {
+      occurred: false,
+      unitId: null,
+      timestamp: null
+    } as GameState['spawnEvent']; // Force type alignment
     
     return { 
       ...updatedState,
       animals: resetAnimals,
       turn: state.turn + 1,
-      displacementEvent: resetDisplacementEvent
+      displacementEvent: resetDisplacementEvent,
+      spawnEvent: resetSpawnEvent
     };
   }),
 
@@ -393,11 +415,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       let displacementEvent = {
         occurred: false,
         unitId: null,
-        fromX: 0,
-        fromY: 0,
-        toX: 0,
-        toY: 0,
-        timestamp: 0
+        fromX: null,
+        fromY: null,
+        toX: null,
+        toY: null,
+        timestamp: null
       } as GameState['displacementEvent']; // Force type alignment
       
       // Handle displacement if there's an active unit at the egg's position
