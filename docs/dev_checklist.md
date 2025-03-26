@@ -35,11 +35,34 @@
         - [x] Ensure displaced unit remains in "not moved" state
   - [x] Implement visual feedback for displacement
 
-  #### Phase 2: Bug Fix for Dormant Unit Preservation
-  - [ ] Identify where eggs are being removed when active units move onto them
-  - [ ] Modify movement logic to allow active units to coexist with dormant units
-  - [ ] Ensure dormant units remain in game state when active units occupy same tile
-  - [ ] Add visual indication that both units occupy same tile
+  #### Phase 3: Enhanced Movement Direction Tracking
+  - [x] Data Structure Updates
+    - [x] Update the Animal interface to include previous position tracking.
+    - [x] Add initialization for previous position in all animal creation flows.
+    - [x] Set previous position to null for new animals.
+  - [x] Movement History Tracking
+    - [x] Modify the movement mechanism to record position before moving.
+    - [x] Preserve previous position when resetting turn state.
+    - [x] Verify position history persists correctly across turns.
+  - [x] Direction Calculation Logic
+    - [x] Implement logic to determine movement direction from position history.
+    - [x] Normalize position delta to cardinal directions.
+    - [x] Create fallbacks when direction cannot be determined.
+  - [x] Enhanced Displacement Strategy
+    - [x] Update continuation tile finding to prioritize the same direction.
+    - [x] Support diagonal direction options if the same direction is blocked.
+    - [x] Implement fallback to random selection when directional options fail.
+    - [x] Update displacement logic to use enhanced direction calculation.
+  - [ ] Testing and Validation
+    - [ ] Create test scenarios for different displacement situations.
+    - [ ] Verify direction tracking works across game turns.
+    - [ ] Test edge cases like map borders and crowded areas.
+    - [ ] Ensure animals follow their previous trajectory when displaced.
+  - [ ] Documentation and Cleanup
+    - [x] Update development checklist with completed tasks.
+    - [ ] Document direction tracking behavior.
+    - [ ] Remove debugging code and add clarifying comments.
+    - [ ] Conduct a final review for architectural compliance.
 
 
 - ### Selection System Simplification Plan

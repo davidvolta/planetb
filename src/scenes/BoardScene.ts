@@ -603,9 +603,8 @@ export default class BoardScene extends Phaser.Scene {
     this.logLayerInfo();
   }
   
-  // Set up click event delegation at the container level
+  // Set up click event delegation 
   private setupClickEventDelegation() {
-    // We don't need the tilesContainer for click event delegation anymore
     
     // Remove any existing listeners to prevent duplicates
     this.input.off('gameobjectdown');

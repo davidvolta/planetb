@@ -90,6 +90,7 @@ export interface Animal {
   type: string;
   state: AnimalState;
   position: Coordinate;
+  previousPosition: Coordinate | null; // Track previous position for direction calculation
   hasMoved: boolean; // Flag to track if animal has moved this turn
 }
 
@@ -211,13 +212,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Process habitat production
     const updatedState = processHabitatProduction(state);
     
-    // Reset the hasMoved flags for all animals
+    // Reset the hasMoved flags for all animals but preserve previousPosition
     const resetAnimals = updatedState.animals?.map(animal => ({
       ...animal,
       hasMoved: false
+      // previousPosition is preserved here
     })) || state.animals?.map(animal => ({
       ...animal,
       hasMoved: false
+      // previousPosition is preserved here
     }));
     
     // Reset displacement event
@@ -347,6 +350,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                   type: TERRAIN_ANIMAL_MAP[tiles[tile.y][tile.x].terrain],
                   state: AnimalState.DORMANT,
                   position: tile,
+                  previousPosition: null,
                   hasMoved: false,
                 };
                 console.log(`Created new animal during init:`, { 
@@ -388,6 +392,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         type: type,
         state: AnimalState.DORMANT,
         position: { x, y },
+        previousPosition: null,
         hasMoved: false,
       };
       return { animals: [...state.animals, newAnimal] };
@@ -438,7 +443,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           if (activeUnitAtPosition.hasMoved) {
             // If unit has already moved, try to continue in that direction
-            const previousDirection = determinePreviousDirection(activeUnitAtPosition, updatedAnimals);
+            const previousDirection = determinePreviousDirection(activeUnitAtPosition);
             displacementPosition = findContinuationTile(
               activeUnitAtPosition,
               validDisplacementTiles,
@@ -618,12 +623,30 @@ export const useGameStore = create<GameState>((set, get) => ({
         return state;
       }
       
-      // Update the animal's position and mark it as moved for this turn
-      const updatedAnimals = state.animals.map(animal => 
+      // Check if there's already an active unit at the destination
+      const activeUnitAtDestination = state.animals.find(animal =>
+        animal.position.x === x &&
+        animal.position.y === y &&
+        animal.state === AnimalState.ACTIVE &&
+        animal.id !== id
+      );
+      
+      let updatedAnimals = state.animals.map(animal => 
         animal.id === id 
-          ? { ...animal, position: { x, y }, hasMoved: true } 
+          ? { 
+              ...animal, 
+              previousPosition: { ...animal.position }, // Save current position as previous
+              position: { x, y },                      // Update to new position
+              hasMoved: true 
+            } 
           : animal
       );
+      
+      // If there's an active unit at the destination, handle displacement
+      if (activeUnitAtDestination) {
+        console.log(`Found active unit ${activeUnitAtDestination.id} at destination (${x},${y}), will handle displacement`);
+        updatedAnimals = handleDisplacement(x, y, activeUnitAtDestination, updatedAnimals);
+      }
       
       console.log(`Unit ${id} moved to (${x},${y}) and marked as moved for this turn`);
       
@@ -683,6 +706,7 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
         type: TERRAIN_ANIMAL_MAP[state.board!.tiles[tile.y][tile.x].terrain],
         state: AnimalState.DORMANT,
         position: tile,
+        previousPosition: null,
         hasMoved: false,
       };
       console.log(`Created new animal during production:`, { 
@@ -750,37 +774,111 @@ const getValidDisplacementTiles = (
   return validTiles;
 };
 
-// Helper function to determine previous movement direction
-const determinePreviousDirection = (
-  animal: Animal,
-  animals: Animal[]
-): [number, number] | null => {
-  // This is a placeholder. In a real implementation, we would need to track
-  // previous positions to determine the direction.
-  // For simplicity, let's assume we can't determine the direction and return null.
-  return null;
+/**
+ * Determine the previous movement direction for an animal
+ * @param animal The animal to determine direction for
+ * @returns Direction vector {dx, dy} or null if no previous position exists
+ */
+export function determinePreviousDirection(animal: Animal): { dx: number, dy: number } | null {
+  // If animal has no previous position, we can't determine direction
+  if (!animal.previousPosition) {
+    return null;
+  }
+  
+  // Calculate the direction vector
+  const dx = animal.position.x - animal.previousPosition.x;
+  const dy = animal.position.y - animal.previousPosition.y;
+  
+  // If there was no movement, return null
+  if (dx === 0 && dy === 0) {
+    return null;
+  }
+  
+  // Normalize to unit vectors for cardinal directions
+  // This allows for cleaner direction comparisons
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // Horizontal movement dominates
+    return { dx: Math.sign(dx), dy: 0 };
+  } else if (Math.abs(dy) > Math.abs(dx)) {
+    // Vertical movement dominates
+    return { dx: 0, dy: Math.sign(dy) };
+  } else {
+    // Diagonal movement (equal x and y components)
+    return { dx: Math.sign(dx), dy: Math.sign(dy) };
+  }
+}
+
+// Helper function to pick a random tile from validTiles
+const randomTile = (validTiles: Coordinate[]): Coordinate | null => {
+  if (validTiles.length === 0) {
+    return null;
+  }
+  
+  const randomIndex = Math.floor(Math.random() * validTiles.length);
+  return validTiles[randomIndex];
 };
 
 // Helper function to find a continuation tile based on previous direction
 const findContinuationTile = (
   animal: Animal,
   validTiles: Coordinate[],
-  previousDirection: [number, number] | null
+  previousDirection: { dx: number, dy: number } | null
 ): Coordinate | null => {
   if (!previousDirection || validTiles.length === 0) {
-    return null;
+    // If no previous direction or no valid tiles, we can't find a continuation
+    return randomTile(validTiles);
   }
   
-  const [dx, dy] = previousDirection;
-  const targetX = animal.position.x + dx;
-  const targetY = animal.position.y + dy;
+  const { dx, dy } = previousDirection;
   
-  // Try to find a tile that continues in the same direction
-  const continuationTile = validTiles.find(tile => 
-    tile.x === targetX && tile.y === targetY
+  // Priority 1: Continue in the same direction if possible
+  const sameDirectionX = animal.position.x + dx;
+  const sameDirectionY = animal.position.y + dy;
+  
+  const sameDirTile = validTiles.find(
+    tile => tile.x === sameDirectionX && tile.y === sameDirectionY
   );
   
-  return continuationTile || null;
+  if (sameDirTile) {
+    console.log(`Found continuation tile in same direction: (${sameDirTile.x},${sameDirTile.y})`);
+    return sameDirTile;
+  }
+  
+  // Priority 2: Try diagonal variations if same direction is blocked
+  // This provides more natural movement when the direct path is blocked
+  const diagonalOptions = [];
+  
+  // If moving horizontally, try diagonal up and down
+  if (dx !== 0 && dy === 0) {
+    diagonalOptions.push({ x: animal.position.x + dx, y: animal.position.y + 1 });
+    diagonalOptions.push({ x: animal.position.x + dx, y: animal.position.y - 1 });
+  }
+  // If moving vertically, try diagonal left and right
+  else if (dx === 0 && dy !== 0) {
+    diagonalOptions.push({ x: animal.position.x + 1, y: animal.position.y + dy });
+    diagonalOptions.push({ x: animal.position.x - 1, y: animal.position.y + dy });
+  }
+  // If moving diagonally, try horizontal and vertical components
+  else {
+    diagonalOptions.push({ x: animal.position.x + dx, y: animal.position.y });
+    diagonalOptions.push({ x: animal.position.x, y: animal.position.y + dy });
+  }
+  
+  // Find the first valid diagonal option
+  for (const option of diagonalOptions) {
+    const validOption = validTiles.find(
+      tile => tile.x === option.x && tile.y === option.y
+    );
+    
+    if (validOption) {
+      console.log(`Found diagonal continuation tile: (${validOption.x},${validOption.y})`);
+      return validOption;
+    }
+  }
+  
+  // Priority 3: If all else fails, pick a random valid tile
+  console.log("No continuation tile found, selecting random valid tile");
+  return randomTile(validTiles);
 };
 
 // Helper function to calculate valid moves for a unit
@@ -858,4 +956,111 @@ const calculateValidMoves = (unitId: string, state: GameState): ValidMove[] => {
   }
   
   return validMoves;
+};
+
+// Helper function to handle displacement when an active unit tries to move to an occupied position
+const handleDisplacement = (
+  x: number,
+  y: number,
+  activeUnitAtPosition: Animal,
+  updatedAnimals: Animal[]
+): Animal[] => {
+  console.log(`Handling displacement for active unit at (${x},${y})`);
+  
+  // Find all vacant tiles that are valid for displacement
+  const board = useGameStore.getState().board;
+  if (!board) {
+    console.error("Board is null, cannot handle displacement");
+    return updatedAnimals;
+  }
+  
+  // Get neighboring tiles that are valid for displacement
+  const neighborPositions = [
+    { x: x - 1, y: y - 1 }, // NW
+    { x: x, y: y - 1 },     // N
+    { x: x + 1, y: y - 1 }, // NE
+    { x: x - 1, y: y },     // W
+    { x: x + 1, y: y },     // E
+    { x: x - 1, y: y + 1 }, // SW
+    { x: x, y: y + 1 },     // S
+    { x: x + 1, y: y + 1 }  // SE
+  ];
+  
+  // Filter valid positions (on board and not occupied)
+  const validDisplacementPositions = neighborPositions.filter(pos => {
+    // Check if within board boundaries
+    if (pos.x < 0 || pos.x >= board.width || pos.y < 0 || pos.y >= board.height) {
+      return false;
+    }
+    
+    // Get tile at position
+    const tile = board.tiles[pos.y][pos.x];
+    if (!tile || tile.terrain === TerrainType.WATER) {
+      return false;
+    }
+    
+    // Check if position is not occupied by another animal
+    const isOccupied = updatedAnimals.some(animal => 
+      animal.position.x === pos.x && 
+      animal.position.y === pos.y &&
+      animal.state === AnimalState.ACTIVE
+    );
+    
+    return !isOccupied;
+  });
+  
+  console.log(`Found ${validDisplacementPositions.length} valid displacement positions`);
+  
+  // Set displacement position based on previous movement direction if possible
+  let displacementPosition: Coordinate | null = null;
+  
+  if (activeUnitAtPosition.hasMoved) {
+    // If unit has already moved, try to continue in that direction
+    const previousDirection = determinePreviousDirection(activeUnitAtPosition);
+    displacementPosition = findContinuationTile(
+      activeUnitAtPosition,
+      validDisplacementPositions,
+      previousDirection
+    );
+  }
+  
+  // If no continuation tile found, pick a random valid displacement position
+  if (!displacementPosition && validDisplacementPositions.length > 0) {
+    const randomIndex = Math.floor(Math.random() * validDisplacementPositions.length);
+    displacementPosition = validDisplacementPositions[randomIndex];
+    console.log(`Using random displacement position: (${displacementPosition.x},${displacementPosition.y})`);
+  }
+  
+  if (displacementPosition) {
+    // Update the animal's position (displacement)
+    const displacedAnimals = updatedAnimals.map(animal => 
+      animal.id === activeUnitAtPosition.id 
+        ? { 
+            ...animal, 
+            position: displacementPosition!,
+            previousPosition: { ...animal.position } // Record the previous position before displacement
+          } 
+        : animal
+    );
+    
+    // Record the displacement event for animation
+    useGameStore.setState(state => ({
+      ...state,
+      displacementEvent: {
+        occurred: true,
+        unitId: activeUnitAtPosition.id,
+        fromX: activeUnitAtPosition.position.x,
+        fromY: activeUnitAtPosition.position.y,
+        toX: displacementPosition.x,
+        toY: displacementPosition.y,
+        timestamp: Date.now()
+      } as GameState['displacementEvent'] // Force type alignment
+    }));
+    
+    console.log(`Displaced unit ${activeUnitAtPosition.id} to (${displacementPosition.x},${displacementPosition.y})`);
+    return displacedAnimals;
+  } else {
+    console.warn("Could not find valid displacement position");
+    return updatedAnimals;
+  }
 };
