@@ -356,8 +356,8 @@ export default class BoardScene extends Phaser.Scene {
         animalSprite.setData('gridX', gridX);
         animalSprite.setData('gridY', gridY);
         
-        // Make the sprite interactive
-        animalSprite.setInteractive();
+        // Make the sprite interactive with pixel-perfect hit detection
+        animalSprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
         
         // Add a click handler that handles state evolution
         animalSprite.on('pointerdown', () => {
@@ -489,7 +489,7 @@ export default class BoardScene extends Phaser.Scene {
           { x: -this.tileSize / 2, y: 0 }
         ]), Phaser.Geom.Polygon.Contains);
         
-        // Store coordinates for later reference
+        // Store grid coordinates on the tile for reference
         tile.setData('gridX', x);
         tile.setData('gridY', y);
       }
@@ -902,12 +902,12 @@ export default class BoardScene extends Phaser.Scene {
     // Add the graphics to the container
     container.add(graphics);
     
-    // Make it interactive
+    // Make it interactive with a precisely shaped hit area matching the visible diamond
     container.setInteractive(new Phaser.Geom.Polygon([
-      { x: 0, y: -this.tileHeight / 2 },
-      { x: this.tileSize / 2, y: 0 },
-      { x: 0, y: this.tileHeight / 2 },
-      { x: -this.tileSize / 2, y: 0 }
+      { x: diamondPoints[0].x, y: diamondPoints[0].y },
+      { x: diamondPoints[1].x, y: diamondPoints[1].y },
+      { x: diamondPoints[2].x, y: diamondPoints[2].y },
+      { x: diamondPoints[3].x, y: diamondPoints[3].y }
     ]), Phaser.Geom.Polygon.Contains);
     
     return container;
