@@ -170,7 +170,6 @@ export interface GameState {
   getValidMoves: (id: string) => ValidMove[];
   
   // Habitat-related methods
-  addPotentialHabitat: (x: number, y: number) => void;
   getHabitatAt: (x: number, y: number) => Habitat | undefined;
 }
 
@@ -500,20 +499,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         animals: updatedAnimals,
         displacementEvent
       };
-    }),
-
-  addPotentialHabitat: (x: number, y: number) =>
-    set((state) => {
-      const newHabitat: Habitat = {
-        id: `habitat-${state.habitats.length}`,
-        position: { x, y },
-        state: HabitatState.POTENTIAL,
-        shelterType: null,
-        ownerId: null,
-        productionRate: 1, // Fixed at 1
-        lastProductionTurn: 0,
-      };
-      return { habitats: [...state.habitats, newHabitat] };
     }),
 
   getHabitatAt: (x: number, y: number) => {

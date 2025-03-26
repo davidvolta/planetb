@@ -681,6 +681,18 @@ export default class BoardScene extends Phaser.Scene {
         const x = gameObject.getData('gridX');
         const y = gameObject.getData('gridY');
         
+        // Log the tile properties
+        const board = actions.getBoard();
+        if (board && board.tiles[y] && board.tiles[y][x]) {
+          console.log('Tile Properties:', {
+            position: { x, y },
+            terrain: board.tiles[y][x].terrain,
+            explored: board.tiles[y][x].explored,
+            visible: board.tiles[y][x].visible,
+            contents: this.checkTileContents(x, y)
+          });
+        }
+        
         // Check what's at this position
         const tileContents = this.checkTileContents(x, y);
         
