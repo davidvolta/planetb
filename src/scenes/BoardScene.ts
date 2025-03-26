@@ -32,15 +32,6 @@ const SUBSCRIPTIONS = {
   VALID_MOVES: 'BoardScene.validMoves',
 };
 
-// Define a type for pending animations
-interface PendingAnimation {
-  unitId: string;
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
-}
-
 export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.GameObject[] = [];
   private tileSize = 64; // Fixed tile size
@@ -1211,16 +1202,16 @@ export default class BoardScene extends Phaser.Scene {
       Math.pow(endWorldX - startWorldX, 2) + 
       Math.pow(endWorldY - startWorldY, 2)
     );
-    const baseDuration = 500; // Base duration in ms
+    const baseDuration = 100; // Further reduced duration for zippier movement
     const duration = baseDuration * (distance / this.tileSize);
     
-    // Create the tween
+    // Create a single direct tween for instant movement
     this.tweens.add({
       targets: sprite,
       x: endWorldX,
       y: endWorldY + verticalOffset,
       duration: duration,
-      ease: 'Cubic.easeInOut',
+      ease: 'Power2.out', // Quick acceleration, gentle stop
       onUpdate: () => {
         // Update depth during movement to ensure proper layering
         if (this.unitsLayer) {
@@ -1233,7 +1224,7 @@ export default class BoardScene extends Phaser.Scene {
         }
       },
       onComplete: () => {
-        // Only update state AFTER animation is complete
+        // Update state after animation completes
         actions.moveUnit(unitId, toX, toY);
         
         // Update the sprite's stored grid coordinates
