@@ -23,6 +23,8 @@
   - [ ] Update visuals to show fully opaque graphics for shelters
   - [ ] Add visual feedback for habitat improvement
   - [ ] Test habitat improvement with different terrain types
+  - [ ] WHy is this so hard?
+
 - [ ] Add player 1 to game board on beach with habitat already under player control
 - [ ] Add fog of war
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
