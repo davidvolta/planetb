@@ -15,7 +15,17 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
-- [] Implement diagonal movement and displacement
+- [x] Implement diagonal movement and displacement
+  - Update Directions Arrays in 3 locations:
+    - `calculateValidMoves`: Add the 4 diagonal directions (NE, SE, SW, NW)
+    - `getValidDisplacementTiles`: Update to check all 8 adjacent tiles
+    - Update any other direction arrays used for movement calculations
+  - Verify displacement logic handles diagonal movement correctly
+  - Ensure path finding works with diagonal movement (costs the same as cardinal movement)
+  - Update direction calculation in `determinePreviousDirection`
+  - Update continuation logic in `findContinuationTile`
+  - Ensure move range highlighting shows all 8 possible directions
+  - Test diagonal movement, displacement, and edge cases
 - [ ] Implement habitat improvement
 - [ ] Add player 1 to game board on beach with habitat already under player control
 - [ ] Add fog of war

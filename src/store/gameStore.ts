@@ -739,12 +739,16 @@ const getValidDisplacementTiles = (
   const { x, y } = position;
   const validTiles: Coordinate[] = [];
   
-  // Check all 4 adjacent tiles (north, east, south, west)
+  // Check all 8 adjacent tiles
   const directions = [
     [0, -1], // north
+    [1, -1], // northeast
     [1, 0],  // east
+    [1, 1],  // southeast
     [0, 1],  // south
-    [-1, 0]  // west
+    [-1, 1], // southwest
+    [-1, 0], // west
+    [-1, -1] // northwest
   ];
   
   for (const [dx, dy] of directions) {
@@ -792,18 +796,12 @@ export function determinePreviousDirection(animal: Animal): { dx: number, dy: nu
     return null;
   }
   
-  // Normalize to unit vectors for cardinal directions
-  // This allows for cleaner direction comparisons
-  if (Math.abs(dx) > Math.abs(dy)) {
-    // Horizontal movement dominates
-    return { dx: Math.sign(dx), dy: 0 };
-  } else if (Math.abs(dy) > Math.abs(dx)) {
-    // Vertical movement dominates
-    return { dx: 0, dy: Math.sign(dy) };
-  } else {
-    // Diagonal movement (equal x and y components)
-    return { dx: Math.sign(dx), dy: Math.sign(dy) };
-  }
+  // Return normalized direction vector
+  // For diagonal movement, we preserve both x and y components
+  return { 
+    dx: Math.sign(dx), 
+    dy: Math.sign(dy) 
+  };
 }
 
 // Helper function to pick a random tile from validTiles
@@ -842,34 +840,36 @@ const findContinuationTile = (
     return sameDirTile;
   }
   
-  // Priority 2: Try diagonal variations if same direction is blocked
-  // This provides more natural movement when the direct path is blocked
-  const diagonalOptions = [];
+  // Priority 2: Try alternative directions based on previous movement
+  // Try to preserve at least one component of the movement direction
+  const alternativeOptions = [];
   
+  // If moving diagonally, try the cardinal directions that make up the diagonal
+  if (dx !== 0 && dy !== 0) {
+    // Try horizontal component
+    alternativeOptions.push({ x: animal.position.x + dx, y: animal.position.y });
+    // Try vertical component
+    alternativeOptions.push({ x: animal.position.x, y: animal.position.y + dy });
+  } 
   // If moving horizontally, try diagonal up and down
-  if (dx !== 0 && dy === 0) {
-    diagonalOptions.push({ x: animal.position.x + dx, y: animal.position.y + 1 });
-    diagonalOptions.push({ x: animal.position.x + dx, y: animal.position.y - 1 });
+  else if (dx !== 0 && dy === 0) {
+    alternativeOptions.push({ x: animal.position.x + dx, y: animal.position.y + 1 });
+    alternativeOptions.push({ x: animal.position.x + dx, y: animal.position.y - 1 });
   }
   // If moving vertically, try diagonal left and right
   else if (dx === 0 && dy !== 0) {
-    diagonalOptions.push({ x: animal.position.x + 1, y: animal.position.y + dy });
-    diagonalOptions.push({ x: animal.position.x - 1, y: animal.position.y + dy });
-  }
-  // If moving diagonally, try horizontal and vertical components
-  else {
-    diagonalOptions.push({ x: animal.position.x + dx, y: animal.position.y });
-    diagonalOptions.push({ x: animal.position.x, y: animal.position.y + dy });
+    alternativeOptions.push({ x: animal.position.x + 1, y: animal.position.y + dy });
+    alternativeOptions.push({ x: animal.position.x - 1, y: animal.position.y + dy });
   }
   
-  // Find the first valid diagonal option
-  for (const option of diagonalOptions) {
+  // Find the first valid alternative option
+  for (const option of alternativeOptions) {
     const validOption = validTiles.find(
       tile => tile.x === option.x && tile.y === option.y
     );
     
     if (validOption) {
-      console.log(`Found diagonal continuation tile: (${validOption.x},${validOption.y})`);
+      console.log(`Found alternative continuation tile: (${validOption.x},${validOption.y})`);
       return validOption;
     }
   }
@@ -919,12 +919,16 @@ const calculateValidMoves = (unitId: string, state: GameState): ValidMove[] => {
     // If we've reached max distance, don't explore further
     if (distance >= maxDistance) continue;
     
-    // Check all 4 adjacent tiles
+    // Check all 8 adjacent tiles
     const directions = [
       [0, -1], // north
+      [1, -1], // northeast
       [1, 0],  // east
+      [1, 1],  // southeast
       [0, 1],  // south
-      [-1, 0]  // west
+      [-1, 1], // southwest
+      [-1, 0], // west
+      [-1, -1] // northwest
     ];
     
     for (const [dx, dy] of directions) {
