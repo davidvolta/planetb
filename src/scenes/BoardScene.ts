@@ -286,20 +286,6 @@ export default class BoardScene extends Phaser.Scene {
       // Now that the board and layers are set up, set up state subscriptions
       this.setupSubscriptions();
       
-      // Add test listener for tile clicked events
-      this.events.on(EVENTS.TILE_CLICKED, (eventData: any) => {
-        console.log('==== TILE_CLICKED Event Test ====');
-        console.log(`Tile clicked at (${eventData.x}, ${eventData.y})`);
-        if (eventData.contents) {
-          console.log(`Active units: ${eventData.contents.activeUnits.length}`);
-          console.log(`Dormant units: ${eventData.contents.dormantUnits.length}`);
-          console.log(`Habitats: ${eventData.contents.habitats.length}`);
-        } else {
-          console.log('No contents data in event!');
-        }
-        console.log('==============================');
-      });
-      
       // Render initial state of animals and habitats
       const animals = actions.getAnimals();
       const habitats = actions.getHabitats();
@@ -334,7 +320,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // If an animation is in progress, defer updating sprites
     if (this.animationInProgress) {
-      console.log("Animation in progress, deferring animal sprite update");
       return;
     }
     
@@ -388,7 +373,6 @@ export default class BoardScene extends Phaser.Scene {
         
         // Update texture if animal state changed
         if (existing.sprite.texture.key !== textureKey) {
-          console.log(`Updating sprite texture for animal ${animal.id} from ${existing.sprite.texture.key} to ${textureKey}`);
           existing.sprite.setTexture(textureKey);
         }
         
@@ -639,18 +623,6 @@ export default class BoardScene extends Phaser.Scene {
     };
   }
 
-  // Test method to verify checkTileContents is working properly
-  private testCheckTileContents(x: number, y: number) {
-    const contents = this.checkTileContents(x, y);
-    console.log('==== Tile Contents Test ====');
-    console.log(`Contents at (${x}, ${y}):`);
-    console.log(`Active units: ${contents.activeUnits.length}`);
-    console.log(`Dormant units: ${contents.dormantUnits.length}`);
-    console.log(`Habitats: ${contents.habitats.length}`);
-    console.log('==========================');
-    return contents;
-  }
-
   // Set up click event delegation 
   private setupClickEventDelegation() {
     
@@ -661,7 +633,6 @@ export default class BoardScene extends Phaser.Scene {
     this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
       // Don't process clicks during animations
       if (this.animationInProgress) {
-        console.log("Animation in progress, ignoring click");
         return;
       }
       
@@ -720,7 +691,6 @@ export default class BoardScene extends Phaser.Scene {
         
         // Check what's at this position
         const tileContents = this.checkTileContents(x, y);
-        console.log(`Tile clicked at (${x}, ${y})`, tileContents);
         
         // PHASE 2: Updated tile click handling using tileContents
         // Now we handle all entity detection through the checkTileContents helper
@@ -1249,11 +1219,8 @@ export default class BoardScene extends Phaser.Scene {
 
   // Updated to use the unified animation method
   private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
-    console.log(`Starting movement for unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
-    
     // Don't allow movement while animation is in progress
     if (this.animationInProgress) {
-      console.log("Animation already in progress, ignoring movement request");
       return;
     }
     
@@ -1323,8 +1290,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Mark animation as in progress
     this.animationInProgress = true;
-    
-    console.log(`Animating unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
     // Clear move highlights if requested
     if (clearMoveHighlights) {
@@ -1406,8 +1371,6 @@ export default class BoardScene extends Phaser.Scene {
         
         // Mark animation as complete
         this.animationInProgress = false;
-        
-        console.log(`Animation complete for unit ${unitId}`);
       }
     });
   }
@@ -1456,8 +1419,6 @@ export default class BoardScene extends Phaser.Scene {
     const fromY = displacementInfo.fromY;
     const toX = displacementInfo.toX;
     const toY = displacementInfo.toY;
-    
-    console.log(`Animating displacement of unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
     // Use the unified animation method with displacement-specific options
     // Do NOT apply tint or disable interactivity - let the unit remain selectable if it hasn't moved
