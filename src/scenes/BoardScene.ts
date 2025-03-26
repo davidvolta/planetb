@@ -349,8 +349,11 @@ export default class BoardScene extends Phaser.Scene {
           existing.sprite.setTexture(textureKey);
         }
         
-        // Handle interactivity and visual feedback based on movement state
-        if (animal.state === AnimalState.ACTIVE) {
+        // Handle interactivity and visual feedback based on state and movement
+        if (animal.state === AnimalState.DORMANT) {
+          // ALWAYS disable interactivity for dormant units (eggs)
+          existing.sprite.disableInteractive();
+        } else if (animal.state === AnimalState.ACTIVE) {
           if (animal.hasMoved) {
             // Ensure interactivity is disabled for moved units
             existing.sprite.disableInteractive();
@@ -373,16 +376,16 @@ export default class BoardScene extends Phaser.Scene {
         // Set appropriate scale
         animalSprite.setScale(1);
         
-        // Handle interactivity based on movement state for new sprites too
-        if (animal.state === AnimalState.ACTIVE && animal.hasMoved) {
-          // Apply visual feedback
-          animalSprite.setTint(0xCCCCCC);
-          
-          // Don't make moved units interactive
-          // We'll leave it uninteractive instead of making it interactive and then disabling
-        } else {
-          // Make interactive only if it hasn't moved or is an egg
+        // Handle interactivity based on state
+        if (animal.state === AnimalState.DORMANT) {
+          // NEVER make dormant units (eggs) interactive
+          // No need to set interactivity at all for eggs
+        } else if (animal.state === AnimalState.ACTIVE && !animal.hasMoved) {
+          // Make interactive only if it's active and hasn't moved
           animalSprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
+        } else if (animal.state === AnimalState.ACTIVE && animal.hasMoved) {
+          // Apply visual feedback for moved units
+          animalSprite.setTint(0xCCCCCC);
         }
         
         // Store the animal ID and type on the sprite
@@ -391,19 +394,12 @@ export default class BoardScene extends Phaser.Scene {
         animalSprite.setData('gridX', gridX);
         animalSprite.setData('gridY', gridY);
         
-        // Add a click handler that handles state evolution
-        animalSprite.on('pointerdown', () => {
-          console.log(`Animal clicked: ${animal.id} at ${gridX},${gridY}`);
-          
-          // Check if the animal is a dormant egg and can be hatched
-          if (animal.state === AnimalState.DORMANT) {
-            // Select the dormant unit instead of evolving it immediately
-            actions.selectUnit(animal.id);
-            // Show selection indicator at the egg position
-            this.showSelectionIndicatorAt(gridX, gridY);
-          } else {
+        // Only add click handler for active units
+        if (animal.state === AnimalState.ACTIVE && !animal.hasMoved) {
+          animalSprite.on('pointerdown', () => {
+            console.log(`Animal clicked: ${animal.id} at ${gridX},${gridY}`);
+            
             // Handle active unit click - select for movement
-            // Note: Units that have already moved won't be interactive, so this code only runs for movable units
             const selectedUnitId = actions.getSelectedUnitId();
             
             if (selectedUnitId && actions.isMoveMode()) {
@@ -447,8 +443,8 @@ export default class BoardScene extends Phaser.Scene {
                 this.selectionIndicator.setVisible(false);
               }
             }
-          }
-        });
+          });
+        }
         
         // Add the new sprite to the units layer
         this.unitsLayer!.add(animalSprite);
@@ -1048,13 +1044,8 @@ export default class BoardScene extends Phaser.Scene {
     // Add the graphics to the container
     container.add(graphics);
     
-    // Make it interactive using the full tile size for easier selection
-    container.setInteractive(new Phaser.Geom.Polygon([
-      { x: 0, y: -this.tileHeight / 2 },
-      { x: this.tileSize / 2, y: 0 },
-      { x: 0, y: this.tileHeight / 2 },
-      { x: -this.tileSize / 2, y: 0 }
-    ]), Phaser.Geom.Polygon.Contains);
+    // Remove interactivity from habitats - selection should only happen through tiles
+    // No longer making the container interactive
     
     return container;
   }
