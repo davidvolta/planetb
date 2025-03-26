@@ -22,14 +22,17 @@ export default class UIScene extends Phaser.Scene {
     super({ key: 'UIScene', active: true });
   }
 
-  init() {
+
+
+  init() {  
+
     // Subscribe to turn changes
     StateObserver.subscribe(
       this.subscriptionKeys.TURN,
       (state: GameState) => state.turn,
       (turn: number) => {
         if (this.turnText) {
-          this.turnText.setText(`Turn: ${turn}`);
+          this.turnText.setText(`Turn ${turn}`);
         }
       },
       { immediate: true }
@@ -62,7 +65,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create() {
-    // Create a container for UI elements that will be positioned in the lower right
+    // Create a container for UI elements that will be positioned in the top left
     this.container = this.add.container(0, 0);
     
     // Create a semi-transparent background
@@ -72,12 +75,12 @@ export default class UIScene extends Phaser.Scene {
 
     // Create the turn text
     const turn = actions.getTurn();
-    this.turnText = this.add.text(10, 10, `Turn: ${turn}`, {
-      fontFamily: 'Arial',
+    this.turnText = this.add.text(75, 10, `Turn ${turn}`, {
+      fontFamily: 'Raleway',
       fontSize: '20px',
       color: '#FFFFFF'
     });
-    this.turnText.setOrigin(0);
+    this.turnText.setOrigin(0.5, 0);
     this.container.add(this.turnText);
 
     // Create next turn button
@@ -86,7 +89,7 @@ export default class UIScene extends Phaser.Scene {
     // Create spawn button (initially hidden)
     this.createSpawnButton();
 
-    // Position the UI in the lower right corner
+    // Position the UI in the top left corner
     this.resizeUI();
 
     // Set this scene to be above the BoardScene
@@ -97,17 +100,17 @@ export default class UIScene extends Phaser.Scene {
     // Create a container for the next turn button
     this.nextTurnButton = this.add.container(0, 0);
     
-    // Create button background
-    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x4a90e2, 1);
+    // Create button background - changed to medium gray
+    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
     buttonBg.setOrigin(0);
     buttonBg.setInteractive({ useHandCursor: true })
       .on('pointerdown', this.handleNextTurn, this)
-      .on('pointerover', () => buttonBg.setFillStyle(0x5da2f2))
-      .on('pointerout', () => buttonBg.setFillStyle(0x4a90e2));
+      .on('pointerover', () => buttonBg.setFillStyle(0xA0A0A0))
+      .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
     // Create button text
     const buttonText = this.add.text(75, 20, 'Next Turn', {
-      fontFamily: 'Arial',
+      fontFamily: 'Raleway',
       fontSize: '16px',
       color: '#FFFFFF'
     });
@@ -129,17 +132,17 @@ export default class UIScene extends Phaser.Scene {
     this.spawnButton = this.add.container(0, 0);
     this.spawnButton.setVisible(false);
     
-    // Create button background
-    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x4ae24a, 1);
+    // Create button background - changed to medium gray
+    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
     buttonBg.setOrigin(0);
     buttonBg.setInteractive({ useHandCursor: true })
       .on('pointerdown', this.handleSpawnUnit, this)
-      .on('pointerover', () => buttonBg.setFillStyle(0x5df25d))
-      .on('pointerout', () => buttonBg.setFillStyle(0x4ae24a));
+      .on('pointerover', () => buttonBg.setFillStyle(0xA0A0A0))
+      .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
     // Create button text
     const buttonText = this.add.text(75, 20, 'Spawn Unit', {
-      fontFamily: 'Arial',
+      fontFamily: 'Raleway',
       fontSize: '16px',
       color: '#FFFFFF'
     });
