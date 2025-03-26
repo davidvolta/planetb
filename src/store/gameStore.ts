@@ -135,6 +135,17 @@ export interface GameState {
   moveMode: boolean;
   selectedUnitIsDormant: boolean; // Flag to track if the selected unit is dormant
   
+  // Displacement tracking (for animation and UI feedback)
+  displacementEvent: {
+    occurred: boolean;          // Whether displacement has occurred in the current action
+    unitId: string | null;      // ID of the displaced unit
+    fromX: number;              // Original X position
+    fromY: number;              // Original Y position
+    toX: number;                // New X position
+    toY: number;                // New Y position
+    timestamp: number;          // When the displacement occurred
+  };
+  
   nextTurn: () => void;
   resetMovementFlags: () => void; // Reset hasMoved flags for all animals
   addPlayer: (name: string, color: string) => void;
@@ -154,15 +165,6 @@ export interface GameState {
   addPotentialHabitat: (x: number, y: number) => void;
   improveHabitat: (habitatId: string) => void;
   getHabitatAt: (x: number, y: number) => Habitat | undefined;
-  
-  // Add new property to track unit displacement for animation
-  lastDisplacedUnit: {
-    unitId: string | null,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number
-  } | null;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -179,9 +181,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   validMoves: [],
   moveMode: false,
   selectedUnitIsDormant: false,
-
-  // Initialize lastDisplacedUnit as null
-  lastDisplacedUnit: null,
+  
+  // Initialize displacement event with default values
+  displacementEvent: {
+    occurred: false,
+    unitId: null,
+    fromX: 0,
+    fromY: 0,
+    toX: 0,
+    toY: 0,
+    timestamp: 0
+  } as GameState['displacementEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
     // Process habitat production
@@ -196,10 +206,22 @@ export const useGameStore = create<GameState>((set, get) => ({
       hasMoved: false
     }));
     
+    // Reset displacement event
+    const resetDisplacementEvent = {
+      occurred: false,
+      unitId: null,
+      fromX: 0,
+      fromY: 0,
+      toX: 0,
+      toY: 0,
+      timestamp: 0
+    } as GameState['displacementEvent']; // Force type alignment
+    
     return { 
       ...updatedState,
       animals: resetAnimals,
       turn: state.turn + 1,
+      displacementEvent: resetDisplacementEvent
     };
   }),
 
@@ -366,7 +388,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       // Create a working copy of the animals array
       let updatedAnimals = [...state.animals];
-      let displacementInfo = null;
+      
+      // Initialize displacement event with default values
+      let displacementEvent = {
+        occurred: false,
+        unitId: null,
+        fromX: 0,
+        fromY: 0,
+        toX: 0,
+        toY: 0,
+        timestamp: 0
+      } as GameState['displacementEvent']; // Force type alignment
       
       // Handle displacement if there's an active unit at the egg's position
       if (activeUnitAtPosition) {
@@ -402,14 +434,16 @@ export const useGameStore = create<GameState>((set, get) => ({
             displacementPosition = validDisplacementTiles[randomIndex];
           }
           
-          // Store displacement information for animation
-          displacementInfo = {
+          // Update displacement event information
+          displacementEvent = {
+            occurred: true,
             unitId: activeUnitAtPosition.id,
             fromX: eggPosition.x,
             fromY: eggPosition.y,
             toX: displacementPosition.x,
-            toY: displacementPosition.y
-          };
+            toY: displacementPosition.y,
+            timestamp: Date.now()
+          } as GameState['displacementEvent']; // Force type alignment
           
           // Update the displaced unit's position (preserve hasMoved state)
           updatedAnimals = updatedAnimals.map(animal =>
@@ -440,7 +474,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       return { 
         animals: updatedAnimals,
-        lastDisplacedUnit: displacementInfo
+        displacementEvent
       };
     }),
 

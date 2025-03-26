@@ -53,11 +53,6 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create() {
-    // Listen for unit displacement events from BoardScene
-    this.scene.get('BoardScene').events.on(EVENTS.UNIT_DISPLACED, (data: any) => {
-      this.handleUnitDisplaced(data);
-    });
-    
     // Create a container for UI elements that will be positioned in the top left
     this.container = this.add.container(0, 0);
     
@@ -204,10 +199,7 @@ export default class UIScene extends Phaser.Scene {
    * Clean up when scene is shut down
    */
   shutdown() {
-    // Remove event listeners
-    this.scene.get('BoardScene').events.off(EVENTS.UNIT_DISPLACED, this.handleUnitDisplaced, this);
-    
-    // Clean up any other resources
+    // Clean up any resources
     if (this.container) {
       this.container.destroy();
       this.container = null;
@@ -225,14 +217,5 @@ export default class UIScene extends Phaser.Scene {
     
     this.turnText = null;
     this.selectedUnitId = null;
-  }
-
-  /**
-   * Handle unit displacement events
-   * @param data Displacement data including unitId, toX, toY
-   */
-  private handleUnitDisplaced(data: { unitId: string; toX: number; toY: number }) {
-    console.log(`UIScene: Unit ${data.unitId} was displaced to (${data.toX},${data.toY})`);
-    // Additional UI updates if needed when a unit is displaced
   }
 } 

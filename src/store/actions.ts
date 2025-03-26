@@ -76,10 +76,27 @@ export function evolveAnimal(id: string): void {
 }
 
 /**
- * Get information about the last unit that was displaced
+ * Get information about the current displacement event
  */
-export function getLastDisplacedUnit(): any {
-  return useGameStore.getState().lastDisplacedUnit;
+export function getDisplacementEvent(): any {
+  return useGameStore.getState().displacementEvent;
+}
+
+/**
+ * Clear the current displacement event
+ */
+export function clearDisplacementEvent(): void {
+  useGameStore.setState({
+    displacementEvent: {
+      occurred: false,
+      unitId: null,
+      fromX: 0,
+      fromY: 0,
+      toX: 0,
+      toY: 0,
+      timestamp: 0
+    }
+  });
 }
 
 //

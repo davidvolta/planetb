@@ -24,8 +24,7 @@ export const EVENTS = {
   HABITAT_CLICKED: 'habitatClicked',
   DORMANT_ANIMAL_SELECTED: 'dormantAnimalSelected',
   ASSETS_LOADED: 'assetsLoaded',
-  UNIT_SPAWNED: 'unit_spawned',
-  UNIT_DISPLACED: 'unit_displaced'
+  UNIT_SPAWNED: 'unit_spawned'
 };
 
 // Define subscription keys to ensure consistency
@@ -140,12 +139,20 @@ export default class BoardScene extends Phaser.Scene {
       (animals) => {
         if (animals) {
           this.renderAnimalSprites(animals);
-          
-          // Check for displaced units
-          const displacedUnit = actions.getLastDisplacedUnit();
-          if (displacedUnit && displacedUnit.unitId) {
-            this.handleUnitDisplacement(displacedUnit);
-          }
+        }
+      }
+    );
+    
+    // Subscribe to displacement events
+    StateObserver.subscribe(
+      'BoardScene.displacement',
+      (state) => state.displacementEvent,
+      (displacementEvent) => {
+        // Only animate if displacement actually occurred
+        if (displacementEvent && displacementEvent.occurred && displacementEvent.unitId) {
+          this.handleUnitDisplacement(displacementEvent);
+          // Clear the displacement event after handling it
+          actions.clearDisplacementEvent();
         }
       }
     );
@@ -1456,12 +1463,19 @@ export default class BoardScene extends Phaser.Scene {
    * @param displacementInfo Information about the displacement
    */
   private handleUnitDisplacement(displacementInfo: {
-    unitId: string;
+    occurred: boolean;
+    unitId: string | null;
     fromX: number;
     fromY: number;
     toX: number;
     toY: number;
+    timestamp: number;
   }) {
+    // Skip if no unit ID or occurred flag is false
+    if (!displacementInfo.unitId || !displacementInfo.occurred) {
+      return;
+    }
+    
     // Find the sprite for the displaced unit
     const sprites = this.children.list as Phaser.GameObjects.GameObject[];
     const unitSprite = sprites.find(sprite => 
@@ -1521,13 +1535,6 @@ export default class BoardScene extends Phaser.Scene {
         
         // Reset animation flag
         this.animationInProgress = false;
-        
-        // Emit displacement completed event
-        this.events.emit(EVENTS.UNIT_DISPLACED, {
-          unitId: displacementInfo.unitId,
-          toX: displacementInfo.toX,
-          toY: displacementInfo.toY
-        });
         
         console.log(`Displacement animation complete for unit ${displacementInfo.unitId}`);
       }
