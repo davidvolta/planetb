@@ -995,7 +995,7 @@ const handleDisplacement = (
     
     // Get tile at position
     const tile = board.tiles[pos.y][pos.x];
-    if (!tile || tile.terrain === TerrainType.WATER) {
+    if (!tile) {
       return false;
     }
     

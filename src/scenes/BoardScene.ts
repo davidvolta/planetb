@@ -1486,25 +1486,33 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Find the sprite for the displaced unit
-    const sprites = this.children.list as Phaser.GameObjects.GameObject[];
-    const unitSprite = sprites.find(sprite => 
-      sprite instanceof Phaser.GameObjects.Sprite && 
-      sprite.getData('animalId') === displacementInfo.unitId
-    ) as Phaser.GameObjects.Sprite | undefined;
-    
-    if (!unitSprite) {
-      console.warn(`Could not find sprite for displaced unit ${displacementInfo.unitId}`);
-      return;
-    }
-    
     // Now we know the coordinates are not null, we can use them
+    const unitId = displacementInfo.unitId;
     const fromX = displacementInfo.fromX;
     const fromY = displacementInfo.fromY;
     const toX = displacementInfo.toX;
     const toY = displacementInfo.toY;
     
-    console.log(`Animating displacement of unit ${displacementInfo.unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
+    // Check if unitsLayer exists
+    if (!this.unitsLayer) {
+      console.warn("Cannot handle displacement - unitsLayer not available");
+      return;
+    }
+    
+    // Find the sprite for the displaced unit in the unitsLayer
+    const sprites = this.unitsLayer.getAll().filter(sprite => 
+      sprite instanceof Phaser.GameObjects.Sprite && 
+      sprite.getData('animalId') === unitId
+    ) as Phaser.GameObjects.Sprite[];
+    
+    if (sprites.length === 0) {
+      console.warn(`Could not find sprite for displaced unit ${unitId}`);
+      return;
+    }
+    
+    const unitSprite = sprites[0];
+    
+    console.log(`Animating displacement of unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
     // Set animation flag
     this.animationInProgress = true;
@@ -1526,7 +1534,7 @@ export default class BoardScene extends Phaser.Scene {
       y: endWorldY + verticalOffset,
       duration: duration,
       ease: 'Power2.out',
-      onUpdate: (tween, target, param) => {
+      onUpdate: () => {
         // Calculate current grid Y position for depth updating
         const currentWorldY = unitSprite.y - verticalOffset;
         const currentWorldX = unitSprite.x;
@@ -1552,7 +1560,7 @@ export default class BoardScene extends Phaser.Scene {
         // Reset animation flag
         this.animationInProgress = false;
         
-        console.log(`Displacement animation complete for unit ${displacementInfo.unitId}`);
+        console.log(`Displacement animation complete for unit ${unitId}`);
       }
     });
   }
