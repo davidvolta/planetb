@@ -16,36 +16,6 @@
 
 ## Upcoming Tasks
 
-- [] Implement unit movement restriction (one move per turn)
-  - Phase 1: State Management
-    - [] Add `hasMoved` flag to each animal/unit in the gameStore
-    - [] Modify the animal interface to include this property
-    - [] Initialize `hasMoved` to false for all new units
-    - [] Add a resetMovementFlags action to the store that sets all flags to false
-    - [] Call resetMovementFlags when advancing to the next turn
-  
-  - Phase 2: Movement Logic Changes
-    - [] Modify moveUnit action to set the unit's `hasMoved` flag to true
-    - [] Update the onComplete handler of the animation to properly set this flag
-    - [] Ensure state is updated after animation completes
-  
-  - Phase 3: Selection Logic Changes
-    - [] Modify unit selection logic to check the `hasMoved` flag
-    - [] Prevent selection for movement if the unit has already moved
-    - [] Update BoardScene's click handlers to check this property
-    - [] Update validMoves calculation to return empty array for units that have moved
-  
-  - Phase 4: Visual Feedback
-    - [] Apply tint(0x888888) to units that have moved in renderAnimalSprites
-    - [] Reset tint to normal (0xFFFFFF) when `hasMoved` is false
-    - [] Add visual transitions when units become unavailable
-
-  - Phase 5: Click Handling Priority
-    - [] Maintain unit → tile click priority order
-    - [] For moved units, modify the click handler to pass through to the tile
-    - [] Ensure tile selection works even when a moved unit is present
-    - [] Test all combinations of unit states and click behaviors
-
 - [] Move Unit range to a new kind of structure where each animal has its abilities stored
 - [] Egg Hatching and Unit Displacement
 - [] Implement habitat improvement
