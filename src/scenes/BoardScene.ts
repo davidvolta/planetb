@@ -282,6 +282,20 @@ export default class BoardScene extends Phaser.Scene {
       // Now that the board and layers are set up, set up state subscriptions
       this.setupSubscriptions();
       
+      // Add test listener for tile clicked events
+      this.events.on(EVENTS.TILE_CLICKED, (eventData: any) => {
+        console.log('==== TILE_CLICKED Event Test ====');
+        console.log(`Tile clicked at (${eventData.x}, ${eventData.y})`);
+        if (eventData.contents) {
+          console.log(`Active units: ${eventData.contents.activeUnits.length}`);
+          console.log(`Dormant units: ${eventData.contents.dormantUnits.length}`);
+          console.log(`Habitats: ${eventData.contents.habitats.length}`);
+        } else {
+          console.log('No contents data in event!');
+        }
+        console.log('==============================');
+      });
+      
       // Render initial state of animals and habitats
       const animals = actions.getAnimals();
       const habitats = actions.getHabitats();
@@ -603,6 +617,51 @@ export default class BoardScene extends Phaser.Scene {
     this.logLayerInfo();
   }
   
+  // Check what entities exist at specific coordinates
+  private checkTileContents(x: number, y: number) {
+    // Get all animals and habitats
+    const animals = actions.getAnimals();
+    const habitats = actions.getHabitats();
+    
+    // Find active units at this location
+    const activeUnits = animals.filter(animal => 
+      animal.position.x === x && 
+      animal.position.y === y && 
+      animal.state === AnimalState.ACTIVE
+    );
+    
+    // Find dormant units at this location
+    const dormantUnits = animals.filter(animal => 
+      animal.position.x === x && 
+      animal.position.y === y && 
+      animal.state === AnimalState.DORMANT
+    );
+    
+    // Find habitats at this location
+    const habitatsAtLocation = habitats.filter(habitat => 
+      habitat.position.x === x && 
+      habitat.position.y === y
+    );
+    
+    return {
+      activeUnits,
+      dormantUnits,
+      habitats: habitatsAtLocation
+    };
+  }
+
+  // Test method to verify checkTileContents is working properly
+  private testCheckTileContents(x: number, y: number) {
+    const contents = this.checkTileContents(x, y);
+    console.log('==== Tile Contents Test ====');
+    console.log(`Contents at (${x}, ${y}):`);
+    console.log(`Active units: ${contents.activeUnits.length}`);
+    console.log(`Dormant units: ${contents.dormantUnits.length}`);
+    console.log(`Habitats: ${contents.habitats.length}`);
+    console.log('==========================');
+    return contents;
+  }
+
   // Set up click event delegation 
   private setupClickEventDelegation() {
     
@@ -617,62 +676,8 @@ export default class BoardScene extends Phaser.Scene {
         return;
       }
       
-      // Check if this is a habitat click first
-      if (gameObject instanceof Phaser.GameObjects.Container && gameObject.getData && gameObject.getData('habitatId')) {
-        const habitatId = gameObject.getData('habitatId');
-        const gridX = gameObject.getData('gridX');
-        const gridY = gameObject.getData('gridY');
-        
-        console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}`);
-        
-        // Check if we have a selected unit and are in move mode
-        const selectedUnitId = actions.getSelectedUnitId();
-        if (selectedUnitId && actions.isMoveMode()) {
-          // Check if this is a valid move destination
-          const validMoves = actions.getValidMoves();
-          const isValidMove = validMoves.some(move => move.x === gridX && move.y === gridY);
-          
-          if (isValidMove) {
-            // Get current position of selected unit
-            const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
-            if (selectedUnit) {
-              // Start movement animation
-              this.startUnitMovement(
-                selectedUnitId, 
-                selectedUnit.position.x, 
-                selectedUnit.position.y, 
-                gridX, 
-                gridY
-              );
-            }
-            
-            // Hide selection indicator during movement
-            if (this.selectionIndicator) {
-              this.selectionIndicator.setVisible(false);
-            }
-          } else {
-            // Not a valid move, deselect the unit
-            actions.deselectUnit();
-            
-            // Hide the selection indicator
-            if (this.selectionIndicator) {
-              this.selectionIndicator.setVisible(false);
-            }
-          }
-        } else {
-          // Standard habitat click handling
-          const habitat = actions.getHabitats().find(h => h.id === habitatId);
-          if (habitat) {
-            this.events.emit(EVENTS.HABITAT_CLICKED, habitat);
-            
-            // Show the selection indicator at the habitat position
-            this.showSelectionIndicatorAt(gridX, gridY);
-          }
-        }
-        return; // Important: Stop processing after handling habitat click
-      }
       // If clicked on a unit
-      else if (gameObject instanceof Phaser.GameObjects.Sprite && gameObject.getData('animalId')) {
+      if (gameObject instanceof Phaser.GameObjects.Sprite && gameObject.getData('animalId')) {
         const animalId = gameObject.getData('animalId');
         const gridX = gameObject.getData('gridX');
         const gridY = gameObject.getData('gridY');
@@ -741,6 +746,14 @@ export default class BoardScene extends Phaser.Scene {
         const x = gameObject.getData('gridX');
         const y = gameObject.getData('gridY');
         
+        // Check what's at this position
+        const tileContents = this.checkTileContents(x, y);
+        console.log(`Tile clicked at (${x}, ${y})`, tileContents);
+        
+        // PHASE 2: Updated tile click handling using tileContents
+        // Now we handle all entity detection through the checkTileContents helper
+        // and use that information for both selection and event data
+
         // Check if we have a selected unit and are in move mode
         const selectedUnitId = actions.getSelectedUnitId();
         if (selectedUnitId && actions.isMoveMode()) {
@@ -778,37 +791,30 @@ export default class BoardScene extends Phaser.Scene {
         } else {
           // Not in move mode, just a regular tile click
           
-          // Get all animals
-          const animals = actions.getAnimals();
+          // Get tile contents using our helper method
+          const tileContents = this.checkTileContents(x, y);
           
-          // First, check if there's a dormant unit (egg) at this tile
-          const dormantUnitAtTile = animals.find(animal => 
-            animal.position.x === x && 
-            animal.position.y === y && 
-            animal.state === AnimalState.DORMANT
-          );
-          
-          // If we found a dormant unit, select it
-          if (dormantUnitAtTile) {
-            actions.selectUnit(dormantUnitAtTile.id);
+          // If there's a dormant unit, select it
+          if (tileContents.dormantUnits.length > 0) {
+            actions.selectUnit(tileContents.dormantUnits[0].id);
+            // Show selection indicator at the dormant unit position
             this.showSelectionIndicatorAt(x, y);
-          } else {
-            // Check if there's a non-moved unit at this tile before showing the selection indicator
-            const activeUnitAtTile = animals.find(animal => 
-              animal.position.x === x && 
-              animal.position.y === y && 
-              animal.state !== AnimalState.DORMANT &&
-              !animal.hasMoved // Only consider units that haven't moved yet
-            );
-            
-            // Only show selection indicator if there's no active unit on this tile OR the unit has already moved
-            if (!activeUnitAtTile && this.selectionIndicator && this.selectionLayer) {
+          } 
+          // Otherwise, only show selection if there's no active unmoved unit on this tile
+          else {
+            const hasActiveUnmovedUnit = tileContents.activeUnits.some(unit => !unit.hasMoved);
+            if (!hasActiveUnmovedUnit && this.selectionIndicator && this.selectionLayer) {
               this.showSelectionIndicatorAt(x, y);
             }
           }
           
-          // Emit an event when a tile is clicked
-          const eventData = { x, y, pointer };
+          // Emit an enhanced event when a tile is clicked
+          const eventData = { 
+            x, 
+            y, 
+            pointer,
+            contents: tileContents // Include complete tile contents information
+          };
           this.events.emit(EVENTS.TILE_CLICKED, eventData);
         }
       } else {

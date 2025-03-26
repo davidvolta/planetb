@@ -29,8 +29,7 @@
     - [ ] Test: Verify logging shows correct detection
   - [ ] Simplify setupClickEventDelegation:
     - [ ] Remove habitat click handling block (first condition)
-    - [ ] Remove unit click handling block (second condition)
-    - [ ] Keep only the tile click handling (third condition)
+    - [ ] Keep only the tile click handling (second condition)
     - [ ] Test: Ensure only tiles can be clicked
 
   #### Phase 2: Update Tile Click Handler
