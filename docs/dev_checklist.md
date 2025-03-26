@@ -52,16 +52,7 @@
     - [ ] Ensure proper event listener cleanup in shutdown()
     - [ ] Test: No memory leaks or duplicate listeners
 
-  #### Phase 4: Active Unit Handling
-  - [x] Refine active unit click handling:
-    - [x] Keep click interactivity only for unmoved active units
-    - [x] Ensure click handler directly selects the unit
-    - [x] Test: Active units still selectable, moved units not selectable
-  - [x] Connect active unit selection to UI:
-    - [x] Ensure UIScene updates based on unit selection
-    - [x] Test: Unit selection should update UI appropriately
-
-  #### Phase 5: Final Cleanup
+  #### Phase 4: Final Cleanup
   - [ ] Remove any remaining duplicate logic:
     - [ ] Check for redundant selection code
     - [ ] Ensure consistent state updates
