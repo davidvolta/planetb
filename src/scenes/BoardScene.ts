@@ -366,7 +366,7 @@ export default class BoardScene extends Phaser.Scene {
         existing.sprite.setPosition(worldX, worldY + verticalOffset);
         
         // Set depth based on position and state
-        existing.sprite.setDepth(this.calculateUnitDepth(gridY, isActive));
+        existing.sprite.setDepth(this.calculateUnitDepth(gridX, gridY, isActive));
         
         // Update texture if animal state changed
         if (existing.sprite.texture.key !== textureKey) {
@@ -402,7 +402,7 @@ export default class BoardScene extends Phaser.Scene {
         animalSprite.setScale(1);
         
         // Set depth based on position and state
-        animalSprite.setDepth(this.calculateUnitDepth(gridY, isActive));
+        animalSprite.setDepth(this.calculateUnitDepth(gridX, gridY, isActive));
         
         // Handle interactivity based on state
         if (animal.state === AnimalState.DORMANT) {
@@ -1402,12 +1402,14 @@ export default class BoardScene extends Phaser.Scene {
         const relY = (currentWorldY - this.anchorY) / this.tileHeight;
         const relX = (currentWorldX - this.anchorX) / this.tileSize;
         
-        // Use the isometric projection formula: x' = (x-y)*tileSize/2, y' = (x+y)*tileHeight/2
-        // Solve for y: y = (2*relY - relX) / 2
+        // Calculate approximate grid Y
         const currentGridY = (relY * 2 - relX) / 2;
         
+        // Calculate approximate grid X (using inverse of isometric projection)
+        const currentGridX = relY - currentGridY;
+        
         // Update depth during movement using our depth calculation
-        unitSprite!.setDepth(this.calculateUnitDepth(currentGridY, true));
+        unitSprite!.setDepth(this.calculateUnitDepth(currentGridX, currentGridY, true));
       },
       onComplete: () => {
         // Update state after animation completes (if requested)
@@ -1427,7 +1429,7 @@ export default class BoardScene extends Phaser.Scene {
         unitSprite!.setData('gridY', toY);
         
         // Set final depth at destination
-        unitSprite!.setDepth(this.calculateUnitDepth(toY, true));
+        unitSprite!.setDepth(this.calculateUnitDepth(toX, toY, true));
         
         // Apply light gray tint to indicate the unit has moved (if requested)
         if (applyTint) {
@@ -1547,26 +1549,27 @@ export default class BoardScene extends Phaser.Scene {
 
   /**
    * Calculate the depth value for a unit sprite based on its grid position and state
-   * This ensures proper isometric perspective (units at higher Y appear behind)
+   * This ensures proper isometric perspective (units at higher X+Y appear behind)
    * while making active units always appear above eggs on the same tile
    * 
+   * @param gridX - X coordinate in the grid
    * @param gridY - Y coordinate in the grid
    * @param isActive - Whether the unit is active (true) or dormant/egg (false)
    * @returns depth value for the sprite
    */
-  private calculateUnitDepth(gridY: number, isActive: boolean): number {
+  private calculateUnitDepth(gridX: number, gridY: number, isActive: boolean): number {
     // Base depth of the units layer
     const baseDepth = 5;
     
-    // Y-coordinate fraction for isometric perspective (higher Y = further back = higher depth)
-    // This allows up to 1000 rows before depth values would overlap
-    const yOffset = gridY / 1000;
+    // Combined X+Y coordinates for isometric perspective (higher X+Y = further back = higher depth)
+    // This allows proper sorting where northwest objects appear in front, southeast objects behind
+    const positionOffset = (gridX + gridY) / 1000;
     
     // Small offset to ensure active units appear above eggs at the same position
     // Using a very small value (0.0005) to minimize impact on overall perspective
     const stateOffset = isActive ? 0.0005 : 0;
     
     // Calculate final depth value
-    return baseDepth + yOffset + stateOffset;
+    return baseDepth + positionOffset + stateOffset;
   }
 }
