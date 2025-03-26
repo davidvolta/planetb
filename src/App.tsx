@@ -7,12 +7,6 @@ import { Routes, Route } from "react-router-dom";
 import * as actions from './store/actions';
 
 function App() {
-  // Use direct Zustand hooks for state reading
-  const turn = useGameStore((state) => state.turn);
-  const nextTurn = useGameStore((state) => state.nextTurn);
-  const selectedUnitId = useGameStore((state) => state.selectedUnitId);
-  const selectedUnitIsDormant = useGameStore((state) => state.selectedUnitIsDormant);
-  
   // Track map size
   const [mapWidth, setMapWidth] = useState(30);
   const [mapHeight, setMapHeight] = useState(30);
@@ -43,15 +37,6 @@ function App() {
     });
   };
   
-  // Handle spawning a dormant unit
-  const handleSpawnUnit = () => {
-    if (selectedUnitId) {
-      actions.evolveAnimal(selectedUnitId);
-      // After evolving, deselect the unit as its turn is used
-      actions.deselectUnit();
-    }
-  };
-  
   return (
     <Routes>
       <Route path="/state" element={
@@ -68,8 +53,8 @@ function App() {
           {/* UI elements overlay on top */}
           <div style={{ 
             position: 'absolute', 
-            top: 10, 
-            left: 10, 
+            bottom: 20, 
+            right: 20, 
             zIndex: 10,
             background: 'rgba(0,0,0,0.5)',
             padding: '10px',
@@ -80,45 +65,9 @@ function App() {
             gap: '10px',
             maxWidth: '300px'
           }}>
-            <div>Turn: {turn}</div>
-            <div>
-              <button 
-                onClick={() => nextTurn()}
-                style={{
-                  background: '#4a90e2',
-                  color: 'white',
-                  border: 'none',
-                  padding: '5px 10px',
-                  borderRadius: '3px',
-                  cursor: 'pointer'
-                }}
-              >
-                Next Turn
-              </button>
-            </div>
-            
-            {/* Spawn Unit button - only shown when a dormant unit is selected */}
-            {selectedUnitId && selectedUnitIsDormant && (
-              <div>
-                <button 
-                  onClick={handleSpawnUnit}
-                  style={{
-                    background: '#4ae24a',
-                    color: 'white',
-                    border: 'none',
-                    padding: '5px 10px',
-                    borderRadius: '3px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Spawn Unit
-                </button>
-              </div>
-            )}
-            
             {/* Map size controls */}
-            <div style={{ marginTop: '10px' }}>
-              <div>Map Width: {mapWidth}</div>
+            <div>
+              <div>Width: {mapWidth}</div>
               <input 
                 type="range" 
                 min="10" 
@@ -128,7 +77,7 @@ function App() {
                 style={{ width: '100%' }}
               />
               
-              <div>Map Height: {mapHeight}</div>
+              <div>Height: {mapHeight}</div>
               <input 
                 type="range" 
                 min="10" 
@@ -138,6 +87,7 @@ function App() {
                 style={{ width: '100%' }}
               />
               
+              {/* Hidden Reset Map button - uncomment if needed
               <button
                 onClick={() => actions.initializeBoard({
                   width: mapWidth,
@@ -157,6 +107,7 @@ function App() {
               >
                 Reset Map
               </button>
+              */}
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import BoardScene, { EVENTS } from '../scenes/BoardScene';
 import DebugScene from '../scenes/DebugScene';
+import UIScene from '../scenes/UIScene';
 import { MapGenerationType } from '../store/gameStore';
 import * as actions from '../store/actions';
 import { StateObserver } from '../utils/stateObserver';
@@ -80,7 +81,7 @@ const Game: React.FC = () => {
       height,
       backgroundColor: '#1c1117',
       parent: gameContainerRef.current,
-      scene: [BoardScene, DebugScene],
+      scene: [BoardScene, DebugScene, UIScene],
       pixelArt: true, // Ensures sharp pixel rendering
       audio: {
         noAudio: true // Properly disable audio system
