@@ -762,18 +762,34 @@ export default class BoardScene extends Phaser.Scene {
         } else {
           // Not in move mode, just a regular tile click
           
-          // Check if there's a non-moved unit at this tile before showing the selection indicator
+          // Get all animals
           const animals = actions.getAnimals();
-          const unitAtTile = animals.find(animal => 
+          
+          // First, check if there's a dormant unit (egg) at this tile
+          const dormantUnitAtTile = animals.find(animal => 
             animal.position.x === x && 
             animal.position.y === y && 
-            animal.state !== AnimalState.DORMANT &&
-            !animal.hasMoved // Only consider units that haven't moved yet
+            animal.state === AnimalState.DORMANT
           );
           
-          // Only show selection indicator if there's no active unit on this tile OR the unit has already moved
-          if ((!unitAtTile) && this.selectionIndicator && this.selectionLayer) {
+          // If we found a dormant unit, select it
+          if (dormantUnitAtTile) {
+            console.log(`Dormant unit found at tile ${x},${y}: ${dormantUnitAtTile.id}`);
+            actions.selectUnit(dormantUnitAtTile.id);
             this.showSelectionIndicatorAt(x, y);
+          } else {
+            // Check if there's a non-moved unit at this tile before showing the selection indicator
+            const activeUnitAtTile = animals.find(animal => 
+              animal.position.x === x && 
+              animal.position.y === y && 
+              animal.state !== AnimalState.DORMANT &&
+              !animal.hasMoved // Only consider units that haven't moved yet
+            );
+            
+            // Only show selection indicator if there's no active unit on this tile OR the unit has already moved
+            if (!activeUnitAtTile && this.selectionIndicator && this.selectionLayer) {
+              this.showSelectionIndicatorAt(x, y);
+            }
           }
           
           // Emit an event when a tile is clicked
