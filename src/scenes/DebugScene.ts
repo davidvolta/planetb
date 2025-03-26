@@ -22,11 +22,11 @@ export default class DebugScene extends Phaser.Scene {
   }
 
   create() {
-    // Position FPS in top right corner with a margin
-    const rightX = this.cameras.main.width - 10;
-    const topY = 10;
+    // Position FPS in bottom left corner with a margin
+    const leftX = 10;
+    const bottomY = this.cameras.main.height - 10;
     
-    this.fpsText = this.add.text(rightX, topY, "FPS: 0", {
+    this.fpsText = this.add.text(leftX, bottomY, "FPS: 0", {
       fontSize: "14px",
       fontFamily: "monospace",
       color: "#00FF00",
@@ -36,8 +36,11 @@ export default class DebugScene extends Phaser.Scene {
     .setScrollFactor(0)
     .setDepth(1000); // Ensure it stays on top
     
-    // Right-align the text
-    this.fpsText.setOrigin(1, 0);
+    // Left-align the text, bottom-aligned
+    this.fpsText.setOrigin(0, 1);
+    
+    // Listen for resize events to reposition the FPS counter
+    this.scale.on('resize', this.handleResize, this);
     
     /* 
     // Add mouse position text (starts at 10px below FPS)
@@ -126,5 +129,19 @@ export default class DebugScene extends Phaser.Scene {
       }
     }
     */
+  }
+
+  // Handle window resize
+  private handleResize() {
+    if (this.fpsText) {
+      // Update position to bottom left of new screen size
+      this.fpsText.setPosition(10, this.cameras.main.height - 10);
+    }
+  }
+
+  // Clean up when scene is shutdown
+  shutdown() {
+    // Remove resize listener
+    this.scale.off('resize', this.handleResize, this);
   }
 } 

@@ -37,9 +37,6 @@
   - [ ] Add visual indication that both units occupy same tile
 
   #### Testing Scenarios
-  - [x] Test dormant unit initialization
-  - [x] Test UI button appears only for dormant units
-  - [x] Test spawning correctly uses the unit's turn
   - [ ] Test displacement in various scenarios
   - [ ] Test units can move onto eggs without destroying them
 
@@ -52,7 +49,6 @@
 
 - [] Fix Tile Selection Bug of clicking tile after egg (this seems systemic)
 - [] Fix Rendering order of initial/produced eggs so its south to north
-- [] Fix Tile Selection bug of spawning unit but the tile selector still stays
 - [ ] Implement habitat improvement
 - [ ] Add player 1 to game board
 - [ ] Add fog of war
@@ -60,9 +56,21 @@
 
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
 
+## Technical Debt / Refactoring
+- [ ] Refactor BoardScene (currently too large at 1400+ lines):
+  - [ ] Create dedicated renderer classes:
+    - [ ] TileRenderer: Handle tile creation and updates
+    - [ ] AnimalRenderer: Manage animal sprite lifecycle
+    - [ ] HabitatRenderer: Handle habitat visuals 
+  - [ ] Extract input handling to InputManager class
+  - [ ] Move coordinate conversion logic to CoordinateUtils
+  - [ ] Create AnimationController for movement animations
+  - [ ] Split layer management into LayerManager
+
 - [ ] Performance optimizations
   - [ ] Add viewport culling to only render visible tiles
   - [ ] Tile Object Pooling
   - [ ] Implement texture-based rendering for terrain tiles
   - [ ] Create incremental updates to avoid full board recreation
   - [ ] Optimize event listeners with event delegation
+

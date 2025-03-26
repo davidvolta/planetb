@@ -53,7 +53,7 @@ function App() {
           {/* UI elements overlay on top */}
           <div style={{ 
             position: 'absolute', 
-            bottom: 20, 
+            top: 20, 
             right: 20, 
             zIndex: 10,
             background: 'rgba(0,0,0,0.5)',
