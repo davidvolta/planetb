@@ -16,26 +16,8 @@
 
 ## Upcoming Tasks
 
-- [x] Egg Hatching and Unit Displacement
+- [] Egg Hatching and Unit Displacement
   ### Unit Spawning & Displacement Implementation Plan
-  
-  #### Phase 1: Dormant Unit Initialization
-  - [x] Modify game initialization to place units in dormant state (eggs) near habitats
-  - [x] Ensure dormant units have appropriate visual representation (egg sprites)
-  - [x] Validate dormant units are properly registered in game state
-
-  #### Phase 2: UI-Controlled Spawning
-  - [x] Modify click handler for eggs to only select the dormant unit rather than activating it
-  - [x] Add a "Spawn Unit" button to the game controller UI that only appears when a dormant unit is selected
-  - [x] Connect button to the existing activation function to transform egg into active unit
-  - [x] Test that eggs can be selected but only activate when button is pressed
-
-  #### Phase 3: Spawning as Turn Action
-  - [x] Modify the unit activation function to:
-    - [x] Change unit state from dormant to active
-    - [x] Apply the "moved" tint to indicate turn is used
-    - [x] Set unit state to "hasMoved" (or equivalent)
-    - [x] Ensure unit cannot perform other actions this turn
 
   #### Phase 4: Displacement Mechanics
   - [ ] Add displacement logic when a unit spawns underneath an active unit:
@@ -68,6 +50,9 @@
   - [ ] UI state when selecting units at different stages
   - [ ] Interaction with other game mechanics
 
+- [] Fix Tile Selection Bug of clicking tile after egg (this seems systemic)
+- [] Fix Rendering order of initial/produced eggs so its south to north
+- [] Fix Tile Selection bug of spawning unit but the tile selector still stays
 - [ ] Implement habitat improvement
 - [ ] Add player 1 to game board
 - [ ] Add fog of war
