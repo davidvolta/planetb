@@ -20,31 +20,31 @@
   ### Dynamic Depth Rendering Plan
 
   #### Phase 1: Create Depth Management Utility
-  - [ ] Add a depth calculation function:
-    - [ ] Create method to calculate unit depth based on Y-position and state
-    - [ ] Use unitsLayer's base depth (5) as starting point 
-    - [ ] Apply Y-coordinate fraction (gridY/1000) for isometric perspective
-    - [ ] Add small offset for active units to appear above eggs
-    - [ ] Test: Log calculated depths for different positions/states
+  - [x] Add a depth calculation function:
+    - [x] Create method to calculate unit depth based on Y-position and state
+    - [x] Use unitsLayer's base depth (5) as starting point 
+    - [x] Apply Y-coordinate fraction (gridY/1000) for isometric perspective
+    - [x] Add small offset for active units to appear above eggs
+    - [x] Test: Log calculated depths for different positions/states
 
   #### Phase 2: Apply Depth Calculation to Unit Rendering
-  - [ ] Update existing sprites depth:
-    - [ ] Apply depth calculation when updating sprite properties
-    - [ ] Ensure active units get higher depth than eggs at same position
-    - [ ] Test: Visual check that existing units are ordered correctly
-  - [ ] Apply to new sprites:
-    - [ ] Set calculated depth when creating new unit sprites
-    - [ ] Maintain consistency between new and updated sprites
-    - [ ] Test: New units should have proper rendering order immediately
+  - [x] Update existing sprites depth:
+    - [x] Apply depth calculation when updating sprite properties
+    - [x] Ensure active units get higher depth than eggs at same position
+    - [x] Test: Visual check that existing units are ordered correctly
+  - [x] Apply to new sprites:
+    - [x] Set calculated depth when creating new unit sprites
+    - [x] Maintain consistency between new and updated sprites
+    - [x] Test: New units should have proper rendering order immediately
 
   #### Phase 3: Update Depth During Movement
-  - [ ] Update depth during movement animation:
-    - [ ] Recalculate depth as unit Y-position changes during movement
-    - [ ] Apply dynamic depth updates during animation tweens
-    - [ ] Test: Units maintain correct rendering order during movement
-  - [ ] Update depth after movement completes:
-    - [ ] Set final depth value when unit reaches destination
-    - [ ] Test: Units have correct depth at final position
+  - [x] Update depth during movement animation:
+    - [x] Recalculate depth as unit Y-position changes during movement
+    - [x] Apply dynamic depth updates during animation tweens
+    - [x] Test: Units maintain correct rendering order during movement
+  - [x] Update depth after movement completes:
+    - [x] Set final depth value when unit reaches destination
+    - [x] Test: Units have correct depth at final position
 
   #### Phase 4: Handle Egg Production
   - [ ] Ensure new eggs have correct depth:
@@ -53,11 +53,11 @@
     - [ ] Verify eggs maintain proper isometric perspective relative to units on other tiles
 
   #### Phase 5: Testing and Validation
-  - [ ] Create visual test scenarios:
-    - [ ] Test with various unit arrangements and movement patterns
-    - [ ] Verify correct rendering when units and eggs overlap
-    - [ ] Ensure isometric perspective is maintained correctly
-    - [ ] Check for any edge cases or visual glitches
+  - [x] Create visual test scenarios:
+    - [x] Test with various unit arrangements and movement patterns
+    - [x] Verify correct rendering when units and eggs overlap
+    - [x] Ensure isometric perspective is maintained correctly
+    - [x] Check for any edge cases or visual glitches
 
 - [] Egg Hatching and Unit Displacement
   ### Unit Spawning & Displacement Implementation Plan
@@ -101,12 +101,12 @@
   ### Selection System Simplification Plan
 
   #### Phase 1: Remove Interactivity from Eggs and Habitats
-  - [ ] Modify renderAnimalSprites method:
-    - [ ] Update to explicitly disable interactivity for dormant units (eggs)
-    - [ ] Test: Eggs should no longer respond to clicks
-  - [ ] Update createHabitatGraphic method:
-    - [ ] Remove the setInteractive() code for habitat containers
-    - [ ] Test: Habitats should no longer respond to clicks
+  - [x] Modify renderAnimalSprites method:
+    - [x] Update to explicitly disable interactivity for dormant units (eggs)
+    - [x] Test: Eggs should no longer respond to clicks
+  - [x] Update createHabitatGraphic method:
+    - [x] Remove the setInteractive() code for habitat containers
+    - [x] Test: Habitats should no longer respond to clicks
 
   #### Phase 2: Cleanup Core Click Handling
   - [ ] Create a checkTileContents helper method:
