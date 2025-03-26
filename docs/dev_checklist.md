@@ -15,8 +15,9 @@
 - Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
 
 ## Upcoming Tasks
+- [] Implement diagonal movement and displacement
 - [ ] Implement habitat improvement
-- [ ] Add player 1 to game board
+- [ ] Add player 1 to game board on beach with habitat already under player control
 - [ ] Add fog of war
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
 
