@@ -1282,7 +1282,7 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Add this new method to handle starting unit movement
+  // Updated to use the unified animation method
   private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
     console.log(`Starting movement for unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
@@ -1291,6 +1291,41 @@ export default class BoardScene extends Phaser.Scene {
       console.log("Animation already in progress, ignoring movement request");
       return;
     }
+    
+    // Use the unified animation method with movement-specific options
+    this.animateUnit(unitId, fromX, fromY, toX, toY, {
+      applyTint: true,
+      disableInteractive: true,
+      updateState: true,
+      clearMoveHighlights: true
+    });
+  }
+
+  // Unified animation method for all unit movements
+  private animateUnit(
+    unitId: string,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    options: {
+      applyTint?: boolean;
+      disableInteractive?: boolean;
+      updateState?: boolean;
+      clearMoveHighlights?: boolean;
+      duration?: number;
+      isDisplacement?: boolean;
+    } = {}
+  ) {
+    // Set default options
+    const {
+      applyTint = false,
+      disableInteractive = false,
+      updateState = false,
+      clearMoveHighlights = false,
+      duration: fixedDuration = null,
+      isDisplacement = false
+    } = options;
     
     // Find the unit sprite
     let unitSprite: Phaser.GameObjects.Sprite | null = null;
@@ -1307,19 +1342,6 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Start the animation
-    this.animateUnitMovement(unitId, unitSprite, fromX, fromY, toX, toY);
-  }
-
-  // Updated animation method that updates state AFTER animation is complete
-  private animateUnitMovement(
-    unitId: string,
-    sprite: Phaser.GameObjects.Sprite,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number
-  ) {
     // Convert grid coordinates to world coordinates
     const startIsoX = (fromX - fromY) * this.tileSize / 2;
     const startIsoY = (fromX + fromY) * this.tileHeight / 2;
@@ -1339,34 +1361,41 @@ export default class BoardScene extends Phaser.Scene {
     
     console.log(`Animating unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
-    // Clear move highlights during animation
-    this.clearMoveHighlights();
+    // Clear move highlights if requested
+    if (clearMoveHighlights) {
+      this.clearMoveHighlights();
+    }
     
     // Hide selection indicator during animation
     if (this.selectionIndicator) {
       this.selectionIndicator.setVisible(false);
     }
     
-    // Calculate movement duration based on distance
-    const distance = Math.sqrt(
-      Math.pow(endWorldX - startWorldX, 2) + 
-      Math.pow(endWorldY - startWorldY, 2)
-    );
-    const baseDuration = 75; // Moderate duration for smooth movement
-    const duration = baseDuration * (distance / this.tileSize);
+    // Calculate movement duration based on distance (unless fixed duration is provided)
+    let duration;
+    if (fixedDuration) {
+      duration = fixedDuration;
+    } else {
+      const distance = Math.sqrt(
+        Math.pow(endWorldX - startWorldX, 2) + 
+        Math.pow(endWorldY - startWorldY, 2)
+      );
+      const baseDuration = 75; // Moderate duration for smooth movement
+      duration = baseDuration * (distance / this.tileSize);
+    }
     
-    // Create a single direct tween for instant movement
+    // Create the animation tween
     this.tweens.add({
-      targets: sprite,
+      targets: unitSprite,
       x: endWorldX,
       y: endWorldY + verticalOffset,
       duration: duration,
       ease: 'Power2.out', // Quick acceleration, gentle stop
-      onUpdate: (tween, target, param) => {
+      onUpdate: () => {
         // Calculate current grid Y position based on the sprite's current position
         // Convert current world position back to approximate grid position
-        const currentWorldY = sprite.y - verticalOffset;
-        const currentWorldX = sprite.x;
+        const currentWorldY = unitSprite!.y - verticalOffset;
+        const currentWorldX = unitSprite!.x;
         
         // Reverse the isometric projection to get approximate grid coordinates
         // These are not exact, but they're close enough for depth calculation
@@ -1378,92 +1407,62 @@ export default class BoardScene extends Phaser.Scene {
         const currentGridY = (relY * 2 - relX) / 2;
         
         // Update depth during movement using our depth calculation
-        sprite.setDepth(this.calculateUnitDepth(currentGridY, true));
+        unitSprite!.setDepth(this.calculateUnitDepth(currentGridY, true));
       },
       onComplete: () => {
-        // Update state after animation completes
-        actions.moveUnit(unitId, toX, toY);
+        // Update state after animation completes (if requested)
+        if (updateState) {
+          // Check if this is a displacement animation based on method call
+          if (options.isDisplacement) {
+            // Use the displacement-specific action
+            actions.moveDisplacedUnit(unitId, toX, toY);
+          } else {
+            // Use regular movement action
+            actions.moveUnit(unitId, toX, toY);
+          }
+        }
         
         // Update the sprite's stored grid coordinates
-        sprite.setData('gridX', toX);
-        sprite.setData('gridY', toY);
+        unitSprite!.setData('gridX', toX);
+        unitSprite!.setData('gridY', toY);
         
         // Set final depth at destination
-        sprite.setDepth(this.calculateUnitDepth(toY, true));
+        unitSprite!.setDepth(this.calculateUnitDepth(toY, true));
         
-        // Apply light gray tint to indicate the unit has moved
-        sprite.setTint(0xCCCCCC);
+        // Apply light gray tint to indicate the unit has moved (if requested)
+        if (applyTint) {
+          unitSprite!.setTint(0xCCCCCC);
+        }
         
-        // Disable interactivity so clicks pass through to the underlying tile
-        sprite.disableInteractive();
-        
-        console.log(`Unit ${unitId} moved: applied gray tint and disabled interactivity`);
-        
-        console.log(`Animation complete for unit ${unitId}`);
+        // Disable interactivity so clicks pass through to the underlying tile (if requested)
+        if (disableInteractive) {
+          unitSprite!.disableInteractive();
+        }
         
         // Mark animation as complete
         this.animationInProgress = false;
+        
+        console.log(`Animation complete for unit ${unitId}`);
       }
     });
   }
 
-  // Helper method to show the selection indicator at a specific grid position
-  private showSelectionIndicatorAt(x: number, y: number) {
-    if (!this.selectionIndicator) {
-      console.warn("Cannot show selection indicator - selectionIndicator is null");
-      return;
-    }
-    
-    // Calculate isometric position for the indicator
-    const isoX = (x - y) * this.tileSize / 2;
-    const isoY = (x + y) * this.tileHeight / 2;
-    
-    // Position the indicator
-    this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
-    
-    // Make the indicator visible
-    this.selectionIndicator.setVisible(true);
-    
-    // Ensure it's at the top of its layer
-    if (this.selectionLayer) {
-      // Re-add to make sure it's at the top of its layer
-      this.selectionLayer.remove(this.selectionIndicator);
-      this.selectionLayer.add(this.selectionIndicator);
-    } else {
-      console.warn("Cannot add selection indicator to layer - selectionLayer is null");
-    }
-  }
-
-  // Add a method to hide the selection indicator
-  private hideSelectionIndicator() {
-    if (this.selectionIndicator) {
-      this.selectionIndicator.setVisible(false);
-    }
-  }
-
-  /**
-   * Calculate the depth value for a unit sprite based on its grid position and state
-   * This ensures proper isometric perspective (units at higher Y appear behind)
-   * while making active units always appear above eggs on the same tile
-   * 
-   * @param gridY - Y coordinate in the grid
-   * @param isActive - Whether the unit is active (true) or dormant/egg (false)
-   * @returns depth value for the sprite
-   */
-  private calculateUnitDepth(gridY: number, isActive: boolean): number {
-    // Base depth of the units layer
-    const baseDepth = 5;
-    
-    // Y-coordinate fraction for isometric perspective (higher Y = further back = higher depth)
-    // This allows up to 1000 rows before depth values would overlap
-    const yOffset = gridY / 1000;
-    
-    // Small offset to ensure active units appear above eggs at the same position
-    // Using a very small value (0.0005) to minimize impact on overall perspective
-    const stateOffset = isActive ? 0.0005 : 0;
-    
-    // Calculate final depth value
-    return baseDepth + yOffset + stateOffset;
+  // Keep this method but replace its implementation with our unified method
+  private animateUnitMovement(
+    unitId: string,
+    sprite: Phaser.GameObjects.Sprite,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number
+  ) {
+    // Call the unified animation method with the same options as startUnitMovement
+    this.animateUnit(unitId, fromX, fromY, toX, toY, {
+      applyTint: true,
+      disableInteractive: true,
+      updateState: true,
+      clearMoveHighlights: true
+    });
   }
 
   /**
@@ -1493,75 +1492,14 @@ export default class BoardScene extends Phaser.Scene {
     const toX = displacementInfo.toX;
     const toY = displacementInfo.toY;
     
-    // Check if unitsLayer exists
-    if (!this.unitsLayer) {
-      console.warn("Cannot handle displacement - unitsLayer not available");
-      return;
-    }
-    
-    // Find the sprite for the displaced unit in the unitsLayer
-    const sprites = this.unitsLayer.getAll().filter(sprite => 
-      sprite instanceof Phaser.GameObjects.Sprite && 
-      sprite.getData('animalId') === unitId
-    ) as Phaser.GameObjects.Sprite[];
-    
-    if (sprites.length === 0) {
-      console.warn(`Could not find sprite for displaced unit ${unitId}`);
-      return;
-    }
-    
-    const unitSprite = sprites[0];
-    
     console.log(`Animating displacement of unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
-    // Set animation flag
-    this.animationInProgress = true;
-    
-    // Using similar animation logic as unit movement
-    const duration = 500; // milliseconds
-    const verticalOffset = -12;
-    
-    // Calculate world coordinates for destination
-    const toIsoX = (toX - toY) * this.tileSize / 2;
-    const toIsoY = (toX + toY) * this.tileHeight / 2;
-    const endWorldX = this.anchorX + toIsoX;
-    const endWorldY = this.anchorY + toIsoY;
-    
-    // Create the animation tween
-    this.tweens.add({
-      targets: unitSprite,
-      x: endWorldX,
-      y: endWorldY + verticalOffset,
-      duration: duration,
-      ease: 'Power2.out',
-      onUpdate: () => {
-        // Calculate current grid Y position for depth updating
-        const currentWorldY = unitSprite.y - verticalOffset;
-        const currentWorldX = unitSprite.x;
-        
-        // Reverse the isometric projection for approximate grid coordinates
-        const relY = (currentWorldY - this.anchorY) / this.tileHeight;
-        const relX = (currentWorldX - this.anchorX) / this.tileSize;
-        
-        // Calculate approximate grid Y
-        const currentGridY = (relY * 2 - relX) / 2;
-        
-        // Update depth during movement
-        unitSprite.setDepth(this.calculateUnitDepth(currentGridY, true));
-      },
-      onComplete: () => {
-        // Update the sprite data
-        unitSprite.setData('gridX', toX);
-        unitSprite.setData('gridY', toY);
-        
-        // Set final depth at destination
-        unitSprite.setDepth(this.calculateUnitDepth(toY, true));
-        
-        // Reset animation flag
-        this.animationInProgress = false;
-        
-        console.log(`Displacement animation complete for unit ${unitId}`);
-      }
+    // Use the unified animation method with displacement-specific options
+    // Add updateState: true to follow the same pattern as regular movement
+    this.animateUnit(unitId, fromX, fromY, toX, toY, {
+      duration: 500, // Fixed duration for displacement animations
+      updateState: true, // Update state after animation completes
+      isDisplacement: true // Mark this as a displacement animation
     });
   }
 
@@ -1569,5 +1507,64 @@ export default class BoardScene extends Phaser.Scene {
   private handleUnitSpawned() {
     // Implement the logic to hide the selection indicator when a unit is spawned
     this.hideSelectionIndicator();
+  }
+
+  // Add a method to hide the selection indicator
+  private hideSelectionIndicator() {
+    if (this.selectionIndicator) {
+      this.selectionIndicator.setVisible(false);
+    }
+  }
+
+  // Helper method to show the selection indicator at a specific grid position
+  private showSelectionIndicatorAt(x: number, y: number) {
+    if (!this.selectionIndicator) {
+      console.warn("Cannot show selection indicator - selectionIndicator is null");
+      return;
+    }
+    
+    // Calculate isometric position for the indicator
+    const isoX = (x - y) * this.tileSize / 2;
+    const isoY = (x + y) * this.tileHeight / 2;
+    
+    // Position the indicator
+    this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
+    
+    // Make the indicator visible
+    this.selectionIndicator.setVisible(true);
+    
+    // Ensure it's at the top of its layer
+    if (this.selectionLayer) {
+      // Re-add to make sure it's at the top of its layer
+      this.selectionLayer.remove(this.selectionIndicator);
+      this.selectionLayer.add(this.selectionIndicator);
+    } else {
+      console.warn("Cannot add selection indicator to layer - selectionLayer is null");
+    }
+  }
+
+  /**
+   * Calculate the depth value for a unit sprite based on its grid position and state
+   * This ensures proper isometric perspective (units at higher Y appear behind)
+   * while making active units always appear above eggs on the same tile
+   * 
+   * @param gridY - Y coordinate in the grid
+   * @param isActive - Whether the unit is active (true) or dormant/egg (false)
+   * @returns depth value for the sprite
+   */
+  private calculateUnitDepth(gridY: number, isActive: boolean): number {
+    // Base depth of the units layer
+    const baseDepth = 5;
+    
+    // Y-coordinate fraction for isometric perspective (higher Y = further back = higher depth)
+    // This allows up to 1000 rows before depth values would overlap
+    const yOffset = gridY / 1000;
+    
+    // Small offset to ensure active units appear above eggs at the same position
+    // Using a very small value (0.0005) to minimize impact on overall perspective
+    const stateOffset = isActive ? 0.0005 : 0;
+    
+    // Calculate final depth value
+    return baseDepth + yOffset + stateOffset;
   }
 }

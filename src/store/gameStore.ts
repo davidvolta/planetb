@@ -401,19 +401,24 @@ export const useGameStore = create<GameState>((set, get) => ({
   evolveAnimal: (id) =>
     set((state) => {
       // Find the egg to evolve
-      const eggToEvolve = state.animals.find(a => a.id === id);
-      if (!eggToEvolve) return state;
+      const egg = state.animals.find(a => a.id === id && a.state === AnimalState.DORMANT);
+      if (!egg) {
+        console.warn(`Cannot evolve animal ${id}: not found or not an egg`);
+        return state;
+      }
       
-      const eggPosition = eggToEvolve.position;
+      // Get the position of the egg
+      const eggPosition = egg.position;
       
-      // Check if there's an active unit at the same position
+      // Check if there is an active unit at this position (that's not the egg itself)
       const activeUnitAtPosition = state.animals.find(a => 
-        a.state === AnimalState.ACTIVE &&
-        a.position.x === eggPosition.x &&
-        a.position.y === eggPosition.y
+        a.id !== id && 
+        a.position.x === eggPosition.x && 
+        a.position.y === eggPosition.y &&
+        a.state === AnimalState.ACTIVE
       );
       
-      // Create a working copy of the animals array
+      // Make a copy of the animals array to update
       let updatedAnimals = [...state.animals];
       
       // Initialize displacement event with default values
@@ -470,14 +475,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             toX: displacementPosition.x,
             toY: displacementPosition.y,
             timestamp: Date.now()
-          } as GameState['displacementEvent']; // Force type alignment
-          
-          // Update the displaced unit's position (preserve hasMoved state)
-          updatedAnimals = updatedAnimals.map(animal =>
-            animal.id === activeUnitAtPosition.id
-              ? { ...animal, position: displacementPosition }
-              : animal
-          );
+          } as GameState['displacementEvent'];
           
           console.log(`Displaced unit ${activeUnitAtPosition.id} to ${displacementPosition.x},${displacementPosition.y}`);
         } else {

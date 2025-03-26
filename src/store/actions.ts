@@ -171,9 +171,46 @@ export function deselectUnit(): void {
 
 /**
  * Move a unit to a new position
+ * @param id Unit ID
+ * @param x X coordinate
+ * @param y Y coordinate
  */
-export function moveUnit(unitId: string, x: number, y: number): void {
-  useGameStore.getState().moveUnit(unitId, x, y);
+export function moveUnit(id: string, x: number, y: number): void {
+  useGameStore.getState().moveUnit(id, x, y);
+}
+
+/**
+ * Move a displaced unit to a new position
+ * Used by the animation system after displacement animation completes
+ * @param id Unit ID
+ * @param x X coordinate
+ * @param y Y coordinate
+ */
+export function moveDisplacedUnit(id: string, x: number, y: number): void {
+  // Get current state
+  const state = useGameStore.getState();
+  
+  // Find the unit to move
+  const unit = state.animals.find(animal => animal.id === id);
+  if (!unit) {
+    console.warn(`Cannot move displaced unit ${id}: not found`);
+    return;
+  }
+  
+  // Update the unit's position in state
+  useGameStore.setState({
+    animals: state.animals.map(animal => 
+      animal.id === id 
+        ? { 
+            ...animal, 
+            previousPosition: { ...animal.position }, // Record previous position
+            position: { x, y } // Update to new position
+          } 
+        : animal
+    )
+  });
+  
+  console.log(`Displaced unit ${id} position updated in state to (${x},${y})`);
 }
 
 /**
