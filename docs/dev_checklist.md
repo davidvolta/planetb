@@ -19,7 +19,7 @@
 - [ ] Add player 1 to game board on beach with habitat already under player control
 - [ ] Add fog of war
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
-
+- [ ] Fix the habitat generation to actually be one zone apart
 
 - ### Technical Debt / Refactoring
 - [ ] Refactor BoardScene (currently too large at 1400+ lines):

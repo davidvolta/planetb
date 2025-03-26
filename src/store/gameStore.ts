@@ -324,7 +324,7 @@ export const useGameStore = create<GameState>((set, get) => ({
               state: HabitatState.POTENTIAL,
               shelterType: null,
               ownerId: null,
-              productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
+              productionRate: 1, // Fixed at 1
               lastProductionTurn: 0,
             };
             
@@ -511,7 +511,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         state: HabitatState.POTENTIAL,
         shelterType: null,
         ownerId: null,
-        productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
+        productionRate: 1, // Fixed at 1
         lastProductionTurn: 0,
       };
       return { habitats: [...state.habitats, newHabitat] };
@@ -558,7 +558,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           state: HabitatState.SHELTER,
           shelterType,
           ownerId: state.currentPlayerId,
-          productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
+          productionRate: 1, // Fixed at 1
           lastProductionTurn: state.turn,
         };
       });
@@ -674,6 +674,11 @@ export const useGameStore = create<GameState>((set, get) => ({
 
 // Process production for all habitats
 const processHabitatProduction = (state: GameState): Partial<GameState> => {
+  // Only produce eggs on even-numbered turns
+  if (state.turn % 2 !== 0) {
+    return state; // Skip production on odd-numbered turns
+  }
+
   const newAnimals = [...state.animals];
   const updatedHabitats = state.habitats.map(habitat => {
     // Skip if no production
@@ -684,7 +689,10 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
     if (turnsSinceProduction <= 0) return habitat;
 
     // Calculate how many eggs to create
-    const eggsToCreate = habitat.productionRate * turnsSinceProduction;
+    const eggsToCreate = habitat.productionRate * Math.floor(turnsSinceProduction / 2);
+    
+    // Skip if no eggs to create this turn
+    if (eggsToCreate <= 0) return habitat;
 
     // Find valid tiles for egg placement
     const validTiles = getValidEggPlacementTiles(habitat, {
