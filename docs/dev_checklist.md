@@ -22,16 +22,7 @@
 
 
 - ### Selection System Simplification Plan
-
-  #### Phase 1: Remove Interactivity from Eggs and Habitats
-  - [x] Modify renderAnimalSprites method:
-    - [x] Update to explicitly disable interactivity for dormant units (eggs)
-    - [x] Test: Eggs should no longer respond to clicks
-  - [x] Update createHabitatGraphic method:
-    - [x] Remove the setInteractive() code for habitat containers
-    - [x] Test: Habitats should no longer respond to clicks
-
-  #### Phase 2: Cleanup Core Click Handling
+  #### Phase 1: Cleanup Core Click Handling
   - [ ] Create a checkTileContents helper method:
     - [ ] Add method to check what entities exist at specific coordinates
     - [ ] Should return dormant units, active units, and habitats at the location
@@ -42,7 +33,7 @@
     - [ ] Keep only the tile click handling (third condition)
     - [ ] Test: Ensure only tiles can be clicked
 
-  #### Phase 3: Update Tile Click Handler
+  #### Phase 2: Update Tile Click Handler
   - [ ] Update tile click handler logic:
     - [ ] Remove dormant unit special handling
     - [ ] When a tile is clicked, check for move mode or just show selection indicator
@@ -51,7 +42,7 @@
     - [ ] Update to include complete information about what's at the tile
     - [ ] Test: Log event data to verify complete information is being emitted
 
-  #### Phase 4: Connect UIScene to New System
+  #### Phase 3: Connect UIScene to New System
   - [ ] Update UIScene to handle tile clicks:
     - [ ] Add event listener for TILE_CLICKED in create()
     - [ ] Implement handleTileClicked method to process tile contents
@@ -61,16 +52,16 @@
     - [ ] Ensure proper event listener cleanup in shutdown()
     - [ ] Test: No memory leaks or duplicate listeners
 
-  #### Phase 5: Active Unit Handling
-  - [ ] Refine active unit click handling:
-    - [ ] Keep click interactivity only for unmoved active units
-    - [ ] Ensure click handler directly selects the unit
-    - [ ] Test: Active units still selectable, moved units not selectable
-  - [ ] Connect active unit selection to UI:
-    - [ ] Ensure UIScene updates based on unit selection
-    - [ ] Test: Unit selection should update UI appropriately
+  #### Phase 4: Active Unit Handling
+  - [x] Refine active unit click handling:
+    - [x] Keep click interactivity only for unmoved active units
+    - [x] Ensure click handler directly selects the unit
+    - [x] Test: Active units still selectable, moved units not selectable
+  - [x] Connect active unit selection to UI:
+    - [x] Ensure UIScene updates based on unit selection
+    - [x] Test: Unit selection should update UI appropriately
 
-  #### Phase 6: Final Cleanup
+  #### Phase 5: Final Cleanup
   - [ ] Remove any remaining duplicate logic:
     - [ ] Check for redundant selection code
     - [ ] Ensure consistent state updates
