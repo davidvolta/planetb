@@ -28,8 +28,8 @@
     - [ ] Should return dormant units, active units, and habitats at the location
     - [ ] Test: Verify logging shows correct detection
   - [ ] Simplify setupClickEventDelegation:
-    - [ ] Remove habitat click handling block (first condition)
-    - [ ] Keep only the tile click handling (second condition)
+    - [ ] Remove habitat click handling block
+    - [ ] Keep the tile and unit click handling
     - [ ] Test: Ensure only tiles can be clicked
 
   #### Phase 2: Update Tile Click Handler

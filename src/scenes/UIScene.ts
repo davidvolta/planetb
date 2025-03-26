@@ -93,6 +93,14 @@ export default class UIScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-N', () => {
       this.handleNextTurn();
     });
+
+    // PHASE 3: Connect UIScene to tile click system
+    // Add event listener for tile clicks from BoardScene
+    const boardScene = this.scene.get('BoardScene');
+    if (boardScene && boardScene.events) {
+      // Listen for tile clicked events with enhanced tile contents data
+      boardScene.events.on(EVENTS.TILE_CLICKED, this.handleTileClicked, this);
+    }
   }
 
   createNextTurnButton() {
@@ -212,6 +220,31 @@ export default class UIScene extends Phaser.Scene {
   }
 
   /**
+   * Handle tile clicked events from BoardScene
+   * Uses the enhanced tile contents data from Phase 2
+   */
+  handleTileClicked(eventData: any) {
+    console.log('UIScene received tile click at', eventData.x, eventData.y);
+    
+    // Check if the tile contains a dormant unit
+    if (eventData.contents && eventData.contents.dormantUnits.length > 0) {
+      const dormantUnit = eventData.contents.dormantUnits[0];
+      
+      // Set selected unit to the dormant unit
+      this.selectedUnitId = dormantUnit.id;
+      this.selectedUnitIsDormant = true;
+      
+      // Show the spawn button
+      this.updateSpawnButtonVisibility();
+      
+      console.log('UIScene: Dormant unit selected, showing spawn button');
+    } else {
+      // If no dormant unit at the location, don't change anything
+      // The state subscription will handle deselection if needed
+    }
+  }
+
+  /**
    * Clean up when scene is shut down
    */
   shutdown() {
@@ -235,6 +268,14 @@ export default class UIScene extends Phaser.Scene {
     this.input.keyboard.off('keydown-S');
     this.input.keyboard.off('keydown-N');
     
+    // PHASE 3: Clean up event listeners
+    // Remove tile click event listener to prevent memory leaks
+    const boardScene = this.scene.get('BoardScene');
+    if (boardScene && boardScene.events) {
+      boardScene.events.removeListener(EVENTS.TILE_CLICKED, this.handleTileClicked, this);
+    }
+    
+    // Clean up references
     this.turnText = null;
     this.selectedUnitId = null;
   }
