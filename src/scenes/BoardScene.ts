@@ -24,7 +24,8 @@ export const EVENTS = {
   HABITAT_CLICKED: 'habitatClicked',
   DORMANT_ANIMAL_SELECTED: 'dormantAnimalSelected',
   ASSETS_LOADED: 'assetsLoaded',
-  UNIT_SPAWNED: 'unit_spawned'
+  UNIT_SPAWNED: 'unit_spawned',
+  UNIT_DISPLACED: 'unit_displaced'
 };
 
 // Define subscription keys to ensure consistency
@@ -114,49 +115,48 @@ export default class BoardScene extends Phaser.Scene {
   private setupSubscriptions() {
     // Check if subscriptions are already set up
     if (this.subscriptionsSetup) {
-      console.log("Subscriptions already set up, skipping");
+      console.log("Subscriptions already set up, skipping setupSubscriptions()");
       return;
     }
     
-    // Subscribe to board state changes
+    console.log("Setting up BoardScene subscriptions");
+    
+    // Subscribe to board changes
     StateObserver.subscribe(
       SUBSCRIPTIONS.BOARD,
       (state) => state.board,
       (board) => {
+        console.log("Board state updated in BoardScene");
         if (board) {
-          console.log("Board state changed, updating scene with layer-based rendering...");
           this.updateBoard();
-        }
-      },
-      { immediate: false, debug: false } // Set immediate: false to prevent callback on subscription
-    );
-    
-    // Subscribe to animals state changes with more efficient change detection
-    StateObserver.subscribe(
-      SUBSCRIPTIONS.ANIMALS,
-      (state) => state.animals,
-      (animals, prevAnimals) => {
-        // Only render if unitsLayer exists
-        if (this.unitsLayer) {
-          console.log("Animals state changed, updating sprites...");
-          this.renderAnimalSprites(animals);
-        } else {
-          console.log("Animals state changed, but unitsLayer not ready yet");
         }
       }
     );
     
-    // Subscribe to habitats state changes
+    // Subscribe to animal changes
+    StateObserver.subscribe(
+      SUBSCRIPTIONS.ANIMALS,
+      (state) => state.animals,
+      (animals) => {
+        if (animals) {
+          this.renderAnimalSprites(animals);
+          
+          // Check for displaced units
+          const displacedUnit = actions.getLastDisplacedUnit();
+          if (displacedUnit && displacedUnit.unitId) {
+            this.handleUnitDisplacement(displacedUnit);
+          }
+        }
+      }
+    );
+    
+    // Subscribe to habitat changes
     StateObserver.subscribe(
       SUBSCRIPTIONS.HABITATS,
       (state) => state.habitats,
       (habitats) => {
-        // Only render if staticObjectsLayer exists
-        if (this.staticObjectsLayer) {
-          console.log("Habitats state changed, updating graphics...");
+        if (habitats && this.staticObjectsLayer) {
           this.renderHabitatGraphics(habitats);
-        } else {
-          console.log("Habitats state changed, but staticObjectsLayer not ready yet");
         }
       }
     );
@@ -1449,5 +1449,88 @@ export default class BoardScene extends Phaser.Scene {
     
     // Calculate final depth value
     return baseDepth + yOffset + stateOffset;
+  }
+
+  /**
+   * Handles animation of a unit that was displaced by spawning
+   * @param displacementInfo Information about the displacement
+   */
+  private handleUnitDisplacement(displacementInfo: {
+    unitId: string;
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+  }) {
+    // Find the sprite for the displaced unit
+    const sprites = this.children.list as Phaser.GameObjects.GameObject[];
+    const unitSprite = sprites.find(sprite => 
+      sprite instanceof Phaser.GameObjects.Sprite && 
+      sprite.getData('animalId') === displacementInfo.unitId
+    ) as Phaser.GameObjects.Sprite | undefined;
+    
+    if (!unitSprite) {
+      console.warn(`Could not find sprite for displaced unit ${displacementInfo.unitId}`);
+      return;
+    }
+    
+    console.log(`Animating displacement of unit ${displacementInfo.unitId} from (${displacementInfo.fromX},${displacementInfo.fromY}) to (${displacementInfo.toX},${displacementInfo.toY})`);
+    
+    // Set animation flag
+    this.animationInProgress = true;
+    
+    // Using similar animation logic as unit movement
+    const duration = 500; // milliseconds
+    const verticalOffset = -12;
+    
+    // Calculate world coordinates for destination
+    const toIsoX = (displacementInfo.toX - displacementInfo.toY) * this.tileSize / 2;
+    const toIsoY = (displacementInfo.toX + displacementInfo.toY) * this.tileHeight / 2;
+    const endWorldX = this.anchorX + toIsoX;
+    const endWorldY = this.anchorY + toIsoY;
+    
+    // Create the animation tween
+    this.tweens.add({
+      targets: unitSprite,
+      x: endWorldX,
+      y: endWorldY + verticalOffset,
+      duration: duration,
+      ease: 'Power2.out',
+      onUpdate: (tween, target, param) => {
+        // Calculate current grid Y position for depth updating
+        const currentWorldY = unitSprite.y - verticalOffset;
+        const currentWorldX = unitSprite.x;
+        
+        // Reverse the isometric projection for approximate grid coordinates
+        const relY = (currentWorldY - this.anchorY) / this.tileHeight;
+        const relX = (currentWorldX - this.anchorX) / this.tileSize;
+        
+        // Calculate approximate grid Y
+        const currentGridY = (relY * 2 - relX) / 2;
+        
+        // Update depth during movement
+        unitSprite.setDepth(this.calculateUnitDepth(currentGridY, true));
+      },
+      onComplete: () => {
+        // Update the sprite data
+        unitSprite.setData('gridX', displacementInfo.toX);
+        unitSprite.setData('gridY', displacementInfo.toY);
+        
+        // Set final depth at destination
+        unitSprite.setDepth(this.calculateUnitDepth(displacementInfo.toY, true));
+        
+        // Reset animation flag
+        this.animationInProgress = false;
+        
+        // Emit displacement completed event
+        this.events.emit(EVENTS.UNIT_DISPLACED, {
+          unitId: displacementInfo.unitId,
+          toX: displacementInfo.toX,
+          toY: displacementInfo.toY
+        });
+        
+        console.log(`Displacement animation complete for unit ${displacementInfo.unitId}`);
+      }
+    });
   }
 }

@@ -75,6 +75,13 @@ export function evolveAnimal(id: string): void {
   useGameStore.getState().evolveAnimal(id);
 }
 
+/**
+ * Get information about the last unit that was displaced
+ */
+export function getLastDisplacedUnit(): any {
+  return useGameStore.getState().lastDisplacedUnit;
+}
+
 //
 // Habitat Actions
 //

@@ -21,18 +21,19 @@
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
 
 
-- ### Unit Spawning & Displacement Implementation Plan
+- ### Unit Displacement Implementation Plan
 
   #### Phase 1: Displacement Mechanics
-  - [ ] Add displacement logic when a unit spawns underneath an active unit:
-    - [ ] Check if active unit exists at spawn location
-    - [ ] Determine displacement direction based on unit's move status:
-      - [ ] If unit has already moved: attempt to continue in previous direction
-        - [ ] Validate displacement location is valid
-        - [ ] Fall back to adjacent tile if invalid
-      - [ ] If unit has not moved: choose random valid adjacent tile
-        - [ ] Ensure displaced unit remains in "not moved" state
-  - [ ] Implement visual feedback for displacement
+  - [x] Add displacement logic when a unit spawns underneath an active unit:
+    - [x] Check if active unit exists at spawn location
+    - [x] Determine displacement direction based on unit's move status:
+      - [x] If unit has already moved: attempt to continue in previous direction
+        - [x] Validate displacement location is valid
+        - [x] Fall back to adjacent tile if invalid
+        - [ ] Note: Previous direction tracking is currently a stub implementation. Future enhancement needed to track actual previous direction.
+      - [x] If unit has not moved: choose random valid adjacent tile
+        - [x] Ensure displaced unit remains in "not moved" state
+  - [x] Implement visual feedback for displacement
 
   #### Phase 2: Bug Fix for Dormant Unit Preservation
   - [ ] Identify where eggs are being removed when active units move onto them

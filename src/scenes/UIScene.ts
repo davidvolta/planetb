@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import { GameState } from '../store/gameStore';
+import { EVENTS } from '../scenes/BoardScene';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -22,42 +23,29 @@ export default class UIScene extends Phaser.Scene {
     super({ key: 'UIScene', active: true });
   }
 
-
-
   init() {  
-
     // Subscribe to turn changes
     StateObserver.subscribe(
-      this.subscriptionKeys.TURN,
-      (state: GameState) => state.turn,
-      (turn: number) => {
+      'ui-turn',
+      (state: GameState) => ({ 
+        turn: state.turn,
+        selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
+        selectedIsDormant: state.selectedUnitIsDormant,
+      }),
+      (data) => {
+        // Update turn display
         if (this.turnText) {
-          this.turnText.setText(`Turn ${turn}`);
+          this.turnText.setText(`Turn: ${data.turn}`);
         }
-      },
-      { immediate: true }
-    );
-
-    // Subscribe to selected unit changes
-    StateObserver.subscribe(
-      this.subscriptionKeys.SELECTED_UNIT,
-      (state: GameState) => state.selectedUnitId,
-      (unitId: string | null) => {
-        this.selectedUnitId = unitId;
-        this.updateSpawnButtonVisibility();
-      },
-      { immediate: true }
-    );
-
-    // Subscribe to selected unit dormant state
-    StateObserver.subscribe(
-      this.subscriptionKeys.SELECTED_UNIT_DORMANT,
-      (state: GameState) => state.selectedUnitIsDormant,
-      (isDormant: boolean) => {
-        this.selectedUnitIsDormant = isDormant;
-        this.updateSpawnButtonVisibility();
-      },
-      { immediate: true }
+        
+        // Update selected unit details
+        this.selectedUnitId = data.selectedUnit?.id || null;
+        
+        // Show/hide spawn button based on selection
+        if (this.spawnButton) {
+          this.spawnButton.setVisible(data.selectedUnit !== null && data.selectedIsDormant);
+        }
+      }
     );
 
     // Listen for the resize event to reposition the UI
@@ -65,35 +53,35 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create() {
+    // Listen for unit displacement events from BoardScene
+    this.scene.get('BoardScene').events.on(EVENTS.UNIT_DISPLACED, (data: any) => {
+      this.handleUnitDisplaced(data);
+    });
+    
     // Create a container for UI elements that will be positioned in the top left
     this.container = this.add.container(0, 0);
     
-    // Create a semi-transparent background
-    this.background = this.add.rectangle(0, 0, 150, 50, 0x000000, 0.7);
-    this.background.setOrigin(0);
-    this.container.add(this.background);
-
-    // Create the turn text
-    const turn = actions.getTurn();
-    this.turnText = this.add.text(75, 10, `Turn ${turn}`, {
-      fontFamily: 'Raleway',
-      fontSize: '20px',
+    // Add a semi-transparent black background
+    const uiBackground = this.add.rectangle(0, 0, 200, 100, 0x000000, 0.5);
+    uiBackground.setOrigin(0, 0);
+    this.container.add(uiBackground);
+    
+    // Add turn text
+    this.turnText = this.add.text(100, 10, 'Turn: 1', { 
+      fontSize: '24px',
       color: '#FFFFFF'
     });
     this.turnText.setOrigin(0.5, 0);
     this.container.add(this.turnText);
 
+    // Position the UI in the top left corner
+    this.container.setPosition(10, 10);
+    
     // Create next turn button
     this.createNextTurnButton();
-
+    
     // Create spawn button (initially hidden)
     this.createSpawnButton();
-
-    // Position the UI in the top left corner
-    this.resizeUI();
-
-    // Set this scene to be above the BoardScene
-    this.scene.moveAbove('BoardScene');
   }
 
   createNextTurnButton() {
@@ -212,37 +200,39 @@ export default class UIScene extends Phaser.Scene {
     this.container.setPosition(padding, padding);
   }
 
+  /**
+   * Clean up when scene is shut down
+   */
   shutdown() {
-    // Clean up subscriptions
-    Object.values(this.subscriptionKeys).forEach(key => {
-      StateObserver.unsubscribe(key);
-    });
-
-    // Remove resize event listener
-    this.scale.off('resize', this.resizeUI, this);
+    // Remove event listeners
+    this.scene.get('BoardScene').events.off(EVENTS.UNIT_DISPLACED, this.handleUnitDisplaced, this);
     
-    // Clean up text
-    if (this.turnText) {
-      this.turnText.destroy();
-      this.turnText = null;
-    }
-
-    // Clean up spawn button
-    if (this.spawnButton) {
-      this.spawnButton.destroy();
-      this.spawnButton = null;
-    }
-
-    // Clean up next turn button
-    if (this.nextTurnButton) {
-      this.nextTurnButton.destroy();
-      this.nextTurnButton = null;
-    }
-
-    // Clean up container
+    // Clean up any other resources
     if (this.container) {
       this.container.destroy();
       this.container = null;
     }
+    
+    if (this.spawnButton) {
+      this.spawnButton.destroy();
+      this.spawnButton = null;
+    }
+    
+    if (this.nextTurnButton) {
+      this.nextTurnButton.destroy();
+      this.nextTurnButton = null;
+    }
+    
+    this.turnText = null;
+    this.selectedUnitId = null;
+  }
+
+  /**
+   * Handle unit displacement events
+   * @param data Displacement data including unitId, toX, toY
+   */
+  private handleUnitDisplaced(data: { unitId: string; toX: number; toY: number }) {
+    console.log(`UIScene: Unit ${data.unitId} was displaced to (${data.toX},${data.toY})`);
+    // Additional UI updates if needed when a unit is displaced
   }
 } 
