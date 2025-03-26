@@ -12,6 +12,7 @@ export default class UIScene extends Phaser.Scene {
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private selectedUnitId: string | null = null;
   private selectedUnitIsDormant: boolean = false;
+  private newActionButton: Phaser.GameObjects.Container | null = null;
   
 
   
@@ -76,6 +77,9 @@ export default class UIScene extends Phaser.Scene {
     
     // Create next turn button
     this.createNextTurnButton();
+    
+    // Create new action button
+    this.createNewActionButton();
     
     // Create spawn button (initially hidden)
     this.createSpawnButton();
@@ -161,11 +165,39 @@ export default class UIScene extends Phaser.Scene {
     this.spawnButton.add(buttonBg);
     this.spawnButton.add(buttonText);
     
-    // Position the button below the next turn button
-    this.spawnButton.setPosition(0, 110);
+    // Position the button below the new action button
+    this.spawnButton.setPosition(0, 160);
     
     // Add to main container
     this.container?.add(this.spawnButton);
+  }
+
+  createNewActionButton() {
+    // Create a container for the new action button
+    this.newActionButton = this.add.container(0, 0);
+    
+    // Create button background
+    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
+    buttonBg.setOrigin(0);
+    buttonBg.setInteractive({ useHandCursor: true });
+    
+    // Create button text
+    const buttonText = this.add.text(75, 20, 'New Action', {
+      fontFamily: 'Raleway',
+      fontSize: '16px',
+      color: '#FFFFFF'
+    });
+    buttonText.setOrigin(0.5);
+    
+    // Add to container
+    this.newActionButton.add(buttonBg);
+    this.newActionButton.add(buttonText);
+    
+    // Position the button below the next turn button
+    this.newActionButton.setPosition(0, 110);
+    
+    // Add to main container
+    this.container?.add(this.newActionButton);
   }
 
   handleNextTurn() {
@@ -196,6 +228,9 @@ export default class UIScene extends Phaser.Scene {
     if (this.background) {
       // Base height includes Turn indicator and Next Turn button
       let height = 110;
+      
+      // Add height for New Action button
+      height += 50;
       
       // Add height for Spawn button if visible
       if (this.spawnButton && this.spawnButton.visible) {
