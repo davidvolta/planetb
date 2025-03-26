@@ -16,6 +16,87 @@
 
 ## Upcoming Tasks
 
+- [] Implement Dynamic Depth Unit Rendering
+  ### Dynamic Depth Rendering Plan
+
+  #### Phase 1: Create Depth Management Utility
+  - [ ] Add a depth calculation function:
+    - [ ] Create method to calculate unit depth based on Y-position and state
+    - [ ] Use unitsLayer's base depth (5) as starting point 
+    - [ ] Apply Y-coordinate fraction (gridY/1000) for isometric perspective
+    - [ ] Add small offset for active units to appear above eggs
+    - [ ] Test: Log calculated depths for different positions/states
+
+  #### Phase 2: Apply Depth Calculation to Unit Rendering
+  - [ ] Update existing sprites depth:
+    - [ ] Apply depth calculation when updating sprite properties
+    - [ ] Ensure active units get higher depth than eggs at same position
+    - [ ] Test: Visual check that existing units are ordered correctly
+  - [ ] Apply to new sprites:
+    - [ ] Set calculated depth when creating new unit sprites
+    - [ ] Maintain consistency between new and updated sprites
+    - [ ] Test: New units should have proper rendering order immediately
+
+  #### Phase 3: Update Depth During Movement
+  - [ ] Update depth during movement animation:
+    - [ ] Recalculate depth as unit Y-position changes during movement
+    - [ ] Apply dynamic depth updates during animation tweens
+    - [ ] Test: Units maintain correct rendering order during movement
+  - [ ] Update depth after movement completes:
+    - [ ] Set final depth value when unit reaches destination
+    - [ ] Test: Units have correct depth at final position
+
+  #### Phase 4: Handle Egg Production
+  - [ ] Ensure new eggs have correct depth:
+    - [ ] Apply depth calculation to newly produced eggs
+    - [ ] Test: New eggs should appear behind existing units on same tile
+    - [ ] Verify eggs maintain proper isometric perspective relative to units on other tiles
+
+  #### Phase 5: Testing and Validation
+  - [ ] Create visual test scenarios:
+    - [ ] Test with various unit arrangements and movement patterns
+    - [ ] Verify correct rendering when units and eggs overlap
+    - [ ] Ensure isometric perspective is maintained correctly
+    - [ ] Check for any edge cases or visual glitches
+
+- [] Egg Hatching and Unit Displacement
+  ### Unit Spawning & Displacement Implementation Plan
+
+  #### Phase 4: Displacement Mechanics
+  - [ ] Add displacement logic when a unit spawns underneath an active unit:
+    - [ ] Check if active unit exists at spawn location
+    - [ ] Determine displacement direction based on unit's move status:
+      - [ ] If unit has already moved: attempt to continue in previous direction
+        - [ ] Validate displacement location is valid
+        - [ ] Fall back to adjacent tile if invalid
+      - [ ] If unit has not moved: choose random valid adjacent tile
+        - [ ] Ensure displaced unit remains in "not moved" state
+  - [ ] Implement visual feedback for displacement
+
+  #### Phase 5: Bug Fix for Dormant Unit Preservation
+  - [ ] Identify where eggs are being removed when active units move onto them
+  - [ ] Modify movement logic to allow active units to coexist with dormant units
+  - [ ] Ensure dormant units remain in game state when active units occupy same tile
+  - [ ] Add visual indication that both units occupy same tile
+
+  #### Testing Scenarios
+  - [ ] Test displacement in various scenarios
+  - [ ] Test units can move onto eggs without destroying them
+
+  #### Edge Cases to Handle
+  - [ ] No valid displacement location available
+  - [ ] Multiple units needing displacement simultaneously
+  - [ ] Displacement chain reactions
+  - [ ] UI state when selecting units at different stages
+  - [ ] Interaction with other game mechanics
+
+- [] Fix Rendering order of initial/produced eggs so its south to north
+- [ ] Implement habitat improvement
+- [ ] Add player 1 to game board
+- [ ] Add fog of war
+
+- [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
+
 - [] Simplify Selection System Implementation
   ### Selection System Simplification Plan
 
@@ -74,46 +155,6 @@
   - [ ] Polish selection indicator behavior:
     - [ ] Ensure it appears/disappears at appropriate times
     - [ ] Test: Selection indicator shows up correctly
-
-- [] Egg Hatching and Unit Displacement
-  ### Unit Spawning & Displacement Implementation Plan
-
-  #### Phase 4: Displacement Mechanics
-  - [ ] Add displacement logic when a unit spawns underneath an active unit:
-    - [ ] Check if active unit exists at spawn location
-    - [ ] Determine displacement direction based on unit's move status:
-      - [ ] If unit has already moved: attempt to continue in previous direction
-        - [ ] Validate displacement location is valid
-        - [ ] Fall back to adjacent tile if invalid
-      - [ ] If unit has not moved: choose random valid adjacent tile
-        - [ ] Ensure displaced unit remains in "not moved" state
-  - [ ] Implement visual feedback for displacement
-
-  #### Phase 5: Bug Fix for Dormant Unit Preservation
-  - [ ] Identify where eggs are being removed when active units move onto them
-  - [ ] Modify movement logic to allow active units to coexist with dormant units
-  - [ ] Ensure dormant units remain in game state when active units occupy same tile
-  - [ ] Add visual indication that both units occupy same tile
-
-  #### Testing Scenarios
-  - [ ] Test displacement in various scenarios
-  - [ ] Test units can move onto eggs without destroying them
-
-  #### Edge Cases to Handle
-  - [ ] No valid displacement location available
-  - [ ] Multiple units needing displacement simultaneously
-  - [ ] Displacement chain reactions
-  - [ ] UI state when selecting units at different stages
-  - [ ] Interaction with other game mechanics
-
-- [] Fix Tile Selection Bug of clicking tile after egg (this seems systemic - setupClickEventDelegation)
-- [] Fix Rendering order of initial/produced eggs so its south to north
-- [ ] Implement habitat improvement
-- [ ] Add player 1 to game board
-- [ ] Add fog of war
-
-
-- [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
 
 ## Technical Debt / Refactoring
 - [ ] Refactor BoardScene (currently too large at 1400+ lines):

@@ -23,7 +23,8 @@ export const EVENTS = {
   TILE_CLICKED: 'tileClicked',
   HABITAT_CLICKED: 'habitatClicked',
   DORMANT_ANIMAL_SELECTED: 'dormantAnimalSelected',
-  ASSETS_LOADED: 'assetsLoaded'
+  ASSETS_LOADED: 'assetsLoaded',
+  UNIT_SPAWNED: 'unit_spawned'
 };
 
 // Define subscription keys to ensure consistency
@@ -278,7 +279,10 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     // Listen for unit_spawned event from UIScene to hide the selection indicator
-    this.scene.get('UIScene').events.on('unit_spawned', this.hideSelectionIndicator, this);
+    this.scene.get('UIScene').events.on(EVENTS.UNIT_SPAWNED, this.hideSelectionIndicator, this);
+    
+    // Setup debug helpers for browser console access
+    this.setupDebugHelpers();
   }
 
   // Handle animal click events - emit event instead of directly modifying state
@@ -333,6 +337,9 @@ export default class BoardScene extends Phaser.Scene {
       // Determine the texture based on animal state
       const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
       
+      // Determine if the unit is active (for depth calculation)
+      const isActive = animal.state === AnimalState.ACTIVE;
+      
       // Check if we have an existing sprite
       const existing = existingSprites.get(animal.id);
       
@@ -342,6 +349,9 @@ export default class BoardScene extends Phaser.Scene {
         
         // Update position with vertical offset
         existing.sprite.setPosition(worldX, worldY + verticalOffset);
+        
+        // Set depth based on position and state
+        existing.sprite.setDepth(this.calculateUnitDepth(gridY, isActive));
         
         // Update texture if animal state changed
         if (existing.sprite.texture.key !== textureKey) {
@@ -375,6 +385,9 @@ export default class BoardScene extends Phaser.Scene {
         
         // Set appropriate scale
         animalSprite.setScale(1);
+        
+        // Set depth based on position and state
+        animalSprite.setDepth(this.calculateUnitDepth(gridY, isActive));
         
         // Handle interactivity based on state
         if (animal.state === AnimalState.DORMANT) {
@@ -465,7 +478,22 @@ export default class BoardScene extends Phaser.Scene {
     this.unsubscribeAll();
     
     // Remove the unit_spawned event listener
-    this.scene.get('UIScene').events.off('unit_spawned', this.hideSelectionIndicator, this);
+    this.scene.get('UIScene').events.off(EVENTS.UNIT_SPAWNED, this.hideSelectionIndicator, this);
+    
+    // Remove the postupdate event for depth debug
+    this.events.off('postupdate', this.updateDepthDebugText, this);
+    
+    // Clean up any debug visualizations
+    if (this.registry.get('depthDebugEnabled')) {
+      this.unitsLayer?.getAll().forEach(child => {
+        const debugText = child.getData('debugText');
+        if (debugText) {
+          debugText.destroy();
+          child.setData('debugText', null);
+        }
+      });
+      this.registry.set('depthDebugEnabled', false);
+    }
     
     // Clear references to all layers
     this.backgroundLayer = null;
@@ -483,16 +511,8 @@ export default class BoardScene extends Phaser.Scene {
     // Clear tiles array
     this.tiles = [];
     
-    // Clear move range highlights
+    // Clear move highlights array
     this.moveRangeHighlights = [];
-    
-    // Reset animation state
-    this.animationInProgress = false;
-    
-    // Clear selection indicator
-    this.selectionIndicator = null;
-    
-    console.log("BoardScene shutdown complete - all references cleared");
   }
   
   // Create tiles based on the current board state
@@ -1349,16 +1369,23 @@ export default class BoardScene extends Phaser.Scene {
       y: endWorldY + verticalOffset,
       duration: duration,
       ease: 'Power2.out', // Quick acceleration, gentle stop
-      onUpdate: () => {
-        // Update depth during movement to ensure proper layering
-        if (this.unitsLayer) {
-          // Get current y position and use it for depth sorting
-          const currentY = sprite.y - verticalOffset;
-          const normalizedY = currentY / this.tileHeight;
-          
-          // Set depth within the units layer based on Y position
-          sprite.setDepth(normalizedY);
-        }
+      onUpdate: (tween, target, param) => {
+        // Calculate current grid Y position based on the sprite's current position
+        // Convert current world position back to approximate grid position
+        const currentWorldY = sprite.y - verticalOffset;
+        const currentWorldX = sprite.x;
+        
+        // Reverse the isometric projection to get approximate grid coordinates
+        // These are not exact, but they're close enough for depth calculation
+        const relY = (currentWorldY - this.anchorY) / this.tileHeight;
+        const relX = (currentWorldX - this.anchorX) / this.tileSize;
+        
+        // Use the isometric projection formula: x' = (x-y)*tileSize/2, y' = (x+y)*tileHeight/2
+        // Solve for y: y = (2*relY - relX) / 2
+        const currentGridY = (relY * 2 - relX) / 2;
+        
+        // Update depth during movement using our depth calculation
+        sprite.setDepth(this.calculateUnitDepth(currentGridY, true));
       },
       onComplete: () => {
         // Update state after animation completes
@@ -1367,6 +1394,9 @@ export default class BoardScene extends Phaser.Scene {
         // Update the sprite's stored grid coordinates
         sprite.setData('gridX', toX);
         sprite.setData('gridY', toY);
+        
+        // Set final depth at destination
+        sprite.setDepth(this.calculateUnitDepth(toY, true));
         
         // Apply light gray tint to indicate the unit has moved
         sprite.setTint(0xCCCCCC);
@@ -1415,6 +1445,181 @@ export default class BoardScene extends Phaser.Scene {
   private hideSelectionIndicator() {
     if (this.selectionIndicator) {
       this.selectionIndicator.setVisible(false);
+    }
+  }
+
+  /**
+   * Calculate the depth value for a unit sprite based on its grid position and state
+   * This ensures proper isometric perspective (units at higher Y appear behind)
+   * while making active units always appear above eggs on the same tile
+   * 
+   * @param gridY - Y coordinate in the grid
+   * @param isActive - Whether the unit is active (true) or dormant/egg (false)
+   * @returns depth value for the sprite
+   */
+  private calculateUnitDepth(gridY: number, isActive: boolean): number {
+    // Base depth of the units layer
+    const baseDepth = 5;
+    
+    // Y-coordinate fraction for isometric perspective (higher Y = further back = lower depth)
+    // This allows up to 1000 rows before depth values would overlap
+    const yOffset = gridY / 1000;
+    
+    // Small offset to ensure active units appear above eggs at the same position
+    // Using a very small value (0.0005) to minimize impact on overall perspective
+    const stateOffset = isActive ? 0.0005 : 0;
+    
+    // Calculate final depth value
+    const depth = baseDepth + yOffset + stateOffset;
+    
+    // Log depth calculation during development/testing
+    // console.log(`Depth for ${isActive ? 'active' : 'egg'} at Y=${gridY}: ${depth}`);
+    
+    return depth;
+  }
+
+  /**
+   * Debug utility to test and visualize depth calculations
+   * This can be called from the browser console for testing
+   */
+  public testDepthCalculations(): void {
+    console.group('Depth Calculation Tests');
+    
+    // Test various scenarios
+    console.log('Row 0: Active Unit =', this.calculateUnitDepth(0, true));
+    console.log('Row 0: Egg =', this.calculateUnitDepth(0, false));
+    console.log('Row 1: Active Unit =', this.calculateUnitDepth(1, true));
+    console.log('Row 1: Egg =', this.calculateUnitDepth(1, false));
+    console.log('Row 10: Active Unit =', this.calculateUnitDepth(10, true));
+    console.log('Row 10: Egg =', this.calculateUnitDepth(10, false));
+    console.log('Row 100: Active Unit =', this.calculateUnitDepth(100, true));
+    console.log('Row 100: Egg =', this.calculateUnitDepth(100, false));
+    console.log('Row 999: Active Unit =', this.calculateUnitDepth(999, true));
+    console.log('Row 999: Egg =', this.calculateUnitDepth(999, false));
+
+    // Verify that active units always have higher depth than eggs at same position
+    for (let y = 0; y < 1000; y += 100) {
+      const activeDepth = this.calculateUnitDepth(y, true);
+      const eggDepth = this.calculateUnitDepth(y, false);
+      console.assert(
+        activeDepth > eggDepth,
+        `Active unit should have higher depth than egg at Y=${y}: ${activeDepth} vs ${eggDepth}`
+      );
+    }
+    
+    // Verify proper isometric ordering (units at higher Y have lower depth)
+    for (let y = 0; y < 900; y += 100) {
+      const lowerYDepth = this.calculateUnitDepth(y, true);
+      const higherYDepth = this.calculateUnitDepth(y + 100, true);
+      console.assert(
+        lowerYDepth > higherYDepth,
+        `Unit at Y=${y} should have higher depth than unit at Y=${y + 100}: ${lowerYDepth} vs ${higherYDepth}`
+      );
+    }
+    
+    // Check current depth values for units on the board
+    if (this.unitsLayer) {
+      console.group('Current Unit Depths');
+      this.unitsLayer.getAll().forEach(child => {
+        if (child instanceof Phaser.GameObjects.Sprite) {
+          const gridX = child.getData('gridX');
+          const gridY = child.getData('gridY');
+          const animalId = child.getData('animalId');
+          console.log(`Unit ${animalId} at (${gridX},${gridY}) has depth: ${child.depth}`);
+        }
+      });
+      console.groupEnd();
+    }
+    
+    console.groupEnd();
+  }
+  
+  /**
+   * Toggle debug visualization of unit depths
+   * This will add or remove text showing exact depth values for each unit
+   */
+  public toggleDepthDebug(): void {
+    const DEPTH_DEBUG_KEY = 'depthDebugEnabled';
+    
+    // Check if depth debug is already enabled
+    const isEnabled = this.registry.get(DEPTH_DEBUG_KEY) || false;
+    
+    if (isEnabled) {
+      // Remove existing debug text
+      this.unitsLayer?.getAll().forEach(child => {
+        const debugText = child.getData('debugText');
+        if (debugText) {
+          debugText.destroy();
+          child.setData('debugText', null);
+        }
+      });
+      
+      console.log('Depth debug visualization disabled');
+      this.registry.set(DEPTH_DEBUG_KEY, false);
+    } else {
+      // Add debug text to each unit showing its depth
+      this.unitsLayer?.getAll().forEach(child => {
+        if (child instanceof Phaser.GameObjects.Sprite) {
+          const depth = child.depth.toFixed(6);
+          const animalId = child.getData('animalId');
+          const gridY = child.getData('gridY');
+          
+          // Create debug text
+          const debugText = this.add.text(0, 10, `D: ${depth}\nY: ${gridY}`, {
+            fontSize: '10px',
+            color: '#FF0000',
+            stroke: '#000000',
+            strokeThickness: 2,
+            backgroundColor: '#FFFFFF80'
+          });
+          debugText.setOrigin(0.5, 0);
+          debugText.setDepth(10); // Always on top
+          
+          // Make the text follow the sprite
+          child.setData('debugText', debugText);
+          
+          // Position initially
+          debugText.x = child.x;
+          debugText.y = child.y;
+        }
+      });
+      
+      // Set up an update event to keep the debug text positioned with sprites
+      this.events.on('postupdate', this.updateDepthDebugText, this);
+      
+      console.log('Depth debug visualization enabled');
+      this.registry.set(DEPTH_DEBUG_KEY, true);
+    }
+  }
+
+  /**
+   * Update positions of debug text for depth visualization
+   */
+  private updateDepthDebugText(): void {
+    if (!this.registry.get('depthDebugEnabled')) return;
+    
+    this.unitsLayer?.getAll().forEach(child => {
+      if (child instanceof Phaser.GameObjects.Sprite) {
+        const debugText = child.getData('debugText');
+        if (debugText) {
+          debugText.x = child.x;
+          debugText.y = child.y;
+        }
+      }
+    });
+  }
+  
+  /**
+   * Initialize helper for calling test methods from browser console
+   * This makes the board scene instance accessible via window.boardScene
+   */
+  private setupDebugHelpers(): void {
+    if (typeof window !== 'undefined') {
+      // Cast window to any to allow dynamic property assignment
+      (window as any).boardScene = this;
+      console.info('BoardScene available as window.boardScene for debugging');
+      console.info('Try: window.boardScene.testDepthCalculations()');
+      console.info('or: window.boardScene.toggleDepthDebug()');
     }
   }
 }
