@@ -20,22 +20,22 @@
   ### Unit Spawning & Displacement Implementation Plan
   
   #### Phase 1: Dormant Unit Initialization
-  - [ ] Modify game initialization to place units in dormant state (eggs) near habitats
-  - [ ] Ensure dormant units have appropriate visual representation (egg sprites)
-  - [ ] Validate dormant units are properly registered in game state
+  - [x] Modify game initialization to place units in dormant state (eggs) near habitats
+  - [x] Ensure dormant units have appropriate visual representation (egg sprites)
+  - [x] Validate dormant units are properly registered in game state
 
   #### Phase 2: UI-Controlled Spawning
-  - [ ] Modify click handler for eggs to only select the dormant unit rather than activating it
-  - [ ] Add a "Spawn Unit" button to the game controller UI that only appears when a dormant unit is selected
-  - [ ] Connect button to the existing activation function to transform egg into active unit
-  - [ ] Test that eggs can be selected but only activate when button is pressed
+  - [x] Modify click handler for eggs to only select the dormant unit rather than activating it
+  - [x] Add a "Spawn Unit" button to the game controller UI that only appears when a dormant unit is selected
+  - [x] Connect button to the existing activation function to transform egg into active unit
+  - [x] Test that eggs can be selected but only activate when button is pressed
 
   #### Phase 3: Spawning as Turn Action
-  - [ ] Modify the unit activation function to:
-    - [ ] Change unit state from dormant to active
-    - [ ] Apply the "moved" tint to indicate turn is used
-    - [ ] Set unit state to "hasMoved" (or equivalent)
-    - [ ] Ensure unit cannot perform other actions this turn
+  - [x] Modify the unit activation function to:
+    - [x] Change unit state from dormant to active
+    - [x] Apply the "moved" tint to indicate turn is used
+    - [x] Set unit state to "hasMoved" (or equivalent)
+    - [x] Ensure unit cannot perform other actions this turn
 
   #### Phase 4: Displacement Mechanics
   - [ ] Add displacement logic when a unit spawns underneath an active unit:
@@ -55,9 +55,9 @@
   - [ ] Add visual indication that both units occupy same tile
 
   #### Testing Scenarios
-  - [ ] Test dormant unit initialization
-  - [ ] Test UI button appears only for dormant units
-  - [ ] Test spawning correctly uses the unit's turn
+  - [x] Test dormant unit initialization
+  - [x] Test UI button appears only for dormant units
+  - [x] Test spawning correctly uses the unit's turn
   - [ ] Test displacement in various scenarios
   - [ ] Test units can move onto eggs without destroying them
 

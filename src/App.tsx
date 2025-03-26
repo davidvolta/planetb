@@ -10,6 +10,8 @@ function App() {
   // Use direct Zustand hooks for state reading
   const turn = useGameStore((state) => state.turn);
   const nextTurn = useGameStore((state) => state.nextTurn);
+  const selectedUnitId = useGameStore((state) => state.selectedUnitId);
+  const selectedUnitIsDormant = useGameStore((state) => state.selectedUnitIsDormant);
   
   // Track map size
   const [mapWidth, setMapWidth] = useState(30);
@@ -39,6 +41,15 @@ function App() {
       mapType: MapGenerationType.ISLAND,
       forceHabitatGeneration: true
     });
+  };
+  
+  // Handle spawning a dormant unit
+  const handleSpawnUnit = () => {
+    if (selectedUnitId) {
+      actions.evolveAnimal(selectedUnitId);
+      // After evolving, deselect the unit as its turn is used
+      actions.deselectUnit();
+    }
   };
   
   return (
@@ -85,6 +96,25 @@ function App() {
                 Next Turn
               </button>
             </div>
+            
+            {/* Spawn Unit button - only shown when a dormant unit is selected */}
+            {selectedUnitId && selectedUnitIsDormant && (
+              <div>
+                <button 
+                  onClick={handleSpawnUnit}
+                  style={{
+                    background: '#4ae24a',
+                    color: 'white',
+                    border: 'none',
+                    padding: '5px 10px',
+                    borderRadius: '3px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Spawn Unit
+                </button>
+              </div>
+            )}
             
             {/* Map size controls */}
             <div style={{ marginTop: '10px' }}>

@@ -133,6 +133,7 @@ export interface GameState {
   selectedUnitId: string | null;
   validMoves: ValidMove[];
   moveMode: boolean;
+  selectedUnitIsDormant: boolean; // Flag to track if the selected unit is dormant
   
   nextTurn: () => void;
   resetMovementFlags: () => void; // Reset hasMoved flags for all animals
@@ -168,6 +169,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectedUnitId: null,
   validMoves: [],
   moveMode: false,
+  selectedUnitIsDormant: false,
 
   nextTurn: () => set((state) => {
     // Process habitat production
@@ -264,7 +266,7 @@ export const useGameStore = create<GameState>((set, get) => ({
               shelterType: null,
               ownerId: null,
               productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
-              lastProductionTurn: 1,
+              lastProductionTurn: 0,
             };
             
             habitats.push(newHabitat);
@@ -287,7 +289,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 const newAnimal = {
                   id: `animal-${animals.length}`,
                   type: TERRAIN_ANIMAL_MAP[tiles[tile.y][tile.x].terrain],
-                  state: AnimalState.ACTIVE,
+                  state: AnimalState.DORMANT,
                   position: tile,
                   hasMoved: false,
                 };
@@ -339,7 +341,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       const evolvedAnimals = state.animals.map(animal =>
         animal.id === id
-          ? { ...animal, state: AnimalState.ACTIVE }
+          ? { ...animal, state: AnimalState.ACTIVE, hasMoved: true }
           : animal
       );
       const evolvedAnimal = evolvedAnimals.find(a => a.id === id);
@@ -360,7 +362,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         shelterType: null,
         ownerId: null,
         productionRate: Math.floor(Math.random() * 3) + 1, // Random 1-3
-        lastProductionTurn: 1,
+        lastProductionTurn: 0,
       };
       return { habitats: [...state.habitats, newHabitat] };
     }),
@@ -430,7 +432,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { 
           selectedUnitId: null, 
           validMoves: [], 
-          moveMode: false 
+          moveMode: false,
+          selectedUnitIsDormant: true
         };
       }
       
@@ -442,7 +445,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         return {
           selectedUnitId: id,
           validMoves: [],
-          moveMode: false
+          moveMode: false,
+          selectedUnitIsDormant: unit.state === AnimalState.DORMANT
         };
       }
       
@@ -452,7 +456,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       return {
         selectedUnitId: id,
         validMoves,
-        moveMode: true
+        moveMode: true,
+        selectedUnitIsDormant: unit?.state === AnimalState.DORMANT
       };
     }),
     
@@ -480,7 +485,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         animals: updatedAnimals,
         selectedUnitId: null,
         validMoves: [],
-        moveMode: false
+        moveMode: false,
+        selectedUnitIsDormant: true
       };
     }),
     

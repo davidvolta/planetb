@@ -34,7 +34,8 @@ const Game: React.FC = () => {
       // Listen for animal click events
       scene.events.on(EVENTS.ANIMAL_CLICKED, (animalId: string) => {
         console.log(`Animal clicked: ${animalId}`);
-        actions.evolveAnimal(animalId);
+        // No longer directly evolve animals here
+        // The UI will handle evolution through the Spawn Unit button
       });
 
       // Listen for tile click events

@@ -137,4 +137,21 @@ export function getValidMoves(): { x: number, y: number }[] {
  */
 export function isMoveMode(): boolean {
   return useGameStore.getState().moveMode;
+}
+
+/**
+ * Check if the selected unit is a dormant unit (egg)
+ */
+export function isSelectedUnitDormant(): boolean {
+  return useGameStore.getState().selectedUnitIsDormant;
+}
+
+/**
+ * Get the selected animal object
+ */
+export function getSelectedAnimal(): any | null {
+  const id = useGameStore.getState().selectedUnitId;
+  if (!id) return null;
+  
+  return useGameStore.getState().animals.find(a => a.id === id);
 } 

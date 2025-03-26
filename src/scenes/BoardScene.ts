@@ -22,6 +22,7 @@ export const EVENTS = {
   ANIMAL_CLICKED: 'animalClicked',
   TILE_CLICKED: 'tileClicked',
   HABITAT_CLICKED: 'habitatClicked',
+  DORMANT_ANIMAL_SELECTED: 'dormantAnimalSelected',
   ASSETS_LOADED: 'assetsLoaded'
 };
 
@@ -393,8 +394,10 @@ export default class BoardScene extends Phaser.Scene {
           
           // Check if the animal is a dormant egg and can be hatched
           if (animal.state === AnimalState.DORMANT) {
-            // Emit the animal clicked event for the React UI to handle evolution
-            this.events.emit(EVENTS.ANIMAL_CLICKED, animal.id);
+            // Select the dormant unit instead of evolving it immediately
+            actions.selectUnit(animal.id);
+            // Show selection indicator at the egg position
+            this.showSelectionIndicatorAt(gridX, gridY);
           } else {
             // Handle active unit click - select for movement
             // Note: Units that have already moved won't be interactive, so this code only runs for movable units
@@ -662,8 +665,10 @@ export default class BoardScene extends Phaser.Scene {
         const animal = actions.getAnimals().find(a => a.id === animalId);
         if (animal) {
           if (animal.state === AnimalState.DORMANT) {
-            // Handle egg click - evolve it
-            this.events.emit(EVENTS.ANIMAL_CLICKED, animalId);
+            // Select the dormant unit instead of evolving it immediately
+            actions.selectUnit(animal.id);
+            // Show selection indicator at the egg position
+            this.showSelectionIndicatorAt(gridX, gridY);
           } else {
             // Handle active unit click - select for movement
             // Note: Units that have already moved won't be interactive, so this code only runs for movable units
