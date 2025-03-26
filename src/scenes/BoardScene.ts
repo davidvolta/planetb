@@ -1388,7 +1388,6 @@ export default class BoardScene extends Phaser.Scene {
       // Re-add to make sure it's at the top of its layer
       this.selectionLayer.remove(this.selectionIndicator);
       this.selectionLayer.add(this.selectionIndicator);
-      console.log(`Selection indicator set at grid position (${x},${y}) and world position (${this.anchorX + isoX}, ${this.anchorY + isoY})`);
     } else {
       console.warn("Cannot add selection indicator to layer - selectionLayer is null");
     }

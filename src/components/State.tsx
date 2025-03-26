@@ -11,10 +11,6 @@ const State: React.FC = () => {
     stateVisualization: {
       fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       padding: '20px',
-      backgroundColor: '#f5f5f5',
-      borderRadius: '8px',
-      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-      maxWidth: '900px',
       margin: '0 auto',
     },
     heading: {
@@ -156,7 +152,7 @@ const State: React.FC = () => {
 
   return (
     <div style={styles.stateVisualization}>
-      <h2 style={styles.heading as any}>Architecture Visualization</h2>
+      <h2 style={styles.heading as any}>Planet B Architecture </h2>
       <div style={styles.architectureDiagram as any}>
         {/* Main container for the visualization */}
         <div style={styles.layersContainer as any}>
@@ -165,10 +161,6 @@ const State: React.FC = () => {
             {/* React Layer */}
             <div style={{...styles.layer, ...styles.reactLayer, ...styles.consumerLayer, ...styles.arrowContainer} as any}>
               <div style={styles.layerTitle as any}>React Components</div>
-              <div style={styles.infoBox as any}>
-                <div style={styles.infoTitle as any}>React Subscribes to State</div>
-                <div>Never modifies Zustand directly</div>
-              </div>
               <div style={styles.content as any}>
                 <div style={styles.component}>
                   <div style={styles.title as any}>App</div>
@@ -182,6 +174,8 @@ const State: React.FC = () => {
                   <div style={styles.title as any}>Game</div>
                   <div style={styles.itemsList as any}>
                     <div style={styles.item}>board</div>
+                    <div style={styles.item}>animals</div>
+                    <div style={styles.item}>habitats</div>
                   </div>
                 </div>
                 <div style={styles.component}>
@@ -189,6 +183,7 @@ const State: React.FC = () => {
                   <div style={styles.itemsList as any}>
                     <div style={styles.item}>players</div>
                     <div style={styles.item}>currentPlayerId</div>
+                    <div style={styles.item}>selectedUnitId</div>
                   </div>
                 </div>
               </div>
@@ -197,23 +192,15 @@ const State: React.FC = () => {
             {/* Phaser Layer */}
             <div style={{...styles.layer, ...styles.phaserLayer, ...styles.consumerLayer, ...styles.arrowContainer} as any}>
               <div style={styles.layerTitle as any}>Phaser Scenes</div>
-              <div style={styles.infoBox as any}>
-                <div style={styles.infoTitle as any}>Phaser Subscribes to State</div>
-                <div>Renders game world based on state changes</div>
-              </div>
               <div style={styles.content as any}>
                 <div style={styles.component}>
                   <div style={styles.title as any}>BoardScene</div>
                   <div style={styles.itemsList as any}>
                     <div style={styles.item}>board</div>
-                  </div>
-                </div>
-                <div style={styles.componentFuture}>
-                  <div style={styles.title as any}>GameScene (Future)</div>
-                  <div style={styles.itemsList as any}>
-                    <div style={styles.item}>units</div>
-                    <div style={styles.item}>habitats</div>
                     <div style={styles.item}>animals</div>
+                    <div style={styles.item}>habitats</div>
+                    <div style={styles.item}>validMoves</div>
+                    <div style={styles.item}>moveMode</div>
                   </div>
                 </div>
               </div>
@@ -225,10 +212,6 @@ const State: React.FC = () => {
             <div style={styles.arrowLine as any}></div>
             <div style={styles.arrowLine2 as any}></div>
             <div style={styles.layerTitle as any}>Zustand Store</div>
-            <div style={styles.infoBox as any}>
-              <div style={styles.infoTitle as any}>Zustand - Single Source of Truth</div>
-              <div>Notifies subscribers of state changes</div>
-            </div>
             <div style={styles.content as any}>
               <div style={styles.component}>
                 <div style={styles.title as any}>Game State</div>
@@ -237,6 +220,10 @@ const State: React.FC = () => {
                   <div style={styles.item}>players: Player[]</div>
                   <div style={styles.item}>currentPlayerId: number</div>
                   <div style={styles.item}>animals: Animal[]</div>
+                  <div style={styles.item}>habitats: Habitat[]</div>
+                  <div style={styles.item}>selectedUnitId: string | null</div>
+                  <div style={styles.item}>validMoves: ValidMove[]</div>
+                  <div style={styles.item}>moveMode: boolean</div>
                 </div>
               </div>
               <div style={styles.component}>
@@ -249,12 +236,13 @@ const State: React.FC = () => {
                 <div style={styles.title as any}>Actions</div>
                 <div style={styles.itemsList as any}>
                   <div style={styles.item}>nextTurn()</div>
-                  <div style={styles.item}>addPlayer()</div>
-                  <div style={styles.item}>setActivePlayer()</div>
                   <div style={styles.item}>initializeBoard()</div>
-                  <div style={styles.item}>getTile()</div>
-                  <div style={styles.item}>addAnimal()</div>
+                  <div style={styles.item}>selectUnit()</div>
+                  <div style={styles.item}>deselectUnit()</div>
+                  <div style={styles.item}>moveUnit()</div>
+                  <div style={styles.item}>resetMovementFlags()</div>
                   <div style={styles.item}>evolveAnimal()</div>
+                  <div style={styles.item}>improveHabitat()</div>
                 </div>
               </div>
             </div>
