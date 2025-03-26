@@ -301,12 +301,6 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Handle animal click events - emit event instead of directly modifying state
-  onAnimalClicked(animalId: string) {
-    // Emit an event for the React component to handle
-    this.events.emit(EVENTS.ANIMAL_CLICKED, animalId);
-  }
-
   // Updated method using the consolidated approach
   renderAnimalSprites(animals: Animal[]) {
     // Check if unitsLayer exists before proceeding
@@ -753,14 +747,6 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
   
-  // Helper method to find a tile at grid coordinates
-  private getTileAtGridPosition(gridX: number, gridY: number): Phaser.GameObjects.GameObject | null {
-    return this.tiles.find(tile => 
-      tile.getData('gridX') === gridX && 
-      tile.getData('gridY') === gridY
-    ) || null;
-  }
-  
   // Set up camera controls
   private setupControls() {
     // Add panning and zooming for navigation
@@ -1069,32 +1055,6 @@ export default class BoardScene extends Phaser.Scene {
       }
     });
   }
-  
-  // Helper method to remove all existing habitat graphics - no longer needed with our new approach
-  // but keeping it for potential future use
-  private removeAllHabitatGraphics() {
-    if (!this.staticObjectsLayer) return;
-    
-    // Find habitat graphics by checking children with getData method
-    const habitatGraphics: Phaser.GameObjects.GameObject[] = [];
-    
-    this.staticObjectsLayer.getAll().forEach(child => {
-      // Check if child is a GameObject with habitatId data
-      if (child && 'getData' in child && typeof child.getData === 'function') {
-        const gameObj = child as Phaser.GameObjects.GameObject;
-        if (gameObj.getData('habitatId')) {
-          habitatGraphics.push(gameObj);
-        }
-      }
-    });
-    
-    // Remove all found habitat graphics
-    habitatGraphics.forEach(graphic => {
-      graphic.destroy();
-    });
-    
-    console.log(`Removed ${habitatGraphics.length} habitat graphics from staticObjectsLayer`);
-  }
 
   // Set up all layers with appropriate depths
   private setupLayers() {
@@ -1369,24 +1329,6 @@ export default class BoardScene extends Phaser.Scene {
         // Mark animation as complete
         this.animationInProgress = false;
       }
-    });
-  }
-
-  // Keep this method but replace its implementation with our unified method
-  private animateUnitMovement(
-    unitId: string,
-    sprite: Phaser.GameObjects.Sprite,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number
-  ) {
-    // Call the unified animation method with the same options as startUnitMovement
-    this.animateUnit(unitId, fromX, fromY, toX, toY, {
-      applyTint: true,
-      disableInteractive: true,
-      updateState: true,
-      clearMoveHighlights: true
     });
   }
 
