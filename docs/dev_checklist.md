@@ -47,7 +47,7 @@
   - [ ] UI state when selecting units at different stages
   - [ ] Interaction with other game mechanics
 
-- [] Fix Tile Selection Bug of clicking tile after egg (this seems systemic)
+- [] Fix Tile Selection Bug of clicking tile after egg (this seems systemic - setupClickEventDelegation)
 - [] Fix Rendering order of initial/produced eggs so its south to north
 - [ ] Implement habitat improvement
 - [ ] Add player 1 to game board
