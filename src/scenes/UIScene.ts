@@ -168,6 +168,9 @@ export default class UIScene extends Phaser.Scene {
     if (this.selectedUnitId) {
       actions.evolveAnimal(this.selectedUnitId);
       actions.deselectUnit();
+      
+      // Emit an event to notify BoardScene to hide selection indicator
+      this.events.emit('unit_spawned');
     }
   }
 

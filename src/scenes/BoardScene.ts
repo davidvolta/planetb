@@ -276,6 +276,9 @@ export default class BoardScene extends Phaser.Scene {
       console.log("FINAL LAYER STATE AFTER RENDERING ANIMALS AND HABITATS:");
       this.logLayerInfo();
     }
+    
+    // Listen for unit_spawned event from UIScene to hide the selection indicator
+    this.scene.get('UIScene').events.on('unit_spawned', this.hideSelectionIndicator, this);
   }
 
   // Handle animal click events - emit event instead of directly modifying state
@@ -464,6 +467,9 @@ export default class BoardScene extends Phaser.Scene {
   shutdown() {
     // Ensure we clean up all subscriptions when scene shuts down
     this.unsubscribeAll();
+    
+    // Remove the unit_spawned event listener
+    this.scene.get('UIScene').events.off('unit_spawned', this.hideSelectionIndicator, this);
     
     // Clear references to all layers
     this.backgroundLayer = null;
@@ -1411,6 +1417,13 @@ export default class BoardScene extends Phaser.Scene {
       this.selectionLayer.add(this.selectionIndicator);
     } else {
       console.warn("Cannot add selection indicator to layer - selectionLayer is null");
+    }
+  }
+
+  // Add a method to hide the selection indicator
+  private hideSelectionIndicator() {
+    if (this.selectionIndicator) {
+      this.selectionIndicator.setVisible(false);
     }
   }
 }
