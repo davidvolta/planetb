@@ -197,20 +197,24 @@ export function moveDisplacedUnit(id: string, x: number, y: number): void {
     return;
   }
   
-  // Update the unit's position in state
+  // Save the original hasMoved state to preserve it
+  const originalHasMoved = unit.hasMoved;
+  
+  // Update the unit's position in state while preserving its hasMoved state
   useGameStore.setState({
     animals: state.animals.map(animal => 
       animal.id === id 
         ? { 
             ...animal, 
             previousPosition: { ...animal.position }, // Record previous position
-            position: { x, y } // Update to new position
+            position: { x, y }, // Update to new position
+            hasMoved: originalHasMoved // Preserve original movement state
           } 
         : animal
     )
   });
   
-  console.log(`Displaced unit ${id} position updated in state to (${x},${y})`);
+  console.log(`Displaced unit ${id} position updated in state to (${x},${y}), hasMoved: ${originalHasMoved}`);
 }
 
 /**

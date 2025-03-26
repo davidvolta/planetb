@@ -1494,11 +1494,11 @@ export default class BoardScene extends Phaser.Scene {
     
     console.log(`Animating displacement of unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
-    // Use the unified animation method with the same parameters as regular movement
-    // Only difference is the isDisplacement flag which controls which state update function to call
+    // Use the unified animation method with displacement-specific options
+    // Do NOT apply tint or disable interactivity - let the unit remain selectable if it hasn't moved
     this.animateUnit(unitId, fromX, fromY, toX, toY, {
-      applyTint: true,
-      disableInteractive: true,
+      applyTint: false,           // Don't apply the "moved" tint
+      disableInteractive: false,  // Don't disable interactivity
       updateState: true,
       clearMoveHighlights: false,
       isDisplacement: true
