@@ -972,7 +972,45 @@ export default class BoardScene extends Phaser.Scene {
         // Add click handler
         habitatGraphic.on('pointerdown', () => {
           console.log(`Habitat clicked: ${habitat.id} at ${gridX},${gridY}`);
-          this.events.emit(EVENTS.HABITAT_CLICKED, habitat);
+          
+          // Check if we have a selected unit and are in move mode
+          const selectedUnitId = actions.getSelectedUnitId();
+          if (selectedUnitId && actions.isMoveMode()) {
+            // Check if this is a valid move destination
+            const validMoves = actions.getValidMoves();
+            const isValidMove = validMoves.some(move => move.x === gridX && move.y === gridY);
+            
+            if (isValidMove) {
+              // Get current position of selected unit
+              const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
+              if (selectedUnit) {
+                // Start movement animation
+                this.startUnitMovement(
+                  selectedUnitId, 
+                  selectedUnit.position.x, 
+                  selectedUnit.position.y, 
+                  gridX, 
+                  gridY
+                );
+              }
+              
+              // Hide selection indicator when moving a unit
+              if (this.selectionIndicator) {
+                this.selectionIndicator.setVisible(false);
+              }
+            } else {
+              // Not a valid move, deselect the unit
+              actions.deselectUnit();
+              
+              // Hide the selection indicator
+              if (this.selectionIndicator) {
+                this.selectionIndicator.setVisible(false);
+              }
+            }
+          } else {
+            // Standard habitat click handling
+            this.events.emit(EVENTS.HABITAT_CLICKED, habitat);
+          }
         });
         
         // Add the new graphic to the layer
