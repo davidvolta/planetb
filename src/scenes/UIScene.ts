@@ -13,6 +13,8 @@ export default class UIScene extends Phaser.Scene {
   private selectedUnitId: string | null = null;
   private selectedUnitIsDormant: boolean = false;
   
+
+  
   private subscriptionKeys = {
     TURN: 'UIScene.turn',
     SELECTED_UNIT: 'UIScene.selectedUnit',
@@ -77,6 +79,20 @@ export default class UIScene extends Phaser.Scene {
     
     // Create spawn button (initially hidden)
     this.createSpawnButton();
+    
+    // Set up keyboard shortcuts
+    // The 'S' key for spawn
+    this.input.keyboard.on('keydown-S', () => {
+      // Only handle if spawn button is visible
+      if (this.spawnButton && this.spawnButton.visible) {
+        this.handleSpawnUnit();
+      }
+    });
+    
+    // The 'N' key for next turn
+    this.input.keyboard.on('keydown-N', () => {
+      this.handleNextTurn();
+    });
   }
 
   createNextTurnButton() {
@@ -91,7 +107,7 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerover', () => buttonBg.setFillStyle(0xA0A0A0))
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
-    // Create button text
+    // Create button text with keyboard shortcut
     const buttonText = this.add.text(75, 20, 'Next Turn', {
       fontFamily: 'Raleway',
       fontSize: '16px',
@@ -123,7 +139,7 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerover', () => buttonBg.setFillStyle(0xA0A0A0))
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
-    // Create button text
+    // Create button text with shortcut hint
     const buttonText = this.add.text(75, 20, 'Spawn Unit', {
       fontFamily: 'Raleway',
       fontSize: '16px',
@@ -214,6 +230,10 @@ export default class UIScene extends Phaser.Scene {
       this.nextTurnButton.destroy();
       this.nextTurnButton = null;
     }
+    
+    // Clean up keyboard listeners
+    this.input.keyboard.off('keydown-S');
+    this.input.keyboard.off('keydown-N');
     
     this.turnText = null;
     this.selectedUnitId = null;
