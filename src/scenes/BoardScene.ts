@@ -35,6 +35,10 @@ const SUBSCRIPTIONS = {
   VALID_MOVES: 'BoardScene.validMoves',
 };
 
+// PHASE 4: Selection System Simplification - Final Cleanup
+// This phase centralizes selection indicator logic, removes redundant code, 
+// and ensures consistent state updates across the selection system.
+
 export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.GameObject[] = [];
   private tileSize = 64; // Fixed tile size
@@ -462,28 +466,13 @@ export default class BoardScene extends Phaser.Scene {
                     gridY
                   );
                 }
-                
-                // Hide selection indicator during movement
-                if (this.selectionIndicator) {
-                  this.selectionIndicator.setVisible(false);
-                }
               } else {
                 // Not a valid move target, select this unit instead
-                actions.selectUnit(animal.id);
-                
-                // When selecting a unit, don't show the tile selection indicator
-                if (this.selectionIndicator) {
-                  this.selectionIndicator.setVisible(false);
-                }
+                this.handleUnitSelection(animal.id);
               }
             } else {
               // No unit selected, select this one
-              actions.selectUnit(animal.id);
-              
-              // When selecting a unit, don't show the tile selection indicator
-              if (this.selectionIndicator) {
-                this.selectionIndicator.setVisible(false);
-              }
+              this.handleUnitSelection(animal.id);
             }
           });
         }
@@ -688,10 +677,8 @@ export default class BoardScene extends Phaser.Scene {
         const animal = actions.getAnimals().find(a => a.id === animalId);
         if (animal) {
           if (animal.state === AnimalState.DORMANT) {
-            // Select the dormant unit instead of evolving it immediately
-            actions.selectUnit(animal.id);
-            // Show selection indicator at the egg position
-            this.showSelectionIndicatorAt(gridX, gridY);
+            // Select the dormant unit instead of evolving it immediately and show selection indicator
+            this.handleUnitSelection(animal.id, { x: gridX, y: gridY });
           } else {
             // Handle active unit click - select for movement
             // Note: Units that have already moved won't be interactive, so this code only runs for movable units
@@ -715,28 +702,13 @@ export default class BoardScene extends Phaser.Scene {
                     gridY
                   );
                 }
-                
-                // Hide selection indicator during movement
-                if (this.selectionIndicator) {
-                  this.selectionIndicator.setVisible(false);
-                }
               } else {
                 // Not a valid move target, select this unit instead
-                actions.selectUnit(animal.id);
-                
-                // When selecting a unit, don't show the tile selection indicator
-                if (this.selectionIndicator) {
-                  this.selectionIndicator.setVisible(false);
-                }
+                this.handleUnitSelection(animal.id);
               }
             } else {
               // No unit selected, select this one
-              actions.selectUnit(animal.id);
-              
-              // When selecting a unit, don't show the tile selection indicator
-              if (this.selectionIndicator) {
-                this.selectionIndicator.setVisible(false);
-              }
+              this.handleUnitSelection(animal.id);
             }
           }
         }
@@ -774,19 +746,9 @@ export default class BoardScene extends Phaser.Scene {
                 y
               );
             }
-            
-            // Hide selection indicator when moving a unit
-            if (this.selectionIndicator) {
-              this.selectionIndicator.setVisible(false);
-            }
           } else {
             // Not a valid move, deselect the unit
-            actions.deselectUnit();
-            
-            // Hide the selection indicator
-            if (this.selectionIndicator) {
-              this.selectionIndicator.setVisible(false);
-            }
+            this.handleUnitSelection(null);
           }
         } else {
           // Not in move mode, just a regular tile click
@@ -796,15 +758,15 @@ export default class BoardScene extends Phaser.Scene {
           
           // If there's a dormant unit, select it
           if (tileContents.dormantUnits.length > 0) {
-            actions.selectUnit(tileContents.dormantUnits[0].id);
-            // Show selection indicator at the dormant unit position
-            this.showSelectionIndicatorAt(x, y);
+            this.handleUnitSelection(tileContents.dormantUnits[0].id, { x, y });
           } 
           // Otherwise, only show selection if there's no active unmoved unit on this tile
           else {
             const hasActiveUnmovedUnit = tileContents.activeUnits.some(unit => !unit.hasMoved);
-            if (!hasActiveUnmovedUnit && this.selectionIndicator && this.selectionLayer) {
+            if (!hasActiveUnmovedUnit) {
               this.showSelectionIndicatorAt(x, y);
+            } else {
+              this.hideSelectionIndicator();
             }
           }
           
@@ -819,12 +781,7 @@ export default class BoardScene extends Phaser.Scene {
         }
       } else {
         // If clicked somewhere else, deselect the unit
-        actions.deselectUnit();
-        
-        // If the user clicked something that's not a tile, we can optionally hide the selection indicator
-        if (this.selectionIndicator) {
-          this.selectionIndicator.setVisible(false);
-        }
+        this.handleUnitSelection(null);
       }
     });
   }
@@ -952,8 +909,10 @@ export default class BoardScene extends Phaser.Scene {
     this.selectionIndicator.closePath();
     this.selectionIndicator.strokePath();
     
-    // Hide the selection indicator initially
-    this.selectionIndicator.setVisible(false);
+    // Hide the selection indicator initially - directly set visibility
+    if (this.selectionIndicator) {
+      this.selectionIndicator.setVisible(false);
+    }
     
     // Add selection indicator to selection layer
     this.selectionLayer.add(this.selectionIndicator);
@@ -1373,9 +1332,7 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     // Hide selection indicator during animation
-    if (this.selectionIndicator) {
-      this.selectionIndicator.setVisible(false);
-    }
+    this.hideSelectionIndicator();
     
     // Calculate movement duration based on distance (unless fixed duration is provided)
     let duration;
@@ -1519,38 +1476,55 @@ export default class BoardScene extends Phaser.Scene {
     this.hideSelectionIndicator();
   }
 
-  // Add a method to hide the selection indicator
-  private hideSelectionIndicator() {
-    if (this.selectionIndicator) {
-      this.selectionIndicator.setVisible(false);
+  // PHASE 4: Create a centralized method for selection indicator management
+  // This will replace scattered calls to selectionIndicator.setVisible throughout the code
+  private updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number) {
+    if (!this.selectionIndicator) {
+      // Create the indicator if it doesn't exist
+      this.createSelectionIndicator();
+      
+      // If still null after attempting to create, exit
+      if (!this.selectionIndicator) {
+        console.warn("Could not create selection indicator");
+        return;
+      }
     }
+    
+    if (shouldShow && x !== undefined && y !== undefined) {
+      // Calculate isometric position for the indicator
+      const isoX = (x - y) * this.tileSize / 2;
+      const isoY = (x + y) * this.tileHeight / 2;
+      
+      // Position the indicator
+      this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
+      
+      // Make the indicator visible
+      this.selectionIndicator.setVisible(true);
+      
+      // Ensure it's at the top of its layer
+      if (this.selectionLayer) {
+        // Re-add to make sure it's at the top of its layer
+        this.selectionLayer.remove(this.selectionIndicator);
+        this.selectionLayer.add(this.selectionIndicator);
+      } else {
+        console.warn("Cannot add selection indicator to layer - selectionLayer is null");
+      }
+    } else {
+      // Just hide the indicator - directly set visibility to avoid circular reference
+      if (this.selectionIndicator) {
+        this.selectionIndicator.setVisible(false);
+      }
+    }
+  }
+
+  // Helper method to hide the selection indicator
+  private hideSelectionIndicator() {
+    this.updateSelectionIndicator(false);
   }
 
   // Helper method to show the selection indicator at a specific grid position
   private showSelectionIndicatorAt(x: number, y: number) {
-    if (!this.selectionIndicator) {
-      console.warn("Cannot show selection indicator - selectionIndicator is null");
-      return;
-    }
-    
-    // Calculate isometric position for the indicator
-    const isoX = (x - y) * this.tileSize / 2;
-    const isoY = (x + y) * this.tileHeight / 2;
-    
-    // Position the indicator
-    this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
-    
-    // Make the indicator visible
-    this.selectionIndicator.setVisible(true);
-    
-    // Ensure it's at the top of its layer
-    if (this.selectionLayer) {
-      // Re-add to make sure it's at the top of its layer
-      this.selectionLayer.remove(this.selectionIndicator);
-      this.selectionLayer.add(this.selectionIndicator);
-    } else {
-      console.warn("Cannot add selection indicator to layer - selectionLayer is null");
-    }
+    this.updateSelectionIndicator(true, x, y);
   }
 
   /**
@@ -1577,5 +1551,19 @@ export default class BoardScene extends Phaser.Scene {
     
     // Calculate final depth value
     return baseDepth + positionOffset + stateOffset;
+  }
+
+  // PHASE 4: Add a dedicated method to handle unit selection for consistent behavior
+  private handleUnitSelection(unitId: string | null, showSelectionAt?: { x: number, y: number }) {
+    // Select or deselect the unit in store
+    actions.selectUnit(unitId);
+    
+    // If we're selecting a unit and have coordinates, show selection indicator
+    if (unitId && showSelectionAt) {
+      this.showSelectionIndicatorAt(showSelectionAt.x, showSelectionAt.y);
+    } else {
+      // Otherwise hide it (when deselecting or selecting an active unit)
+      this.hideSelectionIndicator();
+    }
   }
 }
