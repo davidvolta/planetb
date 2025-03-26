@@ -169,7 +169,6 @@ export default class BoardScene extends Phaser.Scene {
         moveMode: state.moveMode 
       }),
       (moveState) => {
-        console.log("Valid moves changed:", moveState);
         this.renderMoveRange(moveState.validMoves, moveState.moveMode);
       }
     );
@@ -727,8 +726,6 @@ export default class BoardScene extends Phaser.Scene {
         const x = gameObject.getData('gridX');
         const y = gameObject.getData('gridY');
         
-        console.log(`Tile clicked at ${x},${y}`);
-        
         // Check if we have a selected unit and are in move mode
         const selectedUnitId = actions.getSelectedUnitId();
         if (selectedUnitId && actions.isMoveMode()) {
@@ -778,7 +775,6 @@ export default class BoardScene extends Phaser.Scene {
           
           // If we found a dormant unit, select it
           if (dormantUnitAtTile) {
-            console.log(`Dormant unit found at tile ${x},${y}: ${dormantUnitAtTile.id}`);
             actions.selectUnit(dormantUnitAtTile.id);
             this.showSelectionIndicatorAt(x, y);
           } else {

@@ -41,7 +41,7 @@ const Game: React.FC = () => {
 
       // Listen for tile click events
       scene.events.on(EVENTS.TILE_CLICKED, (coords: { x: number, y: number }) => {
-        console.log(`Tile clicked at: ${coords.x}, ${coords.y}`);
+        // Handle tile clicks if needed
       });
 
       // Listen for habitat click events
