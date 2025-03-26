@@ -14,6 +14,7 @@ interface Animal {
     x: number;
     y: number;
   };
+  hasMoved: boolean;
 }
 
 // Custom event names
@@ -343,6 +344,24 @@ export default class BoardScene extends Phaser.Scene {
           console.log(`Updating sprite texture for animal ${animal.id} from ${existing.sprite.texture.key} to ${textureKey}`);
           existing.sprite.setTexture(textureKey);
         }
+        
+        // Handle interactivity and visual feedback based on movement state
+        if (animal.state === AnimalState.ACTIVE) {
+          if (animal.hasMoved) {
+            // Ensure interactivity is disabled for moved units
+            existing.sprite.disableInteractive();
+            
+            // Make sure the tint is applied
+            existing.sprite.setTint(0xCCCCCC);
+          } else {
+            // Re-enable interactivity for units that can move 
+            // (important for new turn when hasMoved is reset)
+            existing.sprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
+            
+            // Clear any tint
+            existing.sprite.clearTint();
+          }
+        }
       } else {
         // Create a new sprite for this animal with the correct texture
         const animalSprite = this.add.sprite(worldX, worldY + verticalOffset, textureKey);
@@ -350,14 +369,23 @@ export default class BoardScene extends Phaser.Scene {
         // Set appropriate scale
         animalSprite.setScale(1);
         
+        // Handle interactivity based on movement state for new sprites too
+        if (animal.state === AnimalState.ACTIVE && animal.hasMoved) {
+          // Apply visual feedback
+          animalSprite.setTint(0xCCCCCC);
+          
+          // Don't make moved units interactive
+          // We'll leave it uninteractive instead of making it interactive and then disabling
+        } else {
+          // Make interactive only if it hasn't moved or is an egg
+          animalSprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
+        }
+        
         // Store the animal ID and type on the sprite
         animalSprite.setData('animalId', animal.id);
         animalSprite.setData('animalType', animal.type);
         animalSprite.setData('gridX', gridX);
         animalSprite.setData('gridY', gridY);
-        
-        // Make the sprite interactive with pixel-perfect hit detection
-        animalSprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
         
         // Add a click handler that handles state evolution
         animalSprite.on('pointerdown', () => {
@@ -368,8 +396,51 @@ export default class BoardScene extends Phaser.Scene {
             // Emit the animal clicked event for the React UI to handle evolution
             this.events.emit(EVENTS.ANIMAL_CLICKED, animal.id);
           } else {
-            // Regular animal click handling
-            this.events.emit(EVENTS.ANIMAL_CLICKED, animal);
+            // Handle active unit click - select for movement
+            // Note: Units that have already moved won't be interactive, so this code only runs for movable units
+            const selectedUnitId = actions.getSelectedUnitId();
+            
+            if (selectedUnitId && actions.isMoveMode()) {
+              // If we already have a unit selected, check if this is a valid move target
+              const validMoves = actions.getValidMoves();
+              const canMoveHere = validMoves.some(move => move.x === gridX && move.y === gridY);
+              
+              if (canMoveHere) {
+                // Get current position of selected unit
+                const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
+                if (selectedUnit) {
+                  // Start movement animation
+                  this.startUnitMovement(
+                    selectedUnitId, 
+                    selectedUnit.position.x, 
+                    selectedUnit.position.y, 
+                    gridX, 
+                    gridY
+                  );
+                }
+                
+                // Hide selection indicator during movement
+                if (this.selectionIndicator) {
+                  this.selectionIndicator.setVisible(false);
+                }
+              } else {
+                // Not a valid move target, select this unit instead
+                actions.selectUnit(animal.id);
+                
+                // When selecting a unit, don't show the tile selection indicator
+                if (this.selectionIndicator) {
+                  this.selectionIndicator.setVisible(false);
+                }
+              }
+            } else {
+              // No unit selected, select this one
+              actions.selectUnit(animal.id);
+              
+              // When selecting a unit, don't show the tile selection indicator
+              if (this.selectionIndicator) {
+                this.selectionIndicator.setVisible(false);
+              }
+            }
           }
         });
         
@@ -595,6 +666,7 @@ export default class BoardScene extends Phaser.Scene {
             this.events.emit(EVENTS.ANIMAL_CLICKED, animalId);
           } else {
             // Handle active unit click - select for movement
+            // Note: Units that have already moved won't be interactive, so this code only runs for movable units
             const selectedUnitId = actions.getSelectedUnitId();
             
             if (selectedUnitId && actions.isMoveMode()) {
@@ -622,7 +694,7 @@ export default class BoardScene extends Phaser.Scene {
                 }
               } else {
                 // Not a valid move target, select this unit instead
-                actions.selectUnit(animalId);
+                actions.selectUnit(animal.id);
                 
                 // When selecting a unit, don't show the tile selection indicator
                 if (this.selectionIndicator) {
@@ -631,7 +703,7 @@ export default class BoardScene extends Phaser.Scene {
               }
             } else {
               // No unit selected, select this one
-              actions.selectUnit(animalId);
+              actions.selectUnit(animal.id);
               
               // When selecting a unit, don't show the tile selection indicator
               if (this.selectionIndicator) {
@@ -685,16 +757,17 @@ export default class BoardScene extends Phaser.Scene {
         } else {
           // Not in move mode, just a regular tile click
           
-          // Check if there's a unit at this tile before showing the selection indicator
+          // Check if there's a non-moved unit at this tile before showing the selection indicator
           const animals = actions.getAnimals();
           const unitAtTile = animals.find(animal => 
             animal.position.x === x && 
             animal.position.y === y && 
-            animal.state !== AnimalState.DORMANT
+            animal.state !== AnimalState.DORMANT &&
+            !animal.hasMoved // Only consider units that haven't moved yet
           );
           
-          // Only show selection indicator if there's no active unit on this tile
-          if (!unitAtTile && this.selectionIndicator && this.selectionLayer) {
+          // Only show selection indicator if there's no active unit on this tile OR the unit has already moved
+          if ((!unitAtTile) && this.selectionIndicator && this.selectionLayer) {
             this.showSelectionIndicatorAt(x, y);
           }
           
@@ -1276,6 +1349,14 @@ export default class BoardScene extends Phaser.Scene {
         // Update the sprite's stored grid coordinates
         sprite.setData('gridX', toX);
         sprite.setData('gridY', toY);
+        
+        // Apply light gray tint to indicate the unit has moved
+        sprite.setTint(0xCCCCCC);
+        
+        // Disable interactivity so clicks pass through to the underlying tile
+        sprite.disableInteractive();
+        
+        console.log(`Unit ${unitId} moved: applied gray tint and disabled interactivity`);
         
         console.log(`Animation complete for unit ${unitId}`);
         

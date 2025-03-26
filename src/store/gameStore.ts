@@ -90,6 +90,7 @@ export interface Animal {
   type: string;
   state: AnimalState;
   position: Coordinate;
+  hasMoved: boolean; // Flag to track if animal has moved this turn
 }
 
 // Board structure
@@ -134,6 +135,7 @@ export interface GameState {
   moveMode: boolean;
   
   nextTurn: () => void;
+  resetMovementFlags: () => void; // Reset hasMoved flags for all animals
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
   initializeBoard: (width: number, height: number, mapType?: MapGenerationType, forceHabitatGeneration?: boolean) => void;
@@ -171,8 +173,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Process habitat production
     const updatedState = processHabitatProduction(state);
     
+    // Reset the hasMoved flags for all animals
+    const resetAnimals = updatedState.animals?.map(animal => ({
+      ...animal,
+      hasMoved: false
+    })) || state.animals?.map(animal => ({
+      ...animal,
+      hasMoved: false
+    }));
+    
     return { 
       ...updatedState,
+      animals: resetAnimals,
       turn: state.turn + 1,
     };
   }),
@@ -277,6 +289,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                   type: TERRAIN_ANIMAL_MAP[tiles[tile.y][tile.x].terrain],
                   state: AnimalState.ACTIVE,
                   position: tile,
+                  hasMoved: false,
                 };
                 console.log(`Created new animal during init:`, { 
                   id: newAnimal.id, 
@@ -317,6 +330,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         type: type,
         state: AnimalState.DORMANT,
         position: { x, y },
+        hasMoved: false,
       };
       return { animals: [...state.animals, newAnimal] };
     }),
@@ -420,6 +434,18 @@ export const useGameStore = create<GameState>((set, get) => ({
         };
       }
       
+      // Check if the unit has already moved this turn
+      const unit = state.animals.find(a => a.id === id);
+      if (unit && unit.hasMoved) {
+        console.log(`Cannot select unit ${id} for movement - it has already moved this turn`);
+        // We don't prevent selection entirely, but we don't enter move mode
+        return {
+          selectedUnitId: id,
+          validMoves: [],
+          moveMode: false
+        };
+      }
+      
       // Select the unit and calculate valid moves
       const validMoves = calculateValidMoves(id, state);
       
@@ -440,12 +466,14 @@ export const useGameStore = create<GameState>((set, get) => ({
         return state;
       }
       
-      // Update the animal's position
+      // Update the animal's position and mark it as moved for this turn
       const updatedAnimals = state.animals.map(animal => 
         animal.id === id 
-          ? { ...animal, position: { x, y } } 
+          ? { ...animal, position: { x, y }, hasMoved: true } 
           : animal
       );
+      
+      console.log(`Unit ${id} moved to (${x},${y}) and marked as moved for this turn`);
       
       // Clear movement state after move
       return {
@@ -460,6 +488,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     return calculateValidMoves(id, state);
   },
+
+  resetMovementFlags: () => set((state) => {
+    const updatedAnimals = state.animals.map(animal => ({
+      ...animal,
+      hasMoved: false
+    }));
+    return { animals: updatedAnimals };
+  }),
 }));
 
 // Process production for all habitats
@@ -493,7 +529,8 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
         id: `animal-${newAnimals.length}`,
         type: TERRAIN_ANIMAL_MAP[state.board!.tiles[tile.y][tile.x].terrain],
         state: AnimalState.DORMANT,
-        position: tile
+        position: tile,
+        hasMoved: false,
       };
       console.log(`Created new animal during production:`, { 
         id: newAnimal.id, 
@@ -523,6 +560,12 @@ const calculateValidMoves = (unitId: string, state: GameState): ValidMove[] => {
   
   const unit = state.animals.find(a => a.id === unitId);
   if (!unit || unit.state === AnimalState.DORMANT) return [];
+  
+  // If the unit has already moved this turn, it cannot move again
+  if (unit.hasMoved) {
+    console.log(`Unit ${unitId} has already moved this turn and cannot move again`);
+    return [];
+  }
   
   // Start position
   const startX = unit.position.x;
