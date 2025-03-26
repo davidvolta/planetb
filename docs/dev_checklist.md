@@ -47,10 +47,10 @@
     - [x] Test: Units have correct depth at final position
 
   #### Phase 4: Handle Egg Production
-  - [ ] Ensure new eggs have correct depth:
-    - [ ] Apply depth calculation to newly produced eggs
-    - [ ] Test: New eggs should appear behind existing units on same tile
-    - [ ] Verify eggs maintain proper isometric perspective relative to units on other tiles
+  - [x] Ensure new eggs have correct depth:
+    - [x] Apply depth calculation to newly produced eggs
+    - [x] Test: New eggs should appear behind existing units on same tile
+    - [x] Verify eggs maintain proper isometric perspective relative to units on other tiles
 
   #### Phase 5: Testing and Validation
   - [x] Create visual test scenarios:

@@ -280,9 +280,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Listen for unit_spawned event from UIScene to hide the selection indicator
     this.scene.get('UIScene').events.on(EVENTS.UNIT_SPAWNED, this.hideSelectionIndicator, this);
-    
-    // Setup debug helpers for browser console access
-    this.setupDebugHelpers();
   }
 
   // Handle animal click events - emit event instead of directly modifying state
@@ -479,21 +476,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Remove the unit_spawned event listener
     this.scene.get('UIScene').events.off(EVENTS.UNIT_SPAWNED, this.hideSelectionIndicator, this);
-    
-    // Remove the postupdate event for depth debug
-    this.events.off('postupdate', this.updateDepthDebugText, this);
-    
-    // Clean up any debug visualizations
-    if (this.registry.get('depthDebugEnabled')) {
-      this.unitsLayer?.getAll().forEach(child => {
-        const debugText = child.getData('debugText');
-        if (debugText) {
-          debugText.destroy();
-          child.setData('debugText', null);
-        }
-      });
-      this.registry.set('depthDebugEnabled', false);
-    }
     
     // Clear references to all layers
     this.backgroundLayer = null;
@@ -1461,7 +1443,7 @@ export default class BoardScene extends Phaser.Scene {
     // Base depth of the units layer
     const baseDepth = 5;
     
-    // Y-coordinate fraction for isometric perspective (higher Y = further back = lower depth)
+    // Y-coordinate fraction for isometric perspective (higher Y = further back = higher depth)
     // This allows up to 1000 rows before depth values would overlap
     const yOffset = gridY / 1000;
     
@@ -1470,156 +1452,6 @@ export default class BoardScene extends Phaser.Scene {
     const stateOffset = isActive ? 0.0005 : 0;
     
     // Calculate final depth value
-    const depth = baseDepth + yOffset + stateOffset;
-    
-    // Log depth calculation during development/testing
-    // console.log(`Depth for ${isActive ? 'active' : 'egg'} at Y=${gridY}: ${depth}`);
-    
-    return depth;
-  }
-
-  /**
-   * Debug utility to test and visualize depth calculations
-   * This can be called from the browser console for testing
-   */
-  public testDepthCalculations(): void {
-    console.group('Depth Calculation Tests');
-    
-    // Test various scenarios
-    console.log('Row 0: Active Unit =', this.calculateUnitDepth(0, true));
-    console.log('Row 0: Egg =', this.calculateUnitDepth(0, false));
-    console.log('Row 1: Active Unit =', this.calculateUnitDepth(1, true));
-    console.log('Row 1: Egg =', this.calculateUnitDepth(1, false));
-    console.log('Row 10: Active Unit =', this.calculateUnitDepth(10, true));
-    console.log('Row 10: Egg =', this.calculateUnitDepth(10, false));
-    console.log('Row 100: Active Unit =', this.calculateUnitDepth(100, true));
-    console.log('Row 100: Egg =', this.calculateUnitDepth(100, false));
-    console.log('Row 999: Active Unit =', this.calculateUnitDepth(999, true));
-    console.log('Row 999: Egg =', this.calculateUnitDepth(999, false));
-
-    // Verify that active units always have higher depth than eggs at same position
-    for (let y = 0; y < 1000; y += 100) {
-      const activeDepth = this.calculateUnitDepth(y, true);
-      const eggDepth = this.calculateUnitDepth(y, false);
-      console.assert(
-        activeDepth > eggDepth,
-        `Active unit should have higher depth than egg at Y=${y}: ${activeDepth} vs ${eggDepth}`
-      );
-    }
-    
-    // Verify proper isometric ordering (units at higher Y have lower depth)
-    for (let y = 0; y < 900; y += 100) {
-      const lowerYDepth = this.calculateUnitDepth(y, true);
-      const higherYDepth = this.calculateUnitDepth(y + 100, true);
-      console.assert(
-        lowerYDepth > higherYDepth,
-        `Unit at Y=${y} should have higher depth than unit at Y=${y + 100}: ${lowerYDepth} vs ${higherYDepth}`
-      );
-    }
-    
-    // Check current depth values for units on the board
-    if (this.unitsLayer) {
-      console.group('Current Unit Depths');
-      this.unitsLayer.getAll().forEach(child => {
-        if (child instanceof Phaser.GameObjects.Sprite) {
-          const gridX = child.getData('gridX');
-          const gridY = child.getData('gridY');
-          const animalId = child.getData('animalId');
-          console.log(`Unit ${animalId} at (${gridX},${gridY}) has depth: ${child.depth}`);
-        }
-      });
-      console.groupEnd();
-    }
-    
-    console.groupEnd();
-  }
-  
-  /**
-   * Toggle debug visualization of unit depths
-   * This will add or remove text showing exact depth values for each unit
-   */
-  public toggleDepthDebug(): void {
-    const DEPTH_DEBUG_KEY = 'depthDebugEnabled';
-    
-    // Check if depth debug is already enabled
-    const isEnabled = this.registry.get(DEPTH_DEBUG_KEY) || false;
-    
-    if (isEnabled) {
-      // Remove existing debug text
-      this.unitsLayer?.getAll().forEach(child => {
-        const debugText = child.getData('debugText');
-        if (debugText) {
-          debugText.destroy();
-          child.setData('debugText', null);
-        }
-      });
-      
-      console.log('Depth debug visualization disabled');
-      this.registry.set(DEPTH_DEBUG_KEY, false);
-    } else {
-      // Add debug text to each unit showing its depth
-      this.unitsLayer?.getAll().forEach(child => {
-        if (child instanceof Phaser.GameObjects.Sprite) {
-          const depth = child.depth.toFixed(6);
-          const animalId = child.getData('animalId');
-          const gridY = child.getData('gridY');
-          
-          // Create debug text
-          const debugText = this.add.text(0, 10, `D: ${depth}\nY: ${gridY}`, {
-            fontSize: '10px',
-            color: '#FF0000',
-            stroke: '#000000',
-            strokeThickness: 2,
-            backgroundColor: '#FFFFFF80'
-          });
-          debugText.setOrigin(0.5, 0);
-          debugText.setDepth(10); // Always on top
-          
-          // Make the text follow the sprite
-          child.setData('debugText', debugText);
-          
-          // Position initially
-          debugText.x = child.x;
-          debugText.y = child.y;
-        }
-      });
-      
-      // Set up an update event to keep the debug text positioned with sprites
-      this.events.on('postupdate', this.updateDepthDebugText, this);
-      
-      console.log('Depth debug visualization enabled');
-      this.registry.set(DEPTH_DEBUG_KEY, true);
-    }
-  }
-
-  /**
-   * Update positions of debug text for depth visualization
-   */
-  private updateDepthDebugText(): void {
-    if (!this.registry.get('depthDebugEnabled')) return;
-    
-    this.unitsLayer?.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Sprite) {
-        const debugText = child.getData('debugText');
-        if (debugText) {
-          debugText.x = child.x;
-          debugText.y = child.y;
-        }
-      }
-    });
-  }
-  
-  /**
-   * Initialize helper for calling test methods from browser console
-   * This makes the board scene instance accessible via window.boardScene
-   */
-  private setupDebugHelpers(): void {
-    if (typeof window !== 'undefined') {
-      // Cast window to any to allow dynamic property assignment
-      (window as any).boardScene = this;
-      console.info('BoardScene available as window.boardScene for debugging');
-      console.info('Try: window.boardScene.testDepthCalculations()');
-      console.info('or: window.boardScene.toggleDepthDebug()');
-    }
+    return baseDepth + yOffset + stateOffset;
   }
 }
