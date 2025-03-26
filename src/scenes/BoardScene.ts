@@ -35,8 +35,10 @@ const SUBSCRIPTIONS = {
 // Define a type for pending animations
 interface PendingAnimation {
   unitId: string;
-  targetX: number;
-  targetY: number;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
 }
 
 export default class BoardScene extends Phaser.Scene {
@@ -72,7 +74,6 @@ export default class BoardScene extends Phaser.Scene {
   
   // Track animations in progress
   private animationInProgress: boolean = false;
-  private pendingAnimations: PendingAnimation[] = [];
 
   constructor() {
     super({ key: "BoardScene" });
@@ -298,12 +299,12 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // If an animation is in progress, queue it for after the animation
+    // If an animation is in progress, defer updating sprites
     if (this.animationInProgress) {
       console.log("Animation in progress, deferring animal sprite update");
       return;
     }
-
+    
     // Get a map of current animal sprites by ID
     const existingSprites = new Map();
     this.unitsLayer.getAll().forEach(child => {
@@ -320,37 +321,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Process each animal - create new or update existing
     animals.forEach(animal => {
-      // Check if we have a pending animation for this animal
-      const pendingAnimationIndex = this.pendingAnimations.findIndex(
-        anim => anim.unitId === animal.id
-      );
-      
-      // If there's a pending animation, animate instead of instant update
-      if (pendingAnimationIndex >= 0) {
-        const pendingAnimation = this.pendingAnimations[pendingAnimationIndex];
-        
-        // Get the existing sprite
-        const existing = existingSprites.get(animal.id);
-        if (existing) {
-          // Mark as used
-          existing.used = true;
-          
-          // Animate the movement
-          this.animateUnitMovement(
-            animal.id,
-            existing.sprite,
-            animal.position.x,
-            animal.position.y,
-            pendingAnimation.targetX,
-            pendingAnimation.targetY
-          );
-          
-          // Remove from pending animations
-          this.pendingAnimations.splice(pendingAnimationIndex, 1);
-        }
-        return;
-      }
-      
       // Calculate position
       const gridX = animal.position.x;
       const gridY = animal.position.y;
@@ -451,7 +421,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Reset animation state
     this.animationInProgress = false;
-    this.pendingAnimations = [];
     
     // Clear selection indicator
     this.selectionIndicator = null;
@@ -589,15 +558,18 @@ export default class BoardScene extends Phaser.Scene {
               const canMoveHere = validMoves.some(move => move.x === gridX && move.y === gridY);
               
               if (canMoveHere) {
-                // Valid move target, perform movement
-                actions.moveUnit(selectedUnitId, gridX, gridY);
-                
-                // Add pending animation
-                this.pendingAnimations.push({
-                  unitId: selectedUnitId,
-                  targetX: gridX,
-                  targetY: gridY
-                });
+                // Get current position of selected unit
+                const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
+                if (selectedUnit) {
+                  // Start movement animation
+                  this.startUnitMovement(
+                    selectedUnitId, 
+                    selectedUnit.position.x, 
+                    selectedUnit.position.y, 
+                    gridX, 
+                    gridY
+                  );
+                }
                 
                 // Hide selection indicator during movement
                 if (this.selectionIndicator) {
@@ -639,15 +611,18 @@ export default class BoardScene extends Phaser.Scene {
           const isValidMove = validMoves.some(move => move.x === x && move.y === y);
           
           if (isValidMove) {
-            // Execute the move
-            actions.moveUnit(selectedUnitId, x, y);
-            
-            // Add pending animation
-            this.pendingAnimations.push({
-              unitId: selectedUnitId,
-              targetX: x,
-              targetY: y
-            });
+            // Get current position of selected unit
+            const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
+            if (selectedUnit) {
+              // Start movement animation
+              this.startUnitMovement(
+                selectedUnitId, 
+                selectedUnit.position.x, 
+                selectedUnit.position.y, 
+                x, 
+                y
+              );
+            }
             
             // Hide selection indicator when moving a unit
             if (this.selectionIndicator) {
@@ -1166,7 +1141,36 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Animate unit movement with tweens
+  // Add this new method to handle starting unit movement
+  private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
+    console.log(`Starting movement for unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
+    
+    // Don't allow movement while animation is in progress
+    if (this.animationInProgress) {
+      console.log("Animation already in progress, ignoring movement request");
+      return;
+    }
+    
+    // Find the unit sprite
+    let unitSprite: Phaser.GameObjects.Sprite | null = null;
+    if (this.unitsLayer) {
+      this.unitsLayer.getAll().forEach(child => {
+        if (child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === unitId) {
+          unitSprite = child;
+        }
+      });
+    }
+    
+    if (!unitSprite) {
+      console.error(`Could not find sprite for unit ${unitId}`);
+      return;
+    }
+    
+    // Start the animation
+    this.animateUnitMovement(unitId, unitSprite, fromX, fromY, toX, toY);
+  }
+
+  // Updated animation method that updates state AFTER animation is complete
   private animateUnitMovement(
     unitId: string,
     sprite: Phaser.GameObjects.Sprite,
@@ -1191,6 +1195,8 @@ export default class BoardScene extends Phaser.Scene {
     
     // Mark animation as in progress
     this.animationInProgress = true;
+    
+    console.log(`Animating unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
     // Clear move highlights during animation
     this.clearMoveHighlights();
@@ -1227,6 +1233,9 @@ export default class BoardScene extends Phaser.Scene {
         }
       },
       onComplete: () => {
+        // Only update state AFTER animation is complete
+        actions.moveUnit(unitId, toX, toY);
+        
         // Update the sprite's stored grid coordinates
         sprite.setData('gridX', toX);
         sprite.setData('gridY', toY);
@@ -1235,11 +1244,6 @@ export default class BoardScene extends Phaser.Scene {
         
         // Mark animation as complete
         this.animationInProgress = false;
-        
-        // Process any pending animations
-        if (this.pendingAnimations.length > 0) {
-          this.renderAnimalSprites(actions.getAnimals());
-        }
       }
     });
   }
