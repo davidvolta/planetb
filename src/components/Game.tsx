@@ -55,7 +55,7 @@ const Game: React.FC = () => {
             mapType: MapGenerationType.ISLAND
           });
         } else {
-          console.log('Board already initialized, skipping');
+          console.log('Board already initialized, skipping initialization');
         }
       });
       

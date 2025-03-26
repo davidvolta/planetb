@@ -144,13 +144,6 @@ export function getHabitats(): any[] {
   return useGameStore.getState().habitats;
 }
 
-/**
- * Improve a habitat by ID
- */
-export function improveHabitat(habitatId: string): void {
-  useGameStore.getState().improveHabitat(habitatId);
-}
-
 //
 // Movement Actions
 //

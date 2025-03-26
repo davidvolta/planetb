@@ -171,7 +171,6 @@ export interface GameState {
   
   // Habitat-related methods
   addPotentialHabitat: (x: number, y: number) => void;
-  improveHabitat: (habitatId: string) => void;
   getHabitatAt: (x: number, y: number) => Habitat | undefined;
 }
 
@@ -515,55 +514,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         lastProductionTurn: 0,
       };
       return { habitats: [...state.habitats, newHabitat] };
-    }),
-
-  improveHabitat: (habitatId: string) =>
-    set((state) => {
-      const board = state.board;
-      if (!board) return { habitats: state.habitats };
-
-      const updatedHabitats = state.habitats.map(habitat => {
-        if (habitat.id !== habitatId || habitat.state !== HabitatState.POTENTIAL) {
-          return habitat;
-        }
-        
-        // Get tile at the habitat position
-        const tile = board.tiles[habitat.position.y]?.[habitat.position.x];
-        if (!tile) return habitat;
-        
-        // Determine shelter type based on terrain
-        let shelterType: ShelterType;
-        switch (tile.terrain) {
-          case TerrainType.BEACH:
-            shelterType = ShelterType.TIDEPOOL;
-            break;
-          case TerrainType.MOUNTAIN:
-            shelterType = ShelterType.NEST;
-            break;
-          case TerrainType.GRASS:
-            shelterType = ShelterType.DEN;
-            break;
-          case TerrainType.UNDERWATER:
-            shelterType = ShelterType.CAVE;
-            break;
-          case TerrainType.WATER:
-            shelterType = ShelterType.REEF;
-            break;
-          default:
-            shelterType = ShelterType.DEN; // Fallback
-        }
-        
-        return {
-          ...habitat,
-          state: HabitatState.SHELTER,
-          shelterType,
-          ownerId: state.currentPlayerId,
-          productionRate: 1, // Fixed at 1
-          lastProductionTurn: state.turn,
-        };
-      });
-      
-      return { habitats: updatedHabitats };
     }),
 
   getHabitatAt: (x: number, y: number) => {

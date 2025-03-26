@@ -130,7 +130,8 @@ export default class BoardScene extends Phaser.Scene {
         if (board) {
           this.updateBoard();
         }
-      }
+      },
+      { immediate: false } // Set immediate: false to prevent rendering on subscription
     );
     
     // Subscribe to animal changes
