@@ -91,6 +91,9 @@ export default class UIScene extends Phaser.Scene {
     
     // Create improve habitat button (initially hidden)
     this.createImproveHabitatButton();
+    
+    // Update background size and position buttons correctly
+    this.updateBackgroundSize();
   }
 
   createNextTurnButton() {
@@ -182,8 +185,7 @@ export default class UIScene extends Phaser.Scene {
     this.improveHabitatButton.add(buttonBg);
     this.improveHabitatButton.add(buttonText);
     
-    // Position the button below the spawn button
-    this.improveHabitatButton.setPosition(25, 160);
+    // Position will be set dynamically in updateBackgroundSize
     
     // Add to main container
     this.container?.add(this.improveHabitatButton);
@@ -218,15 +220,23 @@ export default class UIScene extends Phaser.Scene {
       // Base height includes Turn indicator and Next Turn button
       let height = 110;
       
-      // Add height for Spawn button if visible
-      if (this.spawnButton && this.spawnButton.visible) {
+      // Position both buttons in the same spot (only one will be visible at a time)
+      if (this.improveHabitatButton) {
+        this.improveHabitatButton.setPosition(25, 110);
+      }
+      
+      if (this.spawnButton) {
+        this.spawnButton.setPosition(25, 110);
+      }
+      
+      // Add height for one button if either is visible
+      if ((this.spawnButton && this.spawnButton.visible) || 
+          (this.improveHabitatButton && this.improveHabitatButton.visible)) {
         height += 50;
       }
       
-      // Add height for Improve Habitat button if visible
-      if (this.improveHabitatButton && this.improveHabitatButton.visible) {
-        height += 50;
-      }
+      // Add a small padding at the bottom
+      height += 10;
       
       this.background.height = height;
       

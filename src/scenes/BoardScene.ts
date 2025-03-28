@@ -772,11 +772,16 @@ export default class BoardScene extends Phaser.Scene {
             } else {
               actions.selectHabitat(null);
             }
+          } else {
+            // No habitats on this tile, deselect any selected habitat
+            actions.selectHabitat(null);
           }
         }
       } else {
         // If clicked somewhere else, deselect the unit
         this.handleUnitSelection(null);
+        // Also deselect any habitat
+        actions.selectHabitat(null);
       }
     });
   }
