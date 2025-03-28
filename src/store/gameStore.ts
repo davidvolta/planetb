@@ -136,6 +136,10 @@ export interface GameState {
   moveMode: boolean;
   selectedUnitIsDormant: boolean; // Flag to track if the selected unit is dormant
   
+  // Habitat selection state
+  selectedHabitatId: string | null; // ID of the currently selected habitat
+  selectedHabitatIsPotential: boolean; // Flag to track if the selected habitat is in "potential" state
+  
   // Displacement tracking (for animation and UI feedback)
   displacementEvent: {
     occurred: boolean;         // Whether displacement has occurred in the current action
@@ -171,6 +175,7 @@ export interface GameState {
   
   // Habitat-related methods
   getHabitatAt: (x: number, y: number) => Habitat | undefined;
+  selectHabitat: (id: string | null) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -187,6 +192,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   validMoves: [],
   moveMode: false,
   selectedUnitIsDormant: false,
+  
+  // Initialize habitat selection state
+  selectedHabitatId: null,
+  selectedHabitatIsPotential: false,
   
   // Initialize displacement event with default values
   displacementEvent: {
@@ -508,6 +517,36 @@ export const useGameStore = create<GameState>((set, get) => ({
       habitat.position.x === x && habitat.position.y === y
     );
   },
+
+  // Habitat selection method
+  selectHabitat: (id: string | null) => 
+    set((state) => {
+      if (!id) {
+        // Deselecting a habitat
+        return { 
+          selectedHabitatId: null,
+          selectedHabitatIsPotential: false
+        };
+      }
+      
+      // Find the habitat by ID
+      const habitat = state.habitats.find(h => h.id === id);
+      if (!habitat) {
+        console.warn(`Cannot select habitat ${id}: not found`);
+        return {
+          selectedHabitatId: null,
+          selectedHabitatIsPotential: false
+        };
+      }
+      
+      // Check if habitat is in potential state using only the enum value
+      const isPotential = habitat.state === HabitatState.POTENTIAL;
+      
+      return {
+        selectedHabitatId: id,
+        selectedHabitatIsPotential: isPotential
+      };
+    }),
 
   // Movement-related methods
   selectUnit: (id: string | null) => 

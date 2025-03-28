@@ -144,6 +144,28 @@ export function getHabitats(): any[] {
   return useGameStore.getState().habitats;
 }
 
+/**
+ * Select a habitat and check if it's in potential state
+ * @param habitatId ID of the habitat to select, or null to deselect
+ */
+export function selectHabitat(habitatId: string | null): void {
+  useGameStore.getState().selectHabitat(habitatId);
+}
+
+/**
+ * Get the currently selected habitat ID
+ */
+export function getSelectedHabitatId(): string | null {
+  return useGameStore.getState().selectedHabitatId;
+}
+
+/**
+ * Check if the selected habitat is in potential state
+ */
+export function isSelectedHabitatPotential(): boolean {
+  return useGameStore.getState().selectedHabitatIsPotential;
+}
+
 //
 // Movement Actions
 //

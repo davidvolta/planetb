@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import { GameState } from '../store/gameStore';
-import { EVENTS } from '../scenes/BoardScene';
+import { HabitatState } from '../store/gameStore';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -11,29 +11,26 @@ export default class UIScene extends Phaser.Scene {
   private spawnButton: Phaser.GameObjects.Container | null = null;
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private selectedUnitId: string | null = null;
-  private selectedUnitIsDormant: boolean = false;
+  private improveHabitatButton: Phaser.GameObjects.Container | null = null;
   
-
-  
-  private subscriptionKeys = {
-    TURN: 'UIScene.turn',
-    SELECTED_UNIT: 'UIScene.selectedUnit',
-    SELECTED_UNIT_DORMANT: 'UIScene.selectedUnitDormant'
-  };
 
   constructor() {
     super({ key: 'UIScene', active: true });
   }
 
   init() {  
-    // Subscribe to turn changes
+    // Subscribe to state changes
     StateObserver.subscribe(
       'ui-turn',
-      (state: GameState) => ({ 
-        turn: state.turn,
-        selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
-        selectedIsDormant: state.selectedUnitIsDormant,
-      }),
+      (state: GameState) => {
+        return { 
+          turn: state.turn,
+          selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
+          selectedIsDormant: state.selectedUnitIsDormant,
+          selectedHabitatId: state.selectedHabitatId,
+          selectedHabitatIsPotential: state.selectedHabitatIsPotential
+        };
+      },
       (data) => {
         // Update turn display
         if (this.turnText) {
@@ -46,6 +43,13 @@ export default class UIScene extends Phaser.Scene {
         // Show/hide spawn button based on selection
         if (this.spawnButton) {
           this.spawnButton.setVisible(data.selectedUnit !== null && data.selectedIsDormant);
+          // Update background size when button visibility changes
+          this.updateBackgroundSize();
+        }
+        
+        // Show/hide improve habitat button based on habitat selection
+        if (this.improveHabitatButton) {
+          this.improveHabitatButton.setVisible(data.selectedHabitatId !== null && data.selectedHabitatIsPotential);
           // Update background size when button visibility changes
           this.updateBackgroundSize();
         }
@@ -85,28 +89,8 @@ export default class UIScene extends Phaser.Scene {
     // Create spawn button (initially hidden)
     this.createSpawnButton();
     
-    // Set up keyboard shortcuts
-    // The 'S' key for spawn
-    if (this.input && this.input.keyboard) {
-      this.input.keyboard.on('keydown-S', () => {
-        // Only handle if spawn button is visible
-        if (this.spawnButton && this.spawnButton.visible) {
-          this.handleSpawnUnit();
-        }
-      });
-      
-      // The 'N' key for next turn
-      this.input.keyboard.on('keydown-N', () => {
-        this.handleNextTurn();
-      });
-    }
-
-    // Add event listener for tile clicks from BoardScene
-    const boardScene = this.scene.get('BoardScene');
-    if (boardScene && boardScene.events) {
-      // Listen for tile clicked events with enhanced tile contents data
-      boardScene.events.on(EVENTS.TILE_CLICKED, this.handleTileClicked, this);
-    }
+    // Create improve habitat button (initially hidden)
+    this.createImproveHabitatButton();
   }
 
   createNextTurnButton() {
@@ -166,14 +150,44 @@ export default class UIScene extends Phaser.Scene {
     this.spawnButton.add(buttonBg);
     this.spawnButton.add(buttonText);
     
-    // Position the button directly below the next turn button and center horizontally
-    // Background width is 200, button width is 150, so position at (25, 110) to center
+    // Position the button directly below the next turn button
     this.spawnButton.setPosition(25, 110);
     
     // Add to main container
     this.container?.add(this.spawnButton);
   }
 
+  createImproveHabitatButton() {
+    // Create a container for the improve habitat button
+    this.improveHabitatButton = this.add.container(0, 0);
+    this.improveHabitatButton.setVisible(false);
+    
+    // Create button background - medium gray
+    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
+    buttonBg.setOrigin(0);
+    buttonBg.setInteractive({ useHandCursor: true })
+      .on('pointerdown', this.handleImproveHabitat, this)
+      .on('pointerover', () => buttonBg.setFillStyle(0xA0A0A0))
+      .on('pointerout', () => buttonBg.setFillStyle(0x808080));
+    
+    // Create button text
+    const buttonText = this.add.text(75, 20, 'Improve Habitat', {
+      fontFamily: 'Raleway',
+      fontSize: '16px',
+      color: '#FFFFFF'
+    });
+    buttonText.setOrigin(0.5);
+    
+    // Add to container
+    this.improveHabitatButton.add(buttonBg);
+    this.improveHabitatButton.add(buttonText);
+    
+    // Position the button below the spawn button
+    this.improveHabitatButton.setPosition(25, 160);
+    
+    // Add to main container
+    this.container?.add(this.improveHabitatButton);
+  }
 
   handleNextTurn() {
     const nextTurn = actions.getNextTurn();
@@ -190,6 +204,15 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
+  handleImproveHabitat() {
+    const selectedHabitatId = actions.getSelectedHabitatId();
+    if (selectedHabitatId) {
+      // Call the improve habitat action (this would need to be implemented)
+      // actions.improveHabitat(selectedHabitatId);
+      actions.selectHabitat(null); // Deselect the habitat after improving
+    }
+  }
+
   updateBackgroundSize() {
     if (this.background) {
       // Base height includes Turn indicator and Next Turn button
@@ -197,6 +220,11 @@ export default class UIScene extends Phaser.Scene {
       
       // Add height for Spawn button if visible
       if (this.spawnButton && this.spawnButton.visible) {
+        height += 50;
+      }
+      
+      // Add height for Improve Habitat button if visible
+      if (this.improveHabitatButton && this.improveHabitatButton.visible) {
         height += 50;
       }
       
@@ -220,19 +248,6 @@ export default class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Handle tile clicked events from BoardScene
-   */
-  handleTileClicked(eventData: any) {
-    // Check if the tile contains a dormant unit
-    if (eventData.contents && eventData.contents.dormantUnits.length > 0) {
-      const dormantUnit = eventData.contents.dormantUnits[0];
-      
-      // Instead of setting local variables, call an action function
-      actions.selectUnit(dormantUnit.id);
-    }
-  }
-
-  /**
    * Clean up when scene is shut down
    */
   shutdown() {
@@ -252,16 +267,9 @@ export default class UIScene extends Phaser.Scene {
       this.nextTurnButton = null;
     }
     
-    // Clean up keyboard listeners
-    if (this.input && this.input.keyboard) {
-      this.input.keyboard.off('keydown-S');
-      this.input.keyboard.off('keydown-N');
-    }
-    
-    // Remove tile click event listener to prevent memory leaks
-    const boardScene = this.scene.get('BoardScene');
-    if (boardScene && boardScene.events) {
-      boardScene.events.removeListener(EVENTS.TILE_CLICKED, this.handleTileClicked, this);
+    if (this.improveHabitatButton) {
+      this.improveHabitatButton.destroy();
+      this.improveHabitatButton = null;
     }
     
     // Clean up references

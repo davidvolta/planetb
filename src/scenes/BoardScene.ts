@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { TerrainType } from "../store/gameStore";
 import { StateObserver } from "../utils/stateObserver";
-import { AnimalState } from "../store/gameStore";
+import { AnimalState, Habitat, HabitatState } from "../store/gameStore";
 import * as actions from "../store/actions";
 import { ValidMove } from "../store/gameStore";
 
@@ -261,6 +261,9 @@ export default class BoardScene extends Phaser.Scene {
     // Set up camera controls
     this.setupControls();
     
+    // Set up keyboard shortcuts
+    this.setupKeyboardControls();
+    
     // Set fixed camera bounds that are large enough for any reasonable map size
     // These bounds won't change when the map is resized
     const worldWidth = this.cameras.main.width * 4;
@@ -483,6 +486,19 @@ export default class BoardScene extends Phaser.Scene {
     // Reset flags
     this.layersSetup = false;
     this.controlsSetup = false;
+    
+    // Clean up keyboard listeners
+    if (this.input && this.input.keyboard) {
+      this.input.keyboard.off('keydown-S');
+      this.input.keyboard.off('keydown-N');
+      this.input.keyboard.off('keydown-I');
+      // Add any other keyboard shortcuts we might add in the future
+    }
+    
+    // Clean up pointer listeners
+    this.input.off('gameobjectdown');
+    this.input.off('pointermove');
+    this.input.off('wheel');
     
     // Clear tiles array
     this.tiles = [];
@@ -732,7 +748,13 @@ export default class BoardScene extends Phaser.Scene {
           
           // If there's a dormant unit, select it
           if (tileContents.dormantUnits.length > 0) {
-            this.handleUnitSelection(tileContents.dormantUnits[0].id, { x, y });
+            const dormantUnit = tileContents.dormantUnits[0];
+            
+            // Direct unit selection - similar to how we handle habitats
+            actions.selectUnit(dormantUnit.id);
+            
+            // Show selection indicator (visual feedback)
+            this.showSelectionIndicatorAt(x, y);
           } 
           // Otherwise, only show selection if there's no active unmoved unit on this tile
           else {
@@ -751,6 +773,17 @@ export default class BoardScene extends Phaser.Scene {
             pointer,
             contents: tileContents // Include complete tile contents information
           };
+          
+          // Direct habitat selection
+          if (tileContents.habitats && tileContents.habitats.length > 0) {
+            const habitat = tileContents.habitats[0];
+            if (habitat.state === HabitatState.POTENTIAL) {
+              actions.selectHabitat(habitat.id);
+            } else {
+              actions.selectHabitat(null);
+            }
+          }
+          
           this.events.emit(EVENTS.TILE_CLICKED, eventData);
         }
       } else {
@@ -778,6 +811,47 @@ export default class BoardScene extends Phaser.Scene {
     });
     
     this.controlsSetup = true;
+  }
+
+  // Set up keyboard shortcuts for direct action handling
+  private setupKeyboardControls() {
+    // Clear any existing keyboard shortcuts to prevent duplication
+    if (this.input.keyboard) {
+      this.input.keyboard.removeAllKeys(true);
+      
+      // Handle spawn with 'S' key directly in BoardScene
+      this.input.keyboard.on('keydown-S', () => {
+        // Check if there's a selected dormant unit
+        const selectedUnitId = actions.getSelectedUnitId();
+        const selectedUnitIsDormant = actions.isSelectedUnitDormant();
+        
+        // If we have a selected dormant unit, evolve it (spawn)
+        if (selectedUnitId && selectedUnitIsDormant) {
+          actions.evolveAnimal(selectedUnitId);
+          actions.deselectUnit();
+          actions.recordSpawnEvent(selectedUnitId);
+        }
+      });
+      
+      // Handle next turn with 'N' key
+      this.input.keyboard.on('keydown-N', () => {
+        const nextTurn = actions.getNextTurn();
+        nextTurn();
+      });
+      
+      // Handle improve habitat with 'I' key
+      this.input.keyboard.on('keydown-I', () => {
+        // Only handle if a potential habitat is selected
+        const selectedHabitatId = actions.getSelectedHabitatId();
+        const selectedHabitatIsPotential = actions.isSelectedHabitatPotential();
+        
+        if (selectedHabitatId && selectedHabitatIsPotential) {
+          // Call the improve habitat action (this would need to be implemented)
+          // actions.improveHabitat(selectedHabitatId);
+          actions.selectHabitat(null); // Deselect the habitat after improving
+        }
+      });
+    }
   }
 
   // Create a terrain tile based on terrain type
@@ -956,7 +1030,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Create a habitat graphic based on its state (potential or shelter)
-  private createHabitatGraphic(x: number, y: number, state: 'potential' | 'shelter' = 'potential'): Phaser.GameObjects.Container {
+  private createHabitatGraphic(x: number, y: number, state: HabitatState = HabitatState.POTENTIAL): Phaser.GameObjects.Container {
     // Create a container for the habitat
     const container = this.add.container(x, y);
     const graphics = this.add.graphics();
@@ -1044,8 +1118,7 @@ export default class BoardScene extends Phaser.Scene {
         }
       } else {
         // Create a new habitat graphic
-        const habitatState = habitat.state || 'potential';
-        const habitatGraphic = this.createHabitatGraphic(worldX, worldY, habitatState);
+        const habitatGraphic = this.createHabitatGraphic(worldX, worldY, habitat.state);
         
         // Store the habitat ID for reference
         habitatGraphic.setData('habitatId', habitat.id);
