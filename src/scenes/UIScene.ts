@@ -133,8 +133,9 @@ export default class UIScene extends Phaser.Scene {
     this.nextTurnButton.add(buttonBg);
     this.nextTurnButton.add(buttonText);
     
-    // Position the button below the turn indicator
-    this.nextTurnButton.setPosition(0, 60);
+    // Position the button below the turn indicator and center horizontally
+    // Background width is 200, button width is 150, so position at (25, 60) to center
+    this.nextTurnButton.setPosition(25, 60);
     
     // Add to main container
     this.container?.add(this.nextTurnButton);
@@ -165,8 +166,9 @@ export default class UIScene extends Phaser.Scene {
     this.spawnButton.add(buttonBg);
     this.spawnButton.add(buttonText);
     
-    // Position the button directly below the next turn button
-    this.spawnButton.setPosition(0, 110);
+    // Position the button directly below the next turn button and center horizontally
+    // Background width is 200, button width is 150, so position at (25, 110) to center
+    this.spawnButton.setPosition(25, 110);
     
     // Add to main container
     this.container?.add(this.spawnButton);
