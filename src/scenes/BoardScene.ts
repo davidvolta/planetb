@@ -19,7 +19,6 @@ interface Animal {
 
 // Custom event names
 export const EVENTS = {
-  ANIMAL_CLICKED: 'animalClicked',
   ASSETS_LOADED: 'assetsLoaded'
 };
 

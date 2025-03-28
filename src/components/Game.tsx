@@ -27,16 +27,8 @@ const Game: React.FC = () => {
       console.log('Setting up event listeners');
       
       // Remove any existing listeners first
-      scene.events.removeAllListeners(EVENTS.ANIMAL_CLICKED);
       scene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
       
-      // Listen for animal click events
-      scene.events.on(EVENTS.ANIMAL_CLICKED, (animalId: string) => {
-        console.log(`Animal clicked: ${animalId}`);
-        // No longer directly evolve animals here
-        // The UI will handle evolution through the Spawn Unit button
-      });
-
       // Listen for assets loaded event
       scene.events.on(EVENTS.ASSETS_LOADED, () => {
         console.log('Assets loaded, checking initialization');
