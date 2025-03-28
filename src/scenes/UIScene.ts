@@ -12,7 +12,6 @@ export default class UIScene extends Phaser.Scene {
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private selectedUnitId: string | null = null;
   private selectedUnitIsDormant: boolean = false;
-  private newActionButton: Phaser.GameObjects.Container | null = null;
   
 
   
@@ -47,6 +46,8 @@ export default class UIScene extends Phaser.Scene {
         // Show/hide spawn button based on selection
         if (this.spawnButton) {
           this.spawnButton.setVisible(data.selectedUnit !== null && data.selectedIsDormant);
+          // Update background size when button visibility changes
+          this.updateBackgroundSize();
         }
       }
     );
@@ -64,6 +65,9 @@ export default class UIScene extends Phaser.Scene {
     uiBackground.setOrigin(0, 0);
     this.container.add(uiBackground);
     
+    // Store reference to background for later resizing
+    this.background = uiBackground;
+    
     // Add turn text
     this.turnText = this.add.text(100, 10, 'Turn: 1', { 
       fontSize: '24px',
@@ -77,9 +81,6 @@ export default class UIScene extends Phaser.Scene {
     
     // Create next turn button
     this.createNextTurnButton();
-    
-    // Create new action button
-    this.createNewActionButton();
     
     // Create spawn button (initially hidden)
     this.createSpawnButton();
@@ -100,7 +101,6 @@ export default class UIScene extends Phaser.Scene {
       });
     }
 
-    // PHASE 3: Connect UIScene to tile click system
     // Add event listener for tile clicks from BoardScene
     const boardScene = this.scene.get('BoardScene');
     if (boardScene && boardScene.events) {
@@ -165,40 +165,13 @@ export default class UIScene extends Phaser.Scene {
     this.spawnButton.add(buttonBg);
     this.spawnButton.add(buttonText);
     
-    // Position the button below the new action button
-    this.spawnButton.setPosition(0, 160);
+    // Position the button directly below the next turn button
+    this.spawnButton.setPosition(0, 110);
     
     // Add to main container
     this.container?.add(this.spawnButton);
   }
 
-  createNewActionButton() {
-    // Create a container for the new action button
-    this.newActionButton = this.add.container(0, 0);
-    
-    // Create button background
-    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
-    buttonBg.setOrigin(0);
-    buttonBg.setInteractive({ useHandCursor: true });
-    
-    // Create button text
-    const buttonText = this.add.text(75, 20, 'New Action', {
-      fontFamily: 'Raleway',
-      fontSize: '16px',
-      color: '#FFFFFF'
-    });
-    buttonText.setOrigin(0.5);
-    
-    // Add to container
-    this.newActionButton.add(buttonBg);
-    this.newActionButton.add(buttonText);
-    
-    // Position the button below the next turn button
-    this.newActionButton.setPosition(0, 110);
-    
-    // Add to main container
-    this.container?.add(this.newActionButton);
-  }
 
   handleNextTurn() {
     const nextTurn = actions.getNextTurn();
@@ -215,22 +188,10 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
-  updateSpawnButtonVisibility() {
-    if (this.spawnButton) {
-      this.spawnButton.setVisible(!!this.selectedUnitId && this.selectedUnitIsDormant);
-      
-      // Adjust background height based on button visibility
-      this.updateBackgroundSize();
-    }
-  }
-
   updateBackgroundSize() {
     if (this.background) {
       // Base height includes Turn indicator and Next Turn button
       let height = 110;
-      
-      // Add height for New Action button
-      height += 50;
       
       // Add height for Spawn button if visible
       if (this.spawnButton && this.spawnButton.visible) {
@@ -258,22 +219,14 @@ export default class UIScene extends Phaser.Scene {
 
   /**
    * Handle tile clicked events from BoardScene
-   * Uses the enhanced tile contents data from Phase 2
    */
   handleTileClicked(eventData: any) {
     // Check if the tile contains a dormant unit
     if (eventData.contents && eventData.contents.dormantUnits.length > 0) {
       const dormantUnit = eventData.contents.dormantUnits[0];
       
-      // Set selected unit to the dormant unit
-      this.selectedUnitId = dormantUnit.id;
-      this.selectedUnitIsDormant = true;
-      
-      // Show the spawn button
-      this.updateSpawnButtonVisibility();
-    } else {
-      // If no dormant unit at the location, don't change anything
-      // The state subscription will handle deselection if needed
+      // Instead of setting local variables, call an action function
+      actions.selectUnit(dormantUnit.id);
     }
   }
 
@@ -303,7 +256,6 @@ export default class UIScene extends Phaser.Scene {
       this.input.keyboard.off('keydown-N');
     }
     
-    // PHASE 3: Clean up event listeners
     // Remove tile click event listener to prevent memory leaks
     const boardScene = this.scene.get('BoardScene');
     if (boardScene && boardScene.events) {
