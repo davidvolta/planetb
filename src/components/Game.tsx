@@ -28,7 +28,6 @@ const Game: React.FC = () => {
       
       // Remove any existing listeners first
       scene.events.removeAllListeners(EVENTS.ANIMAL_CLICKED);
-      scene.events.removeAllListeners(EVENTS.TILE_CLICKED);
       scene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
       
       // Listen for animal click events

@@ -20,7 +20,6 @@ interface Animal {
 // Custom event names
 export const EVENTS = {
   ANIMAL_CLICKED: 'animalClicked',
-  TILE_CLICKED: 'tileClicked',
   ASSETS_LOADED: 'assetsLoaded'
 };
 
@@ -765,14 +764,6 @@ export default class BoardScene extends Phaser.Scene {
               this.hideSelectionIndicator();
             }
           }
-          
-          // Emit an enhanced event when a tile is clicked
-          const eventData = { 
-            x, 
-            y, 
-            pointer,
-            contents: tileContents // Include complete tile contents information
-          };
           
           // Direct habitat selection
           if (tileContents.habitats && tileContents.habitats.length > 0) {
