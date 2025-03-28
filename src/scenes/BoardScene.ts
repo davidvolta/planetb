@@ -783,8 +783,6 @@ export default class BoardScene extends Phaser.Scene {
               actions.selectHabitat(null);
             }
           }
-          
-          this.events.emit(EVENTS.TILE_CLICKED, eventData);
         }
       } else {
         // If clicked somewhere else, deselect the unit

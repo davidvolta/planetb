@@ -38,11 +38,6 @@ const Game: React.FC = () => {
         // The UI will handle evolution through the Spawn Unit button
       });
 
-      // Listen for tile click events
-      scene.events.on(EVENTS.TILE_CLICKED, (coords: { x: number, y: number }) => {
-        // Handle tile clicks if needed
-      });
-
       // Listen for assets loaded event
       scene.events.on(EVENTS.ASSETS_LOADED, () => {
         console.log('Assets loaded, checking initialization');
