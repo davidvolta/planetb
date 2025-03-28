@@ -1039,9 +1039,14 @@ export default class BoardScene extends Phaser.Scene {
       { x: -this.tileSize / 2 * scaleFactor, y: 0 }
     ];
     
-    // Use the same graphics for both potential and shelter habitats
-    // Black fill with 50% opacity
-    graphics.fillStyle(0x000000, 0.5);
+    // Choose color based on state
+    if (state === HabitatState.IMPROVED) {
+      // Blue for improved habitats
+      graphics.fillStyle(0x0066ff, 0.7);
+    } else {
+      // Black for potential and shelter habitats
+      graphics.fillStyle(0x000000, 0.5);
+    }
     
     // Draw the filled shape
     graphics.beginPath();
@@ -1108,6 +1113,20 @@ export default class BoardScene extends Phaser.Scene {
         // Update state if needed
         if (existing.graphic.getData('habitatState') !== habitat.state) {
           existing.graphic.setData('habitatState', habitat.state);
+          
+          // Destroy and recreate the graphic to reflect the new state
+          existing.graphic.destroy();
+          const habitatGraphic = this.createHabitatGraphic(worldX, worldY, habitat.state);
+          habitatGraphic.setData('habitatId', habitat.id);
+          habitatGraphic.setData('gridX', gridX);
+          habitatGraphic.setData('gridY', gridY);
+          this.staticObjectsLayer!.add(habitatGraphic);
+          
+          // Update the reference in the map
+          existingHabitats.set(habitat.id, {
+            graphic: habitatGraphic,
+            used: true
+          });
         }
       } else {
         // Create a new habitat graphic

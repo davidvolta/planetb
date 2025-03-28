@@ -53,7 +53,8 @@ export enum MapGenerationType {
 // Habitat state enum
 export enum HabitatState {
   POTENTIAL = 'potential',
-  SHELTER = 'shelter'
+  SHELTER = 'shelter',
+  IMPROVED = 'improved'
 }
 
 // Shelter types based on terrain

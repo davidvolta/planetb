@@ -1,4 +1,4 @@
-import { useGameStore, MapGenerationType } from "./gameStore";
+import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState } from "./gameStore";
 
 /**
  * Action dispatchers for React components
@@ -268,4 +268,25 @@ export function getSelectedAnimal(): any | null {
   if (!id) return null;
   
   return useGameStore.getState().animals.find(a => a.id === id);
+}
+
+/**
+ * Improve a habitat by changing its state to IMPROVED
+ * @param habitatId ID of the habitat to improve
+ */
+export function improveHabitat(habitatId: string): void {
+  const state = useGameStore.getState();
+  const habitat = state.habitats.find(h => h.id === habitatId);
+  
+  if (habitat && habitat.state === HabitatState.POTENTIAL) {
+    // Create a new array with the updated habitat
+    const updatedHabitats = state.habitats.map(h => 
+      h.id === habitatId 
+        ? { ...h, state: HabitatState.IMPROVED }
+        : h
+    );
+    
+    // Update the state
+    useGameStore.setState({ habitats: updatedHabitats });
+  }
 } 

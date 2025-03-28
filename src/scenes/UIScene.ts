@@ -209,8 +209,8 @@ export default class UIScene extends Phaser.Scene {
   handleImproveHabitat() {
     const selectedHabitatId = actions.getSelectedHabitatId();
     if (selectedHabitatId) {
-      // Call the improve habitat action (this would need to be implemented)
-      // actions.improveHabitat(selectedHabitatId);
+      // Call the improve habitat action
+      actions.improveHabitat(selectedHabitatId);
       actions.selectHabitat(null); // Deselect the habitat after improving
     }
   }
