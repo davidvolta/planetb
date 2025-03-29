@@ -93,6 +93,7 @@ export interface Animal {
   position: Coordinate;
   previousPosition: Coordinate | null; // Track previous position for direction calculation
   hasMoved: boolean; // Flag to track if animal has moved this turn
+  ownerId: number | null; // Player ID that owns this animal, null if unowned
 }
 
 // Board structure
@@ -280,6 +281,26 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   initializeBoard: (width, height, mapType = MapGenerationType.ISLAND, forceHabitatGeneration = false) =>
     set((state) => {
+      // Check if we need to create a player (no players exist)
+      let playerId = state.currentPlayerId;
+      if (state.players.length === 0) {
+        // Create default player using the existing addPlayer function
+        // We need to create the player directly here since we can't call 
+        // the addPlayer function from within the set callback
+        const newPlayer: Player = {
+          id: 0,
+          name: "Player 1",
+          color: "#3498db", // Default blue color
+          isActive: true,
+        };
+        playerId = newPlayer.id;
+        state = {
+          ...state,
+          players: [newPlayer],
+          currentPlayerId: playerId
+        };
+      }
+
       const terrainData = generateIslandTerrain(width, height);
       const tiles: Tile[][] = [];
       const animals: Animal[] = [];
@@ -326,12 +347,20 @@ export const useGameStore = create<GameState>((set, get) => ({
             const { x, y } = tilesOfType[randomIndex];
             
             const habitatId = terrainTypesWithHabitats.size;
+            
+            // Check if this is a beach habitat and if we're in initial board setup
+            const isBeachHabitat = terrainType === TerrainType.BEACH;
+            const shouldImproveForPlayer = isBeachHabitat && !state.isInitialized && state.players.length > 0;
+            
             const newHabitat: Habitat = {
               id: `habitat-${habitatId}`,
               position: { x, y },
-              state: HabitatState.POTENTIAL,
-              shelterType: null,
-              ownerId: null,
+              // If this is a beach habitat during initial setup and we have a player, set to IMPROVED
+              state: shouldImproveForPlayer ? HabitatState.IMPROVED : HabitatState.POTENTIAL,
+              // Set shelterType to TIDEPOOL for beach if improved for player
+              shelterType: shouldImproveForPlayer ? ShelterType.TIDEPOOL : null,
+              // Set ownerId to player's ID if improved for player
+              ownerId: shouldImproveForPlayer ? playerId : null,
               productionRate: 1, // Fixed at 1
               lastProductionTurn: 0,
             };
@@ -360,12 +389,25 @@ export const useGameStore = create<GameState>((set, get) => ({
                   position: tile,
                   previousPosition: null,
                   hasMoved: false,
+                  ownerId: null,
                 };
                 console.log(`Created new animal during init:`, { 
                   id: newAnimal.id, 
                   type: newAnimal.type, 
                   terrain: tiles[tile.y][tile.x].terrain 
                 });
+                
+                // If this animal is from an improved player-owned beach habitat, make it active and owned
+                if (newHabitat.state === HabitatState.IMPROVED && 
+                    newHabitat.ownerId !== null && 
+                    newHabitat.shelterType === ShelterType.TIDEPOOL) {
+                  // Make this the active player unit
+                  newAnimal.state = AnimalState.ACTIVE;
+                  // Type assertion to handle the number assignment to the ownerId property
+                  (newAnimal as Animal).ownerId = newHabitat.ownerId;
+                  console.log(`Set animal ${newAnimal.id} as active player unit for player ${newAnimal.ownerId}`);
+                }
+                
                 animals.push(newAnimal);
               }
             }
@@ -402,6 +444,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         position: { x, y },
         previousPosition: null,
         hasMoved: false,
+        ownerId: null,
       };
       return { animals: [...state.animals, newAnimal] };
     }),
@@ -689,6 +732,7 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
         position: tile,
         previousPosition: null,
         hasMoved: false,
+        ownerId: null,
       };
       console.log(`Created new animal during production:`, { 
         id: newAnimal.id, 
