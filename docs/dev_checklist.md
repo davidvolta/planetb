@@ -12,17 +12,8 @@
 - Phaser as our game engine
 
 ## Current Focus:
-- Phase 7: Validating refactoring changes
-- Testing scene initialization and shutdown for proper cleanup
-- Checking for memory leaks during scene transitions
 
 # Upcoming Tasks
-  
-  - [ ] Conduct comprehensive playtest of all game features
-  - [ ] Verify code quality with static analysis tools
-  - [ ] Ensure documentation is complete and accurate
-  - [ ] Check performance across different devices/browsers
-
 
 - [ ] Add fog of war
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored

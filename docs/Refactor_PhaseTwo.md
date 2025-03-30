@@ -11,11 +11,6 @@
    - Extract `checkTileContents()` into a dedicated ContentManager class
    - This manager would be responsible for querying entity positions and providing access to entities at specific grid locations
 
-3. **Extract Selection Logic**
-   - Create a SelectionManager that handles all selection-related functionality
-   - Move `handleUnitSelection` and selection-related code there
-   - Coordinate with UIScene through events rather than direct actions
-
 4. **Extract Movement Logic**
    - Create a MovementManager that handles unit movement
    - Move `startUnitMovement` and related code there
