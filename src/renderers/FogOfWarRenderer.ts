@@ -16,6 +16,9 @@ export class FogOfWarRenderer extends BaseRenderer {
   private readonly fogStrokeWidth: number = 1;
   private readonly fadeAnimationDuration: number = 150; // ms
   
+  // Callback for when tile visibility changes
+  private onTileVisibilityChange: ((x: number, y: number, isVisible: boolean) => void) | null = null;
+  
   /**
    * Creates a new FogOfWarRenderer
    * @param scene The parent scene
@@ -30,6 +33,14 @@ export class FogOfWarRenderer extends BaseRenderer {
     tileHeight: number
   ) {
     super(scene, layerManager, tileSize, tileHeight);
+  }
+  
+  /**
+   * Set a callback to be called when tile visibility changes
+   * @param callback The callback function
+   */
+  setTileVisibilityCallback(callback: (x: number, y: number, isVisible: boolean) => void): void {
+    this.onTileVisibilityChange = callback;
   }
   
   /**
@@ -97,6 +108,11 @@ export class FogOfWarRenderer extends BaseRenderer {
     const fogTile = this.fogTiles.get(key);
     
     if (fogTile) {
+      // Notify about visibility change before animation starts
+      if (this.onTileVisibilityChange !== null) {
+        this.onTileVisibilityChange!(gridX, gridY, true);
+      }
+      
       // Animate the fade out
       this.scene.tweens.add({
         targets: fogTile,
@@ -116,6 +132,16 @@ export class FogOfWarRenderer extends BaseRenderer {
    * @param tiles Array of grid coordinates to reveal
    */
   revealTiles(tiles: { x: number, y: number }[]): void {
+    // Notify about visibility changes before animation starts
+    if (this.onTileVisibilityChange !== null) {
+      tiles.forEach(tile => {
+        const key = `${tile.x},${tile.y}`;
+        if (this.fogTiles.has(key)) {
+          this.onTileVisibilityChange!(tile.x, tile.y, true);
+        }
+      });
+    }
+    
     // Create an array of fog tiles to animate
     const tilesToAnimate: Phaser.GameObjects.Graphics[] = [];
     
@@ -162,6 +188,11 @@ export class FogOfWarRenderer extends BaseRenderer {
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
         this.createFogTile(x, y);
+        
+        // Notify about the tile being hidden (under fog)
+        if (this.onTileVisibilityChange !== null) {
+          this.onTileVisibilityChange!(x, y, false);
+        }
       }
     }
   }
@@ -170,6 +201,14 @@ export class FogOfWarRenderer extends BaseRenderer {
    * Remove all fog tiles
    */
   clearFogOfWar(): void {
+    // Notify about visibility changes for all fogged tiles
+    if (this.onTileVisibilityChange !== null) {
+      this.fogTiles.forEach((tile, key) => {
+        const [x, y] = key.split(',').map(Number);
+        this.onTileVisibilityChange!(x, y, true);
+      });
+    }
+    
     // Destroy all fog tiles
     this.fogTiles.forEach(tile => {
       tile.destroy();
