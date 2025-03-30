@@ -144,11 +144,21 @@ export class HabitatRenderer extends BaseRenderer {
     
     // Choose color based on state
     if (state === HabitatState.IMPROVED) {
-      // Blue for improved habitats
-      graphics.fillStyle(0x0066ff, 0.7);
+      // Black for improved habitats
+      graphics.fillStyle(0x000000, 0.7);
     } else {
       // Black for potential and shelter habitats
       graphics.fillStyle(0x000000, 0.5);
+      
+      // Add pulsing effect for unimproved habitats
+      this.scene.tweens.add({
+        targets: graphics,
+        alpha: { from: 0.5, to: 0.2 },
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
     }
     
     // Draw the filled shape
