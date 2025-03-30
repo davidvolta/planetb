@@ -15,6 +15,7 @@ import { InputManager } from "../managers/InputManager";
 import { AnimationController } from "../controllers/AnimationController";
 import { CameraManager } from "../managers/CameraManager";
 import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
+import { FogOfWarRenderer } from '../renderers/FogOfWarRenderer';
 
 // Custom event names
 export const EVENTS = {
@@ -44,10 +45,14 @@ export default class BoardScene extends Phaser.Scene {
   private moveRangeRenderer: MoveRangeRenderer;
   private habitatRenderer: HabitatRenderer;
   private animalRenderer: AnimalRenderer;
+  private fogOfWarRenderer: FogOfWarRenderer;
   
   // Setup tracking
   private controlsSetup = false;
   private subscriptionsSetup = false;
+  
+  // Fog of War state
+  private fogOfWarEnabled = true;
   
   // Managers and controllers
   private inputManager: InputManager;
@@ -67,6 +72,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer = new MoveRangeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.habitatRenderer = new HabitatRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     
     // Initialize managers
     this.inputManager = new InputManager(this, this.tileSize, this.tileHeight);
@@ -149,6 +155,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.initialize(anchorX, anchorY);
     this.habitatRenderer.initialize(anchorX, anchorY);
     this.animalRenderer.initialize(anchorX, anchorY);
+    this.fogOfWarRenderer.initialize(anchorX, anchorY);
     
     // Initialize managers with anchor coordinates
     this.inputManager.initialize(anchorX, anchorY);
@@ -292,6 +299,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.destroy();
     this.habitatRenderer.destroy();
     this.animalRenderer.destroy();
+    this.fogOfWarRenderer.destroy();
     
     // Clean up managers
     this.inputManager.destroy();
@@ -336,6 +344,12 @@ export default class BoardScene extends Phaser.Scene {
     
     // Initialize renderers after tiles are created
     this.selectionRenderer.initialize(anchorX, anchorY);
+    
+    // Create Fog of War if it's enabled
+    if (this.fogOfWarEnabled) {
+      this.fogOfWarRenderer.createFogOfWar(board);
+      this.initializeVisibility();
+    }
     
     // Set up input handlers if they're not already set up
     if (!this.controlsSetup) {
@@ -546,13 +560,34 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.clearMoveHighlights();
     this.selectionRenderer.hideSelection();
     
-    // Use the animation controller to move the unit
+    // If fog of war is enabled, update visibility around the destination position BEFORE moving
+    if (this.fogOfWarEnabled) {
+      console.log(`Revealing fog of war before unit moves to (${toX}, ${toY})`);
+      
+      // Get the board to check boundaries
+      const board = actions.getBoard();
+      if (board) {
+        // Get tiles around the destination position that need to be revealed
+        const tilesToReveal = this.getAdjacentTiles(toX, toY, board.width, board.height);
+        
+        // Update visibility in game state
+        tilesToReveal.forEach(tile => {
+          this.updateTileVisibility(tile.x, tile.y, true);
+        });
+        
+        // Remove duplicates and reveal visually
+        const uniqueTiles = this.removeDuplicateTiles(tilesToReveal);
+        this.fogOfWarRenderer.revealTiles(uniqueTiles);
+      }
+    }
+    
+    // Use the animation controller to move the unit AFTER revealing fog of war
     this.animationController.moveUnit(unitId, unitSprite, fromX, fromY, toX, toY, {
       onBeforeMove: () => {
         // Any actions needed before movement, like clearing selection
       },
       onAfterMove: () => {
-        // Any actions needed after movement, like updating UI
+        // Animation complete, no need to do anything with fog of war here anymore
       }
     });
   }
@@ -751,16 +786,211 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Use the animation controller to displace the unit
+    // If fog of war is enabled, update visibility around the destination position BEFORE moving
+    if (this.fogOfWarEnabled) {
+      console.log(`Revealing fog of war before unit is displaced to (${toX}, ${toY})`);
+      
+      // Get the board to check boundaries
+      const board = actions.getBoard();
+      if (board) {
+        // Get tiles around the destination position that need to be revealed
+        const tilesToReveal = this.getAdjacentTiles(toX, toY, board.width, board.height);
+        
+        // Update visibility in game state
+        tilesToReveal.forEach(tile => {
+          this.updateTileVisibility(tile.x, tile.y, true);
+        });
+        
+        // Remove duplicates and reveal visually
+        const uniqueTiles = this.removeDuplicateTiles(tilesToReveal);
+        this.fogOfWarRenderer.revealTiles(uniqueTiles);
+      }
+    }
+    
+    // Use the animation controller to displace the unit AFTER revealing fog of war
     this.animationController.displaceUnit(unitId, unitSprite, fromX, fromY, toX, toY, {
       onBeforeDisplace: () => {
         console.log(`Beginning displacement animation for unit ${unitId}`);
       },
       onAfterDisplace: () => {
         console.log(`Completed displacement animation for unit ${unitId}`);
+        
         // Clear the displacement event after animation is complete
         actions.clearDisplacementEvent();
       }
     });
+  }
+
+  /**
+   * Initialize visibility for starting units and habitats
+   */
+  private initializeVisibility(): void {
+    const board = actions.getBoard();
+    if (!board) return;
+    
+    const revealedTiles: { x: number, y: number }[] = [];
+    
+    // Get current player ID
+    const currentPlayerId = actions.getCurrentPlayerId();
+    
+    // Reveal tiles around player's units
+    const animals = actions.getAnimals();
+    animals.forEach(animal => {
+      if (animal.ownerId === currentPlayerId && animal.state === AnimalState.ACTIVE) {
+        // Reveal 8 adjacent tiles around this unit
+        this.getAdjacentTiles(animal.position.x, animal.position.y, board.width, board.height)
+          .forEach(tile => {
+            // Mark as explored and visible in the game state
+            this.updateTileVisibility(tile.x, tile.y, true);
+            // Add to the list of tiles to reveal visually
+            revealedTiles.push(tile);
+          });
+      }
+    });
+    
+    // Reveal tiles around player's habitats
+    const habitats = actions.getHabitats();
+    habitats.forEach(habitat => {
+      if (habitat.ownerId === currentPlayerId) {
+        // Reveal 8 adjacent tiles around this habitat
+        this.getAdjacentTiles(habitat.position.x, habitat.position.y, board.width, board.height)
+          .forEach(tile => {
+            // Mark as explored and visible in the game state
+            this.updateTileVisibility(tile.x, tile.y, true);
+            // Add to the list of tiles to reveal visually
+            revealedTiles.push(tile);
+          });
+      }
+    });
+    
+    // Remove duplicates from the revealedTiles array
+    const uniqueTiles = this.removeDuplicateTiles(revealedTiles);
+    
+    // Reveal these tiles in the fog of war
+    this.fogOfWarRenderer.revealTiles(uniqueTiles);
+  }
+  
+  /**
+   * Get the 8 adjacent tiles around a central position
+   * @param x Central X coordinate
+   * @param y Central Y coordinate
+   * @param boardWidth Width of the board
+   * @param boardHeight Height of the board
+   * @returns Array of valid adjacent coordinates
+   */
+  private getAdjacentTiles(x: number, y: number, boardWidth: number, boardHeight: number): { x: number, y: number }[] {
+    const adjacentOffsets = [
+      { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
+      { x: -1, y: 0 }, /* Center */ { x: 1, y: 0 },
+      { x: -1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 1 }
+    ];
+    
+    // Include the central tile itself
+    const result = [{ x, y }];
+    
+    // Add all valid adjacent tiles
+    adjacentOffsets.forEach(offset => {
+      const newX = x + offset.x;
+      const newY = y + offset.y;
+      
+      // Check if coordinates are within board boundaries
+      if (newX >= 0 && newX < boardWidth && newY >= 0 && newY < boardHeight) {
+        result.push({ x: newX, y: newY });
+      }
+    });
+    
+    return result;
+  }
+  
+  /**
+   * Update a tile's visibility in the game state
+   * @param x X coordinate of the tile
+   * @param y Y coordinate of the tile
+   * @param visible Whether the tile should be visible
+   */
+  private updateTileVisibility(x: number, y: number, visible: boolean): void {
+    actions.updateTileVisibility(x, y, visible);
+  }
+  
+  /**
+   * Remove duplicate tiles from an array
+   * @param tiles Array of tiles with potential duplicates
+   * @returns Array with duplicates removed
+   */
+  private removeDuplicateTiles(tiles: { x: number, y: number }[]): { x: number, y: number }[] {
+    const uniqueKeys = new Set<string>();
+    const uniqueTiles: { x: number, y: number }[] = [];
+    
+    tiles.forEach(tile => {
+      const key = `${tile.x},${tile.y}`;
+      if (!uniqueKeys.has(key)) {
+        uniqueKeys.add(key);
+        uniqueTiles.push(tile);
+      }
+    });
+    
+    return uniqueTiles;
+  }
+
+  /**
+   * Toggle fog of war on/off
+   * @param enabled Whether fog of war should be enabled
+   */
+  public toggleFogOfWar(enabled: boolean): void {
+    this.fogOfWarEnabled = enabled;
+    
+    if (enabled) {
+      // Re-enable fog of war
+      const board = actions.getBoard();
+      if (board) {
+        this.fogOfWarRenderer.createFogOfWar(board);
+        this.initializeVisibility();
+      }
+    } else {
+      // Disable fog of war by clearing all fog tiles
+      this.fogOfWarRenderer.clearFogOfWar();
+    }
+  }
+  
+  /**
+   * Get the fog of war renderer
+   * @returns The fog of war renderer
+   */
+  public getFogOfWarRenderer(): FogOfWarRenderer {
+    return this.fogOfWarRenderer;
+  }
+
+  /**
+   * Handle unit movement from one position to another
+   * @param unitId ID of the unit to move
+   * @param fromX Starting X coordinate
+   * @param fromY Starting Y coordinate
+   * @param toX Destination X coordinate
+   * @param toY Destination Y coordinate
+   */
+  private handleUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): void {
+    console.log(`Starting unit movement from (${fromX},${fromY}) to (${toX},${toY})`);
+
+    // Get the unit sprite in the units layer
+    this.startUnitMovement(unitId, fromX, fromY, toX, toY);
+    
+    // If fog of war is enabled, update visibility around the new position
+    if (this.fogOfWarEnabled) {
+      // Get the board to check boundaries
+      const board = actions.getBoard();
+      if (board) {
+        // Get tiles around the new position that need to be revealed
+        const tilesToReveal = this.getAdjacentTiles(toX, toY, board.width, board.height);
+        
+        // Update visibility in game state
+        tilesToReveal.forEach(tile => {
+          this.updateTileVisibility(tile.x, tile.y, true);
+        });
+        
+        // Remove duplicates and reveal visually
+        const uniqueTiles = this.removeDuplicateTiles(tilesToReveal);
+        this.fogOfWarRenderer.revealTiles(uniqueTiles);
+      }
+    }
   }
 }

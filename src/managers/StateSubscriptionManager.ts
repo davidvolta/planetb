@@ -301,8 +301,43 @@ export class StateSubscriptionManager {
         if (spawnEvent && spawnEvent.occurred) {
           console.log("Spawn event detected in StateSubscriptionManager");
           
-          // Clear the selection indicator - cast scene to BoardScene to access the method
-          if (this.scene instanceof BoardScene) {
+          // If we have a valid unit ID and the scene is a BoardScene
+          if (spawnEvent.unitId && this.scene instanceof BoardScene) {
+            // Get the animal that was just spawned
+            const animals = actions.getAnimals();
+            const spawnedAnimal = animals.find(animal => animal.id === spawnEvent.unitId);
+            
+            // If we found the animal and fog of war is enabled, reveal tiles around it
+            if (spawnedAnimal) {
+              const fogOfWarRenderer = this.scene.getFogOfWarRenderer();
+              // Check if fog of war is enabled before revealing tiles
+              if (fogOfWarRenderer) {
+                console.log(`Revealing fog of war around spawned unit at (${spawnedAnimal.position.x}, ${spawnedAnimal.position.y})`);
+                
+                // Get the board to check boundaries
+                const board = actions.getBoard();
+                if (board) {
+                  // Get tiles around the new position that need to be revealed
+                  const adjacentTiles = this.getAdjacentTiles(
+                    spawnedAnimal.position.x, 
+                    spawnedAnimal.position.y, 
+                    board.width, 
+                    board.height
+                  );
+                  
+                  // Update visibility in game state
+                  adjacentTiles.forEach(tile => {
+                    actions.updateTileVisibility(tile.x, tile.y, true);
+                  });
+                  
+                  // Remove duplicates and reveal visually
+                  const uniqueTiles = this.removeDuplicateTiles(adjacentTiles);
+                  fogOfWarRenderer.revealTiles(uniqueTiles);
+                }
+              }
+            }
+            
+            // Clear the selection indicator
             this.scene.getSelectionRenderer().hideSelection();
           }
           
@@ -368,5 +403,57 @@ export class StateSubscriptionManager {
    */
   destroy(): void {
     this.unsubscribeAll();
+  }
+  
+  /**
+   * Get the 8 adjacent tiles around a central position
+   * @param x Central X coordinate
+   * @param y Central Y coordinate
+   * @param boardWidth Width of the board
+   * @param boardHeight Height of the board
+   * @returns Array of valid adjacent coordinates
+   */
+  private getAdjacentTiles(x: number, y: number, boardWidth: number, boardHeight: number): { x: number, y: number }[] {
+    const adjacentOffsets = [
+      { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
+      { x: -1, y: 0 }, /* Center */ { x: 1, y: 0 },
+      { x: -1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 1 }
+    ];
+    
+    // Include the central tile itself
+    const result = [{ x, y }];
+    
+    // Add all valid adjacent tiles
+    adjacentOffsets.forEach(offset => {
+      const newX = x + offset.x;
+      const newY = y + offset.y;
+      
+      // Check if coordinates are within board boundaries
+      if (newX >= 0 && newX < boardWidth && newY >= 0 && newY < boardHeight) {
+        result.push({ x: newX, y: newY });
+      }
+    });
+    
+    return result;
+  }
+  
+  /**
+   * Remove duplicate tiles from an array
+   * @param tiles Array of tiles with potential duplicates
+   * @returns Array with duplicates removed
+   */
+  private removeDuplicateTiles(tiles: { x: number, y: number }[]): { x: number, y: number }[] {
+    const uniqueKeys = new Set<string>();
+    const uniqueTiles: { x: number, y: number }[] = [];
+    
+    tiles.forEach(tile => {
+      const key = `${tile.x},${tile.y}`;
+      if (!uniqueKeys.has(key)) {
+        uniqueKeys.add(key);
+        uniqueTiles.push(tile);
+      }
+    });
+    
+    return uniqueTiles;
   }
 } 

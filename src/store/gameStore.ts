@@ -27,11 +27,11 @@ const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
 
 // Movement range for each animal type
 const MOVEMENT_RANGE_BY_TYPE: Record<string, number> = {
-  'buffalo': 2,  // Buffalo are strong but slower
-  'bird': 2,     // Birds have highest mobility
-  'fish': 2,     // Fish are fast in water
-  'snake': 2,    // Snakes are slower
-  'bunny': 2     // Bunnies are quick
+  'buffalo': 1,  // Buffalo are strong but slower
+  'bird': 1,     // Birds have highest mobility
+  'fish': 1,     // Fish are fast in water
+  'snake': 1,    // Snakes are slower
+  'bunny': 1     // Bunnies are quick
 };
 
 // Order of terrain types for habitat placement

@@ -319,4 +319,56 @@ export function improveHabitat(habitatId: string): void {
     // Record the habitat improvement event
     recordHabitatImproveEvent(habitatId);
   }
+}
+
+/**
+ * Get the current player's ID
+ */
+export function getCurrentPlayerId(): number {
+  return useGameStore.getState().currentPlayerId;
+}
+
+/**
+ * Update a tile's visibility state
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param visible Whether the tile should be visible
+ */
+export function updateTileVisibility(x: number, y: number, visible: boolean): void {
+  const state = useGameStore.getState();
+  if (!state.board) return;
+  
+  // Update the tile at the specified position
+  useGameStore.setState(state => {
+    // Return if no board or tile is out of bounds
+    if (!state.board || 
+        x < 0 || x >= state.board.width || 
+        y < 0 || y >= state.board.height) {
+      return state;
+    }
+    
+    // Create a deep copy of the board to avoid mutating it directly
+    const newBoard = {
+      ...state.board,
+      tiles: state.board.tiles.map((row, rowIndex) => {
+        // If this is not the row we're updating, return it as is
+        if (rowIndex !== y) return row;
+        
+        // Otherwise update the specific tile in this row
+        return row.map((tile, colIndex) => {
+          // If this is not the column we're updating, return it as is
+          if (colIndex !== x) return tile;
+          
+          // Otherwise update the tile
+          return {
+            ...tile,
+            explored: true, // Once a tile is explored, it stays explored
+            visible: visible
+          };
+        });
+      })
+    };
+    
+    return { board: newBoard };
+  });
 } 

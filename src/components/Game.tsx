@@ -7,7 +7,12 @@ import { MapGenerationType } from '../store/gameStore';
 import * as actions from '../store/actions';
 import { StateObserver } from '../utils/stateObserver';
 
-const Game: React.FC = () => {
+// Define prop types for the Game component
+interface GameProps {
+  onGameMount?: (game: Phaser.Game) => void;
+}
+
+const Game: React.FC<GameProps> = ({ onGameMount }) => {
   const gameContainerRef = React.useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const listenersAttachedRef = useRef<boolean>(false);
@@ -79,6 +84,11 @@ const Game: React.FC = () => {
     if (!gameRef.current) {
       // Create the game
       gameRef.current = new Phaser.Game(config);
+      
+      // Pass the game instance to the parent component if onGameMount is provided
+      if (onGameMount && gameRef.current) {
+        onGameMount(gameRef.current);
+      }
     }
 
     // Set up window resize handler
@@ -140,7 +150,7 @@ const Game: React.FC = () => {
       // Reset the listeners attached flag for next mount
       listenersAttachedRef.current = false;
     };
-  }, []);
+  }, [onGameMount]);
 
   return (
     <div

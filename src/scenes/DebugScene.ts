@@ -7,6 +7,11 @@ export default class DebugScene extends Phaser.Scene {
   // private gridCoordinatesText!: Phaser.GameObjects.Text;
   // private terrainTypeText!: Phaser.GameObjects.Text;
   private boardScene: BoardScene | null = null;
+  private fowCheckbox!: Phaser.GameObjects.Container;
+  private fowCheckboxText!: Phaser.GameObjects.Text;
+  private fowCheckboxBox!: Phaser.GameObjects.Rectangle;
+  private fowCheckboxInner!: Phaser.GameObjects.Rectangle;
+  private fowEnabled: boolean = true;
 
   constructor() {
     super({ 
@@ -26,6 +31,12 @@ export default class DebugScene extends Phaser.Scene {
     const leftX = 10;
     const bottomY = this.cameras.main.height - 10;
     
+    // Get the board scene
+    this.boardScene = this.scene.get('BoardScene') as BoardScene;
+    
+    // Create FOW checkbox container
+    this.createFowCheckbox(leftX, bottomY - 30);
+    
     this.fpsText = this.add.text(leftX, bottomY, "FPS: 0", {
       fontSize: "14px",
       fontFamily: "monospace",
@@ -39,59 +50,70 @@ export default class DebugScene extends Phaser.Scene {
     // Left-align the text, bottom-aligned
     this.fpsText.setOrigin(0, 1);
     
-    // Listen for resize events to reposition the FPS counter
+    // Listen for resize events to reposition the debug elements
     this.scale.on('resize', this.handleResize, this);
     
     /* 
-    // Add mouse position text (starts at 10px below FPS)
-    this.mousePositionText = this.add.text(rightX, topY + 25, "Mouse: X: 0, Y: 0", {
+    // Commented out UI elements...
+    */
+  }
+
+  /**
+   * Create a FOW toggle checkbox
+   * @param x X position
+   * @param y Y position
+   */
+  private createFowCheckbox(x: number, y: number): void {
+    // Create container for the checkbox and label
+    this.fowCheckbox = this.add.container(x, y);
+    this.fowCheckbox.setDepth(1000);
+    
+    // Create label first
+    this.fowCheckboxText = this.add.text(0, 0, "FOW", {
       fontSize: "14px",
       fontFamily: "monospace",
       color: "#00FF00",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       padding: { x: 5, y: 2 },
-    })
-    .setScrollFactor(0)
-    .setDepth(1000);
+    }).setOrigin(0, 0.5);
     
-    // Right-align the text
-    this.mousePositionText.setOrigin(1, 0);
-    */
+    // Get width of text to position checkbox after it
+    const textWidth = this.fowCheckboxText.width;
     
-    /* 
-    // Add grid coordinates text (starts 10px below mouse position)
-    this.gridCoordinatesText = this.add.text(rightX, topY + 25, "Grid: X: --, Y: --", {
-      fontSize: "14px",
-      fontFamily: "monospace",
-      color: "#00FF00",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      padding: { x: 5, y: 2 },
-    })
-    .setScrollFactor(0)
-    .setDepth(1000);
+    // Create checkbox background (outline) after the text
+    this.fowCheckboxBox = this.add.rectangle(textWidth + 10, 0, 16, 16, 0x00FF00, 0)
+      .setStrokeStyle(2, 0x00FF00)
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true });
     
-    // Right-align the text
-    this.gridCoordinatesText.setOrigin(1, 0);
-    */
+    // Create checkbox inner fill (shown when checked)
+    this.fowCheckboxInner = this.add.rectangle(textWidth + 10, 0, 10, 10, 0x00FF00, 1)
+      .setOrigin(0, 0.5)
+      .setPosition(textWidth + 13, 0); // Center in the box
     
-    /* 
-    // Add terrain type text (starts 10px below grid coordinates)
-    this.terrainTypeText = this.add.text(rightX, topY + 75, "Terrain: --", {
-      fontSize: "14px",
-      fontFamily: "monospace",
-      color: "#00FF00",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      padding: { x: 5, y: 2 },
-    })
-    .setScrollFactor(0)
-    .setDepth(1000);
+    // Set initial state
+    this.fowCheckboxInner.setVisible(this.fowEnabled);
     
-    // Right-align the text
-    this.terrainTypeText.setOrigin(1, 0);
-    */
+    // Add components to container
+    this.fowCheckbox.add([this.fowCheckboxText, this.fowCheckboxBox, this.fowCheckboxInner]);
     
-    // Get the board scene
-    this.boardScene = this.scene.get('BoardScene') as BoardScene;
+    // Set up click handler
+    this.fowCheckboxBox.on('pointerdown', this.toggleFow, this);
+    this.fowCheckboxText.setInteractive({ useHandCursor: true });
+    this.fowCheckboxText.on('pointerdown', this.toggleFow, this);
+  }
+  
+  /**
+   * Toggle fog of war state
+   */
+  private toggleFow(): void {
+    this.fowEnabled = !this.fowEnabled;
+    this.fowCheckboxInner.setVisible(this.fowEnabled);
+    
+    // Call BoardScene's toggleFogOfWar method
+    if (this.boardScene) {
+      this.boardScene.toggleFogOfWar(this.fowEnabled);
+    }
   }
 
   update() {
@@ -133,9 +155,16 @@ export default class DebugScene extends Phaser.Scene {
 
   // Handle window resize
   private handleResize() {
+    const bottomY = this.cameras.main.height - 10;
+    
     if (this.fpsText) {
       // Update position to bottom left of new screen size
-      this.fpsText.setPosition(10, this.cameras.main.height - 10);
+      this.fpsText.setPosition(10, bottomY);
+    }
+    
+    if (this.fowCheckbox) {
+      // Update position to be above the FPS counter
+      this.fowCheckbox.setPosition(10, bottomY - 30);
     }
   }
 

@@ -12,6 +12,7 @@ export class LayerManager {
   private moveRangeLayer: Phaser.GameObjects.Layer | null = null;
   private staticObjectsLayer: Phaser.GameObjects.Layer | null = null;
   private unitsLayer: Phaser.GameObjects.Layer | null = null;
+  private fogOfWarLayer: Phaser.GameObjects.Layer | null = null;
   private uiLayer: Phaser.GameObjects.Layer | null = null;
   
   // State tracking
@@ -47,6 +48,7 @@ export class LayerManager {
     this.moveRangeLayer = this.scene.add.layer().setDepth(3);
     this.staticObjectsLayer = this.scene.add.layer().setDepth(4);
     this.unitsLayer = this.scene.add.layer().setDepth(5);
+    this.fogOfWarLayer = this.scene.add.layer().setDepth(6);
     this.uiLayer = this.scene.add.layer().setDepth(10);
     
     // Mark layers as initialized
@@ -74,6 +76,7 @@ export class LayerManager {
     this.moveRangeLayer = null;
     this.staticObjectsLayer = null;
     this.unitsLayer = null;
+    this.fogOfWarLayer = null;
     this.uiLayer = null;
     
     this.layersSetup = false;
@@ -90,6 +93,7 @@ export class LayerManager {
     this.clearLayer('moveRange', destroyChildren);
     this.clearLayer('staticObjects', destroyChildren);
     this.clearLayer('units', destroyChildren);
+    this.clearLayer('fogOfWar', destroyChildren);
     this.clearLayer('ui', destroyChildren);
   }
   
@@ -124,6 +128,8 @@ export class LayerManager {
         return this.staticObjectsLayer;
       case 'units':
         return this.unitsLayer;
+      case 'fogofwar':
+        return this.fogOfWarLayer;
       case 'ui':
         return this.uiLayer;
       default:
@@ -180,6 +186,14 @@ export class LayerManager {
    */
   getUnitsLayer(): Phaser.GameObjects.Layer | null {
     return this.unitsLayer;
+  }
+  
+  /**
+   * Gets the fog of war layer
+   * @returns The fog of war layer or null if not initialized
+   */
+  getFogOfWarLayer(): Phaser.GameObjects.Layer | null {
+    return this.fogOfWarLayer;
   }
   
   /**

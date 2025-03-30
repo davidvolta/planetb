@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Game from "./components/Game";
 import State from "./components/State";
 import { useGameStore, MapGenerationType } from "./store/gameStore";
-import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import * as actions from './store/actions';
 
@@ -10,6 +9,9 @@ function App() {
   // Track map size
   const [mapWidth, setMapWidth] = useState(30);
   const [mapHeight, setMapHeight] = useState(30);
+  
+  // Reference to the Phaser game instance
+  const gameRef = useRef<any>(null);
   
   // Handle width slider change with immediate map update
   const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,6 +39,11 @@ function App() {
     });
   };
   
+  // Store game reference when Game component mounts
+  const setGameInstance = (game: any) => {
+    gameRef.current = game;
+  };
+  
   return (
     <Routes>
       <Route path="/state" element={
@@ -48,7 +55,7 @@ function App() {
       <Route path="/" element={
         <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
           {/* Game canvas takes the full screen */}
-          <Game />
+          <Game onGameMount={setGameInstance} />
           
           {/* UI elements overlay on top */}
           <div style={{ 
@@ -86,28 +93,6 @@ function App() {
                 onChange={handleHeightChange}
                 style={{ width: '100%' }}
               />
-              
-              {/* Hidden Reset Map button - uncomment if needed
-              <button
-                onClick={() => actions.initializeBoard({
-                  width: mapWidth,
-                  height: mapHeight,
-                  mapType: MapGenerationType.ISLAND,
-                  forceHabitatGeneration: true
-                })}
-                style={{
-                  marginTop: '5px',
-                  background: '#e24a4a',
-                  color: 'white',
-                  border: 'none',
-                  padding: '5px 10px',
-                  borderRadius: '3px',
-                  cursor: 'pointer'
-                }}
-              >
-                Reset Map
-              </button>
-              */}
             </div>
           </div>
         </div>
