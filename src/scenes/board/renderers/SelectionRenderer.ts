@@ -26,8 +26,8 @@ export class SelectionRenderer extends BaseRenderer {
   constructor(
     scene: Phaser.Scene, 
     layerManager: LayerManager, 
-    tileSize: number = 64, 
-    tileHeight: number = 32
+    tileSize: number, 
+    tileHeight: number
   ) {
     super(scene, layerManager, tileSize, tileHeight);
   }

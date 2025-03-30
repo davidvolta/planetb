@@ -2,30 +2,44 @@
 
 This directory contains the refactored components of the BoardScene, breaking down the original monolithic class into smaller, focused components.
 
+## Architecture Overview
+
+The BoardScene has been refactored using a component-based architecture:
+
+1. **BaseRenderer + Specialized Renderers**: Visual rendering with common functionality shared via inheritance
+2. **Managers**: Control and organization systems
+3. **Controllers**: Action and animation control
+4. **Utilities**: Shared helper functions
+
 ## Component Responsibilities
 
 ### Renderers
 
 Located in `/renderers` directory:
 
+- **BaseRenderer**: Abstract base class providing common renderer functionality
+  - Properties: scene, layerManager, tileSize, tileHeight, anchor coordinates
+  - Methods: `setAnchor()`, `gridToScreen()`, `destroy()`
+  - All renderers inherit from this base class
+
 - **TileRenderer**: Responsible for creating and updating terrain tiles
-  - Methods: `renderTiles()`, `createTerrainTile()`, `updateTile()`
-  - Handles: Terrain visualization, tile creation
+  - Methods: `createBoardTiles()`, `createTerrainTile()`, `setupTileInteraction()`
+  - Handles: Terrain visualization, tile creation and interaction
 
 - **SelectionRenderer**: Handles selection and hover indicators
-  - Methods: `createSelectionIndicator()`, `updateSelection()`, `showHover()`, `hideHover()`
-  - Handles: Visual feedback for user interactions
+  - Methods: `showSelectionAt()`, `hideSelection()`, `updateFromPointer()`
+  - Handles: Visual feedback for user interactions, hover effects
 
 - **MoveRangeRenderer**: Manages move range highlights
-  - Methods: `showMoveRange()`, `clearMoveRange()`, `createMoveHighlight()`
+  - Methods: `showMoveRange()`, `clearMoveHighlights()`, `isValidMoveTarget()`
   - Handles: Highlighting valid movement options
 
 - **HabitatRenderer**: Manages habitat visualizations
-  - Methods: `renderHabitats()`, `createHabitatGraphic()`, `updateHabitat()`
+  - Methods: `renderHabitats()`, `createHabitatGraphic()`, `addHabitat()`, `updateHabitat()`
   - Handles: Habitat state visualization, placement
 
 - **AnimalRenderer**: Handles animal sprites and states
-  - Methods: `renderAnimals()`, `createAnimalSprite()`, `updateAnimal()`, `calculateUnitDepth()`
+  - Methods: `renderAnimals()`, `addAnimal()`, `updateAnimal()`, `removeAnimal()`
   - Handles: Unit visualization, state changes, animations
 
 ### Managers
@@ -33,32 +47,50 @@ Located in `/renderers` directory:
 Located in `/managers` directory:
 
 - **LayerManager**: Manages the Phaser layer hierarchy
-  - Methods: `setupLayers()`, `getLayer()`, `clearLayer()`, `removeAll()`
+  - Methods: `setupLayers()`, `getLayer()`, `addToLayer()`, `clearLayer()`
   - Handles: Z-ordering, layer organization, depth management
 
 - **InputManager**: Manages user input and event handling
-  - Methods: `setupClickEvents()`, `setupKeyboard()`, `delegateClick()`
+  - Methods: `setupKeyboardControls()`, `setupClickEventDelegation()`, `onTileClick()`
   - Handles: Mouse interactions, keyboard shortcuts, event delegation
 
-- **AnimationController**: Controls animations and transitions
-  - Methods: `animateUnit()`, `stopAnimations()`, `onAnimationComplete()`
-  - Handles: Movement animations, displacement effects, tweening
-
 - **CameraManager**: Handles camera positioning and controls
-  - Methods: `setupCamera()`, `zoom()`, `pan()`, `centerOn()`
+  - Methods: `setupCamera()`, `adjustZoom()`, `pan()`, `centerOn()`
   - Handles: View management, zoom/pan controls
 
 - **StateSubscriptionManager**: Centralizes state subscriptions
-  - Methods: `setupSubscriptions()`, `unsubscribeAll()`, `subscribe()`
-  - Handles: Zustand state observation, data flow to components
+  - Methods: `setupSubscriptions()`, `unsubscribeAll()`, `getActiveSubscriptions()`
+  - Handles: Zustand state observation, data flow, state diffing
+
+### Controllers
+
+Located in `/controllers` directory:
+
+- **AnimationController**: Controls animations and transitions
+  - Methods: `moveUnit()`, `displaceUnit()`, `isAnimating()`
+  - Handles: Movement animations, displacement effects, tweening
 
 ### Utils
 
 Located in `/utils` directory:
 
 - **CoordinateUtils**: Provides coordinate conversion utilities
-  - Methods: `gridToScreen()`, `screenToGrid()`, `isValidCoordinate()`
+  - Methods: `gridToWorld()`, `screenToGrid()`, `isValidCoordinate()`, `getNeighbors()`
   - Handles: Isometric conversion, position calculations
+
+- **TerrainGenerator**: Handles terrain generation
+  - Methods: `generateIslandTerrain()`, `addBeaches()`, `addUnderwaterTiles()`
+  - Handles: Procedural terrain generation with various biomes
+
+## Implementation Status
+
+Phase One of the refactoring has been completed, which includes:
+- Creation of the component-based architecture
+- Implementation of manager classes
+- Development of renderer abstractions with BaseRenderer
+- State subscription management and state diffing
+
+Phase Two plans are documented in `docs/Refactor_PhaseTwo.md` and focus on further optimizing the BoardScene.
 
 ## Naming Conventions
 

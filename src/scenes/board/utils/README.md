@@ -1,110 +1,146 @@
-# Coordinate Utilities
+# Board Utilities
 
-This module will contain utility functions for handling coordinate transformations between grid (logical) coordinates and screen (pixel) coordinates in the isometric game world.
+This directory contains utility modules that provide support functions for the board scene.
 
-## Planned Methods
+## CoordinateUtils
 
-### `gridToScreen(gridX: number, gridY: number, tileSize: number, tileHeight: number): { x: number, y: number }`
+Provides coordinate conversion utilities for working with the isometric grid.
 
-Converts logical grid coordinates to screen (pixel) coordinates.
+### API
 
-- **Parameters**:
-  - `gridX`: X position on the logical grid
-  - `gridY`: Y position on the logical grid
-  - `tileSize`: The width of a tile in pixels
-  - `tileHeight`: The height of a tile in pixels (typically half of tileSize for isometric)
-  
-- **Returns**: Object with screen x,y coordinates
+```typescript
+// Convert grid to screen/world coordinates
+function gridToIso(
+  gridX: number, 
+  gridY: number, 
+  tileSize: number, 
+  tileHeight: number
+): { x: number, y: number };
 
-### `screenToGrid(screenX: number, screenY: number, tileSize: number, tileHeight: number): { x: number, y: number }`
+function gridToWorld(
+  gridX: number, 
+  gridY: number, 
+  tileSize: number, 
+  tileHeight: number,
+  anchorX: number,
+  anchorY: number
+): { x: number, y: number };
 
-Converts screen (pixel) coordinates to logical grid coordinates.
+// Convert screen coordinates to grid
+function screenToGrid(
+  screenX: number, 
+  screenY: number, 
+  tileSize: number, 
+  tileHeight: number,
+  anchorX: number,
+  anchorY: number,
+  worldPoint?: { x: number, y: number }
+): { x: number, y: number };
 
-- **Parameters**:
-  - `screenX`: X position in screen space
-  - `screenY`: Y position in screen space
-  - `tileSize`: The width of a tile in pixels
-  - `tileHeight`: The height of a tile in pixels
-  
-- **Returns**: Object with grid x,y coordinates (may need rounding for exact tile)
+// Grid coordinate operations
+function isValidCoordinate(
+  x: number, 
+  y: number, 
+  boardWidth: number, 
+  boardHeight: number
+): boolean;
 
-### `getWorldPositionFromGrid(gridX: number, gridY: number, anchorX: number, anchorY: number, tileSize: number, tileHeight: number): { x: number, y: number }`
+function getNeighbors(
+  x: number, 
+  y: number, 
+  boardWidth: number, 
+  boardHeight: number
+): Array<{ x: number, y: number }>;
 
-Gets the absolute world position for a grid coordinate, accounting for the scene's anchor point.
+function calculateManhattanDistance(
+  x1: number, 
+  y1: number, 
+  x2: number, 
+  y2: number
+): number;
 
-- **Parameters**:
-  - `gridX`: X position on the logical grid
-  - `gridY`: Y position on the logical grid
-  - `anchorX`: The X anchor point of the scene
-  - `anchorY`: The Y anchor point of the scene
-  - `tileSize`: The width of a tile in pixels
-  - `tileHeight`: The height of a tile in pixels
-  
-- **Returns**: Object with absolute world x,y coordinates
+// Tile visual utilities
+function createIsoDiamondPoints(
+  tileSize: number, 
+  tileHeight: number, 
+  scaleFactor?: number
+): Array<{ x: number, y: number }>;
 
-### `isValidCoordinate(x: number, y: number, boardWidth: number, boardHeight: number): boolean`
+// Validation
+function validateCoordinateConversion(
+  gridX: number,
+  gridY: number,
+  tileSize: number,
+  tileHeight: number,
+  anchorX: number,
+  anchorY: number
+): { isValid: boolean, original: { x: number, y: number }, world: { x: number, y: number }, converted: { x: number, y: number } };
+```
 
-Checks if the given grid coordinates are within the board boundaries.
+### Key Features
 
-- **Parameters**:
-  - `x`: X position on the logical grid
-  - `y`: Y position on the logical grid
-  - `boardWidth`: Width of the game board in tiles
-  - `boardHeight`: Height of the game board in tiles
-  
-- **Returns**: Boolean indicating if coordinate is valid
+- **World/Screen Coordinate Conversion**: Converts between grid and screen coordinate systems
+- **Grid Operations**: Validates and manipulates grid coordinates
+- **Distance Calculation**: Computes distances between coordinates
+- **Isometric Shape Generation**: Creates diamond shapes for tile rendering
+- **Coordinate Validation**: Ensures that coordinate transformations work bidirectionally
 
-### `getNeighbors(x: number, y: number, boardWidth: number, boardHeight: number): Array<{ x: number, y: number }>`
+## TerrainGenerator
 
-Gets all valid neighboring coordinates for a given grid position.
+Procedurally generates terrain for the game board.
 
-- **Parameters**:
-  - `x`: X position on the logical grid
-  - `y`: Y position on the logical grid
-  - `boardWidth`: Width of the game board in tiles
-  - `boardHeight`: Height of the game board in tiles
-  
-- **Returns**: Array of coordinate objects representing neighboring positions
+### API
 
-### `calculateManhattanDistance(x1: number, y1: number, x2: number, y2: number): number`
+```typescript
+interface TerrainGenerationOptions {
+  seed?: number;
+  waterRatio?: number;     // 0-1: how much water to include
+  mountainRatio?: number;  // 0-1: how many mountains to include
+  beachWidth?: number;     // Width of beaches around water
+  smoothingPasses?: number; // How many smoothing passes to apply
+}
 
-Calculates the Manhattan distance between two grid coordinates.
+// Main generation function
+function generateIslandTerrain(
+  width: number, 
+  height: number, 
+  options?: TerrainGenerationOptions
+): TerrainType[][];
 
-- **Parameters**:
-  - `x1`: X position of first coordinate
-  - `y1`: Y position of first coordinate
-  - `x2`: X position of second coordinate
-  - `y2`: Y position of second coordinate
-  
-- **Returns**: Number representing the Manhattan distance 
+// Helper functions
+function addBeaches(
+  terrain: TerrainType[][], 
+  width: number, 
+  height: number, 
+  beachWidth: number
+): void;
 
-# Terrain Generator
+function addUnderwaterTiles(
+  terrain: TerrainType[][], 
+  width: number, 
+  height: number
+): void;
 
-This module contains utilities for generating terrain for the game board with various biomes and features.
+function smoothTerrain(
+  terrain: TerrainType[][], 
+  width: number, 
+  height: number
+): void;
+```
 
-## Main Function
+### Key Features
 
-### `generateIslandTerrain(width: number, height: number, options?: TerrainGenerationOptions): TerrainType[][]`
+- **Island Generation**: Creates natural-looking island terrain with multiple biomes
+- **Customizable Parameters**: Controls water ratio, mountain density, beach width, etc.
+- **Terrain Smoothing**: Applies multiple smoothing passes for natural-looking terrain
+- **Biome Variety**: Generates water, beaches, grass, mountains, and underwater tiles
+- **Deterministic Generation**: Supports fixed seeds for reproducible terrain
 
-Generates an island-style terrain map with various terrain types.
-
-- **Parameters**:
-  - `width`: Width of the terrain grid
-  - `height`: Height of the terrain grid
-  - `options`: Optional configuration for terrain generation:
-    - `seed`: Random seed for terrain generation
-    - `waterRatio`: Proportion of water tiles (0-1)
-    - `mountainRatio`: Proportion of mountain tiles (0-1)
-    - `beachWidth`: Width of beach rings around water
-    - `smoothingPasses`: Number of smoothing iterations to apply
-  
-- **Returns**: 2D array of TerrainType values representing the generated terrain
-
-## Terrain Types
+### Terrain Types
 
 The generator creates a varied terrain with these types:
-- Water: Ocean tiles surrounding the island
-- Beach: Shoreline tiles between water and land
-- Grass: The main land area
-- Mountain: Elevated areas on the island
-- Underwater: Deep water tiles away from the shore 
+- **Water**: Ocean tiles surrounding the island
+- **Beach**: Shoreline tiles between water and land
+- **Grass**: The main land area
+- **Mountain**: Elevated areas on the island
+- **Underwater**: Deep water tiles away from the shore 

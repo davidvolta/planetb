@@ -4,9 +4,9 @@ This directory contains manager classes that handle specific aspects of the game
 
 ## LayerManager
 
-The LayerManager will be responsible for creating, accessing, and managing the various Phaser layers used in the game scene.
+The LayerManager is responsible for creating, accessing, and managing the various Phaser layers used in the game scene.
 
-### Planned API
+### API
 
 ```typescript
 class LayerManager {
@@ -14,23 +14,24 @@ class LayerManager {
   
   // Setup and initialization
   setupLayers(): void;
+  isLayersSetup(): boolean;
   
   // Layer accessors
-  getBackgroundLayer(): Phaser.GameObjects.Layer;
-  getTerrainLayer(): Phaser.GameObjects.Layer;
-  getSelectionLayer(): Phaser.GameObjects.Layer;
-  getMoveRangeLayer(): Phaser.GameObjects.Layer;
-  getStaticObjectsLayer(): Phaser.GameObjects.Layer;
-  getUnitsLayer(): Phaser.GameObjects.Layer;
-  getUILayer(): Phaser.GameObjects.Layer;
+  getBackgroundLayer(): Phaser.GameObjects.Container;
+  getTerrainLayer(): Phaser.GameObjects.Container;
+  getSelectionLayer(): Phaser.GameObjects.Container;
+  getMoveRangeLayer(): Phaser.GameObjects.Container;
+  getStaticObjectsLayer(): Phaser.GameObjects.Container;
+  getUnitsLayer(): Phaser.GameObjects.Container;
+  getUILayer(): Phaser.GameObjects.Container;
   
   // Layer operations
-  clearLayer(layerName: string): void;
-  removeAll(layerName: string, destroyChildren?: boolean): void;
+  addToLayer(layerName: string, gameObject: Phaser.GameObjects.GameObject): void;
+  clearLayer(layerName: string, destroyChildren?: boolean): void;
+  clearAllLayers(destroyChildren?: boolean): void;
   
   // Utility methods
   logLayerInfo(): void;
-  isLayersSetup(): boolean;
 }
 ```
 
@@ -44,7 +45,7 @@ class LayerManager {
 
 ### Layer Structure
 
-The LayerManager will manage the following layers (from bottom to top):
+The LayerManager manages the following layers (from bottom to top):
 
 1. **backgroundLayer** (depth 0): Background elements
 2. **terrainLayer** (depth 1): Terrain tiles
@@ -54,9 +55,125 @@ The LayerManager will manage the following layers (from bottom to top):
 6. **unitsLayer** (depth 5): Units and animals
 7. **uiLayer** (depth 10): UI elements that appear above the game
 
+## InputManager
+
+The InputManager handles user input processing and delegation to the appropriate handlers.
+
+### API
+
+```typescript
+class InputManager {
+  constructor(scene: Phaser.Scene, tileSize: number, tileHeight: number);
+  
+  // Initialization
+  initialize(anchorX: number, anchorY: number): void;
+  
+  // Input setup
+  setupKeyboardControls(): void;
+  setupClickEventDelegation(): void;
+  
+  // Click handlers
+  onTileClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void;
+  onHabitatClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void;
+  onPointerMove(callback: (worldX: number, worldY: number, pointer: Phaser.Input.Pointer) => void): void;
+  
+  // Coordinate utilities
+  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null;
+  
+  // Cleanup
+  destroy(): void;
+}
+```
+
+### Responsibilities
+
+- Setting up and managing keyboard controls
+- Delegating click events to the appropriate handlers
+- Converting screen coordinates to grid coordinates
+- Handling pointer movement and hover events
+- Managing input-related event listeners
+
+## CameraManager
+
+The CameraManager handles camera controls, zoom, and positioning for the game view.
+
+### API
+
+```typescript
+class CameraManager {
+  constructor(scene: Phaser.Scene);
+  
+  // Initialization
+  setupCamera(): void;
+  
+  // Camera control
+  getCamera(): Phaser.Cameras.Scene2D.Camera;
+  pan(deltaX: number, deltaY: number): void;
+  adjustZoom(zoomChange: number): void;
+  centerOn(x: number, y: number): void;
+  
+  // Cleanup
+  destroy(): void;
+}
+```
+
+### Responsibilities
+
+- Setting up the Phaser camera system
+- Providing methods for panning and zooming
+- Managing camera bounds and restrictions
+- Centering the camera on specific coordinates
+- Maintaining zoom limits for usability
+
+## StateSubscriptionManager
+
+The StateSubscriptionManager centralizes all state subscriptions for the BoardScene and its components, optimizing state updates and rendering.
+
+### API
+
+```typescript
+class StateSubscriptionManager {
+  constructor(
+    scene: Phaser.Scene,
+    components: {
+      animalRenderer: AnimalRenderer;
+      habitatRenderer: HabitatRenderer;
+      moveRangeRenderer: MoveRangeRenderer;
+      animationController: AnimationController;
+      tileRenderer: TileRenderer;
+    }
+  );
+  
+  // Subscription management
+  setupSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void;
+  unsubscribeAll(): void;
+  getActiveSubscriptions(): string[];
+  
+  // Cleanup
+  destroy(): void;
+}
+```
+
+### Responsibilities
+
+- Centralizing all Zustand state subscriptions
+- Managing efficient state updates through diffing
+- Optimizing rendering by identifying only changed entities
+- Coordinating data flow between state and renderers
+- Providing consistent subscription lifecycle management
+
+### State Diffing
+
+The StateSubscriptionManager implements state diffing, which:
+
+1. Caches previous states to compare with new updates
+2. Identifies specifically which entities were added, changed, or removed
+3. Calls optimized renderer methods like `addAnimal()`, `updateAnimal()`, and `removeAnimal()`
+4. Minimizes unnecessary re-renders by only updating changed elements
+5. Significantly improves performance, especially with large numbers of entities
+
 ## Other Planned Managers
 
-- **InputManager**: Will handle user input and interaction delegation
 - **AnimationController**: Will manage game animations and transitions
 - **CameraManager**: Will control camera positioning and zoom/pan
 - **StateSubscriptionManager**: Will centralize Zustand state subscriptions 

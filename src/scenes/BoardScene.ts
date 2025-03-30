@@ -33,9 +33,7 @@ export const EVENTS = {
   ASSETS_LOADED: 'assetsLoaded'
 };
 
-// PHASE 7: BoardScene Core Refactoring
-// This phase simplifies the BoardScene by delegating functionality to managers
-// and ensuring proper lifecycle management
+// Delegate functionality to managers and ensure proper lifecycle management
 
 export default class BoardScene extends Phaser.Scene {
   // Keep the tiles array for compatibility with existing code
