@@ -4,6 +4,8 @@ import { StateObserver } from "../utils/stateObserver";
 import { AnimalState, Habitat, HabitatState } from "../store/gameStore";
 import * as actions from "../store/actions";
 import { ValidMove } from "../store/gameStore";
+import * as CoordinateUtils from "./board/utils/CoordinateUtils";
+import { runCoordinateTestsFromBoardScene } from "./board/utils/runValidation";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -985,25 +987,19 @@ export default class BoardScene extends Phaser.Scene {
     // Get world point from screen coordinates
     const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
     
-    // Adjust for fixed anchor position
-    const localX = worldPoint.x - this.anchorX;
-    const localY = worldPoint.y - this.anchorY;
-    
-    // Add small offset to compensate for visual vs. logical grid mismatch
-    const offsetX = 0;
-    const offsetY = -this.tileHeight / 2;
-    
-    // Convert to isometric grid coordinates with adjustment
-    let gridX = Math.floor(((localY + offsetY) / (this.tileHeight / 2) + (localX + offsetX) / (this.tileSize / 2)) / 2);
-    let gridY = Math.floor(((localY + offsetY) / (this.tileHeight / 2) - (localX + offsetX) / (this.tileSize / 2)) / 2);
-    
-    // Add +1 to both coordinates to fix the off-by-one error
-    gridX += 1;
-    gridY += 1;
+    // Convert to grid using the utility
+    const gridPosition = CoordinateUtils.screenToGrid(
+      0, 0, // Not used when worldPoint is provided
+      this.tileSize,
+      this.tileHeight,
+      this.anchorX,
+      this.anchorY,
+      worldPoint
+    );
     
     // Check if grid position is valid
-    if (gridX >= 0 && gridX < board.width && gridY >= 0 && gridY < board.height) {
-      return { x: gridX, y: gridY };
+    if (CoordinateUtils.isValidCoordinate(gridPosition.x, gridPosition.y, board.width, board.height)) {
+      return gridPosition;
     }
     
     return null;
@@ -1011,15 +1007,15 @@ export default class BoardScene extends Phaser.Scene {
   
   // Method to convert grid coordinates to screen coordinates
   gridToScreen(gridX: number, gridY: number): { x: number, y: number } {
-    // Convert grid coordinates to isometric coordinates
-    const isoX = (gridX - gridY) * this.tileSize / 2;
-    const isoY = (gridX + gridY) * this.tileHeight / 2;
-    
-    // Return screen coordinates using anchor position
-    return { 
-      x: this.anchorX + isoX, 
-      y: this.anchorY + isoY 
-    };
+    // Use the utility method for conversion
+    return CoordinateUtils.gridToWorld(
+      gridX,
+      gridY,
+      this.tileSize,
+      this.tileHeight,
+      this.anchorX,
+      this.anchorY
+    );
   }
 
   // Create a habitat graphic based on its state (potential or shelter)
@@ -1031,13 +1027,12 @@ export default class BoardScene extends Phaser.Scene {
     // Calculate scale factor (approximately 5px smaller on each side)
     const scaleFactor = 0.85; // This will make the diamond about 5px smaller on a 64px tile
     
-    // Create scaled diamond points
-    const diamondPoints = [
-      { x: 0, y: -this.tileHeight / 2 * scaleFactor },
-      { x: this.tileSize / 2 * scaleFactor, y: 0 },
-      { x: 0, y: this.tileHeight / 2 * scaleFactor },
-      { x: -this.tileSize / 2 * scaleFactor, y: 0 }
-    ];
+    // Create scaled diamond points using utility
+    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
+      this.tileSize,
+      this.tileHeight,
+      scaleFactor
+    );
     
     // Choose color based on state
     if (state === HabitatState.IMPROVED) {
@@ -1090,15 +1085,12 @@ export default class BoardScene extends Phaser.Scene {
     
     // Process each habitat - create new or update existing
     habitats.forEach(habitat => {
-      // Calculate position
+      // Calculate position using coordinate utility
       const gridX = habitat.position.x;
       const gridY = habitat.position.y;
-      const isoX = (gridX - gridY) * this.tileSize / 2;
-      const isoY = (gridX + gridY) * this.tileHeight / 2;
-      
-      // Position using anchor points
-      const worldX = this.anchorX + isoX;
-      const worldY = this.anchorY + isoY;
+      const worldPosition = CoordinateUtils.gridToWorld(
+        gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+      );
       
       // Check if we have an existing graphic
       const existing = existingHabitats.get(habitat.id);
@@ -1108,7 +1100,7 @@ export default class BoardScene extends Phaser.Scene {
         existing.used = true;
         
         // Update position
-        existing.graphic.setPosition(worldX, worldY);
+        existing.graphic.setPosition(worldPosition.x, worldPosition.y);
         
         // Update state if needed
         if (existing.graphic.getData('habitatState') !== habitat.state) {
@@ -1116,7 +1108,7 @@ export default class BoardScene extends Phaser.Scene {
           
           // Destroy and recreate the graphic to reflect the new state
           existing.graphic.destroy();
-          const habitatGraphic = this.createHabitatGraphic(worldX, worldY, habitat.state);
+          const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, habitat.state);
           habitatGraphic.setData('habitatId', habitat.id);
           habitatGraphic.setData('gridX', gridX);
           habitatGraphic.setData('gridY', gridY);
@@ -1130,7 +1122,7 @@ export default class BoardScene extends Phaser.Scene {
         }
       } else {
         // Create a new habitat graphic
-        const habitatGraphic = this.createHabitatGraphic(worldX, worldY, habitat.state);
+        const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, habitat.state);
         
         // Store the habitat ID for reference
         habitatGraphic.setData('habitatId', habitat.id);
@@ -1181,30 +1173,26 @@ export default class BoardScene extends Phaser.Scene {
 
   // Create circular highlight for a move tile
   private createMoveHighlight(x: number, y: number): Phaser.GameObjects.Graphics {
-    // Calculate isometric position
-    const isoX = (x - y) * this.tileSize / 2;
-    const isoY = (x + y) * this.tileHeight / 2;
-    
-    // Calculate world position
-    const worldX = this.anchorX + isoX;
-    const worldY = this.anchorY + isoY;
+    // Use coordinate utility to get world position
+    const worldPosition = CoordinateUtils.gridToWorld(
+      x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+    );
     
     // Create a graphics object for the move highlight
     const highlight = this.add.graphics();
     
     // Set the position
-    highlight.setPosition(worldX, worldY);
+    highlight.setPosition(worldPosition.x, worldPosition.y);
     
     // Apply scaling factor
     const scaleFactor = 0.85;
     
-    // Create scaled diamond points
-    const diamondPoints = [
-      { x: 0, y: -this.tileHeight / 2 * scaleFactor },
-      { x: this.tileSize / 2 * scaleFactor, y: 0 },
-      { x: 0, y: this.tileHeight / 2 * scaleFactor },
-      { x: -this.tileSize / 2 * scaleFactor, y: 0 }
-    ];
+    // Create scaled diamond points using utility
+    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
+      this.tileSize,
+      this.tileHeight,
+      scaleFactor
+    );
     
     // Draw outer glow (slightly larger, more transparent)
     highlight.lineStyle(5, 0xFFFF00, 0.3); // Yellow with 30% opacity, thicker line for glow effect
@@ -1329,16 +1317,18 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Convert grid coordinates to world coordinates
-    const startIsoX = (fromX - fromY) * this.tileSize / 2;
-    const startIsoY = (fromX + fromY) * this.tileHeight / 2;
-    const endIsoX = (toX - toY) * this.tileSize / 2;
-    const endIsoY = (toX + toY) * this.tileHeight / 2;
+    // Convert grid coordinates to world coordinates using utility
+    const startPos = CoordinateUtils.gridToWorld(
+      fromX, fromY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+    );
+    const endPos = CoordinateUtils.gridToWorld(
+      toX, toY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+    );
     
-    const startWorldX = this.anchorX + startIsoX;
-    const startWorldY = this.anchorY + startIsoY;
-    const endWorldX = this.anchorX + endIsoX;
-    const endWorldY = this.anchorY + endIsoY;
+    const startWorldX = startPos.x;
+    const startWorldY = startPos.y;
+    const endWorldX = endPos.x;
+    const endWorldY = endPos.y;
     
     // Apply vertical offset
     const verticalOffset = -12;
@@ -1489,12 +1479,13 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     if (shouldShow && x !== undefined && y !== undefined) {
-      // Calculate isometric position for the indicator
-      const isoX = (x - y) * this.tileSize / 2;
-      const isoY = (x + y) * this.tileHeight / 2;
+      // Use CoordinateUtils to calculate world position
+      const worldPosition = CoordinateUtils.gridToWorld(
+        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+      );
       
       // Position the indicator
-      this.selectionIndicator.setPosition(this.anchorX + isoX, this.anchorY + isoY);
+      this.selectionIndicator.setPosition(worldPosition.x, worldPosition.y);
       
       // Make the indicator visible
       this.selectionIndicator.setVisible(true);
@@ -1563,5 +1554,10 @@ export default class BoardScene extends Phaser.Scene {
       // Otherwise hide it (when deselecting or selecting an active unit)
       this.hideSelectionIndicator();
     }
+  }
+
+  // Method to validate coordinate conversions
+  public validateCoordinateSystem(): { success: boolean, message: string, results?: any[] } {
+    return runCoordinateTestsFromBoardScene(this);
   }
 }

@@ -29,20 +29,20 @@
     - [x] Ensure no code changes have been made yet that could affect functionality
 
   #### Phase 2: Extract Coordinate Utilities
-  - [ ] Create CoordinateUtils Module
-    - [ ] Create `CoordinateUtils.ts` in `/utils` directory
-    - [ ] Identify all coordinate conversion methods in BoardScene
-    - [ ] Extract isometric conversions (`gridToScreen`, `screenToGrid`, etc.)
-    - [ ] Add documentation for each utility method
-    - [ ] Update references in BoardScene to use the utility
-  - [ ] Validate Coordinate System
-    - [ ] Create validation method to ensure conversions are correct
-    - [ ] Verify extracted methods produce identical results to original
-  - [ ] Phase 2 Validation
-    - [ ] Test tile selection with coordinate utilities
-    - [ ] Verify unit positioning is correct
-    - [ ] Check that habitat placement is visually identical to before
-    - [ ] Ensure mouse interactions work correctly with grid/screen conversions
+  - [x] Create CoordinateUtils Module
+    - [x] Create `CoordinateUtils.ts` in `/utils` directory
+    - [x] Identify all coordinate conversion methods in BoardScene
+    - [x] Extract isometric conversions (`gridToScreen`, `screenToGrid`, etc.)
+    - [x] Add documentation for each utility method
+    - [x] Update references in BoardScene to use the utility
+  - [x] Validate Coordinate System
+    - [x] Create validation method to ensure conversions are correct
+    - [x] Verify extracted methods produce identical results to original
+  - [x] Phase 2 Validation
+    - [x] Test tile selection with coordinate utilities
+    - [x] Verify unit positioning is correct
+    - [x] Check that habitat placement is visually identical to before
+    - [x] Ensure mouse interactions work correctly with grid/screen conversions
 
   #### Phase 3: Extract Layer Management
   - [ ] Create LayerManager Class
