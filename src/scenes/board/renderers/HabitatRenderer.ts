@@ -2,25 +2,12 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { HabitatState } from '../../../store/gameStore';
+import { BaseRenderer } from './BaseRenderer';
 
 /**
  * Responsible for rendering and managing habitat graphics
  */
-export class HabitatRenderer {
-  // Reference to the scene
-  private scene: Phaser.Scene;
-  
-  // Reference to the layer manager
-  private layerManager: LayerManager;
-  
-  // Store fixed size properties for habitats
-  private tileSize: number;
-  private tileHeight: number;
-  
-  // Store anchor coordinates for the grid origin
-  private anchorX: number;
-  private anchorY: number;
-  
+export class HabitatRenderer extends BaseRenderer {
   /**
    * Creates a new HabitatRenderer
    * @param scene The parent scene
@@ -34,14 +21,7 @@ export class HabitatRenderer {
     tileSize: number = 64, 
     tileHeight: number = 32
   ) {
-    this.scene = scene;
-    this.layerManager = layerManager;
-    this.tileSize = tileSize;
-    this.tileHeight = tileHeight;
-    
-    // Initialize anchors with defaults - will be updated during rendering
-    this.anchorX = 0;
-    this.anchorY = 0;
+    super(scene, layerManager, tileSize, tileHeight);
   }
   
   /**
@@ -50,8 +30,7 @@ export class HabitatRenderer {
    * @param anchorY The Y coordinate of the grid anchor point
    */
   initialize(anchorX: number, anchorY: number): void {
-    this.anchorX = anchorX;
-    this.anchorY = anchorY;
+    this.setAnchor(anchorX, anchorY);
   }
   
   /**
@@ -196,10 +175,10 @@ export class HabitatRenderer {
   }
   
   /**
-   * Clean up resources used by this renderer
+   * Clean up resources when destroying this renderer
    */
-  destroy(): void {
-    // Clear all habitat graphics
+  override destroy(): void {
+    super.destroy();
     this.clearHabitats();
   }
 } 

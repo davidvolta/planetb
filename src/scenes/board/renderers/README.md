@@ -1,10 +1,16 @@
 # Renderers
 
-This directory contains renderer classes that handle the visual representation of game elements. Each renderer is responsible for creating, updating, and managing the visual components of a specific aspect of the game.
+This directory contains renderer classes for the game board, which are responsible for creating and updating visual elements.
 
-## Renderer Classes
+## BaseRenderer
 
-### TileRenderer
+The `BaseRenderer` serves as the foundation for all renderer components, providing common functionality:
+
+- **Properties**: Manages scene reference, layer manager, tile size, and anchor coordinates
+- **Methods**: Contains shared operations like coordinate conversion and resource cleanup
+- **Inheritance**: All specific renderers extend this base class
+
+## TileRenderer
 
 Responsible for creating and rendering the terrain tiles that make up the game board.
 

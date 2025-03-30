@@ -2,25 +2,12 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { ValidMove } from '../../../store/gameStore';
+import { BaseRenderer } from './BaseRenderer';
 
 /**
  * Responsible for rendering and managing move range highlights
  */
-export class MoveRangeRenderer {
-  // Reference to the scene
-  private scene: Phaser.Scene;
-  
-  // Reference to the layer manager
-  private layerManager: LayerManager;
-  
-  // Store fixed size properties for highlights
-  private tileSize: number;
-  private tileHeight: number;
-  
-  // Store anchor coordinates for the grid origin
-  private anchorX: number;
-  private anchorY: number;
-  
+export class MoveRangeRenderer extends BaseRenderer {
   // Array to store move range highlight graphics
   private moveRangeHighlights: Phaser.GameObjects.Graphics[] = [];
   
@@ -37,14 +24,7 @@ export class MoveRangeRenderer {
     tileSize: number = 64, 
     tileHeight: number = 32
   ) {
-    this.scene = scene;
-    this.layerManager = layerManager;
-    this.tileSize = tileSize;
-    this.tileHeight = tileHeight;
-    
-    // Initialize anchors with defaults - will be updated during rendering
-    this.anchorX = 0;
-    this.anchorY = 0;
+    super(scene, layerManager, tileSize, tileHeight);
   }
   
   /**
@@ -53,8 +33,7 @@ export class MoveRangeRenderer {
    * @param anchorY The Y coordinate of the grid anchor point
    */
   initialize(anchorX: number, anchorY: number): void {
-    this.anchorX = anchorX;
-    this.anchorY = anchorY;
+    this.setAnchor(anchorX, anchorY);
   }
   
   /**
@@ -182,7 +161,8 @@ export class MoveRangeRenderer {
   /**
    * Clean up resources when no longer needed
    */
-  destroy(): void {
+  override destroy(): void {
+    super.destroy();
     this.clearMoveHighlights();
   }
 } 

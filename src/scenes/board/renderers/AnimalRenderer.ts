@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { AnimalState } from '../../../store/gameStore';
+import { BaseRenderer } from './BaseRenderer';
 
 /**
  * Interface representing an animal entity for rendering
@@ -20,21 +21,7 @@ interface Animal {
 /**
  * Responsible for rendering and managing animal sprites
  */
-export class AnimalRenderer {
-  // Reference to the scene
-  private scene: Phaser.Scene;
-  
-  // Reference to the layer manager
-  private layerManager: LayerManager;
-  
-  // Store fixed size properties
-  private tileSize: number;
-  private tileHeight: number;
-  
-  // Store anchor coordinates for the grid origin
-  private anchorX: number;
-  private anchorY: number;
-  
+export class AnimalRenderer extends BaseRenderer {
   // Animation status flag
   private animationInProgress: boolean = false;
   
@@ -54,14 +41,7 @@ export class AnimalRenderer {
     tileSize: number = 64, 
     tileHeight: number = 32
   ) {
-    this.scene = scene;
-    this.layerManager = layerManager;
-    this.tileSize = tileSize;
-    this.tileHeight = tileHeight;
-    
-    // Initialize anchors with defaults - will be updated during rendering
-    this.anchorX = 0;
-    this.anchorY = 0;
+    super(scene, layerManager, tileSize, tileHeight);
   }
   
   /**
@@ -70,8 +50,7 @@ export class AnimalRenderer {
    * @param anchorY The Y coordinate of the grid anchor point
    */
   initialize(anchorX: number, anchorY: number): void {
-    this.anchorX = anchorX;
-    this.anchorY = anchorY;
+    this.setAnchor(anchorX, anchorY);
   }
   
   /**
@@ -376,18 +355,22 @@ export class AnimalRenderer {
   }
   
   /**
-   * Clear all animal sprites from the layer
+   * Clean up resources when destroying this renderer
    */
-  clearAnimals(): void {
-    // Clear the units layer
-    this.layerManager.clearLayer('units', true);
-  }
-  
-  /**
-   * Clean up resources used by this renderer
-   */
-  destroy(): void {
-    // Clear all animal sprites
-    this.clearAnimals();
+  override destroy(): void {
+    super.destroy();
+    
+    // Get all animal sprites and destroy them
+    const unitsLayer = this.layerManager.getUnitsLayer();
+    if (unitsLayer) {
+      unitsLayer.getAll().forEach(child => {
+        if (child instanceof Phaser.GameObjects.Sprite) {
+          const animalId = child.getData('animalId');
+          if (animalId) {
+            child.destroy();
+          }
+        }
+      });
+    }
   }
 } 

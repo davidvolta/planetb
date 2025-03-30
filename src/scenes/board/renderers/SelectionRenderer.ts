@@ -1,25 +1,12 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
+import { BaseRenderer } from './BaseRenderer';
 
 /**
  * Responsible for rendering and managing selection indicators and hover effects
  */
-export class SelectionRenderer {
-  // Reference to the scene
-  private scene: Phaser.Scene;
-  
-  // Reference to the layer manager
-  private layerManager: LayerManager;
-  
-  // Store fixed size properties for indicators
-  private tileSize: number;
-  private tileHeight: number;
-  
-  // Store anchor coordinates for the grid origin
-  private anchorX: number;
-  private anchorY: number;
-  
+export class SelectionRenderer extends BaseRenderer {
   // Selection indicator for showing selected tiles
   private selectionIndicator: Phaser.GameObjects.Graphics | null = null;
   
@@ -42,14 +29,7 @@ export class SelectionRenderer {
     tileSize: number = 64, 
     tileHeight: number = 32
   ) {
-    this.scene = scene;
-    this.layerManager = layerManager;
-    this.tileSize = tileSize;
-    this.tileHeight = tileHeight;
-    
-    // Initialize anchors with defaults - will be updated during rendering
-    this.anchorX = 0;
-    this.anchorY = 0;
+    super(scene, layerManager, tileSize, tileHeight);
   }
   
   /**
@@ -58,8 +38,7 @@ export class SelectionRenderer {
    * @param anchorY The Y coordinate of the grid anchor point
    */
   initialize(anchorX: number, anchorY: number): void {
-    this.anchorX = anchorX;
-    this.anchorY = anchorY;
+    this.setAnchor(anchorX, anchorY);
     
     // Create selection and hover indicators
     this.createSelectionIndicator();
@@ -308,9 +287,11 @@ export class SelectionRenderer {
   }
   
   /**
-   * Clean up resources when no longer needed
+   * Clean up resources when destroying this renderer
    */
-  destroy(): void {
+  override destroy(): void {
+    super.destroy();
+    
     if (this.selectionIndicator) {
       this.selectionIndicator.destroy();
       this.selectionIndicator = null;
@@ -320,7 +301,5 @@ export class SelectionRenderer {
       this.hoverIndicator.destroy();
       this.hoverIndicator = null;
     }
-    
-    this.hoveredGridPosition = null;
   }
 } 

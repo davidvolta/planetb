@@ -2,25 +2,12 @@ import Phaser from 'phaser';
 import { TerrainType } from '../../../store/gameStore';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
+import { BaseRenderer } from './BaseRenderer';
 
 /**
  * Responsible for rendering and managing board tiles
  */
-export class TileRenderer {
-  // Reference to the scene
-  private scene: Phaser.Scene;
-  
-  // Reference to the layer manager
-  private layerManager: LayerManager;
-  
-  // Store fixed size properties for tiles
-  private tileSize: number;
-  private tileHeight: number;
-  
-  // Store anchor coordinates for the grid origin
-  private anchorX: number;
-  private anchorY: number;
-  
+export class TileRenderer extends BaseRenderer {
   // Track all created tiles
   private tiles: Phaser.GameObjects.GameObject[] = [];
   
@@ -37,15 +24,7 @@ export class TileRenderer {
     tileSize: number = 64, 
     tileHeight: number = 32
   ) {
-    this.scene = scene;
-    this.layerManager = layerManager;
-    this.tileSize = tileSize;
-    this.tileHeight = tileHeight;
-    
-    // Initialize anchors to center of the game width/height or use defaults
-    // Don't access cameras during construction as they're not initialized yet
-    this.anchorX = 0;
-    this.anchorY = 0;
+    super(scene, layerManager, tileSize, tileHeight);
   }
   
   /**
@@ -54,8 +33,7 @@ export class TileRenderer {
    * @param anchorY The Y coordinate of the grid anchor point
    */
   initialize(anchorX: number, anchorY: number): void {
-    this.anchorX = anchorX;
-    this.anchorY = anchorY;
+    this.setAnchor(anchorX, anchorY);
   }
   
   /**
@@ -76,8 +54,7 @@ export class TileRenderer {
     this.clearTiles();
     
     // Use provided center coordinates or default to screen center
-    this.anchorX = centerX ?? this.scene.cameras.main.width / 2;
-    this.anchorY = centerY ?? this.scene.cameras.main.height / 2;
+    this.setAnchor(centerX ?? this.scene.cameras.main.width / 2, centerY ?? this.scene.cameras.main.height / 2);
     
     // Create tiles for each board position
     for (let y = 0; y < board.height; y++) {
@@ -288,13 +265,10 @@ export class TileRenderer {
   }
   
   /**
-   * Clean up resources used by this renderer
+   * Clean up resources when destroying this renderer
    */
-  destroy(): void {
-    // Clear all tiles
-    this.clearTiles(true);
-    
-    // Clear references
-    this.tiles = [];
+  override destroy(): void {
+    super.destroy();
+    this.clearTiles();
   }
 } 

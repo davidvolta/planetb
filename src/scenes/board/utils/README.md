@@ -77,3 +77,34 @@ Calculates the Manhattan distance between two grid coordinates.
   - `y2`: Y position of second coordinate
   
 - **Returns**: Number representing the Manhattan distance 
+
+# Terrain Generator
+
+This module contains utilities for generating terrain for the game board with various biomes and features.
+
+## Main Function
+
+### `generateIslandTerrain(width: number, height: number, options?: TerrainGenerationOptions): TerrainType[][]`
+
+Generates an island-style terrain map with various terrain types.
+
+- **Parameters**:
+  - `width`: Width of the terrain grid
+  - `height`: Height of the terrain grid
+  - `options`: Optional configuration for terrain generation:
+    - `seed`: Random seed for terrain generation
+    - `waterRatio`: Proportion of water tiles (0-1)
+    - `mountainRatio`: Proportion of mountain tiles (0-1)
+    - `beachWidth`: Width of beach rings around water
+    - `smoothingPasses`: Number of smoothing iterations to apply
+  
+- **Returns**: 2D array of TerrainType values representing the generated terrain
+
+## Terrain Types
+
+The generator creates a varied terrain with these types:
+- Water: Ocean tiles surrounding the island
+- Beach: Shoreline tiles between water and land
+- Grass: The main land area
+- Mountain: Elevated areas on the island
+- Underwater: Deep water tiles away from the shore 
