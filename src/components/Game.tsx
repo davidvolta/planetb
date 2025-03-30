@@ -16,6 +16,9 @@ const Game: React.FC = () => {
   useEffect(() => {
     // Don't create the game if the container doesn't exist
     if (!gameContainerRef.current) return;
+    
+    // Reset the listeners attached flag to ensure proper setup after hot reloads or StrictMode effects
+    listenersAttachedRef.current = false;
 
     const attachSceneListeners = (scene: Phaser.Scene) => {
       // Don't attach listeners if already attached
@@ -101,21 +104,41 @@ const Game: React.FC = () => {
       return false;
     };
 
+    let interval: number | null = null;
     if (!checkForBoardScene()) {
-      const interval = setInterval(() => {
+      interval = window.setInterval(() => {
         if (checkForBoardScene()) {
-          clearInterval(interval);
+          if (interval !== null) {
+            clearInterval(interval);
+            interval = null;
+          }
         }
       }, 100);
     }
 
     return () => {
+      // Clean up all resources when the component unmounts
       window.removeEventListener('resize', handleResize);
-      // Clean up the game when the component unmounts
+      
+      // Clear any pending intervals
+      if (interval !== null) {
+        clearInterval(interval);
+      }
+      
+      // Clean up event listeners
       if (gameRef.current) {
+        const boardScene = gameRef.current.scene.getScene('BoardScene') as BoardScene;
+        if (boardScene) {
+          boardScene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
+        }
+        
+        // Clean up the game when the component unmounts
         gameRef.current.destroy(true);
         gameRef.current = null;
       }
+      
+      // Reset the listeners attached flag for next mount
+      listenersAttachedRef.current = false;
     };
   }, []);
 

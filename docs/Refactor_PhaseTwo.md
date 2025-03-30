@@ -25,10 +25,6 @@
    - The initialization code is spread across multiple methods (`init`, `create`, `setupCamera`, etc.)
    - Create a more structured initialization pipeline with clear ownership
 
-6. **Simplify Coordinate Conversion**
-   - Remove duplicate coordinate conversion code
-   - Consistently use CoordinateUtils instead of inline conversion logic
-
 7. **Reduce Direct Store Access**
    - BoardScene still has many direct calls to the store via actions
    - Consider implementing a facade/adapter pattern for cleaner store access
@@ -36,10 +32,6 @@
 8. **Remove Direct DOM References**
    - Check for and remove any direct DOM manipulation
    - Ensure all rendering goes through Phaser's systems
-
-9. **Eliminate Redundant Code**
-   - The `renderAnimalSprites` method has logic similar to `handleTileClick`
-   - Consolidate this logic to avoid duplication
 
 10. **Clean Up Getter Methods**
     - Remove unnecessary getter methods at the end of the file
@@ -56,19 +48,3 @@
 13. **Use Proper TypeScript Interfaces**
     - Replace 'any' types with proper interfaces
     - Consider using generics for more flexible code
-
-14. **Implement Proper Event System**
-    - Replace direct method calls with an event system
-    - This would reduce coupling between components
-
-15. **Extract Core Scene Logic**
-    - Create a BaseScene class with common functionality
-    - Have BoardScene inherit from it
-
-## Expected Outcomes
-
-Implementing these optimizations will:
-- Further reduce the size of BoardScene by at least 40-50%
-- Improve maintainability through clearer separation of concerns
-- Enhance testability by reducing direct dependencies
-- Make the game more extensible for future features 

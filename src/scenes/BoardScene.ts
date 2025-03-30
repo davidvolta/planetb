@@ -123,11 +123,11 @@ export default class BoardScene extends Phaser.Scene {
     this.subscriptionsSetup = false;
     this.controlsSetup = false;
     
-    // Initialize all managers
-    this.initializeManagers();
-    
-    // Set up layers 
+    // Set up layers FIRST
     this.layerManager.setupLayers();
+    
+    // THEN initialize managers and renderers
+    this.initializeManagers();
   }
   
   /**
@@ -178,9 +178,6 @@ export default class BoardScene extends Phaser.Scene {
       // Set up state subscriptions
       this.setupSubscriptions();
       
-      // Log final layer state after setup
-      console.log("FINAL LAYER STATE AFTER RENDERING:");
-      this.logLayerInfo();
     }
   }
   
