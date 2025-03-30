@@ -5,7 +5,9 @@ import { AnimalState, Habitat, HabitatState } from "../store/gameStore";
 import * as actions from "../store/actions";
 import { ValidMove } from "../store/gameStore";
 import * as CoordinateUtils from "./board/utils/CoordinateUtils";
-import { runCoordinateTestsFromBoardScene } from "./board/utils/runValidation";
+import { LayerManager } from "./board/managers/LayerManager";
+import { TileRenderer } from "./board/renderers/TileRenderer";
+import { SelectionRenderer } from "./board/renderers/SelectionRenderer";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -37,31 +39,31 @@ const SUBSCRIPTIONS = {
 // and ensures consistent state updates across the selection system.
 
 export default class BoardScene extends Phaser.Scene {
+  // Keep the tiles array for compatibility with existing code
   private tiles: Phaser.GameObjects.GameObject[] = [];
-  private tileSize = 64; // Fixed tile size
-  private tileHeight = 32; // Half of tile size for isometric view
+  
+  // Fixed tile properties
+  private tileSize = 64; 
+  private tileHeight = 32; 
   
   // Store fixed anchor positions for the grid
   private anchorX = 0; 
   private anchorY = 0;
   
-  // Add layer properties with appropriate typing
-  private backgroundLayer: Phaser.GameObjects.Layer | null = null;
-  private terrainLayer: Phaser.GameObjects.Layer | null = null;
-  private selectionLayer: Phaser.GameObjects.Layer | null = null;
-  private moveRangeLayer: Phaser.GameObjects.Layer | null = null; // New layer for movement range
-  private staticObjectsLayer: Phaser.GameObjects.Layer | null = null;
-  private unitsLayer: Phaser.GameObjects.Layer | null = null;
-  private uiLayer: Phaser.GameObjects.Layer | null = null;
+  // Layer management
+  private layerManager: LayerManager;
+  
+  // Renderers
+  private tileRenderer: TileRenderer;
+  private selectionRenderer: SelectionRenderer;
   
   private controlsSetup = false;
-  private layersSetup = false;
-  private subscriptionsSetup = false; // Track if subscriptions have been set up
+  private subscriptionsSetup = false;
   
-  // Selection indicator for hover/selection
+  // Selection indicator for hover/selection - DEPRECATED: using SelectionRenderer instead
   private selectionIndicator: Phaser.GameObjects.Graphics | null = null;
   
-  // Properties to track mouse position over the grid
+  // Properties to track mouse position over the grid - DEPRECATED: using SelectionRenderer instead
   private hoveredGridPosition: { x: number, y: number } | null = null;
   
   // Array to store move range highlight graphics
@@ -72,6 +74,15 @@ export default class BoardScene extends Phaser.Scene {
 
   constructor() {
     super({ key: "BoardScene" });
+    
+    // Initialize the layer manager
+    this.layerManager = new LayerManager(this);
+    
+    // Initialize the tile renderer with the layer manager
+    this.tileRenderer = new TileRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    
+    // Initialize the selection renderer with the layer manager
+    this.selectionRenderer = new SelectionRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
   }
 
 
@@ -106,7 +117,7 @@ export default class BoardScene extends Phaser.Scene {
     this.subscriptionsSetup = false;
     
     // Set up layers immediately to ensure they exist before any state updates
-    this.setupLayers();
+    this.layerManager.setupLayers();
     
     // We'll setup subscriptions in create() after layers are initialized
   }
@@ -179,7 +190,7 @@ export default class BoardScene extends Phaser.Scene {
       SUBSCRIPTIONS.HABITATS,
       (state) => state.habitats,
       (habitats) => {
-        if (habitats && this.staticObjectsLayer) {
+        if (habitats && this.layerManager.getStaticObjectsLayer()) {
           this.renderHabitatGraphics(habitats);
         }
       }
@@ -212,47 +223,28 @@ export default class BoardScene extends Phaser.Scene {
   // Method to update the board without restarting the scene
   updateBoard() {
     // Check if we need to setup the layers
-    const needsSetup = !this.terrainLayer || !this.selectionLayer || 
-                      !this.moveRangeLayer || !this.staticObjectsLayer || 
-                      !this.unitsLayer;
+    const needsSetup = !this.layerManager.isLayersSetup();
     
     // Log what we're doing
     console.log("Updating board using layer-based rendering");
     
-    // Create new tiles using the layer-based approach
-    this.createTiles();
+    // Set up layers if needed
+    if (needsSetup) {
+      this.layerManager.setupLayers();
+    }
     
-    // Debug log the layer information (handled by createTiles now)
+    // Create new tiles using TileRenderer
+    this.createTiles();
     
     console.log("Board updated with layer-based structure");
   }
   
   // Debug method to log information about our layers
   private logLayerInfo() {
-    console.log("=== LAYER INFORMATION ===");
-    
-    // Function to safely log layer info
-    const logLayer = (name: string, layer: Phaser.GameObjects.Layer | null) => {
-      if (layer) {
-        console.log(`${name}: Depth=${layer.depth}, Children=${layer.getChildren().length}`);
-      } else {
-        console.log(`${name}: Not initialized`);
-      }
-    };
-    
-    // Log each layer's information
-    logLayer("Background Layer", this.backgroundLayer);
-    logLayer("Terrain Layer", this.terrainLayer);
-    logLayer("Selection Layer", this.selectionLayer);
-    logLayer("Move Range Layer", this.moveRangeLayer);
-    logLayer("Static Objects Layer", this.staticObjectsLayer);
-    logLayer("Units Layer", this.unitsLayer);
-    logLayer("UI Layer", this.uiLayer);
+    this.layerManager.logLayerInfo();
     
     // Log tile count
     console.log(`Total tiles: ${this.tiles.length}`);
-    
-    console.log("=========================");
   }
   
   create() {
@@ -291,11 +283,11 @@ export default class BoardScene extends Phaser.Scene {
       const animals = actions.getAnimals();
       const habitats = actions.getHabitats();
       
-      if (animals && this.unitsLayer) {
+      if (animals && this.layerManager.getUnitsLayer()) {
         this.renderAnimalSprites(animals);
       }
       
-      if (habitats && this.staticObjectsLayer) {
+      if (habitats && this.layerManager.getStaticObjectsLayer()) {
         this.renderHabitatGraphics(habitats);
       }
       
@@ -308,7 +300,8 @@ export default class BoardScene extends Phaser.Scene {
   // Updated method using the consolidated approach
   renderAnimalSprites(animals: Animal[]) {
     // Check if unitsLayer exists before proceeding
-    if (!this.unitsLayer) {
+    const unitsLayer = this.layerManager.getUnitsLayer();
+    if (!unitsLayer) {
       console.warn("Cannot render animal sprites - unitsLayer not available");
       return;
     }
@@ -320,7 +313,7 @@ export default class BoardScene extends Phaser.Scene {
     
     // Get a map of current animal sprites by ID
     const existingSprites = new Map();
-    this.unitsLayer.getAll().forEach(child => {
+    unitsLayer.getAll().forEach(child => {
       if (child instanceof Phaser.GameObjects.Sprite) {
         const animalId = child.getData('animalId');
         if (animalId) {
@@ -457,7 +450,9 @@ export default class BoardScene extends Phaser.Scene {
         }
         
         // Add the new sprite to the units layer
-        this.unitsLayer!.add(animalSprite);
+        if (!existing) {
+          this.layerManager.addToLayer('units', animalSprite);
+        }
       }
     });
     
@@ -474,17 +469,13 @@ export default class BoardScene extends Phaser.Scene {
     // Ensure we clean up all subscriptions when scene shuts down
     this.unsubscribeAll();
     
-    // Clear references to all layers
-    this.backgroundLayer = null;
-    this.terrainLayer = null;
-    this.selectionLayer = null;
-    this.moveRangeLayer = null;
-    this.staticObjectsLayer = null;
-    this.unitsLayer = null;
-    this.uiLayer = null;
+    // Reset the layer manager
+    this.layerManager.resetLayers();
+    
+    // Clean up renderers
+    this.selectionRenderer.destroy();
     
     // Reset flags
-    this.layersSetup = false;
     this.controlsSetup = false;
     
     // Clean up keyboard listeners
@@ -507,22 +498,8 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeHighlights = [];
   }
   
-  // Create tiles based on the current board state
+  // Updated createTiles method that uses TileRenderer
   private createTiles() {
-    // Clear previous tiles
-    this.tiles = [];
-    
-    // Clear existing graphics from all layers
-    if (this.terrainLayer) {
-      this.terrainLayer.removeAll(true); // true to destroy the objects
-    }
-    if (this.staticObjectsLayer) {
-      this.staticObjectsLayer.removeAll(true);
-    }
-    if (this.unitsLayer) {
-      this.unitsLayer.removeAll(true);
-    }
-    
     // Get board data using actions instead of GameInitializer
     const board = actions.getBoard();
     if (!board) {
@@ -549,39 +526,8 @@ export default class BoardScene extends Phaser.Scene {
     this.anchorX = anchorX;
     this.anchorY = anchorY;
     
-    // Create tiles for each board position
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        // Coordinate calculations for isometric placement
-        const isoX = (x - y) * this.tileSize / 2;
-        const isoY = (x + y) * this.tileHeight / 2;
-        
-        // Get terrain type and create appropriate shape
-        const terrain = board.tiles[y]?.[x]?.terrain || TerrainType.GRASS;
-        const tile = this.createTerrainTile(terrain, anchorX + isoX, anchorY + isoY);
-        
-        // Add tile to the terrain layer
-        if (this.terrainLayer) {
-          this.terrainLayer.add(tile);
-        } else {
-          console.warn("terrainLayer not available, cannot add tile");
-        }
-        
-        this.tiles.push(tile);
-        
-        // Add a click handler to the tile
-        tile.setInteractive(new Phaser.Geom.Polygon([
-          { x: 0, y: -this.tileHeight / 2 },
-          { x: this.tileSize / 2, y: 0 },
-          { x: 0, y: this.tileHeight / 2 },
-          { x: -this.tileSize / 2, y: 0 }
-        ]), Phaser.Geom.Polygon.Contains);
-        
-        // Store grid coordinates on the tile for reference
-        tile.setData('gridX', x);
-        tile.setData('gridY', y);
-      }
-    }
+    // Use TileRenderer to create all board tiles
+    this.tiles = this.tileRenderer.createBoardTiles(board, anchorX, anchorY);
     
     // Create the selection indicator after all tiles
     this.createSelectionIndicator();
@@ -598,194 +544,142 @@ export default class BoardScene extends Phaser.Scene {
     this.logLayerInfo();
   }
   
-  // Check what entities exist at specific coordinates
-  private checkTileContents(x: number, y: number) {
-    // Get all animals and habitats
-    const animals = actions.getAnimals();
-    const habitats = actions.getHabitats();
+  // Keep createTerrainTile method for backward compatibility but delegate to TileRenderer
+  private createTerrainTile(terrain: TerrainType, x: number, y: number): Phaser.GameObjects.Graphics {
+    // Delegate to TileRenderer but do not add to layer since original code handles that
+    const tile = this.add.graphics();
+    tile.setPosition(x, y);
     
-    // Find active units at this location
-    const activeUnits = animals.filter(animal => 
-      animal.position.x === x && 
-      animal.position.y === y && 
-      animal.state === AnimalState.ACTIVE
-    );
+    // Get color based on terrain type
+    let fillColor = 0x2ecc71; // Default grass color
+    let strokeColor = 0x27ae60; // Default grass outline
     
-    // Find dormant units at this location
-    const dormantUnits = animals.filter(animal => 
-      animal.position.x === x && 
-      animal.position.y === y && 
-      animal.state === AnimalState.DORMANT
-    );
+    switch (terrain) {
+      case TerrainType.WATER:
+        fillColor = 0x3498db;
+        strokeColor = 0x2980b9;
+        break;
+      case TerrainType.MOUNTAIN:
+        fillColor = 0x7f8c8d;
+        strokeColor = 0x6c7a89;
+        break;
+      default:
+        // Use default grass colors
+        break;
+    }
     
-    // Find habitats at this location
-    const habitatsAtLocation = habitats.filter(habitat => 
-      habitat.position.x === x && 
-      habitat.position.y === y
-    );
+    // Draw tile
+    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
     
-    return {
-      activeUnits,
-      dormantUnits,
-      habitats: habitatsAtLocation
-    };
+    tile.fillStyle(fillColor, 1);
+    tile.lineStyle(1, strokeColor, 1);
+    
+    tile.beginPath();
+    tile.moveTo(diamondPoints[0].x, diamondPoints[0].y);
+    
+    for (let i = 1; i < diamondPoints.length; i++) {
+      tile.lineTo(diamondPoints[i].x, diamondPoints[i].y);
+    }
+    
+    tile.closePath();
+    tile.fillPath();
+    tile.strokePath();
+    
+    return tile;
   }
 
-  // Set up click event delegation 
+  // Setup click event delegation to handle clicks at the board level
   private setupClickEventDelegation() {
-    
-    // Remove any existing listeners to prevent duplicates
-    this.input.off('gameobjectdown');
-    
-    // Add a single click event listener for the entire scene
+    // Add global click handler for any game object
     this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
-      // Don't process clicks during animations
-      if (this.animationInProgress) {
-        return;
-      }
-      
-      // If clicked on a unit
-      if (gameObject instanceof Phaser.GameObjects.Sprite && gameObject.getData('animalId')) {
-        const animalId = gameObject.getData('animalId');
+      // Check if the clicked object is a tile
+      if (gameObject && 'getData' in gameObject && typeof gameObject.getData === 'function') {
+        // If the object has grid coordinates stored, it's a tile or habitat
         const gridX = gameObject.getData('gridX');
         const gridY = gameObject.getData('gridY');
         
-        console.log(`Unit clicked: ${animalId} at ${gridX},${gridY}`);
-        
-        // Get the animal state and handle accordingly
-        const animal = actions.getAnimals().find(a => a.id === animalId);
-        if (animal) {
-          if (animal.state === AnimalState.DORMANT) {
-            // Select the dormant unit instead of evolving it immediately and show selection indicator
-            this.handleUnitSelection(animal.id, { x: gridX, y: gridY });
-          } else {
-            // Handle active unit click - select for movement
-            // Note: Units that have already moved won't be interactive, so this code only runs for movable units
-            const selectedUnitId = actions.getSelectedUnitId();
-            
-            if (selectedUnitId && actions.isMoveMode()) {
-              // If we already have a unit selected, check if this is a valid move target
-              const validMoves = actions.getValidMoves();
-              const canMoveHere = validMoves.some(move => move.x === gridX && move.y === gridY);
-              
-              if (canMoveHere) {
-                // Get current position of selected unit
-                const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
-                if (selectedUnit) {
-                  // Start movement animation
-                  this.startUnitMovement(
-                    selectedUnitId, 
-                    selectedUnit.position.x, 
-                    selectedUnit.position.y, 
-                    gridX, 
-                    gridY
-                  );
-                }
-              } else {
-                // Not a valid move target, select this unit instead
-                this.handleUnitSelection(animal.id);
-              }
-            } else {
-              // No unit selected, select this one
-              this.handleUnitSelection(animal.id);
-            }
-          }
+        if (gridX !== undefined && gridY !== undefined) {
+          // Call the handler with the clicked object
+          this.handleTileClick(gameObject);
         }
-      }
-      // If clicked on a tile
-      else if (this.tiles.includes(gameObject)) {
-        const x = gameObject.getData('gridX');
-        const y = gameObject.getData('gridY');
-        
-        // Log the tile properties
-        const board = actions.getBoard();
-        if (board && board.tiles[y] && board.tiles[y][x]) {
-          console.log('Tile Properties:', {
-            position: { x, y },
-            terrain: board.tiles[y][x].terrain,
-            explored: board.tiles[y][x].explored,
-            visible: board.tiles[y][x].visible,
-            contents: this.checkTileContents(x, y)
-          });
-        }
-        
-        // Check what's at this position
-        const tileContents = this.checkTileContents(x, y);
-        
-        // PHASE 2: Updated tile click handling using tileContents
-        // Now we handle all entity detection through the checkTileContents helper
-        // and use that information for both selection and event data
-
-        // Check if we have a selected unit and are in move mode
-        const selectedUnitId = actions.getSelectedUnitId();
-        if (selectedUnitId && actions.isMoveMode()) {
-          // Check if this is a valid move destination
-          const validMoves = actions.getValidMoves();
-          const isValidMove = validMoves.some(move => move.x === x && move.y === y);
-          
-          if (isValidMove) {
-            // Get current position of selected unit
-            const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
-            if (selectedUnit) {
-              // Start movement animation
-              this.startUnitMovement(
-                selectedUnitId, 
-                selectedUnit.position.x, 
-                selectedUnit.position.y, 
-                x, 
-                y
-              );
-            }
-          } else {
-            // Not a valid move, deselect the unit
-            this.handleUnitSelection(null);
-          }
-        } else {
-          // Not in move mode, just a regular tile click
-          
-          // Get tile contents using our helper method
-          const tileContents = this.checkTileContents(x, y);
-          
-          // If there's a dormant unit, select it
-          if (tileContents.dormantUnits.length > 0) {
-            const dormantUnit = tileContents.dormantUnits[0];
-            
-            // Direct unit selection - similar to how we handle habitats
-            actions.selectUnit(dormantUnit.id);
-            
-            // Show selection indicator (visual feedback)
-            this.showSelectionIndicatorAt(x, y);
-          } 
-          // Otherwise, only show selection if there's no active unmoved unit on this tile
-          else {
-            const hasActiveUnmovedUnit = tileContents.activeUnits.some(unit => !unit.hasMoved);
-            if (!hasActiveUnmovedUnit) {
-              this.showSelectionIndicatorAt(x, y);
-            } else {
-              this.hideSelectionIndicator();
-            }
-          }
-          
-          // Direct habitat selection
-          if (tileContents.habitats && tileContents.habitats.length > 0) {
-            const habitat = tileContents.habitats[0];
-            if (habitat.state === HabitatState.POTENTIAL) {
-              actions.selectHabitat(habitat.id);
-            } else {
-              actions.selectHabitat(null);
-            }
-          } else {
-            // No habitats on this tile, deselect any selected habitat
-            actions.selectHabitat(null);
-          }
-        }
-      } else {
-        // If clicked somewhere else, deselect the unit
-        this.handleUnitSelection(null);
-        // Also deselect any habitat
-        actions.selectHabitat(null);
       }
     });
+  }
+  
+  // Handle clicks on tiles and their contents
+  private handleTileClick(clickedObject: Phaser.GameObjects.GameObject) {
+    // Get stored grid coordinates from the object
+    const gridX = clickedObject.getData('gridX');
+    const gridY = clickedObject.getData('gridY');
+    
+    // Skip if no coordinates stored
+    if (gridX === undefined || gridY === undefined) {
+      return;
+    }
+    
+    // Check if this is a tile or a habitat
+    if (clickedObject.getData('habitatId')) {
+      // This is a habitat, handle accordingly
+      this.handleHabitatClick(clickedObject);
+      return;
+    }
+    
+    // Get contents at this location
+    const contents = this.checkTileContents(gridX, gridY);
+    
+    // Show selection indicator at the clicked tile using SelectionRenderer
+    this.selectionRenderer.showSelectionAt(gridX, gridY);
+    
+    // Check if this tile is a valid move target for the currently selected unit
+    const isValidMoveTarget = this.isValidMoveTarget(gridX, gridY);
+    
+    if (isValidMoveTarget.valid) {
+      // This is a valid move target - handle unit movement
+      console.log(`Moving unit to (${gridX}, ${gridY})`);
+      
+      const selectedUnitId = actions.getSelectedUnitId();
+      // Get the selected animal's current position
+      const animals = actions.getAnimals();
+      const selectedAnimal = animals.find(animal => animal.id === selectedUnitId);
+      
+      if (selectedUnitId && selectedAnimal) {
+        // Get current position from the unit state
+        const fromX = selectedAnimal.position.x;
+        const fromY = selectedAnimal.position.y;
+        
+        // Start animation for unit movement
+        this.startUnitMovement(selectedUnitId, fromX, fromY, gridX, gridY);
+      }
+      
+      return;
+    }
+    
+    // If we have an active unit at this tile, select it
+    if (contents.activeUnits.length > 0) {
+      const unit = contents.activeUnits[0]; // Just use the first one for now
+      
+      // PHASE 4: Use the centralized selection method
+      this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
+      
+      // Show valid moves for the selected unit
+      if (unit.moves > 0) {
+        // Check if the action method exists and call it safely
+        if (typeof actions.getValidMoves === 'function') {
+          // Get valid moves for the unit
+          const validMoves = actions.getValidMoves();
+          // Render the moves (BoardScene already has this method)
+          this.renderMoveRange(validMoves, true);
+        }
+      }
+    } 
+    // If we clicked on a dormant unit or empty tile, deselect any selected unit
+    else {
+      // PHASE 4: Use the centralized selection method
+      this.handleUnitSelection(null);
+      
+      // Hide valid moves - clear the move highlights
+      this.clearMoveHighlights();
+    }
   }
   
   // Set up camera controls
@@ -849,177 +743,8 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Create a terrain tile based on terrain type
-  private createTerrainTile(terrain: TerrainType, x: number, y: number): Phaser.GameObjects.Graphics {
-    // Create graphics object directly without a container
-    const shape = this.add.graphics();
-    
-    // Set position directly on the graphics object
-    shape.setPosition(x, y);
-    
-    // Diamond shape for the tile base
-    const diamondPoints = [
-      { x: 0, y: -this.tileHeight / 2 },
-      { x: this.tileSize / 2, y: 0 },
-      { x: 0, y: this.tileHeight / 2 },
-      { x: -this.tileSize / 2, y: 0 }
-    ];
-    
-    // Fill color based on terrain type
-    switch(terrain) {
-      case TerrainType.GRASS:
-        shape.fillStyle(0x7CFC00, 1); // Light green
-        break;
-      case TerrainType.WATER:
-        shape.fillStyle(0x1E90FF, 1); // Blue
-        break;
-      case TerrainType.BEACH:
-        shape.fillStyle(0xF5DEB3, 1); // Sand color
-        break;
-      case TerrainType.MOUNTAIN:
-        shape.fillStyle(0x4A5459, 1); // Cool slate gray for base
-        break;
-      case TerrainType.UNDERWATER:
-        shape.fillStyle(0x00008B, 1); // Dark blue
-        break;
-      default:
-        shape.fillStyle(0x7CFC00, 1); // Default green
-    }
-    
-    // Draw the diamond shape
-    shape.beginPath();
-    shape.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      shape.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    shape.closePath();
-    shape.fillPath();
-    
-    // Add a 75% transparent black stroke
-    shape.lineStyle(1, 0x808080, 0.25);
-    shape.beginPath();
-    shape.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      shape.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    shape.closePath();
-    shape.strokePath();
-    
-    return shape;
-  }
-  
-
-  // Create a selection indicator to show the currently selected tile
-  private createSelectionIndicator() {
-    // Destroy existing selection indicator if it exists
-    if (this.selectionIndicator) {
-      this.selectionIndicator.destroy();
-      this.selectionIndicator = null;
-    }
-    
-    // Check if selectionLayer exists
-    if (!this.selectionLayer) {
-      console.warn("selectionLayer not available, cannot create selection indicator");
-      return null;
-    }
-    
-    // Create a new graphics object for the selection indicator
-    this.selectionIndicator = this.add.graphics();
-    
-    // Diamond shape for the selection indicator
-    const diamondPoints = [
-      { x: 0, y: -this.tileHeight / 2 },
-      { x: this.tileSize / 2, y: 0 },
-      { x: 0, y: this.tileHeight / 2 },
-      { x: -this.tileSize / 2, y: 0 }
-    ];
-    
-    // Draw the selection indicator
-    this.selectionIndicator.lineStyle(3, 0xD3D3D3, 0.5); // 3px light grey line with 50% transparency
-    this.selectionIndicator.beginPath();
-    this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      this.selectionIndicator.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    this.selectionIndicator.closePath();
-    this.selectionIndicator.strokePath();
-    
-    // Hide the selection indicator initially - directly set visibility
-    if (this.selectionIndicator) {
-      this.selectionIndicator.setVisible(false);
-    }
-    
-    // Add selection indicator to selection layer
-    this.selectionLayer.add(this.selectionIndicator);
-    
-    return this.selectionIndicator;
-  }
-
-  // Method to get the currently hovered grid position
-  getHoveredGridPosition(): { x: number, y: number } | null {
-    return this.hoveredGridPosition;
-  }
-  
-  // Method to get the terrain type at a grid position
-  getTerrainAtPosition(x: number, y: number): TerrainType | null {
-    const board = actions.getBoard();
-    if (!board || !board.tiles[y] || !board.tiles[y][x]) return null;
-    
-    return board.tiles[y][x].terrain;
-  }
-  
-  // Update method to track the mouse position
-  update() {
-    // Update the hovered grid position based on pointer position
-    const pointer = this.input.activePointer;
-    this.hoveredGridPosition = this.getGridPositionAt(pointer.x, pointer.y);
-    
-    // We no longer update the selection indicator in the update method
-    // because we only want it to update when a tile is clicked
-  }
-
-  // Method to convert screen coordinates to grid coordinates
-  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
-    // Get current board state
-    const board = actions.getBoard();
-    if (!board) return null;
-    
-    // Get world point from screen coordinates
-    const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
-    
-    // Convert to grid using the utility
-    const gridPosition = CoordinateUtils.screenToGrid(
-      0, 0, // Not used when worldPoint is provided
-      this.tileSize,
-      this.tileHeight,
-      this.anchorX,
-      this.anchorY,
-      worldPoint
-    );
-    
-    // Check if grid position is valid
-    if (CoordinateUtils.isValidCoordinate(gridPosition.x, gridPosition.y, board.width, board.height)) {
-      return gridPosition;
-    }
-    
-    return null;
-  }
-  
-  // Method to convert grid coordinates to screen coordinates
-  gridToScreen(gridX: number, gridY: number): { x: number, y: number } {
-    // Use the utility method for conversion
-    return CoordinateUtils.gridToWorld(
-      gridX,
-      gridY,
-      this.tileSize,
-      this.tileHeight,
-      this.anchorX,
-      this.anchorY
-    );
-  }
-
   // Create a habitat graphic based on its state (potential or shelter)
-  private createHabitatGraphic(x: number, y: number, state: HabitatState = HabitatState.POTENTIAL): Phaser.GameObjects.Container {
+  private createHabitatGraphic(x: number, y: number, state: HabitatState): Phaser.GameObjects.Container {
     // Create a container for the habitat
     const container = this.add.container(x, y);
     const graphics = this.add.graphics();
@@ -1064,14 +789,15 @@ export default class BoardScene extends Phaser.Scene {
   // Update habitats based on the state
   renderHabitatGraphics(habitats: any[]) {
     // Check if staticObjectsLayer exists before proceeding
-    if (!this.staticObjectsLayer) {
+    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
+    if (!staticObjectsLayer) {
       console.warn("Cannot render habitat graphics - staticObjectsLayer not available");
       return;
     }
     
     // Get a map of current habitat graphics by ID
     const existingHabitats = new Map();
-    this.staticObjectsLayer.getAll().forEach(child => {
+    staticObjectsLayer.getAll().forEach(child => {
       if (child && 'getData' in child && typeof child.getData === 'function') {
         const habitatId = child.getData('habitatId');
         if (habitatId) {
@@ -1112,7 +838,7 @@ export default class BoardScene extends Phaser.Scene {
           habitatGraphic.setData('habitatId', habitat.id);
           habitatGraphic.setData('gridX', gridX);
           habitatGraphic.setData('gridY', gridY);
-          this.staticObjectsLayer!.add(habitatGraphic);
+          this.layerManager.addToLayer('staticObjects', habitatGraphic);
           
           // Update the reference in the map
           existingHabitats.set(habitat.id, {
@@ -1133,8 +859,8 @@ export default class BoardScene extends Phaser.Scene {
         
         // Remove direct click handler - now handled by global click delegation
         
-        // Add the new graphic to the layer
-        this.staticObjectsLayer!.add(habitatGraphic);
+        // Add the new graphic to the layer using layer manager
+        this.layerManager.addToLayer('staticObjects', habitatGraphic);
       }
     });
     
@@ -1149,7 +875,7 @@ export default class BoardScene extends Phaser.Scene {
   // Set up all layers with appropriate depths
   private setupLayers() {
     // Skip if layers are already set up
-    if (this.layersSetup) {
+    if (this.layerManager.isLayersSetup()) {
       console.log("Layers already initialized, skipping setupLayers()");
       return;
     }
@@ -1157,16 +883,7 @@ export default class BoardScene extends Phaser.Scene {
     console.log("BoardScene setupLayers() called");
     
     // Initialize each layer with its appropriate depth
-    this.backgroundLayer = this.add.layer().setDepth(0);
-    this.terrainLayer = this.add.layer().setDepth(1);
-    this.selectionLayer = this.add.layer().setDepth(2);
-    this.moveRangeLayer = this.add.layer().setDepth(3); // New layer for movement range
-    this.staticObjectsLayer = this.add.layer().setDepth(4); // Updated depth
-    this.unitsLayer = this.add.layer().setDepth(5); // Updated depth
-    this.uiLayer = this.add.layer().setDepth(10);
-    
-    // Mark layers as initialized
-    this.layersSetup = true;
+    this.layerManager.setupLayers();
     
     console.log("Layers initialized with proper depth order");
   }
@@ -1227,8 +944,11 @@ export default class BoardScene extends Phaser.Scene {
     // Clear existing highlights
     this.clearMoveHighlights();
     
+    // Get the move range layer using the layer manager
+    const moveRangeLayer = this.layerManager.getMoveRangeLayer();
+    
     // If not in move mode or no valid moves, we're done
-    if (!moveMode || !validMoves.length || !this.moveRangeLayer) {
+    if (!moveMode || !validMoves.length || !moveRangeLayer) {
       return;
     }
     
@@ -1239,8 +959,8 @@ export default class BoardScene extends Phaser.Scene {
       const highlight = this.createMoveHighlight(move.x, move.y);
       this.moveRangeHighlights.push(highlight);
       
-      // Add the highlight to the move range layer
-      this.moveRangeLayer!.add(highlight);
+      // Add the highlight to the move range layer using layer manager
+      this.layerManager.addToLayer('moveRange', highlight);
     });
   }
   
@@ -1254,10 +974,282 @@ export default class BoardScene extends Phaser.Scene {
     // Reset the array
     this.moveRangeHighlights = [];
     
-    // Also clear the layer if it exists
-    if (this.moveRangeLayer) {
-      this.moveRangeLayer.removeAll(true);
+    // Also clear the layer using layer manager
+    this.layerManager.clearLayer('moveRange', true);
+  }
+
+  /**
+   * Animate a unit moving from one tile to another
+   */
+  private animateUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
+    // Set animation flag to prevent other movements during this one
+    this.animationInProgress = true;
+    
+    // Find the unit sprite
+    let unitSprite: Phaser.GameObjects.Sprite | null = null;
+    if (this.layerManager.getUnitsLayer()) {
+      this.layerManager.getUnitsLayer()!.getAll().forEach(child => {
+        if (child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === unitId) {
+          unitSprite = child;
+        }
+      });
     }
+    
+    if (!unitSprite) {
+      console.warn(`Unit sprite not found for ID: ${unitId}`);
+      this.animationInProgress = false; // Reset animation flag
+      return;
+    }
+    
+    // Calculate start and end positions
+    const startPos = this.gridToScreen(fromX, fromY);
+    const endPos = this.gridToScreen(toX, toY);
+    
+    // Calculate duration based on distance (longer for diagonal moves)
+    const distance = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+    const duration = distance * 250; // 250ms for each tile of distance
+    
+    // Create the tween
+    this.tweens.add({
+      targets: unitSprite,
+      x: endPos.x,
+      y: endPos.y,
+      duration: duration,
+      ease: 'Power2',
+      onComplete: () => {
+        // Reset animation flag when complete
+        this.animationInProgress = false;
+        
+        // Get the current animal data from the state
+        const animals = actions.getAnimals();
+        const unit = animals.find(animal => animal.id === unitId);
+        
+        if (unit) {
+          // For now, we'll just log that the unit has arrived
+          console.log(`Unit ${unitId} has arrived at (${toX},${toY})`);
+          
+          // If this is an AI unit, we could trigger their next action here
+          // if (unit.isAI) { ... }
+        }
+      }
+    });
+  }
+
+  /**
+   * Handles animation of a unit that was displaced by spawning
+   * @param displacementInfo Information about the displacement
+   */
+  private handleUnitDisplacement(displacementInfo: {
+    occurred: boolean;
+    unitId: string | null;
+    fromX: number | null;
+    fromY: number | null;
+    toX: number | null;
+    toY: number | null;
+    timestamp: number | null;
+  }) {
+    // Skip if no unit ID or occurred flag is false, or if coordinates are null
+    if (!displacementInfo.unitId || !displacementInfo.occurred || 
+        displacementInfo.fromX === null || displacementInfo.fromY === null || 
+        displacementInfo.toX === null || displacementInfo.toY === null) {
+      return;
+    }
+    
+    // Now we know the coordinates are not null, we can use them
+    const unitId = displacementInfo.unitId;
+    const fromX = displacementInfo.fromX;
+    const fromY = displacementInfo.fromY;
+    const toX = displacementInfo.toX;
+    const toY = displacementInfo.toY;
+    
+    // Use the unified animation method with displacement-specific options
+    // Do NOT apply tint or disable interactivity - let the unit remain selectable if it hasn't moved
+    this.animateUnit(unitId, fromX, fromY, toX, toY, {
+      applyTint: false,           // Don't apply the "moved" tint
+      disableInteractive: false,  // Don't disable interactivity
+      updateState: true,
+      clearMoveHighlights: false,
+      isDisplacement: true
+    });
+  }
+
+  // Add a method to handle spawn events
+  private handleUnitSpawned() {
+    // Implement the logic to hide the selection indicator when a unit is spawned
+    this.hideSelectionIndicator();
+  }
+
+  // PHASE 4: Create a centralized method for selection indicator management
+  private updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number) {
+    // Delegate to the selection renderer
+    if (shouldShow && x !== undefined && y !== undefined) {
+      this.selectionRenderer.showSelectionAt(x, y);
+    } else {
+      this.selectionRenderer.hideSelection();
+    }
+  }
+
+  // Helper method to hide the selection indicator
+  private hideSelectionIndicator() {
+    this.selectionRenderer.hideSelection();
+  }
+
+  // Helper method to show the selection indicator at a specific grid position
+  private showSelectionIndicatorAt(x: number, y: number) {
+    this.selectionRenderer.showSelectionAt(x, y);
+  }
+
+  /**
+   * Calculate the depth value for a unit sprite based on its grid position and state
+   * This ensures proper isometric perspective (units at higher X+Y appear behind)
+   * while making active units always appear above eggs on the same tile
+   * 
+   * @param gridX - X coordinate in the grid
+   * @param gridY - Y coordinate in the grid
+   * @param isActive - Whether the unit is active (true) or dormant/egg (false)
+   * @returns depth value for the sprite
+   */
+  private calculateUnitDepth(gridX: number, gridY: number, isActive: boolean): number {
+    // Base depth of the units layer
+    const baseDepth = 5;
+    
+    // Combined X+Y coordinates for isometric perspective (higher X+Y = further back = higher depth)
+    // This allows proper sorting where northwest objects appear in front, southeast objects behind
+    const positionOffset = (gridX + gridY) / 1000;
+    
+    // Small offset to ensure active units appear above eggs at the same position
+    // Using a very small value (0.0005) to minimize impact on overall perspective
+    const stateOffset = isActive ? 0.0005 : 0;
+    
+    // Calculate final depth value
+    return baseDepth + positionOffset + stateOffset;
+  }
+
+  // PHASE 4: Add a dedicated method to handle unit selection for consistent behavior
+  private handleUnitSelection(unitId: string | null, showSelectionAt?: { x: number, y: number }) {
+    // Select or deselect the unit in store
+    actions.selectUnit(unitId);
+    
+    // If we're selecting a unit and have coordinates, show selection indicator
+    if (unitId && showSelectionAt) {
+      this.showSelectionIndicatorAt(showSelectionAt.x, showSelectionAt.y);
+    } else {
+      // Otherwise hide it (when deselecting or selecting an active unit)
+      this.hideSelectionIndicator();
+    }
+  }
+
+  // Check what entities exist at specific coordinates
+  private checkTileContents(x: number, y: number) {
+    // Get all animals and habitats
+    const animals = actions.getAnimals();
+    const habitats = actions.getHabitats();
+    
+    // Find active units at this location
+    const activeUnits = animals.filter(animal => 
+      animal.position.x === x && 
+      animal.position.y === y && 
+      animal.state === AnimalState.ACTIVE
+    );
+    
+    // Find dormant units at this location
+    const dormantUnits = animals.filter(animal => 
+      animal.position.x === x && 
+      animal.position.y === y && 
+      animal.state === AnimalState.DORMANT
+    );
+    
+    // Find habitats at this location
+    const habitatsAtLocation = habitats.filter(habitat => 
+      habitat.position.x === x && 
+      habitat.position.y === y
+    );
+    
+    return {
+      activeUnits,
+      dormantUnits,
+      habitats: habitatsAtLocation
+    };
+  }
+
+  // Create a selection indicator to show the currently selected tile
+  private createSelectionIndicator() {
+    // We now delegate this to the SelectionRenderer
+    // Initialize the selection renderer with the current anchor values
+    this.selectionRenderer.initialize(this.anchorX, this.anchorY);
+    
+    // Return null to satisfy the method signature (this can be removed in a future cleanup)
+    return null;
+  }
+
+  // Method to get the currently hovered grid position
+  getHoveredGridPosition(): { x: number, y: number } | null {
+    // Use the selection renderer's hover tracking
+    return this.selectionRenderer.getHoveredPosition();
+  }
+  
+  // Method to get the terrain type at a grid position
+  getTerrainAtPosition(x: number, y: number): TerrainType | null {
+    const board = actions.getBoard();
+    if (!board || !board.tiles[y] || !board.tiles[y][x]) return null;
+    
+    return board.tiles[y][x].terrain;
+  }
+  
+  // Update method to track the mouse position
+  update() {
+    // Update the hover indicator based on the current pointer position
+    const pointer = this.input.activePointer;
+    const board = actions.getBoard();
+    
+    if (board) {
+      this.selectionRenderer.updateFromPointer(pointer, board.width, board.height);
+    }
+  }
+
+  // Method to convert screen coordinates to grid coordinates
+  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
+    // Get current board state
+    const board = actions.getBoard();
+    if (!board) return null;
+    
+    // Get world point from screen coordinates
+    const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
+    
+    // Convert to grid using the utility
+    const gridPosition = CoordinateUtils.screenToGrid(
+      0, 0, // Not used when worldPoint is provided
+      this.tileSize,
+      this.tileHeight,
+      this.anchorX,
+      this.anchorY,
+      worldPoint
+    );
+    
+    // Check if grid position is valid
+    if (CoordinateUtils.isValidCoordinate(gridPosition.x, gridPosition.y, board.width, board.height)) {
+      return gridPosition;
+    }
+    
+    return null;
+  }
+  
+  // Method to convert grid coordinates to screen coordinates
+  gridToScreen(gridX: number, gridY: number): { x: number, y: number } {
+    // Use the utility method for conversion
+    return CoordinateUtils.gridToWorld(
+      gridX,
+      gridY,
+      this.tileSize,
+      this.tileHeight,
+      this.anchorX,
+      this.anchorY
+    );
+  }
+
+  // Add getter for tile renderer
+  public getTileRenderer(): TileRenderer {
+    return this.tileRenderer;
   }
 
   // Updated to use the unified animation method
@@ -1304,8 +1296,8 @@ export default class BoardScene extends Phaser.Scene {
     
     // Find the unit sprite
     let unitSprite: Phaser.GameObjects.Sprite | null = null;
-    if (this.unitsLayer) {
-      this.unitsLayer.getAll().forEach(child => {
+    if (this.layerManager.getUnitsLayer()) {
+      this.layerManager.getUnitsLayer()!.getAll().forEach(child => {
         if (child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === unitId) {
           unitSprite = child;
         }
@@ -1420,144 +1412,51 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  /**
-   * Handles animation of a unit that was displaced by spawning
-   * @param displacementInfo Information about the displacement
-   */
-  private handleUnitDisplacement(displacementInfo: {
-    occurred: boolean;
-    unitId: string | null;
-    fromX: number | null;
-    fromY: number | null;
-    toX: number | null;
-    toY: number | null;
-    timestamp: number | null;
-  }) {
-    // Skip if no unit ID or occurred flag is false, or if coordinates are null
-    if (!displacementInfo.unitId || !displacementInfo.occurred || 
-        displacementInfo.fromX === null || displacementInfo.fromY === null || 
-        displacementInfo.toX === null || displacementInfo.toY === null) {
-      return;
-    }
-    
-    // Now we know the coordinates are not null, we can use them
-    const unitId = displacementInfo.unitId;
-    const fromX = displacementInfo.fromX;
-    const fromY = displacementInfo.fromY;
-    const toX = displacementInfo.toX;
-    const toY = displacementInfo.toY;
-    
-    // Use the unified animation method with displacement-specific options
-    // Do NOT apply tint or disable interactivity - let the unit remain selectable if it hasn't moved
-    this.animateUnit(unitId, fromX, fromY, toX, toY, {
-      applyTint: false,           // Don't apply the "moved" tint
-      disableInteractive: false,  // Don't disable interactivity
-      updateState: true,
-      clearMoveHighlights: false,
-      isDisplacement: true
-    });
+  // Add getter for selection renderer
+  public getSelectionRenderer(): SelectionRenderer {
+    return this.selectionRenderer;
   }
 
-  // Add a method to handle spawn events
-  private handleUnitSpawned() {
-    // Implement the logic to hide the selection indicator when a unit is spawned
-    this.hideSelectionIndicator();
-  }
-
-  // PHASE 4: Create a centralized method for selection indicator management
-  // This will replace scattered calls to selectionIndicator.setVisible throughout the code
-  private updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number) {
-    if (!this.selectionIndicator) {
-      // Create the indicator if it doesn't exist
-      this.createSelectionIndicator();
-      
-      // If still null after attempting to create, exit
-      if (!this.selectionIndicator) {
-        console.warn("Could not create selection indicator");
-        return;
-      }
-    }
+  // Handle clicks on habitats
+  private handleHabitatClick(habitatObject: Phaser.GameObjects.GameObject) {
+    const habitatId = habitatObject.getData('habitatId');
+    if (!habitatId) return;
     
-    if (shouldShow && x !== undefined && y !== undefined) {
-      // Use CoordinateUtils to calculate world position
-      const worldPosition = CoordinateUtils.gridToWorld(
-        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
+    // Get grid coordinates
+    const gridX = habitatObject.getData('gridX');
+    const gridY = habitatObject.getData('gridY');
+    
+    // Get habitat data from store
+    const habitats = actions.getHabitats();
+    const clickedHabitat = habitats.find(h => h.id === habitatId);
+    
+    if (clickedHabitat) {
+      // Select habitat in store
+      actions.selectHabitat(habitatId);
       
-      // Position the indicator
-      this.selectionIndicator.setPosition(worldPosition.x, worldPosition.y);
+      // Show selection indicator at the habitat location
+      this.selectionRenderer.showSelectionAt(gridX, gridY);
       
-      // Make the indicator visible
-      this.selectionIndicator.setVisible(true);
-      
-      // Ensure it's at the top of its layer
-      if (this.selectionLayer) {
-        // Re-add to make sure it's at the top of its layer
-        this.selectionLayer.remove(this.selectionIndicator);
-        this.selectionLayer.add(this.selectionIndicator);
-      } else {
-        console.warn("Cannot add selection indicator to layer - selectionLayer is null");
-      }
-    } else {
-      // Just hide the indicator - directly set visibility to avoid circular reference
-      if (this.selectionIndicator) {
-        this.selectionIndicator.setVisible(false);
-      }
+      console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}`);
     }
   }
-
-  // Helper method to hide the selection indicator
-  private hideSelectionIndicator() {
-    this.updateSelectionIndicator(false);
-  }
-
-  // Helper method to show the selection indicator at a specific grid position
-  private showSelectionIndicatorAt(x: number, y: number) {
-    this.updateSelectionIndicator(true, x, y);
-  }
-
-  /**
-   * Calculate the depth value for a unit sprite based on its grid position and state
-   * This ensures proper isometric perspective (units at higher X+Y appear behind)
-   * while making active units always appear above eggs on the same tile
-   * 
-   * @param gridX - X coordinate in the grid
-   * @param gridY - Y coordinate in the grid
-   * @param isActive - Whether the unit is active (true) or dormant/egg (false)
-   * @returns depth value for the sprite
-   */
-  private calculateUnitDepth(gridX: number, gridY: number, isActive: boolean): number {
-    // Base depth of the units layer
-    const baseDepth = 5;
-    
-    // Combined X+Y coordinates for isometric perspective (higher X+Y = further back = higher depth)
-    // This allows proper sorting where northwest objects appear in front, southeast objects behind
-    const positionOffset = (gridX + gridY) / 1000;
-    
-    // Small offset to ensure active units appear above eggs at the same position
-    // Using a very small value (0.0005) to minimize impact on overall perspective
-    const stateOffset = isActive ? 0.0005 : 0;
-    
-    // Calculate final depth value
-    return baseDepth + positionOffset + stateOffset;
-  }
-
-  // PHASE 4: Add a dedicated method to handle unit selection for consistent behavior
-  private handleUnitSelection(unitId: string | null, showSelectionAt?: { x: number, y: number }) {
-    // Select or deselect the unit in store
-    actions.selectUnit(unitId);
-    
-    // If we're selecting a unit and have coordinates, show selection indicator
-    if (unitId && showSelectionAt) {
-      this.showSelectionIndicatorAt(showSelectionAt.x, showSelectionAt.y);
-    } else {
-      // Otherwise hide it (when deselecting or selecting an active unit)
-      this.hideSelectionIndicator();
+  
+  // Check if a tile is a valid move target for the selected unit
+  private isValidMoveTarget(gridX: number, gridY: number): { valid: boolean, reason?: string } {
+    // First check if there's a selected unit and we're in move mode
+    const selectedUnitId = actions.getSelectedUnitId();
+    if (!selectedUnitId) {
+      return { valid: false, reason: "No unit selected" };
     }
-  }
-
-  // Method to validate coordinate conversions
-  public validateCoordinateSystem(): { success: boolean, message: string, results?: any[] } {
-    return runCoordinateTestsFromBoardScene(this);
+    
+    // Check if this is a valid move destination
+    const validMoves = actions.getValidMoves();
+    const isValidMove = validMoves.some(move => move.x === gridX && move.y === gridY);
+    
+    if (!isValidMove) {
+      return { valid: false, reason: "Not a valid move destination" };
+    }
+    
+    return { valid: true };
   }
 }
