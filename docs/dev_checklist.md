@@ -104,21 +104,21 @@
     - [x] Check that habitat state changes update visuals
     - [x] Ensure habitat click interactions work properly
 
-- [ ] Create AnimalRenderer
-  - [ ] Create AnimalRenderer class
-  - [ ] Extract animal sprite creation and management
-  - [ ] Extract sprite positioning and state logic
-  - [ ] Extract animal depth calculation methods
-  - [ ] Refactor BoardScene to use AnimalRenderer
-  - [ ] Test AnimalRenderer
-    - [ ] Verify all animal types render correctly
-    - [ ] Check state changes (active/dormant) update visuals
-    - [ ] Ensure unit selection and movement work properly
+- [x] Create AnimalRenderer
+  - [x] Create AnimalRenderer class
+  - [x] Extract animal sprite creation and management
+  - [x] Extract sprite positioning and state logic
+  - [x] Extract animal depth calculation methods
+  - [x] Refactor BoardScene to use AnimalRenderer
+  - [x] Test AnimalRenderer
+    - [x] Verify all animal types render correctly
+    - [x] Check state changes (active/dormant) update visuals
+    - [x] Ensure unit selection and movement work properly
 
-- [ ] Phase 4 Complete Validation
-  - [ ] Perform full game test with all renderers
-  - [ ] Verify end-to-end gameplay flows are intact
-  - [ ] Check for any visual regressions across all elements
+- [x] Phase 4 Complete Validation
+  - [x] Perform full game test with all renderers
+  - [x] Verify end-to-end gameplay flows are intact
+  - [x] Check for any visual regressions across all elements
 
 ### Phase 5: Extract Managers and Controllers
 - [ ] Create InputManager

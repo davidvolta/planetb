@@ -10,6 +10,7 @@ import { TileRenderer } from "./board/renderers/TileRenderer";
 import { SelectionRenderer } from "./board/renderers/SelectionRenderer";
 import { MoveRangeRenderer } from "./board/renderers/MoveRangeRenderer";
 import { HabitatRenderer } from "./board/renderers/HabitatRenderer";
+import { AnimalRenderer } from "./board/renderers/AnimalRenderer";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -60,6 +61,7 @@ export default class BoardScene extends Phaser.Scene {
   private selectionRenderer: SelectionRenderer;
   private moveRangeRenderer: MoveRangeRenderer;
   private habitatRenderer: HabitatRenderer;
+  private animalRenderer: AnimalRenderer;
   
   private controlsSetup = false;
   private subscriptionsSetup = false;
@@ -93,6 +95,9 @@ export default class BoardScene extends Phaser.Scene {
     
     // Initialize the habitat renderer with the layer manager
     this.habitatRenderer = new HabitatRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    
+    // Initialize the animal renderer with the layer manager
+    this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
   }
 
 
@@ -307,169 +312,40 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Updated method using the consolidated approach
+  // Updated method that delegates to AnimalRenderer
   renderAnimalSprites(animals: Animal[]) {
-    // Check if unitsLayer exists before proceeding
-    const unitsLayer = this.layerManager.getUnitsLayer();
-    if (!unitsLayer) {
-      console.warn("Cannot render animal sprites - unitsLayer not available");
-      return;
-    }
-    
-    // If an animation is in progress, defer updating sprites
-    if (this.animationInProgress) {
-      return;
-    }
-    
-    // Get a map of current animal sprites by ID
-    const existingSprites = new Map();
-    unitsLayer.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Sprite) {
-        const animalId = child.getData('animalId');
-        if (animalId) {
-          existingSprites.set(animalId, {
-            sprite: child,
-            used: false
-          });
-        }
-      }
-    });
-    
-    // Process each animal - create new or update existing
-    animals.forEach(animal => {
-      // Calculate position
-      const gridX = animal.position.x;
-      const gridY = animal.position.y;
-      const isoX = (gridX - gridY) * this.tileSize / 2;
-      const isoY = (gridX + gridY) * this.tileHeight / 2;
-      
-      // Position using anchor points
-      const worldX = this.anchorX + isoX;
-      const worldY = this.anchorY + isoY;
-      
-      // Apply vertical offset to raise the sprite above the tile
-      const verticalOffset = -12; // Lift the sprite up by 12 pixels
-      
-      // Determine the texture based on animal state
-      const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
-      
-      // Determine if the unit is active (for depth calculation)
-      const isActive = animal.state === AnimalState.ACTIVE;
-      
-      // Check if we have an existing sprite
-      const existing = existingSprites.get(animal.id);
-      
-      if (existing) {
-        // Mark as used so we don't delete it later
-        existing.used = true;
-        
-        // Update position with vertical offset
-        existing.sprite.setPosition(worldX, worldY + verticalOffset);
-        
-        // Set depth based on position and state
-        existing.sprite.setDepth(this.calculateUnitDepth(gridX, gridY, isActive));
-        
-        // Update texture if animal state changed
-        if (existing.sprite.texture.key !== textureKey) {
-          existing.sprite.setTexture(textureKey);
-        }
-        
-        // Handle interactivity and visual feedback based on state and movement
-        if (animal.state === AnimalState.DORMANT) {
-          // ALWAYS disable interactivity for dormant units (eggs)
-          existing.sprite.disableInteractive();
-        } else if (animal.state === AnimalState.ACTIVE) {
-          if (animal.hasMoved) {
-            // Ensure interactivity is disabled for moved units
-            existing.sprite.disableInteractive();
+    // Delegate to the AnimalRenderer, providing a callback for handling unit clicks
+    this.animalRenderer.renderAnimals(animals, (animalId, gridX, gridY) => {
+      console.log(`Animal clicked: ${animalId} at ${gridX},${gridY}`);
             
-            // Make sure the tint is applied
-            existing.sprite.setTint(0xCCCCCC);
-          } else {
-            // Re-enable interactivity for units that can move 
-            // (important for new turn when hasMoved is reset)
-            existing.sprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
-            
-            // Clear any tint
-            existing.sprite.clearTint();
+      // Handle active unit click - select for movement
+      const selectedUnitId = actions.getSelectedUnitId();
+      
+      if (selectedUnitId && actions.isMoveMode()) {
+        // If we already have a unit selected, check if this is a valid move target
+        const validMoves = actions.getValidMoves();
+        const canMoveHere = validMoves.some(move => move.x === gridX && move.y === gridY);
+        
+        if (canMoveHere) {
+          // Get current position of selected unit
+          const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
+          if (selectedUnit) {
+            // Start movement animation
+            this.startUnitMovement(
+              selectedUnitId, 
+              selectedUnit.position.x, 
+              selectedUnit.position.y, 
+              gridX, 
+              gridY
+            );
           }
+        } else {
+          // Not a valid move target, select this unit instead
+          this.handleUnitSelection(animalId);
         }
       } else {
-        // Create a new sprite for this animal with the correct texture
-        const animalSprite = this.add.sprite(worldX, worldY + verticalOffset, textureKey);
-        
-        // Set appropriate scale
-        animalSprite.setScale(1);
-        
-        // Set depth based on position and state
-        animalSprite.setDepth(this.calculateUnitDepth(gridX, gridY, isActive));
-        
-        // Handle interactivity based on state
-        if (animal.state === AnimalState.DORMANT) {
-          // NEVER make dormant units (eggs) interactive
-          // No need to set interactivity at all for eggs
-        } else if (animal.state === AnimalState.ACTIVE && !animal.hasMoved) {
-          // Make interactive only if it's active and hasn't moved
-          animalSprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
-        } else if (animal.state === AnimalState.ACTIVE && animal.hasMoved) {
-          // Apply visual feedback for moved units
-          animalSprite.setTint(0xCCCCCC);
-        }
-        
-        // Store the animal ID and type on the sprite
-        animalSprite.setData('animalId', animal.id);
-        animalSprite.setData('animalType', animal.type);
-        animalSprite.setData('gridX', gridX);
-        animalSprite.setData('gridY', gridY);
-        
-        // Only add click handler for active units
-        if (animal.state === AnimalState.ACTIVE && !animal.hasMoved) {
-          animalSprite.on('pointerdown', () => {
-            console.log(`Animal clicked: ${animal.id} at ${gridX},${gridY}`);
-            
-            // Handle active unit click - select for movement
-            const selectedUnitId = actions.getSelectedUnitId();
-            
-            if (selectedUnitId && actions.isMoveMode()) {
-              // If we already have a unit selected, check if this is a valid move target
-              const validMoves = actions.getValidMoves();
-              const canMoveHere = validMoves.some(move => move.x === gridX && move.y === gridY);
-              
-              if (canMoveHere) {
-                // Get current position of selected unit
-                const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
-                if (selectedUnit) {
-                  // Start movement animation
-                  this.startUnitMovement(
-                    selectedUnitId, 
-                    selectedUnit.position.x, 
-                    selectedUnit.position.y, 
-                    gridX, 
-                    gridY
-                  );
-                }
-              } else {
-                // Not a valid move target, select this unit instead
-                this.handleUnitSelection(animal.id);
-              }
-            } else {
-              // No unit selected, select this one
-              this.handleUnitSelection(animal.id);
-            }
-          });
-        }
-        
-        // Add the new sprite to the units layer
-        if (!existing) {
-          this.layerManager.addToLayer('units', animalSprite);
-        }
-      }
-    });
-    
-    // Remove sprites for animals that no longer exist
-    existingSprites.forEach((data, id) => {
-      if (!data.used) {
-        data.sprite.destroy();
+        // No unit selected, select this one
+        this.handleUnitSelection(animalId);
       }
     });
   }
@@ -486,6 +362,7 @@ export default class BoardScene extends Phaser.Scene {
     this.selectionRenderer.destroy();
     this.moveRangeRenderer.destroy();
     this.habitatRenderer.destroy();
+    this.animalRenderer.destroy();
     
     // Reset flags
     this.controlsSetup = false;
@@ -878,14 +755,15 @@ export default class BoardScene extends Phaser.Scene {
     const toX = displacementInfo.toX;
     const toY = displacementInfo.toY;
     
-    // Use the unified animation method with displacement-specific options
-    // Do NOT apply tint or disable interactivity - let the unit remain selectable if it hasn't moved
-    this.animateUnit(unitId, fromX, fromY, toX, toY, {
+    // Use the animal renderer to handle displacement
+    this.animalRenderer.animateUnit(unitId, fromX, fromY, toX, toY, {
       applyTint: false,           // Don't apply the "moved" tint
       disableInteractive: false,  // Don't disable interactivity
-      updateState: true,
-      clearMoveHighlights: false,
-      isDisplacement: true
+      isDisplacement: true,
+      onComplete: () => {
+        // Update the game state after animation completes
+        actions.moveDisplacedUnit(unitId, toX, toY);
+      }
     });
   }
 
@@ -994,6 +872,7 @@ export default class BoardScene extends Phaser.Scene {
     this.selectionRenderer.initialize(this.anchorX, this.anchorY);
     this.moveRangeRenderer.initialize(this.anchorX, this.anchorY);
     this.habitatRenderer.initialize(this.anchorX, this.anchorY);
+    this.animalRenderer.initialize(this.anchorX, this.anchorY);
     
     // Return null to satisfy the method signature (this can be removed in a future cleanup)
     return null;
@@ -1069,162 +948,26 @@ export default class BoardScene extends Phaser.Scene {
     return this.tileRenderer;
   }
 
-  // Updated to use the unified animation method
+  // Updated to use the AnimalRenderer
   private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
     // Don't allow movement while animation is in progress
-    if (this.animationInProgress) {
+    if (this.animalRenderer.isAnimating()) {
       return;
-    }
-    
-    // Use the unified animation method with movement-specific options
-    this.animateUnit(unitId, fromX, fromY, toX, toY, {
-      applyTint: true,
-      disableInteractive: true,
-      updateState: true,
-      clearMoveHighlights: true
-    });
-  }
-
-  // Unified animation method for all unit movements
-  private animateUnit(
-    unitId: string,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
-    options: {
-      applyTint?: boolean;
-      disableInteractive?: boolean;
-      updateState?: boolean;
-      clearMoveHighlights?: boolean;
-      duration?: number;
-      isDisplacement?: boolean;
-    } = {}
-  ) {
-    // Set default options
-    const {
-      applyTint = false,
-      disableInteractive = false,
-      updateState = false,
-      clearMoveHighlights = false,
-      duration: fixedDuration = null,
-      isDisplacement = false
-    } = options;
-    
-    // Find the unit sprite
-    let unitSprite: Phaser.GameObjects.Sprite | null = null;
-    if (this.layerManager.getUnitsLayer()) {
-      this.layerManager.getUnitsLayer()!.getAll().forEach(child => {
-        if (child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === unitId) {
-          unitSprite = child;
-        }
-      });
-    }
-    
-    if (!unitSprite) {
-      console.error(`Could not find sprite for unit ${unitId}`);
-      return;
-    }
-    
-    // Convert grid coordinates to world coordinates using utility
-    const startPos = CoordinateUtils.gridToWorld(
-      fromX, fromY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-    );
-    const endPos = CoordinateUtils.gridToWorld(
-      toX, toY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-    );
-    
-    const startWorldX = startPos.x;
-    const startWorldY = startPos.y;
-    const endWorldX = endPos.x;
-    const endWorldY = endPos.y;
-    
-    // Apply vertical offset
-    const verticalOffset = -12;
-    
-    // Mark animation as in progress
-    this.animationInProgress = true;
-    
-    // Clear move highlights if requested using MoveRangeRenderer
-    if (clearMoveHighlights) {
-      this.moveRangeRenderer.clearMoveHighlights();
     }
     
     // Hide selection indicator during animation
     this.hideSelectionIndicator();
     
-    // Calculate movement duration based on distance (unless fixed duration is provided)
-    let duration;
-    if (fixedDuration) {
-      duration = fixedDuration;
-    } else {
-      const distance = Math.sqrt(
-        Math.pow(endWorldX - startWorldX, 2) + 
-        Math.pow(endWorldY - startWorldY, 2)
-      );
-      const baseDuration = 75; // Moderate duration for smooth movement
-      duration = baseDuration * (distance / this.tileSize);
-    }
+    // Clear move highlights
+    this.moveRangeRenderer.clearMoveHighlights();
     
-    // Create the animation tween
-    this.tweens.add({
-      targets: unitSprite,
-      x: endWorldX,
-      y: endWorldY + verticalOffset,
-      duration: duration,
-      ease: 'Power2.out', // Quick acceleration, gentle stop
-      onUpdate: () => {
-        // Calculate current grid Y position based on the sprite's current position
-        // Convert current world position back to approximate grid position
-        const currentWorldY = unitSprite!.y - verticalOffset;
-        const currentWorldX = unitSprite!.x;
-        
-        // Reverse the isometric projection to get approximate grid coordinates
-        // These are not exact, but they're close enough for depth calculation
-        const relY = (currentWorldY - this.anchorY) / this.tileHeight;
-        const relX = (currentWorldX - this.anchorX) / this.tileSize;
-        
-        // Calculate approximate grid Y
-        const currentGridY = (relY * 2 - relX) / 2;
-        
-        // Calculate approximate grid X (using inverse of isometric projection)
-        const currentGridX = relY - currentGridY;
-        
-        // Update depth during movement using our depth calculation
-        unitSprite!.setDepth(this.calculateUnitDepth(currentGridX, currentGridY, true));
-      },
+    // Use the animal renderer to animate the unit
+    this.animalRenderer.animateUnit(unitId, fromX, fromY, toX, toY, {
+      applyTint: true,
+      disableInteractive: true,
       onComplete: () => {
-        // Update state after animation completes (if requested)
-        if (updateState) {
-          // Check if this is a displacement animation based on method call
-          if (options.isDisplacement) {
-            // Use the displacement-specific action
-            actions.moveDisplacedUnit(unitId, toX, toY);
-          } else {
-            // Use regular movement action
-            actions.moveUnit(unitId, toX, toY);
-          }
-        }
-        
-        // Update the sprite's stored grid coordinates
-        unitSprite!.setData('gridX', toX);
-        unitSprite!.setData('gridY', toY);
-        
-        // Set final depth at destination
-        unitSprite!.setDepth(this.calculateUnitDepth(toX, toY, true));
-        
-        // Apply light gray tint to indicate the unit has moved (if requested)
-        if (applyTint) {
-          unitSprite!.setTint(0xCCCCCC);
-        }
-        
-        // Disable interactivity so clicks pass through to the underlying tile (if requested)
-        if (disableInteractive) {
-          unitSprite!.disableInteractive();
-        }
-        
-        // Mark animation as complete
-        this.animationInProgress = false;
+        // Update the game state after animation completes
+        actions.moveUnit(unitId, toX, toY);
       }
     });
   }
@@ -1285,5 +1028,10 @@ export default class BoardScene extends Phaser.Scene {
   // Add getter for habitat renderer
   public getHabitatRenderer(): HabitatRenderer {
     return this.habitatRenderer;
+  }
+
+  // Add getter for animal renderer
+  public getAnimalRenderer(): AnimalRenderer {
+    return this.animalRenderer;
   }
 }
