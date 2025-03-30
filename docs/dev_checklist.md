@@ -1,9 +1,9 @@
 # Development Checklist
 
 ## Current Status (As of current refactoring)
-- Completed all of Phase 5: Managers and Controllers are fully implemented and tested
-- Made significant progress on Phase 6: Created StateSubscriptionManager and centralized state subscriptions
-- Next: Finish Phase 6 by implementing state diffing and validating all game functionality
+- Completed all of Phase 6: Created StateSubscriptionManager, implemented state diffing, and validated functionality
+- Making progress on Phase 7: Refactoring BoardScene core lifecycle methods and improving component initialization
+- Next: Complete Phase 7 by implementing proper cleanup and resource management
 - Known issue: "Improve Habitat" button in UI doesn't appear when selecting potential habitats
 
 ## Project Context
@@ -18,9 +18,9 @@
 - Phaser as our game engine
 
 ## Current Focus:
-- Phase 6: Refine State Management - Centralizing subscription logic and improving state flow
-- Continue moving BoardScene responsibilities to the extracted components
-- Begin work on the StateSubscriptionManager
+- Phase 7: Refactoring BoardScene Core - Simplifying lifecycle methods and improving cleanup
+- Delegating functionality to managers and renderers
+- Ensuring proper initialization and cleanup sequence
 
 # Upcoming Tasks
   
@@ -174,25 +174,26 @@
   - [x] Organize subscriptions by component/concern (board, habitats, animals, etc.)
   - [x] Implement proper cleanup of subscriptions when scene shuts down
   - [x] Add documentation for subscription patterns
-- [ ] Connect Components with State
+- [x] Connect Components with State
   - [x] Create clear data flow between state and renderers
   - [x] Design subscription handlers to dispatch only necessary data to components
   - [x] Ensure renderers receive focused updates rather than full state
-  - [ ] Implement state diffing to improve performance
-- [ ] Phase 6 Validation
+  - [x] Implement state diffing to improve performance
+- [x] Phase 6 Validation
   - [x] Verify state changes trigger appropriate rendering
-  - [ ] Test game state transitions (turn changes, etc.)
+  - [x] Test game state transitions (turn changes, etc.)
   - [x] Ensure components receive only necessary updates
   - [x] Check memory usage and subscription leaks
-  - [ ] Verify all game functionality still works with new state management
+  - [x] Verify all game functionality still works with new state management
 
 ### Phase 7: Refactor BoardScene Core
 - [ ] Simplify BoardScene Lifecycle Methods
-  - [ ] Refactor `init()` to delegate to managers
-  - [ ] Refactor `create()` to initialize components
-  - [ ] Refactor `update()` to delegate to managers
+  - [x] Refactor `init()` to delegate to managers
+  - [x] Refactor `create()` to initialize components
+  - [x] Refactor `update()` to delegate to managers
   - [ ] Remove redundant code and properties
 - [ ] Establish Component Lifecycle
+  - [x] Create centralized manager initialization in BoardScene
   - [ ] Implement scene shutdown cleanup for all components
   - [ ] Ensure proper initialization order
   - [ ] Add resource cleanup to prevent memory leaks

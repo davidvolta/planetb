@@ -151,24 +151,107 @@ export default class BoardScene extends Phaser.Scene {
   init(data?: any) {
     console.log("BoardScene init() called", data ? `with data: ${JSON.stringify(data)}` : "without data");
     
-    // Clear previous tiles when scene restarts
+    // Clear previous tiles array
     this.tiles = [];
     
     // Ensure all old subscriptions are cleaned up before creating new ones
     this.unsubscribeAll();
     
-    // Reset subscriptions setup flag
+    // Reset setup flags
     this.subscriptionsSetup = false;
+    this.controlsSetup = false;
     
-    // Set up layers immediately to ensure they exist before any state updates
+    // Initialize all managers
+    this.initializeManagers();
+    
+    // Set up layers 
     this.layerManager.setupLayers();
-    
-    // We'll setup subscriptions in create() after layers are initialized
   }
   
-  // Set up all state subscriptions in one centralized method - DEPRECATED: Now using StateSubscriptionManager
+  /**
+   * Initialize all managers with current settings
+   * This centralizes all manager initialization in one place
+   */
+  private initializeManagers(): void {
+    // Set anchor points for coordinate system
+    const anchorX = this.cameras.main.width / 2;
+    const anchorY = this.cameras.main.height / 2;
+    
+    // Store these values for future reference
+    this.anchorX = anchorX;
+    this.anchorY = anchorY;
+    
+    // Initialize all renderers with anchor coordinates
+    this.tileRenderer.initialize(anchorX, anchorY);
+    this.selectionRenderer.initialize(anchorX, anchorY);
+    this.moveRangeRenderer.initialize(anchorX, anchorY);
+    this.habitatRenderer.initialize(anchorX, anchorY);
+    this.animalRenderer.initialize(anchorX, anchorY);
+    
+    // Initialize managers with anchor coordinates
+    this.inputManager.initialize(anchorX, anchorY);
+    this.animationController.initialize(anchorX, anchorY);
+    
+    // No need to explicitly initialize camera manager here
+    // It will be set up in setupCamera()
+  }
+  
+  create() {
+    console.log("BoardScene create() called", this.scene.key);
+    
+    // Set up camera
+    this.setupCamera();
+    
+    // Set up input handlers
+    this.setupInputHandlers();
+    
+    // Get board data
+    const board = actions.getBoard();
+    
+    // If we have board data, create the board
+    if (board) {
+      // Create board tiles
+      this.createTiles();
+      
+      // Set up state subscriptions
+      this.setupSubscriptions();
+      
+      // Log final layer state after setup
+      console.log("FINAL LAYER STATE AFTER RENDERING:");
+      this.logLayerInfo();
+    }
+  }
+  
+  /**
+   * Set up camera with initial position and zoom level
+   */
+  private setupCamera(): void {
+    // Set fixed camera bounds that are large enough for any reasonable map size
+    const worldWidth = this.cameras.main.width * 4;
+    const worldHeight = this.cameras.main.height * 4;
+    
+    // Configure camera through the Phaser camera system
+    this.cameras.main.setBounds(-worldWidth/2, -worldHeight/2, worldWidth, worldHeight);
+    
+    // Set initial camera position with downward offset
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+    const cameraYOffset = 400; // Move camera down by this amount
+    
+    // Position and zoom camera
+    this.cameras.main.centerOn(centerX, centerY + cameraYOffset);
+    this.cameras.main.setZoom(1.2); // Set default zoom level
+    
+    // Now that camera is configured, tell the camera manager about it
+    this.cameraManager.setupCamera();
+    
+    // Set up camera input handlers
+    this.setupCameraInputHandlers();
+  }
+  
+  // Set up all state subscriptions in one centralized method
   private setupSubscriptions() {
-    // Use the StateSubscriptionManager to set up subscriptions instead
+    // Use the StateSubscriptionManager to set up subscriptions
     this.subscriptionManager.setupSubscriptions(
       (animalId, gridX, gridY) => this.handleUnitSelection(animalId)
     );
@@ -196,9 +279,6 @@ export default class BoardScene extends Phaser.Scene {
     // Check if we need to setup the layers
     const needsSetup = !this.layerManager.isLayersSetup();
     
-    // Log what we're doing
-    console.log("Updating board using layer-based rendering");
-    
     // Set up layers if needed
     if (needsSetup) {
       this.layerManager.setupLayers();
@@ -218,48 +298,6 @@ export default class BoardScene extends Phaser.Scene {
     console.log(`Total tiles: ${this.tiles.length}`);
   }
   
-  create() {
-    console.log("BoardScene create() called", this.scene.key);
-    
-    // Set up camera controls using InputManager
-    this.setupInputHandlers();
-    
-    // Set up camera using CameraManager
-    this.setupCamera();
-    
-    // Set up keyboard shortcuts
-    this.setupKeyboardControls();
-    
-    // Set fixed camera bounds that are large enough for any reasonable map size
-    // These bounds won't change when the map is resized
-    const worldWidth = this.cameras.main.width * 4;
-    const worldHeight = this.cameras.main.height * 4;
-    this.cameras.main.setBounds(-worldWidth/2, -worldHeight/2, worldWidth, worldHeight);
-    
-    // Set a fixed camera position with downward offset
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
-    const cameraYOffset = 400; // Move camera down by this amount
-    this.cameras.main.centerOn(centerX, centerY + cameraYOffset);
-    this.cameras.main.setZoom(1.2); // Set default zoom level closer to the board
-    
-    // Get board data
-    const board = actions.getBoard();
-    
-    // If we have board data, create the board
-    if (board) {
-      this.updateBoard();
-      
-      // Now that the board and layers are set up, set up state subscriptions
-      // StateSubscriptionManager will handle rendering the initial state
-      this.setupSubscriptions();
-      
-      // Log final layer state after everything is rendered
-      console.log("FINAL LAYER STATE AFTER RENDERING ANIMALS AND HABITATS:");
-      this.logLayerInfo();
-    }
-  }
-
   // Updated method that delegates to AnimalRenderer
   renderAnimalSprites(animals: Animal[]) {
     // Delegate to the AnimalRenderer, providing a callback for handling unit clicks
@@ -308,6 +346,9 @@ export default class BoardScene extends Phaser.Scene {
     // Clean up layers
     this.layerManager.clearAllLayers(true);
     
+    // Clean up input handlers
+    this.input.removeAllListeners();
+    
     // Reset variables
     this.tiles = [];
     this.controlsSetup = false;
@@ -316,9 +357,6 @@ export default class BoardScene extends Phaser.Scene {
     this.hoveredGridPosition = null;
     this.moveRangeHighlights = [];
     this.animationInProgress = false;
-    
-    // Note: We're not setting managers/renderers to null as this causes type errors
-    // The scene will be garbage collected when it's destroyed anyway
   }
   
   // Updated createTiles method that uses TileRenderer
@@ -688,9 +726,10 @@ export default class BoardScene extends Phaser.Scene {
     // To be implemented based on the AnimationController's signature
   }
 
-  // Add a method to handle spawn events
+  // Handle unit spawned events
   private handleUnitSpawned() {
-    console.log("Handling unit spawn event in BoardScene");
+    console.log('Unit spawned, updating UI');
+    
     // Hide the selection indicator and clear any move highlights
     this.selectionRenderer.hideSelection();
     this.moveRangeRenderer.clearMoveHighlights();
@@ -821,12 +860,17 @@ export default class BoardScene extends Phaser.Scene {
   
   // Update method to track the mouse position
   update() {
-    // Update the hover indicator based on the current pointer position
+    // Let the selection renderer handle hover updates
     const pointer = this.input.activePointer;
     const board = actions.getBoard();
     
     if (board) {
       this.selectionRenderer.updateFromPointer(pointer, board.width, board.height);
+    }
+    
+    // Let the animation controller handle any active animations if needed
+    if (this.animationController.isAnimating()) {
+      // Any per-frame animation updates would go here
     }
   }
 
@@ -1016,12 +1060,6 @@ export default class BoardScene extends Phaser.Scene {
   // Add getter for camera manager
   public getCameraManager(): CameraManager {
     return this.cameraManager;
-  }
-
-  // Updated to use CameraManager
-  private setupCamera(): void {
-    // Set up camera bounds and position using the camera manager
-    this.cameraManager.setupCamera();
   }
 
   // Add getter for animation controller
