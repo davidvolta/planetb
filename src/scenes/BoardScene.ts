@@ -579,7 +579,7 @@ export default class BoardScene extends Phaser.Scene {
       this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
       
       // Show valid moves for the selected unit
-      if (unit.moves > 0) {
+      if (!unit.hasMoved) {
         // Check if the action method exists and call it safely
         if (typeof actions.getValidMoves === 'function') {
           // Get valid moves for the unit
@@ -589,7 +589,19 @@ export default class BoardScene extends Phaser.Scene {
         }
       }
     } 
-    // If we clicked on a dormant unit or empty tile, deselect any selected unit
+    // If we have a dormant unit at this tile, select it (for spawning)
+    else if (contents.dormantUnits.length > 0) {
+      const dormantUnit = contents.dormantUnits[0]; // Just use the first one for now
+      
+      // Select the dormant unit without showing move range (it can't move)
+      this.handleUnitSelection(dormantUnit.id, { x: gridX, y: gridY });
+      
+      // Clear any existing move highlights
+      this.moveRangeRenderer.clearMoveHighlights();
+      
+      console.log(`Selected dormant unit: ${dormantUnit.id} at ${gridX},${gridY}`);
+    }
+    // If we clicked on an empty tile, deselect any selected unit
     else {
       // PHASE 4: Use the centralized selection method
       this.handleUnitSelection(null);
