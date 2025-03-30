@@ -16,13 +16,13 @@ alwaysApply: true
 - Ignore: test projects, and experimental features unless explicitly requested
 
 ## Rules For Coding
-- Always read app_guide.md before you speak to me
+- Always read docs/app_guide.md before you speak to me
 - Always read dev_checklist.md before you speak to me
-- Ask if I want to update development-checklist.md after completing tasks
+- Ask if I want to update docs/dev_checklist.md after completing tasks
 
 ## Context Rules
 - Keep track of current project focus from dev_checklist.md
-- Reference important files listed in dev_checklist.md
+- Reference important files listed in docs/dev_checklist.md
 - Consider environment setup before suggesting changes
 - Stay focused on main game project unless explicitly working on test and example projects
 
