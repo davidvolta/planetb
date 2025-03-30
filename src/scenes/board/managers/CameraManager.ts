@@ -19,6 +19,9 @@ export class CameraManager {
   // Track if camera is already set up
   private cameraSetup: boolean = false;
   
+  // Default camera Y offset from center
+  private defaultYOffset: number = 400;
+  
   /**
    * Creates a new CameraManager
    * @param scene The parent scene
@@ -35,12 +38,43 @@ export class CameraManager {
   }
   
   /**
+   * Fully initialize the camera with bounds, position, and event handlers
+   * @param options Optional configuration options
+   */
+  initialize(options: {
+    worldWidth?: number;
+    worldHeight?: number;
+    defaultZoom?: number;
+    yOffset?: number;
+  } = {}): void {
+    // Extract options with defaults
+    const {
+      worldWidth,
+      worldHeight,
+      defaultZoom = this.defaultZoom,
+      yOffset = this.defaultYOffset
+    } = options;
+    
+    // Set up the camera
+    this.setupCamera(worldWidth, worldHeight, defaultZoom, yOffset);
+    
+    // Set up input handlers for camera control
+    this.setupInputHandlers();
+  }
+  
+  /**
    * Set up the camera with appropriate bounds and position
    * @param worldWidth Optional width of the game world
    * @param worldHeight Optional height of the game world
    * @param defaultZoom Initial zoom level
+   * @param yOffset Y offset from center position
    */
-  setupCamera(worldWidth?: number, worldHeight?: number, defaultZoom: number = this.defaultZoom): void {
+  setupCamera(
+    worldWidth?: number,
+    worldHeight?: number,
+    defaultZoom: number = this.defaultZoom,
+    yOffset: number = this.defaultYOffset
+  ): void {
     // Don't set up camera more than once
     if (this.cameraSetup) {
       return;
@@ -58,16 +92,47 @@ export class CameraManager {
     // Set a fixed camera position with downward offset for better initial view
     const centerX = camera.width / 2;
     const centerY = camera.height / 2;
-    const cameraYOffset = 400; // Move camera down by this amount
     
     // Center camera with offset
-    camera.centerOn(centerX, centerY + cameraYOffset);
+    camera.centerOn(centerX, centerY + yOffset);
     
     // Set initial zoom level
     camera.setZoom(defaultZoom);
     
     // Mark camera as set up
     this.cameraSetup = true;
+    
+    console.log("Camera setup complete with bounds:", camera.getBounds());
+  }
+  
+  /**
+   * Set up input handlers for camera panning and zooming
+   */
+  setupInputHandlers(): void {
+    // Add panning for dragging
+    this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.isDown) {
+        // Calculate delta in world space accounting for zoom
+        const deltaX = -(pointer.x - pointer.prevPosition.x) / this.getCamera().zoom;
+        const deltaY = -(pointer.y - pointer.prevPosition.y) / this.getCamera().zoom;
+        
+        // Use camera manager to pan
+        this.pan(deltaX, deltaY);
+      }
+    });
+    
+    // Add mouse wheel zoom
+    this.scene.input.on('wheel', (
+      pointer: Phaser.Input.Pointer,
+      gameObjects: Phaser.GameObjects.GameObject[],
+      deltaX: number,
+      deltaY: number
+    ) => {
+      // Apply zoom based on wheel movement
+      this.adjustZoom(-deltaY * 0.001);
+    });
+    
+    console.log("Camera input handlers initialized");
   }
   
   /**
@@ -228,7 +293,13 @@ export class CameraManager {
    * Clean up any resources used by the camera manager
    */
   destroy(): void {
-    // No resources to clean up - the camera is owned by the scene
+    // Remove any input handlers we set up
+    const input = this.scene.input;
+    input.off('pointermove');
+    input.off('wheel');
+    
+    // No camera resources to clean up - the camera is owned by the scene
     // and will be destroyed when the scene is destroyed
+    console.log("Camera manager resources cleaned up");
   }
 } 

@@ -27,7 +27,6 @@ export class InputManager {
   // Callbacks for various input events
   private callbacks: {
     onTileClick?: (gameObject: Phaser.GameObjects.GameObject) => void;
-    onHabitatClick?: (gameObject: Phaser.GameObjects.GameObject) => void;
     onPointerMove?: (worldX: number, worldY: number, pointer: Phaser.Input.Pointer) => void;
   } = {};
   
@@ -123,15 +122,9 @@ export class InputManager {
         const gridX = gameObject.getData('gridX');
         const gridY = gameObject.getData('gridY');
         
-        if (gridX !== undefined && gridY !== undefined) {
-          // Check if this is a habitat or a tile
-          if (gameObject.getData('habitatId') && this.callbacks.onHabitatClick) {
-            // This is a habitat, call the habitat click handler
-            this.callbacks.onHabitatClick(gameObject);
-          } else if (this.callbacks.onTileClick) {
-            // This is a tile, call the tile click handler
-            this.callbacks.onTileClick(gameObject);
-          }
+        if (gridX !== undefined && gridY !== undefined && this.callbacks.onTileClick) {
+          // Call the generic tile click handler for all clickable grid objects
+          this.callbacks.onTileClick(gameObject);
         }
       }
     });
@@ -184,19 +177,11 @@ export class InputManager {
   }
   
   /**
-   * Set callback for tile click events
+   * Set callback for tile click events (for both tiles and habitats)
    * @param callback The function to call when a tile is clicked
    */
   onTileClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void {
     this.callbacks.onTileClick = callback;
-  }
-  
-  /**
-   * Set callback for habitat click events
-   * @param callback The function to call when a habitat is clicked
-   */
-  onHabitatClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void {
-    this.callbacks.onHabitatClick = callback;
   }
   
   /**

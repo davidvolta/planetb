@@ -161,8 +161,8 @@ export default class BoardScene extends Phaser.Scene {
   create() {
     console.log("BoardScene create() called", this.scene.key);
     
-    // Set up camera
-    this.setupCamera();
+    // Initialize camera manager
+    this.cameraManager.initialize();
     
     // Set up input handlers
     this.setupInputHandlers();
@@ -182,33 +182,6 @@ export default class BoardScene extends Phaser.Scene {
       console.log("FINAL LAYER STATE AFTER RENDERING:");
       this.logLayerInfo();
     }
-  }
-  
-  /**
-   * Set up camera with initial position and zoom level
-   */
-  private setupCamera(): void {
-    // Set fixed camera bounds that are large enough for any reasonable map size
-    const worldWidth = this.cameras.main.width * 4;
-    const worldHeight = this.cameras.main.height * 4;
-    
-    // Configure camera through the Phaser camera system
-    this.cameras.main.setBounds(-worldWidth/2, -worldHeight/2, worldWidth, worldHeight);
-    
-    // Set initial camera position with downward offset
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
-    const cameraYOffset = 400; // Move camera down by this amount
-    
-    // Position and zoom camera
-    this.cameras.main.centerOn(centerX, centerY + cameraYOffset);
-    this.cameras.main.setZoom(1.2); // Set default zoom level
-    
-    // Now that camera is configured, tell the camera manager about it
-    this.cameraManager.setupCamera();
-    
-    // Set up camera input handlers
-    this.setupCameraInputHandlers();
   }
   
   /**
@@ -396,10 +369,23 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Check if this is a tile or a habitat
-    if (clickedObject.getData('habitatId')) {
-      // This is a habitat, handle accordingly
-      this.handleHabitatClick(clickedObject);
+    // Check if this is a habitat
+    const habitatId = clickedObject.getData('habitatId');
+    if (habitatId) {
+      // Get habitat data from store
+      const habitats = actions.getHabitats();
+      const clickedHabitat = habitats.find(h => h.id === habitatId);
+      
+      if (clickedHabitat) {
+        // Log the habitat click
+        console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
+        
+        // Select habitat in store
+        actions.selectHabitat(habitatId);
+        
+        // Show selection indicator at the habitat location
+        this.selectionRenderer.showSelectionAt(gridX, gridY);
+      }
       return;
     }
     
@@ -628,23 +614,15 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize input manager with current anchor values
     this.inputManager.initialize(this.anchorX, this.anchorY);
     
-    // Set up camera panning and zooming
-    this.setupCameraInputHandlers();
-    
     // Set up keyboard shortcuts
     this.inputManager.setupKeyboardControls();
     
     // Set up click delegation
     this.inputManager.setupClickEventDelegation();
     
-    // Register tile click callback
+    // Register tile click callback for all clickable objects (tiles and habitats)
     this.inputManager.onTileClick((gameObject) => {
       this.handleTileClick(gameObject);
-    });
-    
-    // Register habitat click callback
-    this.inputManager.onHabitatClick((gameObject) => {
-      this.handleHabitatClick(gameObject);
     });
     
     // Register pointer move callback for hover detection
@@ -657,37 +635,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Mark controls as set up
     this.controlsSetup = true;
-  }
-  
-  /**
-   * Set up camera input handlers
-   */
-  private setupCameraInputHandlers(): void {
-    // Add panning and zooming for navigation
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.isDown) {
-        // Calculate delta in world space accounting for zoom
-        const deltaX = -(pointer.x - pointer.prevPosition.x) / this.cameraManager.getCamera().zoom;
-        const deltaY = -(pointer.y - pointer.prevPosition.y) / this.cameraManager.getCamera().zoom;
-        
-        // Use camera manager to pan
-        this.cameraManager.pan(deltaX, deltaY);
-      }
-    });
-    
-    // Add mouse wheel zoom
-    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number) => {
-      // Use camera manager to adjust zoom
-      this.cameraManager.adjustZoom(-deltaY * 0.001);
-    });
-  }
-
-  /**
-   * Render habitat graphics
-   */
-  renderHabitatGraphics(habitats: any[]) {
-    // Use the HabitatRenderer to render the habitats
-    this.habitatRenderer.renderHabitats(habitats);
   }
 
   // Getters for managers and renderers
@@ -722,33 +669,6 @@ export default class BoardScene extends Phaser.Scene {
   
   public getAnimationController(): AnimationController {
     return this.animationController;
-  }
-
-  /**
-   * Handle clicks on habitats
-   */
-  private handleHabitatClick(habitatObject: Phaser.GameObjects.GameObject) {
-    const habitatId = habitatObject.getData('habitatId');
-    if (!habitatId) return;
-    
-    // Get grid coordinates
-    const gridX = habitatObject.getData('gridX');
-    const gridY = habitatObject.getData('gridY');
-    
-    // Get habitat data from store
-    const habitats = actions.getHabitats();
-    const clickedHabitat = habitats.find(h => h.id === habitatId);
-    
-    if (clickedHabitat) {
-      // Get the habitat state for UI decisions
-      console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
-      
-      // Select habitat in store
-      actions.selectHabitat(habitatId);
-      
-      // Show selection indicator at the habitat location
-      this.selectionRenderer.showSelectionAt(gridX, gridY);
-    }
   }
 
   /**
