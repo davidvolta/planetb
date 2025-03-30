@@ -1,5 +1,10 @@
 # Development Checklist
 
+## Current Status (As of current refactoring)
+- Completed all of Phase 5: Managers and Controllers are fully implemented and tested
+- Next: Starting Phase 6 to refine state management
+- Known issue: "Improve Habitat" button in UI doesn't appear when selecting potential habitats
+
 ## Project Context
 - Project Name: Planet B
 - Description: A unique turn-based 4x ecological strategy game that dispenses with traditional mechanics and power structures. Planet B models nature and population dynamics to create gameplay that asks the user to balance their growth and exploitation with the world's natural rates of production. 
@@ -12,7 +17,9 @@
 - Phaser as our game engine
 
 ## Current Focus:
-- Focus on core game mechanics (movement, reproduction, interactions, state updates, etc.) client-side in a way that could later run on a server. 
+- Phase 6: Refine State Management - Centralizing subscription logic and improving state flow
+- Continue moving BoardScene responsibilities to the extracted components
+- Begin work on the StateSubscriptionManager
 
 # Upcoming Tasks
   
@@ -128,9 +135,9 @@
   - [x] Extract keyboard controls setup
   - [x] Refactor BoardScene to use InputManager
   - [x] Test InputManager
-    - [ ] Verify click interactions work for tiles and units
-    - [ ] Check keyboard shortcuts function correctly
-    - [ ] Ensure event propagation works as expected
+    - [x] Verify click interactions work for tiles and units
+    - [x] Check keyboard shortcuts function correctly
+    - [x] Ensure event propagation works as expected
 
 - [x] Create AnimationController
   - [x] Create AnimationController class
@@ -140,9 +147,9 @@
   - [x] Extract tweening and animation completion handlers
   - [x] Refactor BoardScene to use AnimationController
   - [x] Test AnimationController
-    - [ ] Verify unit movement animations play correctly
-    - [ ] Check displacement animations display properly
-    - [ ] Ensure animation states complete and trigger callbacks
+    - [x] Verify unit movement animations play correctly
+    - [x] Check displacement animations display properly
+    - [x] Ensure animation states complete and trigger callbacks
 
 - [x] Create CameraManager
   - [x] Create CameraManager class
@@ -150,9 +157,9 @@
   - [x] Extract zoom and pan functionality
   - [x] Refactor BoardScene to use CameraManager
   - [x] Test CameraManager
-    - [ ] Verify camera panning works correctly
-    - [ ] Check zooming functionality
-    - [ ] Ensure camera bounds are properly maintained
+    - [x] Verify camera panning works correctly
+    - [x] Check zooming functionality
+    - [x] Ensure camera bounds are properly maintained
 
 - [x] Phase 5 Complete Validation
   - [x] Test all user interactions end-to-end
@@ -161,19 +168,22 @@
 
 ### Phase 6: Refine State Management
 - [ ] Centralize State Subscription Logic
-  - [ ] Create StateSubscriptionManager
+  - [ ] Create `StateSubscriptionManager.ts` class
   - [ ] Extract all subscription setup from BoardScene
-  - [ ] Organize subscriptions by component
-  - [ ] Ensure proper cleanup of subscriptions
+  - [ ] Organize subscriptions by component/concern (board, habitats, animals, etc.)
+  - [ ] Implement proper cleanup of subscriptions when scene shuts down
+  - [ ] Add documentation for subscription patterns
 - [ ] Connect Components with State
-  - [ ] Establish clear data flow between state and renderers
-  - [ ] Update subscription handlers to dispatch to appropriate components
-  - [ ] Ensure renderers only receive data they need to render
+  - [ ] Create clear data flow between state and renderers
+  - [ ] Design subscription handlers to dispatch only necessary data to components
+  - [ ] Ensure renderers receive focused updates rather than full state
+  - [ ] Implement state diffing to improve performance
 - [ ] Phase 6 Validation
   - [ ] Verify state changes trigger appropriate rendering
   - [ ] Test game state transitions (turn changes, etc.)
   - [ ] Ensure components receive only necessary updates
-  - [ ] Check memory usage for subscription leaks
+  - [ ] Check memory usage and subscription leaks
+  - [ ] Verify all game functionality still works with new state management
 
 ### Phase 7: Refactor BoardScene Core
 - [ ] Simplify BoardScene Lifecycle Methods
