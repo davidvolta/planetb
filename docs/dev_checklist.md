@@ -18,30 +18,34 @@
 - [ ] Refactor BoardScene (currently too large at 1400+ lines):
   
   #### Phase 1: Preparation and Structure Setup
-  - [ ] Create Folder Structure
-    - [ ] Create `/src/scenes/board` directory for all extracted components
-    - [ ] Create subdirectories: `/renderers`, `/managers`, `/utils`, `/interfaces`
-  - [ ] Define Base Interfaces
-    - [ ] Create `IRenderer.ts` in `/interfaces` with base renderer methods
-    - [ ] Create `IManager.ts` in `/interfaces` with base lifecycle hooks
-    - [ ] Define data transfer interfaces between components
+  - [x] Create Folder Structure
+    - [x] Create `/src/scenes/board` directory for all extracted components
+    - [x] Create subdirectories: `/renderers`, `/managers`, `/utils`
+  - [x] Define Component Contracts
+    - [x] Document responsibilities and APIs for each planned component
+    - [x] Establish naming conventions for methods and properties
+  - [x] Phase 1 Validation
+    - [x] Verify project structure is set up correctly
+    - [x] Ensure no code changes have been made yet that could affect functionality
 
   #### Phase 2: Extract Coordinate Utilities
-  - [ ] Create CoordinateUtils Class
+  - [ ] Create CoordinateUtils Module
     - [ ] Create `CoordinateUtils.ts` in `/utils` directory
     - [ ] Identify all coordinate conversion methods in BoardScene
     - [ ] Extract isometric conversions (`gridToScreen`, `screenToGrid`, etc.)
     - [ ] Add documentation for each utility method
     - [ ] Update references in BoardScene to use the utility
   - [ ] Validate Coordinate System
-    - [ ] Create tests or validation method to ensure conversions are correct
+    - [ ] Create validation method to ensure conversions are correct
     - [ ] Verify extracted methods produce identical results to original
+  - [ ] Phase 2 Validation
+    - [ ] Test tile selection with coordinate utilities
+    - [ ] Verify unit positioning is correct
+    - [ ] Check that habitat placement is visually identical to before
+    - [ ] Ensure mouse interactions work correctly with grid/screen conversions
 
   #### Phase 3: Extract Layer Management
-  - [ ] Create LayerManager Interface
-    - [ ] Define interface with required methods for layer management
-    - [ ] Specify methods for layer access, clearing, and depth management
-  - [ ] Implement LayerManager
+  - [ ] Create LayerManager Class
     - [ ] Extract layer initialization from BoardScene
     - [ ] Move all layer-related properties to the manager
     - [ ] Create accessor methods for each layer type
@@ -50,64 +54,109 @@
     - [ ] Initialize LayerManager in BoardScene constructor
     - [ ] Replace direct layer access with manager methods
     - [ ] Update BoardScene to delegate layer management
+  - [ ] Phase 3 Validation
+    - [ ] Verify all layers are visible after refactoring
+    - [ ] Check z-ordering of game elements (tiles beneath units, etc.)
+    - [ ] Ensure layer clearing/resetting works during re-renders
+    - [ ] Test scene reinitialization to confirm layers set up correctly
 
   #### Phase 4: Extract Renderers (One at a time)
   - [ ] Create TileRenderer
-    - [ ] Define ITileRenderer interface in `/interfaces`
     - [ ] Create TileRenderer class in `/renderers`
     - [ ] Extract tile creation logic from BoardScene
     - [ ] Extract terrain tile rendering methods
     - [ ] Implement render and update methods
     - [ ] Refactor BoardScene to use TileRenderer
+    - [ ] Test TileRenderer
+      - [ ] Verify all terrain types render correctly
+      - [ ] Check board initialization creates correct tiles
+      - [ ] Ensure tile click interactions still work
+  
   - [ ] Create SelectionRenderer
-    - [ ] Define ISelectionRenderer interface
     - [ ] Create SelectionRenderer class
     - [ ] Extract selection indicator methods
     - [ ] Extract hover state management
     - [ ] Move indicator creation and update logic
     - [ ] Refactor BoardScene to use SelectionRenderer
+    - [ ] Test SelectionRenderer
+      - [ ] Verify hover visual effects work correctly
+      - [ ] Check selection indicator appears on correct tiles
+      - [ ] Ensure selection state changes update visuals properly
+  
   - [ ] Create MoveRangeRenderer
-    - [ ] Define IMoveRangeRenderer interface
     - [ ] Create MoveRangeRenderer class
     - [ ] Extract move range highlight methods
     - [ ] Extract methods for creating and clearing highlights
     - [ ] Refactor BoardScene to use MoveRangeRenderer
+    - [ ] Test MoveRangeRenderer
+      - [ ] Verify move range highlights appear correctly
+      - [ ] Check that highlights clear when selection changes
+      - [ ] Ensure range is calculated and displayed accurately
+  
   - [ ] Create HabitatRenderer
-    - [ ] Define IHabitatRenderer interface
     - [ ] Create HabitatRenderer class
     - [ ] Extract habitat graphics creation
     - [ ] Extract habitat rendering and update methods
     - [ ] Refactor BoardScene to use HabitatRenderer
+    - [ ] Test HabitatRenderer
+      - [ ] Verify all habitat states render correctly 
+      - [ ] Check that habitat state changes update visuals
+      - [ ] Ensure habitat click interactions work properly
+  
   - [ ] Create AnimalRenderer
-    - [ ] Define IAnimalRenderer interface
     - [ ] Create AnimalRenderer class
     - [ ] Extract animal sprite creation and management
     - [ ] Extract sprite positioning and state logic
     - [ ] Extract animal depth calculation methods
     - [ ] Refactor BoardScene to use AnimalRenderer
+    - [ ] Test AnimalRenderer
+      - [ ] Verify all animal types render correctly
+      - [ ] Check state changes (active/dormant) update visuals
+      - [ ] Ensure unit selection and movement work properly
+  
+  - [ ] Phase 4 Complete Validation
+    - [ ] Perform full game test with all renderers
+    - [ ] Verify end-to-end gameplay flows are intact
+    - [ ] Check for any visual regressions across all elements
 
   #### Phase 5: Extract Managers and Controllers
   - [ ] Create InputManager
-    - [ ] Define IInputManager interface
     - [ ] Create InputManager class
     - [ ] Extract click event delegation
     - [ ] Extract input event handlers
     - [ ] Extract keyboard controls setup
     - [ ] Refactor BoardScene to use InputManager
+    - [ ] Test InputManager
+      - [ ] Verify click interactions work for tiles and units
+      - [ ] Check keyboard shortcuts function correctly
+      - [ ] Ensure event propagation works as expected
+  
   - [ ] Create AnimationController
-    - [ ] Define IAnimationController interface
     - [ ] Create AnimationController class
     - [ ] Extract animation state management
     - [ ] Extract unit movement animation
     - [ ] Extract unit displacement logic
     - [ ] Extract tweening and animation completion handlers
     - [ ] Refactor BoardScene to use AnimationController
+    - [ ] Test AnimationController
+      - [ ] Verify unit movement animations play correctly
+      - [ ] Check displacement animations display properly
+      - [ ] Ensure animation states complete and trigger callbacks
+  
   - [ ] Create CameraManager
-    - [ ] Define ICameraManager interface
     - [ ] Create CameraManager class
     - [ ] Extract camera setup and controls
     - [ ] Extract zoom and pan functionality
     - [ ] Refactor BoardScene to use CameraManager
+    - [ ] Test CameraManager
+      - [ ] Verify camera panning works correctly
+      - [ ] Check zooming functionality
+      - [ ] Ensure camera bounds are properly maintained
+  
+  - [ ] Phase 5 Complete Validation
+    - [ ] Test all user interactions end-to-end
+    - [ ] Verify animations and transitions are smooth
+    - [ ] Check that camera controls work in all game states
 
   #### Phase 6: Refine State Management
   - [ ] Centralize State Subscription Logic
@@ -119,6 +168,11 @@
     - [ ] Establish clear data flow between state and renderers
     - [ ] Update subscription handlers to dispatch to appropriate components
     - [ ] Ensure renderers only receive data they need to render
+  - [ ] Phase 6 Validation
+    - [ ] Verify state changes trigger appropriate rendering
+    - [ ] Test game state transitions (turn changes, etc.)
+    - [ ] Ensure components receive only necessary updates
+    - [ ] Check memory usage for subscription leaks
 
   #### Phase 7: Refactor BoardScene Core
   - [ ] Simplify BoardScene Lifecycle Methods
@@ -130,16 +184,27 @@
     - [ ] Implement scene shutdown cleanup for all components
     - [ ] Ensure proper initialization order
     - [ ] Add resource cleanup to prevent memory leaks
+  - [ ] Phase 7 Validation
+    - [ ] Test scene initialization and shutdown
+    - [ ] Verify component initialization order works correctly
+    - [ ] Check for memory leaks during scene transitions
+    - [ ] Ensure all game features still function properly
 
-  #### Phase 8: Testing and Validation
-  - [ ] Verify Functionality
-    - [ ] Test each extracted component independently
-    - [ ] Validate game behavior is identical after refactoring
-    - [ ] Check for visual regressions
-  - [ ] Performance Optimization
-    - [ ] Add viewport culling in TileRenderer
-    - [ ] Implement object pooling for frequently created objects
-    - [ ] Add incremental updates instead of full re-renders
+  #### Phase 8: Performance Optimization
+  - [ ] Implement Viewport Culling
+    - [ ] Add logic to only render visible tiles
+    - [ ] Optimize off-screen object handling
+  - [ ] Implement Object Pooling
+    - [ ] Create pools for frequently created objects
+    - [ ] Update renderers to use object pools
+  - [ ] Add Incremental Updates
+    - [ ] Implement delta updates instead of full re-renders
+    - [ ] Optimize state subscription efficiency
+  - [ ] Phase 8 Validation
+    - [ ] Measure and compare performance metrics
+    - [ ] Test with large maps to verify scaling improvements
+    - [ ] Ensure no visual glitches from optimizations
+    - [ ] Verify game still runs smoothly on target hardware
 
   #### Phase 9: Documentation and Code Health
   - [ ] Add Documentation
@@ -150,6 +215,11 @@
     - [ ] Remove commented code and console logs
     - [ ] Ensure consistent naming conventions
     - [ ] Check for proper typing throughout the codebase
+  - [ ] Final Validation
+    - [ ] Conduct comprehensive playtest of all game features
+    - [ ] Verify code quality with static analysis tools
+    - [ ] Ensure documentation is complete and accurate
+    - [ ] Check performance across different devices/browsers
 
   - [ ] Create dedicated renderer classes:
     - [ ] TileRenderer: Handle tile creation and updates
