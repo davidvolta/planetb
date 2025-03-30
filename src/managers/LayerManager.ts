@@ -218,3 +218,4 @@ export class LayerManager {
       layer.remove(gameObject, destroy);
     }
   }
+}
