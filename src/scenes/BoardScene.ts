@@ -13,6 +13,7 @@ import { HabitatRenderer } from "./board/renderers/HabitatRenderer";
 import { AnimalRenderer } from "./board/renderers/AnimalRenderer";
 import { InputManager } from "./board/managers/InputManager";
 import { AnimationController } from "./board/controllers/AnimationController";
+import { CameraManager } from "./board/managers/CameraManager";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -85,6 +86,9 @@ export default class BoardScene extends Phaser.Scene {
   
   // Animation control
   private animationController: AnimationController;
+  
+  // Camera management
+  private cameraManager: CameraManager;
 
   constructor() {
     super({ key: "BoardScene" });
@@ -112,6 +116,9 @@ export default class BoardScene extends Phaser.Scene {
     
     // Initialize the animation controller
     this.animationController = new AnimationController(this, this.tileSize, this.tileHeight);
+    
+    // Initialize the camera manager
+    this.cameraManager = new CameraManager(this);
   }
 
 
@@ -282,8 +289,8 @@ export default class BoardScene extends Phaser.Scene {
     // Set up camera controls using InputManager
     this.setupInputHandlers();
     
-    // Set up camera controls
-    this.setupControls();
+    // Set up camera using CameraManager
+    this.setupCamera();
     
     // Set up keyboard shortcuts
     this.setupKeyboardControls();
@@ -386,6 +393,9 @@ export default class BoardScene extends Phaser.Scene {
     
     // Clean up animation controller
     this.animationController.destroy();
+    
+    // Clean up camera manager
+    this.cameraManager.destroy();
     
     // Reset flags
     this.controlsSetup = false;
@@ -1065,8 +1075,8 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize input manager with current anchor values
     this.inputManager.initialize(this.anchorX, this.anchorY);
     
-    // Set up camera panning and zooming
-    this.inputManager.setupControls();
+    // Set up camera panning and zooming - now delegated to custom handlers using CameraManager
+    this.setupCameraInputHandlers();
     
     // Set up keyboard shortcuts
     this.inputManager.setupKeyboardControls();
@@ -1091,6 +1101,38 @@ export default class BoardScene extends Phaser.Scene {
         this.selectionRenderer.updateFromPointer(pointer, board.width, board.height);
       }
     });
+  }
+  
+  // Add a new method to handle camera-specific input
+  private setupCameraInputHandlers(): void {
+    // Add panning and zooming for navigation
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.isDown) {
+        // Calculate delta in world space accounting for zoom
+        const deltaX = -(pointer.x - pointer.prevPosition.x) / this.cameraManager.getCamera().zoom;
+        const deltaY = -(pointer.y - pointer.prevPosition.y) / this.cameraManager.getCamera().zoom;
+        
+        // Use camera manager to pan
+        this.cameraManager.pan(deltaX, deltaY);
+      }
+    });
+    
+    // Add mouse wheel zoom
+    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number) => {
+      // Use camera manager to adjust zoom
+      this.cameraManager.adjustZoom(-deltaY * 0.001);
+    });
+  }
+
+  // Add getter for camera manager
+  public getCameraManager(): CameraManager {
+    return this.cameraManager;
+  }
+
+  // Updated to use CameraManager
+  private setupCamera(): void {
+    // Set up camera bounds and position using the camera manager
+    this.cameraManager.setupCamera();
   }
 
   // Add getter for animation controller

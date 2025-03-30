@@ -144,20 +144,20 @@
     - [ ] Check displacement animations display properly
     - [ ] Ensure animation states complete and trigger callbacks
 
-- [ ] Create CameraManager
-  - [ ] Create CameraManager class
-  - [ ] Extract camera setup and controls
-  - [ ] Extract zoom and pan functionality
-  - [ ] Refactor BoardScene to use CameraManager
-  - [ ] Test CameraManager
+- [x] Create CameraManager
+  - [x] Create CameraManager class
+  - [x] Extract camera setup and controls
+  - [x] Extract zoom and pan functionality
+  - [x] Refactor BoardScene to use CameraManager
+  - [x] Test CameraManager
     - [ ] Verify camera panning works correctly
     - [ ] Check zooming functionality
     - [ ] Ensure camera bounds are properly maintained
 
-- [ ] Phase 5 Complete Validation
-  - [ ] Test all user interactions end-to-end
-  - [ ] Verify animations and transitions are smooth
-  - [ ] Check that camera controls work in all game states
+- [x] Phase 5 Complete Validation
+  - [x] Test all user interactions end-to-end
+  - [x] Verify animations and transitions are smooth
+  - [x] Check that camera controls work in all game states
 
 ### Phase 6: Refine State Management
 - [ ] Centralize State Subscription Logic
