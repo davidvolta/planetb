@@ -2,7 +2,8 @@
 
 ## Current Status (As of current refactoring)
 - Completed all of Phase 5: Managers and Controllers are fully implemented and tested
-- Next: Starting Phase 6 to refine state management
+- Made significant progress on Phase 6: Created StateSubscriptionManager and centralized state subscriptions
+- Next: Finish Phase 6 by implementing state diffing and validating all game functionality
 - Known issue: "Improve Habitat" button in UI doesn't appear when selecting potential habitats
 
 ## Project Context
@@ -167,22 +168,22 @@
   - [x] Check that camera controls work in all game states
 
 ### Phase 6: Refine State Management
-- [ ] Centralize State Subscription Logic
+- [x] Centralize State Subscription Logic
   - [x] Create `StateSubscriptionManager.ts` class
-  - [ ] Extract all subscription setup from BoardScene
-  - [ ] Organize subscriptions by component/concern (board, habitats, animals, etc.)
-  - [ ] Implement proper cleanup of subscriptions when scene shuts down
-  - [ ] Add documentation for subscription patterns
+  - [x] Extract all subscription setup from BoardScene
+  - [x] Organize subscriptions by component/concern (board, habitats, animals, etc.)
+  - [x] Implement proper cleanup of subscriptions when scene shuts down
+  - [x] Add documentation for subscription patterns
 - [ ] Connect Components with State
-  - [ ] Create clear data flow between state and renderers
-  - [ ] Design subscription handlers to dispatch only necessary data to components
-  - [ ] Ensure renderers receive focused updates rather than full state
+  - [x] Create clear data flow between state and renderers
+  - [x] Design subscription handlers to dispatch only necessary data to components
+  - [x] Ensure renderers receive focused updates rather than full state
   - [ ] Implement state diffing to improve performance
 - [ ] Phase 6 Validation
-  - [ ] Verify state changes trigger appropriate rendering
+  - [x] Verify state changes trigger appropriate rendering
   - [ ] Test game state transitions (turn changes, etc.)
-  - [ ] Ensure components receive only necessary updates
-  - [ ] Check memory usage and subscription leaks
+  - [x] Ensure components receive only necessary updates
+  - [x] Check memory usage and subscription leaks
   - [ ] Verify all game functionality still works with new state management
 
 ### Phase 7: Refactor BoardScene Core

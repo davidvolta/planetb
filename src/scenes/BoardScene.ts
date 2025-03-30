@@ -33,17 +33,9 @@ export const EVENTS = {
   ASSETS_LOADED: 'assetsLoaded'
 };
 
-// Define subscription keys to ensure consistency - DEPRECATED: Using StateSubscriptionManager instead
-const SUBSCRIPTIONS = {
-  BOARD: 'BoardScene.board',
-  ANIMALS: 'BoardScene.animals',
-  HABITATS: 'BoardScene.habitats',
-  VALID_MOVES: 'BoardScene.validMoves',
-};
-
-// PHASE 4: Selection System Simplification - Final Cleanup
-// This phase centralizes selection indicator logic, removes redundant code, 
-// and ensures consistent state updates across the selection system.
+// PHASE 6: State Management Refinement
+// This phase centralizes state subscriptions through StateSubscriptionManager
+// and ensures proper data flow from the store to components.
 
 export default class BoardScene extends Phaser.Scene {
   // Keep the tiles array for compatibility with existing code
@@ -190,9 +182,12 @@ export default class BoardScene extends Phaser.Scene {
     // Use the StateSubscriptionManager to unsubscribe
     this.subscriptionManager.unsubscribeAll();
     
-    // Also unsubscribe from old-style subscriptions (for backward compatibility)
-    Object.values(SUBSCRIPTIONS).forEach(key => {
-      StateObserver.unsubscribe(key);
+    // Also unsubscribe any lingering direct subscriptions by key prefix
+    const boardScenePrefix = 'BoardScene.';
+    StateObserver.getActiveSubscriptions().forEach(key => {
+      if (key.startsWith(boardScenePrefix)) {
+        StateObserver.unsubscribe(key);
+      }
     });
   }
 
@@ -256,19 +251,8 @@ export default class BoardScene extends Phaser.Scene {
       this.updateBoard();
       
       // Now that the board and layers are set up, set up state subscriptions
+      // StateSubscriptionManager will handle rendering the initial state
       this.setupSubscriptions();
-      
-      // Render initial state of animals and habitats
-      const animals = actions.getAnimals();
-      const habitats = actions.getHabitats();
-      
-      if (animals && this.layerManager.getUnitsLayer()) {
-        this.renderAnimalSprites(animals);
-      }
-      
-      if (habitats && this.layerManager.getStaticObjectsLayer()) {
-        this.renderHabitatGraphics(habitats);
-      }
       
       // Log final layer state after everything is rendered
       console.log("FINAL LAYER STATE AFTER RENDERING ANIMALS AND HABITATS:");

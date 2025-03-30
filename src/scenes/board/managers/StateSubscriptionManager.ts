@@ -2,23 +2,36 @@ import { StateObserver } from '../../../utils/stateObserver';
 import { Animal, GameState, ValidMove, Habitat } from '../../../store/gameStore';
 import * as actions from '../../../store/actions';
 
-// Type for a component that can render animals
+/**
+ * Component interfaces
+ * These define the contracts that components must fulfill to receive state updates
+ */
+
+/**
+ * Interface for a component that can render animals
+ */
 interface AnimalRenderer {
   renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void;
 }
 
-// Type for a component that can render habitats
+/**
+ * Interface for a component that can render habitats
+ */
 interface HabitatRenderer {
   renderHabitats(habitats: Habitat[]): void;
 }
 
-// Type for a component that can render move ranges
+/**
+ * Interface for a component that can render move ranges
+ */
 interface MoveRangeRenderer {
   showMoveRange(validMoves: ValidMove[], moveMode: boolean): void;
   clearMoveHighlights(): void;
 }
 
-// Type for a component that can handle animations
+/**
+ * Interface for a component that can handle animations
+ */
 interface AnimationController {
   moveUnit(
     unitId: string,
@@ -47,7 +60,9 @@ interface AnimationController {
   ): Promise<void>;
 }
 
-// Type for a component that can update the board
+/**
+ * Interface for a component that can update the board
+ */
 interface TileRenderer {
   createBoardTiles(
     board: { width: number, height: number, tiles: any[][] },
@@ -59,9 +74,16 @@ interface TileRenderer {
 /**
  * StateSubscriptionManager
  * 
- * Manages all state subscriptions for the BoardScene and its components.
- * This centralizes the subscription logic and ensures proper data flow from
- * the global state to the appropriate renderers and controllers.
+ * This manager centralizes all state subscriptions for the BoardScene and its components.
+ * It provides the following benefits:
+ * 
+ * 1. Separation of Concerns: Keeps subscription logic separate from rendering logic
+ * 2. Data Flow Management: Ensures consistent flow of data from state to components
+ * 3. Memory Management: Properly tracks and cleans up subscriptions
+ * 4. Organization: Groups subscriptions by functional area (board, entities, interactions)
+ * 
+ * Using this manager reduces code duplication and ensures that components only 
+ * receive the state data they need to function.
  */
 export class StateSubscriptionManager {
   // Scene reference
@@ -79,12 +101,22 @@ export class StateSubscriptionManager {
   
   // Define subscription keys to ensure consistency
   private static readonly SUBSCRIPTIONS = {
+    // Board state subscriptions
     BOARD: 'StateSubscriptionManager.board',
+    
+    // Entity state subscriptions
     ANIMALS: 'StateSubscriptionManager.animals',
     HABITATS: 'StateSubscriptionManager.habitats',
+    
+    // Interaction state subscriptions
     VALID_MOVES: 'StateSubscriptionManager.validMoves',
     DISPLACEMENT: 'StateSubscriptionManager.displacement',
     SPAWN: 'StateSubscriptionManager.spawn',
+    
+    // UI state subscriptions
+    SELECTED_UNIT: 'StateSubscriptionManager.selectedUnit',
+    SELECTED_HABITAT: 'StateSubscriptionManager.selectedHabitat',
+    TURN: 'StateSubscriptionManager.turn',
   };
   
   /**
@@ -114,6 +146,11 @@ export class StateSubscriptionManager {
   /**
    * Set up all state subscriptions
    * 
+   * Subscriptions are grouped by functional area:
+   * - Board: Game board structure and layout
+   * - Entities: Game objects like animals and habitats
+   * - Interactions: User interactions and events
+   * 
    * @param onUnitClicked Callback for when a unit is clicked
    */
   setupSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
@@ -125,6 +162,29 @@ export class StateSubscriptionManager {
     
     console.log("Setting up BoardScene subscriptions via StateSubscriptionManager");
     
+    // ----------------
+    // BOARD SUBSCRIPTIONS
+    // ----------------
+    this.setupBoardSubscriptions();
+    
+    // ----------------
+    // ENTITY SUBSCRIPTIONS
+    // ----------------
+    this.setupEntitySubscriptions(onUnitClicked);
+    
+    // ----------------
+    // INTERACTION SUBSCRIPTIONS
+    // ----------------
+    this.setupInteractionSubscriptions();
+    
+    // Mark subscriptions as set up
+    this.subscriptionsSetup = true;
+  }
+  
+  /**
+   * Set up subscriptions related to the game board
+   */
+  private setupBoardSubscriptions(): void {
     // Subscribe to board changes
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.BOARD,
@@ -136,9 +196,14 @@ export class StateSubscriptionManager {
           this.tileRenderer.createBoardTiles(board);
         }
       },
-      { immediate: false } // Set immediate: false to prevent rendering on subscription
+      { immediate: true, debug: false } // Set immediate: true to render on subscription
     );
-    
+  }
+  
+  /**
+   * Set up subscriptions related to game entities (animals, habitats)
+   */
+  private setupEntitySubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
     // Subscribe to animal changes
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.ANIMALS,
@@ -148,43 +213,8 @@ export class StateSubscriptionManager {
           // Render animals using animal renderer
           this.animalRenderer.renderAnimals(animals, onUnitClicked);
         }
-      }
-    );
-    
-    // Subscribe to displacement events
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.DISPLACEMENT,
-      (state) => state.displacementEvent,
-      (displacementEvent) => {
-        // Only animate if displacement actually occurred
-        if (displacementEvent && displacementEvent.occurred && displacementEvent.unitId) {
-          console.log("Handling displacement event in StateSubscriptionManager");
-          
-          // At this point, the actual displacement event handling should be delegated
-          // to the parent scene which has more context about how to handle it
-          // So we'll keep this simpler until we refactor the BoardScene more thoroughly
-          
-          // Just clear the displacement event
-          actions.clearDisplacementEvent();
-        }
-      }
-    );
-    
-    // Subscribe to spawn events
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.SPAWN,
-      (state) => state.spawnEvent,
-      (spawnEvent) => {
-        // Handle spawn events (mainly to update rendering)
-        if (spawnEvent && spawnEvent.occurred) {
-          // We just need to make sure the animal renderer updates
-          // after a spawn event occurs - this will happen automatically
-          // due to the animals subscription
-          
-          // Clear the spawn event after handling it
-          actions.clearSpawnEvent();
-        }
-      }
+      },
+      { immediate: true, debug: false } // Set immediate: true to render on subscription
     );
     
     // Subscribe to habitat changes
@@ -195,9 +225,15 @@ export class StateSubscriptionManager {
         if (habitats) {
           this.habitatRenderer.renderHabitats(habitats);
         }
-      }
+      },
+      { immediate: true, debug: false } // Set immediate: true to render on subscription
     );
-    
+  }
+  
+  /**
+   * Set up subscriptions related to user interactions and gameplay events
+   */
+  private setupInteractionSubscriptions(): void {
     // Subscribe to valid moves changes
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.VALID_MOVES,
@@ -214,8 +250,36 @@ export class StateSubscriptionManager {
       }
     );
     
-    // Mark subscriptions as set up
-    this.subscriptionsSetup = true;
+    // Subscribe to displacement events
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.DISPLACEMENT,
+      (state) => state.displacementEvent,
+      (displacementEvent) => {
+        // Only animate if displacement actually occurred
+        if (displacementEvent && displacementEvent.occurred && displacementEvent.unitId) {
+          console.log("Displacement event detected in StateSubscriptionManager");
+          
+          // Delegate to parent scene for handling
+          // This requires specialized context that the manager doesn't have
+          actions.clearDisplacementEvent();
+        }
+      }
+    );
+    
+    // Subscribe to spawn events
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.SPAWN,
+      (state) => state.spawnEvent,
+      (spawnEvent) => {
+        // Handle spawn events (mainly to update rendering)
+        if (spawnEvent && spawnEvent.occurred) {
+          console.log("Spawn event detected in StateSubscriptionManager");
+          
+          // Clear the spawn event after handling it
+          actions.clearSpawnEvent();
+        }
+      }
+    );
   }
   
   /**
@@ -230,6 +294,8 @@ export class StateSubscriptionManager {
     
     // Reset subscription setup flag
     this.subscriptionsSetup = false;
+    
+    console.log("All StateSubscriptionManager subscriptions unsubscribed");
   }
   
   /**
