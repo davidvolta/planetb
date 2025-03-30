@@ -14,14 +14,12 @@
 ## Current Focus:
 
 # Upcoming Tasks
+- [ ] Document Fog of War!
+- [ ] Track visibility changes for fog of war state / generally connect it to zustand
+- [ ] Fix egg rendering in fog of war (should I cheat and just a smaller graphic?)
+- [ ] Change unimproved habitats to not produce eggs after initialization (it seems like owned an improved are the same for now - eventually with multiplayer this will be different)
+- [ ] Fix habitat/unit bug
+- [ ] I think I lost my optimizations for fog of war where we hide objects/units/tiles cause i can see eggs peaking out of the edge of the board.
 
-- [x] Add fog of war
-  - [ ] Phase 6: Optimization and Edge Cases
-    - [ ] Handle Unit Overlap/Peaking
-  - [ ] Phase 7: Testing and Integration
-    - [ ] Unit Testing
-    - [ ] Integration Testing
-    - [ ] Final Polish
-    
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
 - [ ] Fix the habitat generation to actually be one zone apart

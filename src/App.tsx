@@ -73,6 +73,7 @@ function App() {
             maxWidth: '300px'
           }}>
             {/* Map size controls */}
+            {/* Commented out map size controls
             <div>
               <div>Width: {mapWidth}</div>
               <input 
@@ -94,6 +95,7 @@ function App() {
                 style={{ width: '100%' }}
               />
             </div>
+            */}
           </div>
         </div>
       } />
