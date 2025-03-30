@@ -218,34 +218,3 @@ export class LayerManager {
       layer.remove(gameObject, destroy);
     }
   }
-  
-  /**
-   * Logs information about all layers for debugging
-   */
-  logLayerInfo(): void {
-    console.log("=== LAYER INFORMATION ===");
-    
-    this.logLayerDetails("Background Layer", this.backgroundLayer);
-    this.logLayerDetails("Terrain Layer", this.terrainLayer);
-    this.logLayerDetails("Selection Layer", this.selectionLayer);
-    this.logLayerDetails("Move Range Layer", this.moveRangeLayer);
-    this.logLayerDetails("Static Objects Layer", this.staticObjectsLayer);
-    this.logLayerDetails("Units Layer", this.unitsLayer);
-    this.logLayerDetails("UI Layer", this.uiLayer);
-    
-    console.log("=========================");
-  }
-  
-  /**
-   * Logs details about a specific layer
-   * @param name Display name of the layer
-   * @param layer The layer to log information about
-   */
-  private logLayerDetails(name: string, layer: Phaser.GameObjects.Layer | null): void {
-    if (layer) {
-      console.log(`${name}: Depth=${layer.depth}, Children=${layer.getChildren().length}`);
-    } else {
-      console.log(`${name}: Not initialized`);
-    }
-  }
-} 

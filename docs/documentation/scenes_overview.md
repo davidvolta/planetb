@@ -1,4 +1,4 @@
-# BoardScene
+# Scenes Overview
 
 The BoardScene uses a component-based architecture:
 
