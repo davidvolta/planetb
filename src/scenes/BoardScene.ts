@@ -959,38 +959,4 @@ export default class BoardScene extends Phaser.Scene {
   public getFogOfWarRenderer(): FogOfWarRenderer {
     return this.fogOfWarRenderer;
   }
-
-  /**
-   * Handle unit movement from one position to another
-   * @param unitId ID of the unit to move
-   * @param fromX Starting X coordinate
-   * @param fromY Starting Y coordinate
-   * @param toX Destination X coordinate
-   * @param toY Destination Y coordinate
-   */
-  private handleUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): void {
-    console.log(`Starting unit movement from (${fromX},${fromY}) to (${toX},${toY})`);
-
-    // Get the unit sprite in the units layer
-    this.startUnitMovement(unitId, fromX, fromY, toX, toY);
-    
-    // If fog of war is enabled, update visibility around the new position
-    if (this.fogOfWarEnabled) {
-      // Get the board to check boundaries
-      const board = actions.getBoard();
-      if (board) {
-        // Get tiles around the new position that need to be revealed
-        const tilesToReveal = this.getAdjacentTiles(toX, toY, board.width, board.height);
-        
-        // Update visibility in game state
-        tilesToReveal.forEach(tile => {
-          this.updateTileVisibility(tile.x, tile.y, true);
-        });
-        
-        // Remove duplicates and reveal visually
-        const uniqueTiles = this.removeDuplicateTiles(tilesToReveal);
-        this.fogOfWarRenderer.revealTiles(uniqueTiles);
-      }
-    }
-  }
 }
