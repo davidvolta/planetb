@@ -1,4 +1,4 @@
-import { TerrainType } from "../../../store/gameStore";
+import { TerrainType } from "../store/gameStore";
 
 /**
  * Interface for terrain generation options

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import * as actions from '../../../store/actions';
+import * as actions from '../store/actions';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 
 /**

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
-import { HabitatState } from '../../../store/gameStore';
+import { HabitatState } from '../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
 
 /**

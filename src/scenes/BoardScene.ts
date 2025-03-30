@@ -4,17 +4,17 @@ import { StateObserver } from "../utils/stateObserver";
 import { AnimalState, Habitat, HabitatState, Animal } from "../store/gameStore";
 import * as actions from "../store/actions";
 import { ValidMove } from "../store/gameStore";
-import * as CoordinateUtils from "./board/utils/CoordinateUtils";
-import { LayerManager } from "./board/managers/LayerManager";
-import { TileRenderer } from "./board/renderers/TileRenderer";
-import { SelectionRenderer } from "./board/renderers/SelectionRenderer";
-import { MoveRangeRenderer } from "./board/renderers/MoveRangeRenderer";
-import { HabitatRenderer } from "./board/renderers/HabitatRenderer";
-import { AnimalRenderer } from "./board/renderers/AnimalRenderer";
-import { InputManager } from "./board/managers/InputManager";
-import { AnimationController } from "./board/controllers/AnimationController";
-import { CameraManager } from "./board/managers/CameraManager";
-import { StateSubscriptionManager } from "./board/managers/StateSubscriptionManager";
+import * as CoordinateUtils from "../utils/CoordinateUtils";
+import { LayerManager } from "../managers/LayerManager";
+import { TileRenderer } from "../renderers/TileRenderer";
+import { SelectionRenderer } from "../renderers/SelectionRenderer";
+import { MoveRangeRenderer } from "../renderers/MoveRangeRenderer";
+import { HabitatRenderer } from "../renderers/HabitatRenderer";
+import { AnimalRenderer } from "../renderers/AnimalRenderer";
+import { InputManager } from "../managers/InputManager";
+import { AnimationController } from "../controllers/AnimationController";
+import { CameraManager } from "../managers/CameraManager";
+import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
 
 // Custom event names
 export const EVENTS = {

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
-import * as actions from '../../../store/actions';
+import * as actions from '../store/actions';
 
 /**
  * Controls and manages all animations in the board scene, including:

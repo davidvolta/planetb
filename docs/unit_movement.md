@@ -1,4 +1,3 @@
-
 ### Best Practices for Unit Movement:
 
 1. **State-First Approach**: 
@@ -14,7 +13,20 @@
    - Phaser handles click/tap events on tiles and units
    - Events trigger action functions that validate and execute moves
 
-### Phaser Features You Can Leverage:
+### Component Architecture:
+
+1. **Specialized Movement Components**:
+   - `AnimationController`: Handles all movement animations and coordinates unit displacement
+   - `MoveRangeRenderer`: Visualizes the valid movement range for a selected unit
+   - `InputManager`: Processes user input from clicking on units and destination tiles
+
+2. **Separation of Concerns**:
+   - State management in `store/actions.ts` and `store/gameStore.ts`
+   - Visualization and animation in renderer classes
+   - User interaction in manager classes
+   - Game logic coordination in controller classes
+
+### Phaser Features Leveraged:
 
 1. **Tweens for Animation**:
    - Phaser.Tweens.TweenManager for smooth unit movement animations
@@ -28,8 +40,9 @@
    - Phaser.GameObjects.Graphics for drawing move range highlights
    - Can use overlay graphics on your tile layer
 
-4. **Tile Layer Management**:
-   - Since you're using tile layers rather than containers, use Phaser's LayerManager to control rendering order
+4. **Layer Management**:
+   - Our custom `LayerManager` class to organize display layers (units, terrain, etc.)
+   - Control rendering order through the depth hierarchy
 
 ### Implementation Approach:
 
@@ -39,11 +52,11 @@
    - Second click: Select destination (if valid)
 
 2. **Movement Visualization**:
-   - Keep physical movement in Phaser (tweens)
+   - Keep physical movement in Phaser (tweens) via `AnimationController`
    - But trigger it based on state changes
 
 3. **Layer Management**:
-   - Since units are on one layer, use z-index or depth properties to control which units appear on top
-   - Consider using Phaser's display list sorting for proper rendering order
+   - Units maintain correct stacking order through dynamic depth calculations
+   - Proper sorting during movement with depth updates in animation callbacks
 
-Remember that with your StateObserver pattern, Phaser should subscribe to movement state changes rather than directly modifying unit positions.
+Remember that our StateObserver pattern ensures Phaser components subscribe to movement state changes rather than directly modifying unit positions.

@@ -1,6 +1,6 @@
-import { StateObserver } from '../../../utils/stateObserver';
-import { Animal, GameState, ValidMove, Habitat } from '../../../store/gameStore';
-import * as actions from '../../../store/actions';
+import { StateObserver } from '../utils/stateObserver';
+import { Animal, GameState, ValidMove, Habitat } from '../store/gameStore';
+import * as actions from '../store/actions';
 
 /**
  * Component interfaces

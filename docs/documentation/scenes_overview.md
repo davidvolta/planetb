@@ -1,10 +1,6 @@
-# BoardScene Refactoring
+# BoardScene
 
-This directory contains the refactored components of the BoardScene, breaking down the original monolithic class into smaller, focused components.
-
-## Architecture Overview
-
-The BoardScene has been refactored using a component-based architecture:
+The BoardScene uses a component-based architecture:
 
 1. **BaseRenderer + Specialized Renderers**: Visual rendering with common functionality shared via inheritance
 2. **Managers**: Control and organization systems
@@ -82,15 +78,6 @@ Located in `/utils` directory:
   - Methods: `generateIslandTerrain()`, `addBeaches()`, `addUnderwaterTiles()`
   - Handles: Procedural terrain generation with various biomes
 
-## Implementation Status
-
-Phase One of the refactoring has been completed, which includes:
-- Creation of the component-based architecture
-- Implementation of manager classes
-- Development of renderer abstractions with BaseRenderer
-- State subscription management and state diffing
-
-Phase Two plans are documented in `docs/Refactor_PhaseTwo.md` and focus on further optimizing the BoardScene.
 
 ## Naming Conventions
 
@@ -110,11 +97,3 @@ Phase Two plans are documented in `docs/Refactor_PhaseTwo.md` and focus on furth
    - Renderer methods should be designed to accept specific data they need
    - Managers should provide clear public APIs for BoardScene to use
    - Components should not directly reference each other; BoardScene orchestrates
-
-## Implementation Pattern
-
-1. Extract functionality from BoardScene one component at a time
-2. Pass required references (scene, layers) to components in constructors
-3. Use composition instead of inheritance
-4. Test functionality after each extraction
-5. Gradually reduce BoardScene's responsibilities as components take over 

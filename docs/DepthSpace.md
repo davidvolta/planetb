@@ -13,11 +13,11 @@
 
 
 ### Unit Rendering
-Units (animals) are rendered in the `renderAnimalSprites()` method with dynamic depth calculation:
+Units (animals) are rendered in the `AnimalRenderer` class with dynamic depth calculation:
 
 1. Units are added to the `unitsLayer` (base depth 5)
 2. Units have a vertical offset of -12 pixels to appear above tiles
-3. **Dynamic depth sorting** within the layer based on the unit's Y-position and state
+3. **Dynamic depth sorting** within the layer based on the unit's position and state
 
 
 ### Depth Formula Breakdown

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { generateIslandTerrain } from "../scenes/board/utils/TerrainGenerator";
+import { generateIslandTerrain } from "../utils/TerrainGenerator";
 
 // Coordinate system for tiles
 export interface Coordinate {

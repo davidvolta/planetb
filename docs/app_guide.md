@@ -11,16 +11,14 @@ The project follows a component-based architecture with clear separation of conc
 ```
 src/
 ├── components/  # React UI components
+├── controllers/ # Game logic controllers
 ├── game/        # Core game initialization
+├── managers/    # System managers
+├── renderers/   # Visual rendering components
 ├── scenes/      # Phaser scenes including the main BoardScene
-│   ├── board/   # Board-related components
-│   │   ├── controllers/  # Game logic controllers
-│   │   ├── managers/     # System managers
-│   │   ├── renderers/    # Visual rendering components
-│   │   └── utils/        # Utility functions
-├── state/       # State management system
+├── store/       # State management system
 ├── ui/          # UI-related components
-└── utils/       # General utility functions
+└── utils/       # Utility functions (coordinates, terrain generation, state observation)
 ```
 
 ### Game Engine Integration
@@ -31,9 +29,9 @@ src/
 
 ## Core Game Systems
 
-### BoardScene Architecture
+### Architecture Components
 
-The BoardScene employs a modular architecture with specialized components:
+The game employs a modular architecture with specialized components organized by function:
 
 #### Renderers
 Renderers are responsible for visualizing game elements:
