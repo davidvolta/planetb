@@ -390,18 +390,18 @@ export default class BoardScene extends Phaser.Scene {
     // Check if the tile contains both active and dormant units
     const hasActiveUnit = contents.activeUnits.length > 0;
     const hasDormantUnit = contents.dormantUnits.length > 0;
+    const hasHabitat = contents.habitats.length > 0;
     
     // Get currently selected unit (if any)
     const selectedUnitId = actions.getSelectedUnitId();
     
     // Check if we're clicking the same tile that has the currently selected unit
     const isClickingSelectedUnit = hasActiveUnit && 
-      selectedUnitId === contents.activeUnits[0].id && 
-      hasDormantUnit;
+      selectedUnitId === contents.activeUnits[0].id;
     
-    // If we're clicking on a tile that has both unit types AND we already have the active unit selected,
+    // If we're clicking on a tile that has both active unit and dormant unit AND we already have the active unit selected,
     // select the dormant unit instead (toggle behavior)
-    if (isClickingSelectedUnit) {
+    if (isClickingSelectedUnit && hasDormantUnit) {
       const dormantUnit = contents.dormantUnits[0];
       
       // Select the dormant unit without showing move range (it can't move)
@@ -414,6 +414,28 @@ export default class BoardScene extends Phaser.Scene {
       this.moveRangeRenderer.clearMoveHighlights();
       
       console.log(`Toggled to dormant unit: ${dormantUnit.id} at ${gridX},${gridY}`);
+      
+      return;
+    }
+    
+    // If we're clicking on a tile that has both active unit and habitat AND we already have the active unit selected,
+    // select the habitat instead (toggle behavior)
+    if (isClickingSelectedUnit && hasHabitat) {
+      const clickedHabitat = contents.habitats[0];
+      
+      // Deselect the unit
+      this.handleUnitSelection(null);
+      
+      // Select habitat in store
+      actions.selectHabitat(clickedHabitat.id);
+      
+      // Show RED selection indicator for habitat
+      this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+      
+      // Clear any existing move highlights
+      this.moveRangeRenderer.clearMoveHighlights();
+      
+      console.log(`Toggled to habitat: ${clickedHabitat.id} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
       
       return;
     }
@@ -453,7 +475,7 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     // Only then check for habitats if no units are present
-    if (contents.habitats.length > 0) {
+    if (hasHabitat) {
       const clickedHabitat = contents.habitats[0]; // Just use the first one for now
       
       // Log the habitat click
