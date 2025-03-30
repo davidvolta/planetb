@@ -369,28 +369,24 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Check if this is a habitat
-    const habitatId = clickedObject.getData('habitatId');
-    if (habitatId) {
-      // Get habitat data from store
-      const habitats = actions.getHabitats();
-      const clickedHabitat = habitats.find(h => h.id === habitatId);
-      
-      if (clickedHabitat) {
-        // Log the habitat click
-        console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
-        
-        // Select habitat in store
-        actions.selectHabitat(habitatId);
-        
-        // Show selection indicator at the habitat location
-        this.selectionRenderer.showSelectionAt(gridX, gridY);
-      }
-      return;
-    }
-    
     // Get contents at this location
     const contents = this.checkTileContents(gridX, gridY);
+    
+    // Check if there are habitats at this location
+    if (contents.habitats.length > 0) {
+      const clickedHabitat = contents.habitats[0]; // Just use the first one for now
+      
+      // Log the habitat click
+      console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
+      
+      // Select habitat in store
+      actions.selectHabitat(clickedHabitat.id);
+      
+      // Show selection indicator at the habitat location
+      this.selectionRenderer.showSelectionAt(gridX, gridY);
+      
+      return;
+    }
     
     // Show selection indicator at the clicked tile using SelectionRenderer
     this.selectionRenderer.showSelectionAt(gridX, gridY);
