@@ -121,25 +121,25 @@
   - [x] Check for any visual regressions across all elements
 
 ### Phase 5: Extract Managers and Controllers
-- [ ] Create InputManager
-  - [ ] Create InputManager class
-  - [ ] Extract click event delegation
-  - [ ] Extract input event handlers
-  - [ ] Extract keyboard controls setup
-  - [ ] Refactor BoardScene to use InputManager
-  - [ ] Test InputManager
+- [x] Create InputManager
+  - [x] Create InputManager class
+  - [x] Extract click event delegation
+  - [x] Extract input event handlers
+  - [x] Extract keyboard controls setup
+  - [x] Refactor BoardScene to use InputManager
+  - [x] Test InputManager
     - [ ] Verify click interactions work for tiles and units
     - [ ] Check keyboard shortcuts function correctly
     - [ ] Ensure event propagation works as expected
 
-- [ ] Create AnimationController
-  - [ ] Create AnimationController class
-  - [ ] Extract animation state management
-  - [ ] Extract unit movement animation
-  - [ ] Extract unit displacement logic
-  - [ ] Extract tweening and animation completion handlers
-  - [ ] Refactor BoardScene to use AnimationController
-  - [ ] Test AnimationController
+- [x] Create AnimationController
+  - [x] Create AnimationController class
+  - [x] Extract animation state management
+  - [x] Extract unit movement animation
+  - [x] Extract unit displacement logic
+  - [x] Extract tweening and animation completion handlers
+  - [x] Refactor BoardScene to use AnimationController
+  - [x] Test AnimationController
     - [ ] Verify unit movement animations play correctly
     - [ ] Check displacement animations display properly
     - [ ] Ensure animation states complete and trigger callbacks
