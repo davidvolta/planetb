@@ -384,13 +384,15 @@ export class AnimationController {
   }
   
   /**
-   * Clean up resources when no longer needed
+   * Clean up resources and cancel any running animations
    */
   destroy(): void {
-    // Stop any active tweens
-    this.scene.tweens.killAll();
-    
-    // Reset animation state
+    // Set animating flag to false
     this.animationInProgress = false;
+    
+    // Cancel any active tweens
+    if (this.scene.tweens) {
+      this.scene.tweens.killAll();
+    }
   }
 } 

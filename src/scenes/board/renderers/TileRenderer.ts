@@ -286,4 +286,15 @@ export class TileRenderer {
       anchorY: this.anchorY
     };
   }
+  
+  /**
+   * Clean up resources used by this renderer
+   */
+  destroy(): void {
+    // Clear all tiles
+    this.clearTiles(true);
+    
+    // Clear references
+    this.tiles = [];
+  }
 } 

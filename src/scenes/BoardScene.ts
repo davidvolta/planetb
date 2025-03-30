@@ -33,9 +33,9 @@ export const EVENTS = {
   ASSETS_LOADED: 'assetsLoaded'
 };
 
-// PHASE 6: State Management Refinement
-// This phase centralizes state subscriptions through StateSubscriptionManager
-// and ensures proper data flow from the store to components.
+// PHASE 7: BoardScene Core Refactoring
+// This phase simplifies the BoardScene by delegating functionality to managers
+// and ensuring proper lifecycle management
 
 export default class BoardScene extends Phaser.Scene {
   // Keep the tiles array for compatibility with existing code
@@ -59,31 +59,14 @@ export default class BoardScene extends Phaser.Scene {
   private habitatRenderer: HabitatRenderer;
   private animalRenderer: AnimalRenderer;
   
+  // Setup tracking
   private controlsSetup = false;
   private subscriptionsSetup = false;
   
-  // Selection indicator for hover/selection - DEPRECATED: using SelectionRenderer instead
-  private selectionIndicator: Phaser.GameObjects.Graphics | null = null;
-  
-  // Properties to track mouse position over the grid - DEPRECATED: using SelectionRenderer instead
-  private hoveredGridPosition: { x: number, y: number } | null = null;
-  
-  // Array to store move range highlight graphics - DEPRECATED: using MoveRangeRenderer instead
-  private moveRangeHighlights: Phaser.GameObjects.Graphics[] = [];
-  
-  // Track animations in progress
-  private animationInProgress: boolean = false;
-
-  // Input management
+  // Managers and controllers
   private inputManager: InputManager;
-  
-  // Animation control
   private animationController: AnimationController;
-  
-  // Camera management
   private cameraManager: CameraManager;
-  
-  // State subscription management
   private subscriptionManager: StateSubscriptionManager;
 
   constructor() {
@@ -92,28 +75,16 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize the layer manager
     this.layerManager = new LayerManager(this);
     
-    // Initialize the tile renderer with the layer manager
+    // Initialize renderers
     this.tileRenderer = new TileRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    
-    // Initialize the selection renderer with the layer manager
     this.selectionRenderer = new SelectionRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    
-    // Initialize the move range renderer with the layer manager
     this.moveRangeRenderer = new MoveRangeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    
-    // Initialize the habitat renderer with the layer manager
     this.habitatRenderer = new HabitatRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    
-    // Initialize the animal renderer with the layer manager
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     
-    // Initialize the input manager
+    // Initialize managers
     this.inputManager = new InputManager(this, this.tileSize, this.tileHeight);
-    
-    // Initialize the animation controller
     this.animationController = new AnimationController(this, this.tileSize, this.tileHeight);
-    
-    // Initialize the camera manager
     this.cameraManager = new CameraManager(this);
     
     // Initialize the state subscription manager
@@ -129,7 +100,9 @@ export default class BoardScene extends Phaser.Scene {
     );
   }
 
-
+  /**
+   * Preload assets needed for the scene
+   */
   preload() {
     // Load all animal sprites
     this.load.image("egg", "assets/egg.png");      // Dormant state for all animals
@@ -147,7 +120,10 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
   
-
+  /**
+   * Initialize the scene
+   * @param data Optional data passed to the scene
+   */
   init(data?: any) {
     console.log("BoardScene init() called", data ? `with data: ${JSON.stringify(data)}` : "without data");
     
@@ -191,11 +167,11 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize managers with anchor coordinates
     this.inputManager.initialize(anchorX, anchorY);
     this.animationController.initialize(anchorX, anchorY);
-    
-    // No need to explicitly initialize camera manager here
-    // It will be set up in setupCamera()
   }
   
+  /**
+   * Create and set up the scene
+   */
   create() {
     console.log("BoardScene create() called", this.scene.key);
     
@@ -249,7 +225,9 @@ export default class BoardScene extends Phaser.Scene {
     this.setupCameraInputHandlers();
   }
   
-  // Set up all state subscriptions in one centralized method
+  /**
+   * Set up all state subscriptions
+   */
   private setupSubscriptions() {
     // Use the StateSubscriptionManager to set up subscriptions
     this.subscriptionManager.setupSubscriptions(
@@ -260,7 +238,9 @@ export default class BoardScene extends Phaser.Scene {
     this.subscriptionsSetup = true;
   }
   
-  // Clean up subscriptions to avoid memory leaks
+  /**
+   * Clean up all subscriptions to prevent memory leaks
+   */
   private unsubscribeAll() {
     // Use the StateSubscriptionManager to unsubscribe
     this.subscriptionManager.unsubscribeAll();
@@ -274,7 +254,9 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  // Method to update the board without restarting the scene
+  /**
+   * Update the board without restarting the scene
+   */
   updateBoard() {
     // Check if we need to setup the layers
     const needsSetup = !this.layerManager.isLayersSetup();
@@ -290,7 +272,9 @@ export default class BoardScene extends Phaser.Scene {
     console.log("Board updated with layer-based structure");
   }
   
-  // Debug method to log information about our layers
+  /**
+   * Debug method to log information about layers
+   */
   private logLayerInfo() {
     this.layerManager.logLayerInfo();
     
@@ -298,7 +282,10 @@ export default class BoardScene extends Phaser.Scene {
     console.log(`Total tiles: ${this.tiles.length}`);
   }
   
-  // Updated method that delegates to AnimalRenderer
+  /**
+   * Render animals using AnimalRenderer
+   * @param animals Animals to render
+   */
   renderAnimalSprites(animals: Animal[]) {
     // Delegate to the AnimalRenderer, providing a callback for handling unit clicks
     this.animalRenderer.renderAnimals(animals, (animalId, gridX, gridY) => {
@@ -336,7 +323,10 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
   
-  // Cleanup function for scene shutdown
+  /**
+   * Scene shutdown handler
+   * Cleans up resources and event listeners
+   */
   shutdown() {
     console.log("BoardScene shutdown() called");
     
@@ -349,22 +339,33 @@ export default class BoardScene extends Phaser.Scene {
     // Clean up input handlers
     this.input.removeAllListeners();
     
+    // Clean up renderers
+    this.tileRenderer.destroy();
+    this.selectionRenderer.destroy();
+    this.moveRangeRenderer.destroy();
+    this.habitatRenderer.destroy();
+    this.animalRenderer.destroy();
+    
+    // Clean up managers
+    this.inputManager.destroy();
+    this.cameraManager.destroy();
+    this.animationController.destroy();
+    this.subscriptionManager.destroy();
+    
     // Reset variables
     this.tiles = [];
     this.controlsSetup = false;
     this.subscriptionsSetup = false;
-    this.selectionIndicator = null;
-    this.hoveredGridPosition = null;
-    this.moveRangeHighlights = [];
-    this.animationInProgress = false;
   }
   
-  // Updated createTiles method that uses TileRenderer
+  /**
+   * Create tiles for the board
+   */
   private createTiles() {
-    // Get board data using actions instead of GameInitializer
+    // Get board data using actions
     const board = actions.getBoard();
     if (!board) {
-      console.warn("No board available, even after fallback");
+      console.warn("No board available");
       // Add a simple message in the center of the screen
       this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 
         "No board data available", 
@@ -375,13 +376,9 @@ export default class BoardScene extends Phaser.Scene {
 
     console.log(`Creating tiles for board: ${board.width}x${board.height}`);
 
-    // Calculate map dimensions for camera bounds
-    const mapWidth = board.width * this.tileSize;
-    const mapHeight = board.height * this.tileHeight;
-    
-    // Fixed anchor coordinates - center of the screen
+    // Calculate anchor coordinates
     const anchorX = this.cameras.main.width / 2;
-    const anchorY = this.cameras.main.height / 2; // Center vertically
+    const anchorY = this.cameras.main.height / 2;
     
     // Store these anchor positions for coordinate conversions
     this.anchorX = anchorX;
@@ -390,79 +387,19 @@ export default class BoardScene extends Phaser.Scene {
     // Use TileRenderer to create all board tiles
     this.tiles = this.tileRenderer.createBoardTiles(board, anchorX, anchorY);
     
-    // Create the selection indicator after all tiles
-    this.createSelectionIndicator();
+    // Initialize renderers after tiles are created
+    this.selectionRenderer.initialize(anchorX, anchorY);
     
     // Set up input handlers if they're not already set up
-    this.setupInputHandlers();
-    
-    // Log layer information for debugging
-    this.logLayerInfo();
-  }
-  
-  // Keep createTerrainTile method for backward compatibility but delegate to TileRenderer
-  private createTerrainTile(terrain: TerrainType, x: number, y: number): Phaser.GameObjects.Graphics {
-    // Delegate to TileRenderer but do not add to layer since original code handles that
-    const tile = this.add.graphics();
-    tile.setPosition(x, y);
-    
-    // Get color based on terrain type
-    let fillColor = 0x2ecc71; // Default grass color
-    let strokeColor = 0x27ae60; // Default grass outline
-    
-    switch (terrain) {
-      case TerrainType.WATER:
-        fillColor = 0x3498db;
-        strokeColor = 0x2980b9;
-        break;
-      case TerrainType.MOUNTAIN:
-        fillColor = 0x7f8c8d;
-        strokeColor = 0x6c7a89;
-        break;
-      default:
-        // Use default grass colors
-        break;
+    if (!this.controlsSetup) {
+      this.setupInputHandlers();
     }
-    
-    // Draw tile
-    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
-    
-    tile.fillStyle(fillColor, 1);
-    tile.lineStyle(1, strokeColor, 1);
-    
-    tile.beginPath();
-    tile.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    
-    for (let i = 1; i < diamondPoints.length; i++) {
-      tile.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    
-    tile.closePath();
-    tile.fillPath();
-    tile.strokePath();
-    
-    return tile;
   }
 
-  // Setup click event delegation to handle clicks at the board level
-  private setupClickEventDelegation() {
-    // Add global click handler for any game object
-    this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
-      // Check if the clicked object is a tile
-      if (gameObject && 'getData' in gameObject && typeof gameObject.getData === 'function') {
-        // If the object has grid coordinates stored, it's a tile or habitat
-        const gridX = gameObject.getData('gridX');
-        const gridY = gameObject.getData('gridY');
-        
-        if (gridX !== undefined && gridY !== undefined) {
-          // Call the handler with the clicked object
-          this.handleTileClick(gameObject);
-        }
-      }
-    });
-  }
-  
-  // Updated to use the SelectionRenderer and MoveRangeRenderer
+  /**
+   * Handle tile clicks
+   * @param clickedObject The clicked game object
+   */
   private handleTileClick(clickedObject: Phaser.GameObjects.GameObject) {
     // Get stored grid coordinates from the object
     const gridX = clickedObject.getData('gridX');
@@ -514,7 +451,6 @@ export default class BoardScene extends Phaser.Scene {
     if (contents.activeUnits.length > 0) {
       const unit = contents.activeUnits[0]; // Just use the first one for now
       
-      // PHASE 4: Use the centralized selection method
       this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
       
       // Show valid moves for the selected unit
@@ -542,101 +478,21 @@ export default class BoardScene extends Phaser.Scene {
     }
     // If we clicked on an empty tile, deselect any selected unit
     else {
-      // PHASE 4: Use the centralized selection method
       this.handleUnitSelection(null);
       
       // Hide valid moves - clear the move highlights
       this.moveRangeRenderer.clearMoveHighlights();
     }
   }
-  
-  // Set up camera controls
-  private setupControls() {
-    // Add panning and zooming for navigation
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.isDown) {
-        this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;
-        this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / this.cameras.main.zoom;
-      }
-    });
-    
-    // Add mouse wheel zoom
-    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number) => {
-      const zoom = this.cameras.main.zoom;
-      const newZoom = Phaser.Math.Clamp(zoom - deltaY * 0.001, 0.5, 2);
-      this.cameras.main.setZoom(newZoom);
-    });
-    
-    this.controlsSetup = true;
-  }
 
-  // Set up keyboard shortcuts for direct action handling
-  private setupKeyboardControls() {
-    // Clear any existing keyboard shortcuts to prevent duplication
-    if (this.input.keyboard) {
-      this.input.keyboard.removeAllKeys(true);
-      
-      // Handle spawn with 'S' key directly in BoardScene
-      this.input.keyboard.on('keydown-S', () => {
-        // Check if there's a selected dormant unit
-        const selectedUnitId = actions.getSelectedUnitId();
-        const selectedUnitIsDormant = actions.isSelectedUnitDormant();
-        
-        // If we have a selected dormant unit, evolve it (spawn)
-        if (selectedUnitId && selectedUnitIsDormant) {
-          actions.evolveAnimal(selectedUnitId);
-          actions.deselectUnit();
-          actions.recordSpawnEvent(selectedUnitId);
-        }
-      });
-      
-      // Handle next turn with 'N' key
-      this.input.keyboard.on('keydown-N', () => {
-        const nextTurn = actions.getNextTurn();
-        nextTurn();
-      });
-      
-      // Handle improve habitat with 'I' key
-      this.input.keyboard.on('keydown-I', () => {
-        // Only handle if a potential habitat is selected
-        const selectedHabitatId = actions.getSelectedHabitatId();
-        const selectedHabitatIsPotential = actions.isSelectedHabitatPotential();
-        
-        if (selectedHabitatId && selectedHabitatIsPotential) {
-          // Call the improve habitat action (this would need to be implemented)
-          // actions.improveHabitat(selectedHabitatId);
-          actions.selectHabitat(null); // Deselect the habitat after improving
-        }
-      });
-    }
-  }
-
-  // Update the existing renderHabitatGraphics method to use the HabitatRenderer
-  renderHabitatGraphics(habitats: any[]) {
-    // Use the HabitatRenderer to render the habitats
-    this.habitatRenderer.renderHabitats(habitats);
-  }
-
-  // Set up all layers with appropriate depths
-  private setupLayers() {
-    // Skip if layers are already set up
-    if (this.layerManager.isLayersSetup()) {
-      console.log("Layers already initialized, skipping setupLayers()");
-      return;
-    }
-    
-    console.log("BoardScene setupLayers() called");
-    
-    // Initialize each layer with its appropriate depth
-    this.layerManager.setupLayers();
-    
-    console.log("Layers initialized with proper depth order");
-  }
-
-  // Updated to use MoveRangeRenderer
+  /**
+   * Render move range
+   * @param validMoves Valid move positions
+   * @param moveMode Whether we're in move mode
+   */
   renderMoveRange(validMoves: ValidMove[], moveMode: boolean) {
-    // If an animation is in progress, don't update the move range
-    if (this.animationInProgress) {
+    // If the animation controller is animating, don't update
+    if (this.animationController.isAnimating()) {
       return;
     }
     
@@ -644,20 +500,19 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.showMoveRange(validMoves, moveMode);
   }
   
-  // Updated to use MoveRangeRenderer
+  /**
+   * Clear all move highlights
+   */
   clearMoveHighlights() {
     // Delegate to the move range renderer
     this.moveRangeRenderer.clearMoveHighlights();
   }
 
   /**
-   * Animate a unit moving from one tile to another
+   * Start movement animation of a unit
    */
-  private animateUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
-    // Set animation flag to prevent other movements during this one
-    this.animationInProgress = true;
-    
-    // Find the unit sprite
+  private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
+    // Find the unit sprite in the units layer
     let unitSprite: Phaser.GameObjects.Sprite | null = null;
     if (this.layerManager.getUnitsLayer()) {
       this.layerManager.getUnitsLayer()!.getAll().forEach(child => {
@@ -667,137 +522,69 @@ export default class BoardScene extends Phaser.Scene {
       });
     }
     
+    // If sprite not found, log error and return
     if (!unitSprite) {
-      console.warn(`Unit sprite not found for ID: ${unitId}`);
-      this.animationInProgress = false; // Reset animation flag
+      console.error(`Could not find sprite for unit ${unitId}`);
       return;
     }
     
-    // Calculate start and end positions
-    const startPos = this.gridToScreen(fromX, fromY);
-    const endPos = this.gridToScreen(toX, toY);
+    // Don't allow movement while animation is in progress
+    if (this.animationController.isAnimating()) {
+      return;
+    }
     
-    // Calculate duration based on distance (longer for diagonal moves)
-    const distance = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
-    const duration = distance * 250; // 250ms for each tile of distance
+    // Hide selection indicator and clear move highlights before movement
+    this.moveRangeRenderer.clearMoveHighlights();
+    this.selectionRenderer.hideSelection();
     
-    // Create the tween
-    this.tweens.add({
-      targets: unitSprite,
-      x: endPos.x,
-      y: endPos.y,
-      duration: duration,
-      ease: 'Power2',
-      onComplete: () => {
-        // Reset animation flag when complete
-        this.animationInProgress = false;
-        
-        // Get the current animal data from the state
-        const animals = actions.getAnimals();
-        const unit = animals.find(animal => animal.id === unitId);
-        
-        if (unit) {
-          // For now, we'll just log that the unit has arrived
-          console.log(`Unit ${unitId} has arrived at (${toX},${toY})`);
-          
-          // If this is an AI unit, we could trigger their next action here
-          // if (unit.isAI) { ... }
-        }
+    // Use the animation controller to move the unit
+    this.animationController.moveUnit(unitId, unitSprite, fromX, fromY, toX, toY, {
+      onBeforeMove: () => {
+        // Any actions needed before movement, like clearing selection
+      },
+      onAfterMove: () => {
+        // Any actions needed after movement, like updating UI
       }
     });
   }
 
   /**
-   * Handles animation of a unit that was displaced by spawning
-   * @param displacementInfo Information about the displacement
+   * Handle unit spawned events
    */
-  private handleUnitDisplacement(displacementInfo: {
-    occurred: boolean;
-    unitId: string | null;
-    fromX: number | null;
-    fromY: number | null;
-    toX: number | null;
-    toY: number | null;
-    timestamp: number | null;
-  }) {
-    console.log("Handling unit displacement event in BoardScene");
-    // Forward to AnimationController for processing
-    actions.clearDisplacementEvent();
-    // To be implemented based on the AnimationController's signature
-  }
-
-  // Handle unit spawned events
   private handleUnitSpawned() {
     console.log('Unit spawned, updating UI');
     
     // Hide the selection indicator and clear any move highlights
     this.selectionRenderer.hideSelection();
     this.moveRangeRenderer.clearMoveHighlights();
+    
     // Clear the event
     actions.clearSpawnEvent();
   }
 
-  // PHASE 4: Create a centralized method for selection indicator management
-  private updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number) {
-    // Delegate to the selection renderer
-    if (shouldShow && x !== undefined && y !== undefined) {
-      this.selectionRenderer.showSelectionAt(x, y);
-    } else {
-      this.selectionRenderer.hideSelection();
-    }
-  }
-
-  // Helper method to hide the selection indicator
-  private hideSelectionIndicator() {
-    this.selectionRenderer.hideSelection();
-  }
-
-  // Helper method to show the selection indicator at a specific grid position
-  private showSelectionIndicatorAt(x: number, y: number) {
-    this.selectionRenderer.showSelectionAt(x, y);
-  }
-
   /**
-   * Calculate the depth value for a unit sprite based on its grid position and state
-   * This ensures proper isometric perspective (units at higher X+Y appear behind)
-   * while making active units always appear above eggs on the same tile
-   * 
-   * @param gridX - X coordinate in the grid
-   * @param gridY - Y coordinate in the grid
-   * @param isActive - Whether the unit is active (true) or dormant/egg (false)
-   * @returns depth value for the sprite
+   * Handle unit selection
+   * @param unitId Unit ID to select, or null to deselect
+   * @param position Optional grid position for selection indicator
    */
-  private calculateUnitDepth(gridX: number, gridY: number, isActive: boolean): number {
-    // Base depth of the units layer
-    const baseDepth = 5;
-    
-    // Combined X+Y coordinates for isometric perspective (higher X+Y = further back = higher depth)
-    // This allows proper sorting where northwest objects appear in front, southeast objects behind
-    const positionOffset = (gridX + gridY) / 1000;
-    
-    // Small offset to ensure active units appear above eggs at the same position
-    // Using a very small value (0.0005) to minimize impact on overall perspective
-    const stateOffset = isActive ? 0.0005 : 0;
-    
-    // Calculate final depth value
-    return baseDepth + positionOffset + stateOffset;
-  }
-
-  // PHASE 4: Add a dedicated method to handle unit selection for consistent behavior
   private handleUnitSelection(unitId: string | null, showSelectionAt?: { x: number, y: number }) {
     // Select or deselect the unit in store
     actions.selectUnit(unitId);
     
     // If we're selecting a unit and have coordinates, show selection indicator
     if (unitId && showSelectionAt) {
-      this.showSelectionIndicatorAt(showSelectionAt.x, showSelectionAt.y);
+      this.selectionRenderer.showSelectionAt(showSelectionAt.x, showSelectionAt.y);
     } else {
       // Otherwise hide it (when deselecting or selecting an active unit)
-      this.hideSelectionIndicator();
+      this.selectionRenderer.hideSelection();
     }
   }
 
-  // Check what entities exist at specific coordinates
+  /**
+   * Check what entities exist at specific coordinates
+   * @param x Grid X coordinate
+   * @param y Grid Y coordinate
+   */
   private checkTileContents(x: number, y: number) {
     // Get all animals and habitats
     const animals = actions.getAnimals();
@@ -830,35 +617,9 @@ export default class BoardScene extends Phaser.Scene {
     };
   }
 
-  // Updated to initialize all renderers with the current anchor values
-  private createSelectionIndicator() {
-    // Initialize the renderers with the current anchor values
-    this.selectionRenderer.initialize(this.anchorX, this.anchorY);
-    this.moveRangeRenderer.initialize(this.anchorX, this.anchorY);
-    this.habitatRenderer.initialize(this.anchorX, this.anchorY);
-    this.animalRenderer.initialize(this.anchorX, this.anchorY);
-    this.inputManager.initialize(this.anchorX, this.anchorY);
-    this.animationController.initialize(this.anchorX, this.anchorY);
-    
-    // Return null to satisfy the method signature (this can be removed in a future cleanup)
-    return null;
-  }
-
-  // Method to get the currently hovered grid position
-  getHoveredGridPosition(): { x: number, y: number } | null {
-    // Use the selection renderer's hover tracking
-    return this.selectionRenderer.getHoveredPosition();
-  }
-  
-  // Method to get the terrain type at a grid position
-  getTerrainAtPosition(x: number, y: number): TerrainType | null {
-    const board = actions.getBoard();
-    if (!board || !board.tiles[y] || !board.tiles[y][x]) return null;
-    
-    return board.tiles[y][x].terrain;
-  }
-  
-  // Update method to track the mouse position
+  /**
+   * Update method called each frame
+   */
   update() {
     // Let the selection renderer handle hover updates
     const pointer = this.input.activePointer;
@@ -874,14 +635,17 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Method to convert screen coordinates to grid coordinates
+  /**
+   * Convert screen coordinates to grid coordinates
+   */
   getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
     return this.inputManager.getGridPositionAt(screenX, screenY);
   }
   
-  // Method to convert grid coordinates to screen coordinates
+  /**
+   * Convert grid coordinates to screen coordinates
+   */
   gridToScreen(gridX: number, gridY: number): { x: number, y: number } {
-    // Use the utility method for conversion
     return CoordinateUtils.gridToWorld(
       gridX,
       gridY,
@@ -892,55 +656,9 @@ export default class BoardScene extends Phaser.Scene {
     );
   }
 
-  // Add getter for tile renderer
-  public getTileRenderer(): TileRenderer {
-    return this.tileRenderer;
-  }
-
-  // Updated to use the AnimationController
-  private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
-    // Find the unit sprite in the units layer
-    let unitSprite: Phaser.GameObjects.Sprite | null = null;
-    if (this.layerManager.getUnitsLayer()) {
-      this.layerManager.getUnitsLayer()!.getAll().forEach(child => {
-        if (child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === unitId) {
-          unitSprite = child;
-        }
-      });
-    }
-    
-    // If sprite not found, log error and return
-    if (!unitSprite) {
-      console.error(`Could not find sprite for unit ${unitId}`);
-      return;
-    }
-    
-    // Don't allow movement while animation is in progress
-    if (this.animationController.isAnimating()) {
-      return;
-    }
-    
-    // Hide selection indicator and clear move highlights before movement
-    this.moveRangeRenderer.clearMoveHighlights();
-    this.hideSelectionIndicator();
-    
-    // Use the animation controller to move the unit
-    this.animationController.moveUnit(unitId, unitSprite, fromX, fromY, toX, toY, {
-      onBeforeMove: () => {
-        // Any actions needed before movement, like clearing selection
-      },
-      onAfterMove: () => {
-        // Any actions needed after movement, like updating UI
-      }
-    });
-  }
-
-  // Add getter for selection renderer
-  public getSelectionRenderer(): SelectionRenderer {
-    return this.selectionRenderer;
-  }
-
-  // Handle clicks on habitats
+  /**
+   * Handle clicks on habitats
+   */
   private handleHabitatClick(habitatObject: Phaser.GameObjects.GameObject) {
     const habitatId = habitatObject.getData('habitatId');
     if (!habitatId) return;
@@ -954,61 +672,25 @@ export default class BoardScene extends Phaser.Scene {
     const clickedHabitat = habitats.find(h => h.id === habitatId);
     
     if (clickedHabitat) {
+      // Get the habitat state for UI decisions
+      console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
+      
       // Select habitat in store
       actions.selectHabitat(habitatId);
       
       // Show selection indicator at the habitat location
       this.selectionRenderer.showSelectionAt(gridX, gridY);
-      
-      console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}`);
     }
   }
   
-  // Check if a tile is a valid move target for the selected unit
-  private isValidMoveTarget(gridX: number, gridY: number): { valid: boolean, reason?: string } {
-    // First check if there's a selected unit and we're in move mode
-    const selectedUnitId = actions.getSelectedUnitId();
-    if (!selectedUnitId) {
-      return { valid: false, reason: "No unit selected" };
-    }
-    
-    // Check if this is a valid move destination
-    const validMoves = actions.getValidMoves();
-    const isValidMove = validMoves.some(move => move.x === gridX && move.y === gridY);
-    
-    if (!isValidMove) {
-      return { valid: false, reason: "Not a valid move destination" };
-    }
-    
-    return { valid: true };
-  }
-
-  // Add getter for move range renderer
-  public getMoveRangeRenderer(): MoveRangeRenderer {
-    return this.moveRangeRenderer;
-  }
-
-  // Add getter for habitat renderer
-  public getHabitatRenderer(): HabitatRenderer {
-    return this.habitatRenderer;
-  }
-
-  // Add getter for animal renderer
-  public getAnimalRenderer(): AnimalRenderer {
-    return this.animalRenderer;
-  }
-
-  // Add getter for input manager
-  public getInputManager(): InputManager {
-    return this.inputManager;
-  }
-
-  // Replace the old setupControls and setupKeyboardControls with a unified setupInputHandlers
+  /**
+   * Set up input handlers for clicks and keyboard
+   */
   private setupInputHandlers(): void {
     // Initialize input manager with current anchor values
     this.inputManager.initialize(this.anchorX, this.anchorY);
     
-    // Set up camera panning and zooming - now delegated to custom handlers using CameraManager
+    // Set up camera panning and zooming
     this.setupCameraInputHandlers();
     
     // Set up keyboard shortcuts
@@ -1034,9 +716,14 @@ export default class BoardScene extends Phaser.Scene {
         this.selectionRenderer.updateFromPointer(pointer, board.width, board.height);
       }
     });
+    
+    // Mark controls as set up
+    this.controlsSetup = true;
   }
   
-  // Add a new method to handle camera-specific input
+  /**
+   * Set up camera input handlers
+   */
   private setupCameraInputHandlers(): void {
     // Add panning and zooming for navigation
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -1057,12 +744,44 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  // Add getter for camera manager
+  /**
+   * Render habitat graphics
+   */
+  renderHabitatGraphics(habitats: any[]) {
+    // Use the HabitatRenderer to render the habitats
+    this.habitatRenderer.renderHabitats(habitats);
+  }
+
+  // Getters for managers and renderers
+  
+  public getTileRenderer(): TileRenderer {
+    return this.tileRenderer;
+  }
+  
+  public getSelectionRenderer(): SelectionRenderer {
+    return this.selectionRenderer;
+  }
+  
+  public getMoveRangeRenderer(): MoveRangeRenderer {
+    return this.moveRangeRenderer;
+  }
+  
+  public getHabitatRenderer(): HabitatRenderer {
+    return this.habitatRenderer;
+  }
+  
+  public getAnimalRenderer(): AnimalRenderer {
+    return this.animalRenderer;
+  }
+  
+  public getInputManager(): InputManager {
+    return this.inputManager;
+  }
+  
   public getCameraManager(): CameraManager {
     return this.cameraManager;
   }
-
-  // Add getter for animation controller
+  
   public getAnimationController(): AnimationController {
     return this.animationController;
   }

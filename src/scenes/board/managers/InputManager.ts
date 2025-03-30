@@ -240,26 +240,18 @@ export class InputManager {
   }
   
   /**
-   * Clean up resources when no longer needed
+   * Clean up all resources and event listeners
    */
   destroy(): void {
-    // Clean up keyboard listeners
-    if (this.scene.input && this.scene.input.keyboard) {
-      this.scene.input.keyboard.off('keydown-S');
-      this.scene.input.keyboard.off('keydown-N');
-      this.scene.input.keyboard.off('keydown-I');
+    // Remove all keyboard shortcuts
+    if (this.scene.input.keyboard) {
+      this.scene.input.keyboard.removeAllKeys(true);
     }
     
-    // Clean up pointer listeners
-    this.scene.input.off('gameobjectdown');
-    this.scene.input.off('pointermove');
-    this.scene.input.off('wheel');
+    // We don't need to manually remove input event listeners
+    // as they are automatically cleaned up when the scene is destroyed
     
-    // Reset flags
-    this.controlsSetup = false;
-    this.clickDelegationSetup = false;
-    
-    // Clear callbacks
+    // Clear all callback references
     this.callbacks = {};
   }
 } 

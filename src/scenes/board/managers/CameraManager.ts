@@ -225,20 +225,10 @@ export class CameraManager {
   }
   
   /**
-   * Clean up resources when no longer needed
+   * Clean up any resources used by the camera manager
    */
   destroy(): void {
-    const camera = this.getCamera();
-    // Stop following any targets
-    camera.stopFollow();
-    
-    // Reset any camera effects
-    camera.resetFX();
-    
-    // Reset camera to default state
-    this.reset();
-    
-    // Reset setup flag
-    this.cameraSetup = false;
+    // No resources to clean up - the camera is owned by the scene
+    // and will be destroyed when the scene is destroyed
   }
 } 

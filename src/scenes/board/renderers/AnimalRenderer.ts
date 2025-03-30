@@ -384,9 +384,10 @@ export class AnimalRenderer {
   }
   
   /**
-   * Clean up resources when no longer needed
+   * Clean up resources used by this renderer
    */
   destroy(): void {
+    // Clear all animal sprites
     this.clearAnimals();
   }
 } 

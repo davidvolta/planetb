@@ -311,4 +311,11 @@ export class StateSubscriptionManager {
   getActiveSubscriptions(): string[] {
     return StateObserver.getActiveSubscriptions();
   }
+  
+  /**
+   * Clean up resources and unsubscribe from all state subscriptions
+   */
+  destroy(): void {
+    this.unsubscribeAll();
+  }
 } 

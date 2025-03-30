@@ -196,9 +196,10 @@ export class HabitatRenderer {
   }
   
   /**
-   * Clean up resources when no longer needed
+   * Clean up resources used by this renderer
    */
   destroy(): void {
+    // Clear all habitat graphics
     this.clearHabitats();
   }
 } 
