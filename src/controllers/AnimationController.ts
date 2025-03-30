@@ -174,7 +174,7 @@ export class AnimationController {
           
           // Apply light gray tint to indicate the unit has moved
           if (applyTint) {
-            sprite.setTint(0xCCCCCC);
+            sprite.setTint(0xAAAAAA);
           }
           
           // Disable interactivity

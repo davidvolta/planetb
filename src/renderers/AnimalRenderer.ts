@@ -166,7 +166,7 @@ export class AnimalRenderer extends BaseRenderer {
         sprite.disableInteractive();
         
         // Make sure the tint is applied
-        sprite.setTint(0xCCCCCC);
+        sprite.setTint(0xAAAAAA);
       } else {
         // Re-enable interactivity for units that can move
         sprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
@@ -311,7 +311,7 @@ export class AnimalRenderer extends BaseRenderer {
           
           // Apply light gray tint to indicate the unit has moved
           if (applyTint) {
-            unitSprite!.setTint(0xCCCCCC);
+            unitSprite!.setTint(0xAAAAAA);
           }
           
           // Disable interactivity
