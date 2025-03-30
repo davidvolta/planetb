@@ -258,12 +258,35 @@ export class StateSubscriptionManager {
       StateSubscriptionManager.SUBSCRIPTIONS.DISPLACEMENT,
       (state) => state.displacementEvent,
       (displacementEvent) => {
-        // Only animate if displacement actually occurred
-        if (displacementEvent && displacementEvent.occurred && displacementEvent.unitId) {
+        // Only animate if displacement actually occurred and all required values are present
+        if (
+          displacementEvent && 
+          displacementEvent.occurred && 
+          displacementEvent.unitId &&
+          typeof displacementEvent.fromX === 'number' &&
+          typeof displacementEvent.fromY === 'number' &&
+          typeof displacementEvent.toX === 'number' &&
+          typeof displacementEvent.toY === 'number'
+        ) {
           console.log("Displacement event detected in StateSubscriptionManager");
           
-          // Delegate to parent scene for handling
-          // This requires specialized context that the manager doesn't have
+          // Call the BoardScene's handleDisplacementEvent method
+          if (this.scene instanceof BoardScene) {
+            // Use the displacement event data to animate the displacement
+            this.scene.handleDisplacementEvent(
+              displacementEvent.unitId,
+              displacementEvent.fromX,
+              displacementEvent.fromY,
+              displacementEvent.toX,
+              displacementEvent.toY
+            );
+          } else {
+            // If the scene isn't a BoardScene, just clear the event
+            actions.clearDisplacementEvent();
+          }
+        } else if (displacementEvent && displacementEvent.occurred) {
+          // If we have an incomplete displacement event, log an error and clear it
+          console.error("Incomplete displacement event detected", displacementEvent);
           actions.clearDisplacementEvent();
         }
       }

@@ -407,6 +407,9 @@ export default class BoardScene extends Phaser.Scene {
       // Select the dormant unit without showing move range (it can't move)
       this.handleUnitSelection(dormantUnit.id, { x: gridX, y: gridY });
       
+      // Show RED selection indicator for dormant unit
+      this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+      
       // Clear any existing move highlights
       this.moveRangeRenderer.clearMoveHighlights();
       
@@ -695,5 +698,47 @@ export default class BoardScene extends Phaser.Scene {
    */
   isGameInitialized(): boolean {
     return actions.isInitialized();
+  }
+
+  /**
+   * Handle displacement events for animals
+   * This is called by the StateSubscriptionManager when a displacement event occurs
+   * @param unitId ID of the unit to displace
+   * @param fromX Starting X position
+   * @param fromY Starting Y position
+   * @param toX Destination X position
+   * @param toY Destination Y position
+   */
+  handleDisplacementEvent(unitId: string, fromX: number, fromY: number, toX: number, toY: number): void {
+    console.log(`Handling displacement for unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
+    
+    // Find the unit sprite in the units layer
+    let unitSprite: Phaser.GameObjects.Sprite | null = null;
+    if (this.layerManager.getUnitsLayer()) {
+      this.layerManager.getUnitsLayer()!.getAll().forEach(child => {
+        if (child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === unitId) {
+          unitSprite = child;
+        }
+      });
+    }
+    
+    // If sprite not found, log error and clear the event
+    if (!unitSprite) {
+      console.error(`Could not find sprite for unit ${unitId} to displace`);
+      actions.clearDisplacementEvent();
+      return;
+    }
+    
+    // Use the animation controller to displace the unit
+    this.animationController.displaceUnit(unitId, unitSprite, fromX, fromY, toX, toY, {
+      onBeforeDisplace: () => {
+        console.log(`Beginning displacement animation for unit ${unitId}`);
+      },
+      onAfterDisplace: () => {
+        console.log(`Completed displacement animation for unit ${unitId}`);
+        // Clear the displacement event after animation is complete
+        actions.clearDisplacementEvent();
+      }
+    });
   }
 }

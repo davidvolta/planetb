@@ -136,8 +136,9 @@ export class SelectionRenderer extends BaseRenderer {
    * @param shouldShow Whether to show the indicator
    * @param x Grid X position (if showing)
    * @param y Grid Y position (if showing)
+   * @param color Color for the selection indicator (default: 0xFFFFFF)
    */
-  updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number): void {
+  updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number, color: number = 0xFFFFFF): void {
     if (!this.selectionIndicator) {
       // Create the indicator if it doesn't exist
       this.createSelectionIndicator();
@@ -157,6 +158,20 @@ export class SelectionRenderer extends BaseRenderer {
       
       // Position the indicator
       this.selectionIndicator.setPosition(worldPosition.x, worldPosition.y);
+      
+      // Clear previous graphics
+      this.selectionIndicator.clear();
+      
+      // Redraw with the specified color
+      const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
+      this.selectionIndicator.lineStyle(3, color, 0.8); // 3px line with 80% opacity
+      this.selectionIndicator.beginPath();
+      this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
+      for (let i = 1; i < diamondPoints.length; i++) {
+        this.selectionIndicator.lineTo(diamondPoints[i].x, diamondPoints[i].y);
+      }
+      this.selectionIndicator.closePath();
+      this.selectionIndicator.strokePath();
       
       // Make the indicator visible
       this.selectionIndicator.setVisible(true);
@@ -266,9 +281,20 @@ export class SelectionRenderer extends BaseRenderer {
    * Show the selection indicator at a specific grid position
    * @param x Grid X position
    * @param y Grid Y position
+   * @param color Optional color for the selection indicator (default: white)
    */
-  showSelectionAt(x: number, y: number): void {
-    this.updateSelectionIndicator(true, x, y);
+  showSelectionAt(x: number, y: number, color?: number): void {
+    this.updateSelectionIndicator(true, x, y, color);
+  }
+  
+  /**
+   * Show a red selection indicator at a specific grid position
+   * @param x Grid X position
+   * @param y Grid Y position
+   */
+  showRedSelectionAt(x: number, y: number): void {
+    // Use a red color (0xFF0000)
+    this.showSelectionAt(x, y, 0xFF0000);
   }
   
   /**
