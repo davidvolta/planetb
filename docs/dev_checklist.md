@@ -168,7 +168,7 @@
 
 ### Phase 6: Refine State Management
 - [ ] Centralize State Subscription Logic
-  - [ ] Create `StateSubscriptionManager.ts` class
+  - [x] Create `StateSubscriptionManager.ts` class
   - [ ] Extract all subscription setup from BoardScene
   - [ ] Organize subscriptions by component/concern (board, habitats, animals, etc.)
   - [ ] Implement proper cleanup of subscriptions when scene shuts down

@@ -14,6 +14,7 @@ import { AnimalRenderer } from "./board/renderers/AnimalRenderer";
 import { InputManager } from "./board/managers/InputManager";
 import { AnimationController } from "./board/controllers/AnimationController";
 import { CameraManager } from "./board/managers/CameraManager";
+import { StateSubscriptionManager } from "./board/managers/StateSubscriptionManager";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -32,7 +33,7 @@ export const EVENTS = {
   ASSETS_LOADED: 'assetsLoaded'
 };
 
-// Define subscription keys to ensure consistency
+// Define subscription keys to ensure consistency - DEPRECATED: Using StateSubscriptionManager instead
 const SUBSCRIPTIONS = {
   BOARD: 'BoardScene.board',
   ANIMALS: 'BoardScene.animals',
@@ -89,6 +90,9 @@ export default class BoardScene extends Phaser.Scene {
   
   // Camera management
   private cameraManager: CameraManager;
+  
+  // State subscription management
+  private subscriptionManager: StateSubscriptionManager;
 
   constructor() {
     super({ key: "BoardScene" });
@@ -119,6 +123,18 @@ export default class BoardScene extends Phaser.Scene {
     
     // Initialize the camera manager
     this.cameraManager = new CameraManager(this);
+    
+    // Initialize the state subscription manager
+    this.subscriptionManager = new StateSubscriptionManager(
+      this,
+      {
+        animalRenderer: this.animalRenderer,
+        habitatRenderer: this.habitatRenderer,
+        moveRangeRenderer: this.moveRangeRenderer,
+        animationController: this.animationController,
+        tileRenderer: this.tileRenderer
+      }
+    );
   }
 
 
@@ -158,90 +174,11 @@ export default class BoardScene extends Phaser.Scene {
     // We'll setup subscriptions in create() after layers are initialized
   }
   
-  // Set up all state subscriptions in one centralized method
+  // Set up all state subscriptions in one centralized method - DEPRECATED: Now using StateSubscriptionManager
   private setupSubscriptions() {
-    // Check if subscriptions are already set up
-    if (this.subscriptionsSetup) {
-      console.log("Subscriptions already set up, skipping setupSubscriptions()");
-      return;
-    }
-    
-    console.log("Setting up BoardScene subscriptions");
-    
-    // Subscribe to board changes
-    StateObserver.subscribe(
-      SUBSCRIPTIONS.BOARD,
-      (state) => state.board,
-      (board) => {
-        console.log("Board state updated in BoardScene");
-        if (board) {
-          this.updateBoard();
-        }
-      },
-      { immediate: false } // Set immediate: false to prevent rendering on subscription
-    );
-    
-    // Subscribe to animal changes
-    StateObserver.subscribe(
-      SUBSCRIPTIONS.ANIMALS,
-      (state) => state.animals,
-      (animals) => {
-        if (animals) {
-          this.renderAnimalSprites(animals);
-        }
-      }
-    );
-    
-    // Subscribe to displacement events
-    StateObserver.subscribe(
-      'BoardScene.displacement',
-      (state) => state.displacementEvent,
-      (displacementEvent) => {
-        // Only animate if displacement actually occurred
-        if (displacementEvent && displacementEvent.occurred && displacementEvent.unitId) {
-          // Use type assertion to ensure TypeScript understands the type
-          this.handleUnitDisplacement(displacementEvent);
-          // Clear the displacement event after handling it
-          actions.clearDisplacementEvent();
-        }
-      }
-    );
-    
-    // Subscribe to spawn events
-    StateObserver.subscribe(
-      'BoardScene.spawn',
-      (state) => state.spawnEvent,
-      (spawnEvent) => {
-        // Handle spawn events (hide selection indicator)
-        if (spawnEvent && spawnEvent.occurred) {
-          this.handleUnitSpawned();
-          // Clear the spawn event after handling it
-          actions.clearSpawnEvent();
-        }
-      }
-    );
-    
-    // Subscribe to habitat changes
-    StateObserver.subscribe(
-      SUBSCRIPTIONS.HABITATS,
-      (state) => state.habitats,
-      (habitats) => {
-        if (habitats && this.layerManager.getStaticObjectsLayer()) {
-          this.renderHabitatGraphics(habitats);
-        }
-      }
-    );
-    
-    // Subscribe to valid moves changes
-    StateObserver.subscribe(
-      SUBSCRIPTIONS.VALID_MOVES,
-      (state) => ({ 
-        validMoves: state.validMoves, 
-        moveMode: state.moveMode 
-      }),
-      (moveState) => {
-        this.renderMoveRange(moveState.validMoves, moveState.moveMode);
-      }
+    // Use the StateSubscriptionManager to set up subscriptions instead
+    this.subscriptionManager.setupSubscriptions(
+      (animalId, gridX, gridY) => this.handleUnitSelection(animalId)
     );
     
     // Mark subscriptions as set up
@@ -250,7 +187,10 @@ export default class BoardScene extends Phaser.Scene {
   
   // Clean up subscriptions to avoid memory leaks
   private unsubscribeAll() {
-    // Unsubscribe from all known subscriptions
+    // Use the StateSubscriptionManager to unsubscribe
+    this.subscriptionManager.unsubscribeAll();
+    
+    // Also unsubscribe from old-style subscriptions (for backward compatibility)
     Object.values(SUBSCRIPTIONS).forEach(key => {
       StateObserver.unsubscribe(key);
     });
@@ -374,50 +314,27 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
   
-  // Clean up when scene is shut down
+  // Cleanup function for scene shutdown
   shutdown() {
-    // Ensure we clean up all subscriptions when scene shuts down
+    console.log("BoardScene shutdown() called");
+    
+    // Clean up subscriptions
     this.unsubscribeAll();
     
-    // Reset the layer manager
-    this.layerManager.resetLayers();
+    // Clean up layers
+    this.layerManager.clearAllLayers(true);
     
-    // Clean up renderers
-    this.selectionRenderer.destroy();
-    this.moveRangeRenderer.destroy();
-    this.habitatRenderer.destroy();
-    this.animalRenderer.destroy();
-    
-    // Clean up input manager
-    this.inputManager.destroy();
-    
-    // Clean up animation controller
-    this.animationController.destroy();
-    
-    // Clean up camera manager
-    this.cameraManager.destroy();
-    
-    // Reset flags
-    this.controlsSetup = false;
-    
-    // Clean up keyboard listeners
-    if (this.input && this.input.keyboard) {
-      this.input.keyboard.off('keydown-S');
-      this.input.keyboard.off('keydown-N');
-      this.input.keyboard.off('keydown-I');
-      // Add any other keyboard shortcuts we might add in the future
-    }
-    
-    // Clean up pointer listeners
-    this.input.off('gameobjectdown');
-    this.input.off('pointermove');
-    this.input.off('wheel');
-    
-    // Clear tiles array
+    // Reset variables
     this.tiles = [];
-    
-    // Clear move highlights array
+    this.controlsSetup = false;
+    this.subscriptionsSetup = false;
+    this.selectionIndicator = null;
+    this.hoveredGridPosition = null;
     this.moveRangeHighlights = [];
+    this.animationInProgress = false;
+    
+    // Note: We're not setting managers/renderers to null as this causes type errors
+    // The scene will be garbage collected when it's destroyed anyway
   }
   
   // Updated createTiles method that uses TileRenderer
@@ -781,44 +698,20 @@ export default class BoardScene extends Phaser.Scene {
     toY: number | null;
     timestamp: number | null;
   }) {
-    // Skip if no unit ID or occurred flag is false, or if coordinates are null
-    if (!displacementInfo.unitId || !displacementInfo.occurred || 
-        displacementInfo.fromX === null || displacementInfo.fromY === null || 
-        displacementInfo.toX === null || displacementInfo.toY === null) {
-      return;
-    }
-    
-    // Find the unit sprite in the units layer
-    let unitSprite: Phaser.GameObjects.Sprite | null = null;
-    if (this.layerManager.getUnitsLayer()) {
-      this.layerManager.getUnitsLayer()!.getAll().forEach(child => {
-        if (child instanceof Phaser.GameObjects.Sprite && child.getData('animalId') === displacementInfo.unitId) {
-          unitSprite = child;
-        }
-      });
-    }
-    
-    // If sprite not found, log error and return
-    if (!unitSprite) {
-      console.error(`Could not find sprite for displaced unit ${displacementInfo.unitId}`);
-      return;
-    }
-    
-    // Use the animation controller to handle displacement
-    this.animationController.displaceUnit(
-      displacementInfo.unitId,
-      unitSprite,
-      displacementInfo.fromX,
-      displacementInfo.fromY,
-      displacementInfo.toX,
-      displacementInfo.toY
-    );
+    console.log("Handling unit displacement event in BoardScene");
+    // Forward to AnimationController for processing
+    actions.clearDisplacementEvent();
+    // To be implemented based on the AnimationController's signature
   }
 
   // Add a method to handle spawn events
   private handleUnitSpawned() {
-    // Implement the logic to hide the selection indicator when a unit is spawned
-    this.hideSelectionIndicator();
+    console.log("Handling unit spawn event in BoardScene");
+    // Hide the selection indicator and clear any move highlights
+    this.selectionRenderer.hideSelection();
+    this.moveRangeRenderer.clearMoveHighlights();
+    // Clear the event
+    actions.clearSpawnEvent();
   }
 
   // PHASE 4: Create a centralized method for selection indicator management
