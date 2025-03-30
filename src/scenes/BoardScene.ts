@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { TerrainType } from "../store/gameStore";
 import { StateObserver } from "../utils/stateObserver";
-import { AnimalState, Habitat, HabitatState } from "../store/gameStore";
+import { AnimalState, Habitat, HabitatState, Animal } from "../store/gameStore";
 import * as actions from "../store/actions";
 import { ValidMove } from "../store/gameStore";
 import * as CoordinateUtils from "./board/utils/CoordinateUtils";
@@ -15,18 +15,6 @@ import { InputManager } from "./board/managers/InputManager";
 import { AnimationController } from "./board/controllers/AnimationController";
 import { CameraManager } from "./board/managers/CameraManager";
 import { StateSubscriptionManager } from "./board/managers/StateSubscriptionManager";
-
-// Define the Animal interface to avoid 'any' type
-interface Animal {
-  id: string;
-  type: string;
-  state: AnimalState;
-  position: {
-    x: number;
-    y: number;
-  };
-  hasMoved: boolean;
-}
 
 // Custom event names
 export const EVENTS = {
@@ -634,54 +622,6 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   /**
-   * Convert screen coordinates to grid coordinates
-   */
-  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
-    return this.inputManager.getGridPositionAt(screenX, screenY);
-  }
-  
-  /**
-   * Convert grid coordinates to screen coordinates
-   */
-  gridToScreen(gridX: number, gridY: number): { x: number, y: number } {
-    return CoordinateUtils.gridToWorld(
-      gridX,
-      gridY,
-      this.tileSize,
-      this.tileHeight,
-      this.anchorX,
-      this.anchorY
-    );
-  }
-
-  /**
-   * Handle clicks on habitats
-   */
-  private handleHabitatClick(habitatObject: Phaser.GameObjects.GameObject) {
-    const habitatId = habitatObject.getData('habitatId');
-    if (!habitatId) return;
-    
-    // Get grid coordinates
-    const gridX = habitatObject.getData('gridX');
-    const gridY = habitatObject.getData('gridY');
-    
-    // Get habitat data from store
-    const habitats = actions.getHabitats();
-    const clickedHabitat = habitats.find(h => h.id === habitatId);
-    
-    if (clickedHabitat) {
-      // Get the habitat state for UI decisions
-      console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
-      
-      // Select habitat in store
-      actions.selectHabitat(habitatId);
-      
-      // Show selection indicator at the habitat location
-      this.selectionRenderer.showSelectionAt(gridX, gridY);
-    }
-  }
-  
-  /**
    * Set up input handlers for clicks and keyboard
    */
   private setupInputHandlers(): void {
@@ -782,5 +722,46 @@ export default class BoardScene extends Phaser.Scene {
   
   public getAnimationController(): AnimationController {
     return this.animationController;
+  }
+
+  /**
+   * Handle clicks on habitats
+   */
+  private handleHabitatClick(habitatObject: Phaser.GameObjects.GameObject) {
+    const habitatId = habitatObject.getData('habitatId');
+    if (!habitatId) return;
+    
+    // Get grid coordinates
+    const gridX = habitatObject.getData('gridX');
+    const gridY = habitatObject.getData('gridY');
+    
+    // Get habitat data from store
+    const habitats = actions.getHabitats();
+    const clickedHabitat = habitats.find(h => h.id === habitatId);
+    
+    if (clickedHabitat) {
+      // Get the habitat state for UI decisions
+      console.log(`Habitat clicked: ${habitatId} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
+      
+      // Select habitat in store
+      actions.selectHabitat(habitatId);
+      
+      // Show selection indicator at the habitat location
+      this.selectionRenderer.showSelectionAt(gridX, gridY);
+    }
+  }
+
+  /**
+   * Get the current input mode
+   */
+  isInMoveMode(): boolean {
+    return actions.isMoveMode();
+  }
+  
+  /**
+   * Check if the game is initialized
+   */
+  isGameInitialized(): boolean {
+    return actions.isInitialized();
   }
 }

@@ -1,22 +1,8 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
-import { AnimalState } from '../../../store/gameStore';
+import { Animal, AnimalState } from '../../../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
-
-/**
- * Interface representing an animal entity for rendering
- */
-interface Animal {
-  id: string;
-  type: string;
-  state: AnimalState;
-  position: {
-    x: number;
-    y: number;
-  };
-  hasMoved: boolean;
-}
 
 /**
  * Responsible for rendering and managing animal sprites
