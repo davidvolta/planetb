@@ -8,6 +8,8 @@ import * as CoordinateUtils from "./board/utils/CoordinateUtils";
 import { LayerManager } from "./board/managers/LayerManager";
 import { TileRenderer } from "./board/renderers/TileRenderer";
 import { SelectionRenderer } from "./board/renderers/SelectionRenderer";
+import { MoveRangeRenderer } from "./board/renderers/MoveRangeRenderer";
+import { HabitatRenderer } from "./board/renderers/HabitatRenderer";
 
 // Define the Animal interface to avoid 'any' type
 interface Animal {
@@ -56,6 +58,8 @@ export default class BoardScene extends Phaser.Scene {
   // Renderers
   private tileRenderer: TileRenderer;
   private selectionRenderer: SelectionRenderer;
+  private moveRangeRenderer: MoveRangeRenderer;
+  private habitatRenderer: HabitatRenderer;
   
   private controlsSetup = false;
   private subscriptionsSetup = false;
@@ -66,7 +70,7 @@ export default class BoardScene extends Phaser.Scene {
   // Properties to track mouse position over the grid - DEPRECATED: using SelectionRenderer instead
   private hoveredGridPosition: { x: number, y: number } | null = null;
   
-  // Array to store move range highlight graphics
+  // Array to store move range highlight graphics - DEPRECATED: using MoveRangeRenderer instead
   private moveRangeHighlights: Phaser.GameObjects.Graphics[] = [];
   
   // Track animations in progress
@@ -83,6 +87,12 @@ export default class BoardScene extends Phaser.Scene {
     
     // Initialize the selection renderer with the layer manager
     this.selectionRenderer = new SelectionRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    
+    // Initialize the move range renderer with the layer manager
+    this.moveRangeRenderer = new MoveRangeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    
+    // Initialize the habitat renderer with the layer manager
+    this.habitatRenderer = new HabitatRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
   }
 
 
@@ -474,6 +484,8 @@ export default class BoardScene extends Phaser.Scene {
     
     // Clean up renderers
     this.selectionRenderer.destroy();
+    this.moveRangeRenderer.destroy();
+    this.habitatRenderer.destroy();
     
     // Reset flags
     this.controlsSetup = false;
@@ -606,7 +618,7 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
   
-  // Handle clicks on tiles and their contents
+  // Updated to use the SelectionRenderer and MoveRangeRenderer
   private handleTileClick(clickedObject: Phaser.GameObjects.GameObject) {
     // Get stored grid coordinates from the object
     const gridX = clickedObject.getData('gridX');
@@ -630,10 +642,10 @@ export default class BoardScene extends Phaser.Scene {
     // Show selection indicator at the clicked tile using SelectionRenderer
     this.selectionRenderer.showSelectionAt(gridX, gridY);
     
-    // Check if this tile is a valid move target for the currently selected unit
-    const isValidMoveTarget = this.isValidMoveTarget(gridX, gridY);
+    // Check if this tile is a valid move target
+    const isValidMoveTarget = this.moveRangeRenderer.isValidMoveTarget(gridX, gridY);
     
-    if (isValidMoveTarget.valid) {
+    if (isValidMoveTarget) {
       // This is a valid move target - handle unit movement
       console.log(`Moving unit to (${gridX}, ${gridY})`);
       
@@ -667,8 +679,8 @@ export default class BoardScene extends Phaser.Scene {
         if (typeof actions.getValidMoves === 'function') {
           // Get valid moves for the unit
           const validMoves = actions.getValidMoves();
-          // Render the moves (BoardScene already has this method)
-          this.renderMoveRange(validMoves, true);
+          // Render the moves using MoveRangeRenderer
+          this.moveRangeRenderer.showMoveRange(validMoves, true);
         }
       }
     } 
@@ -678,7 +690,7 @@ export default class BoardScene extends Phaser.Scene {
       this.handleUnitSelection(null);
       
       // Hide valid moves - clear the move highlights
-      this.clearMoveHighlights();
+      this.moveRangeRenderer.clearMoveHighlights();
     }
   }
   
@@ -743,133 +755,10 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Create a habitat graphic based on its state (potential or shelter)
-  private createHabitatGraphic(x: number, y: number, state: HabitatState): Phaser.GameObjects.Container {
-    // Create a container for the habitat
-    const container = this.add.container(x, y);
-    const graphics = this.add.graphics();
-    
-    // Calculate scale factor (approximately 5px smaller on each side)
-    const scaleFactor = 0.85; // This will make the diamond about 5px smaller on a 64px tile
-    
-    // Create scaled diamond points using utility
-    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
-      this.tileSize,
-      this.tileHeight,
-      scaleFactor
-    );
-    
-    // Choose color based on state
-    if (state === HabitatState.IMPROVED) {
-      // Blue for improved habitats
-      graphics.fillStyle(0x0066ff, 0.7);
-    } else {
-      // Black for potential and shelter habitats
-      graphics.fillStyle(0x000000, 0.5);
-    }
-    
-    // Draw the filled shape
-    graphics.beginPath();
-    graphics.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      graphics.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    graphics.closePath();
-    graphics.fillPath();
-    
-    // Add the graphics to the container
-    container.add(graphics);
-    
-    // Remove interactivity from habitats - selection should only happen through tiles
-    // No longer making the container interactive
-    
-    return container;
-  }
-
-  // Update habitats based on the state
+  // Update the existing renderHabitatGraphics method to use the HabitatRenderer
   renderHabitatGraphics(habitats: any[]) {
-    // Check if staticObjectsLayer exists before proceeding
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (!staticObjectsLayer) {
-      console.warn("Cannot render habitat graphics - staticObjectsLayer not available");
-      return;
-    }
-    
-    // Get a map of current habitat graphics by ID
-    const existingHabitats = new Map();
-    staticObjectsLayer.getAll().forEach(child => {
-      if (child && 'getData' in child && typeof child.getData === 'function') {
-        const habitatId = child.getData('habitatId');
-        if (habitatId) {
-          existingHabitats.set(habitatId, {
-            graphic: child,
-            used: false
-          });
-        }
-      }
-    });
-    
-    // Process each habitat - create new or update existing
-    habitats.forEach(habitat => {
-      // Calculate position using coordinate utility
-      const gridX = habitat.position.x;
-      const gridY = habitat.position.y;
-      const worldPosition = CoordinateUtils.gridToWorld(
-        gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
-      
-      // Check if we have an existing graphic
-      const existing = existingHabitats.get(habitat.id);
-      
-      if (existing) {
-        // Mark as used so we don't delete it later
-        existing.used = true;
-        
-        // Update position
-        existing.graphic.setPosition(worldPosition.x, worldPosition.y);
-        
-        // Update state if needed
-        if (existing.graphic.getData('habitatState') !== habitat.state) {
-          existing.graphic.setData('habitatState', habitat.state);
-          
-          // Destroy and recreate the graphic to reflect the new state
-          existing.graphic.destroy();
-          const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, habitat.state);
-          habitatGraphic.setData('habitatId', habitat.id);
-          habitatGraphic.setData('gridX', gridX);
-          habitatGraphic.setData('gridY', gridY);
-          this.layerManager.addToLayer('staticObjects', habitatGraphic);
-          
-          // Update the reference in the map
-          existingHabitats.set(habitat.id, {
-            graphic: habitatGraphic,
-            used: true
-          });
-        }
-      } else {
-        // Create a new habitat graphic
-        const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, habitat.state);
-        
-        // Store the habitat ID for reference
-        habitatGraphic.setData('habitatId', habitat.id);
-        
-        // Store grid coordinates for reference in click handling
-        habitatGraphic.setData('gridX', gridX);
-        habitatGraphic.setData('gridY', gridY);
-        
-        // Remove direct click handler - now handled by global click delegation
-        
-        // Add the new graphic to the layer using layer manager
-        this.layerManager.addToLayer('staticObjects', habitatGraphic);
-      }
-    });
-    
-    // Remove any habitats that no longer exist
-    existingHabitats.forEach((data, id) => {
-      if (!data.used) {
-        data.graphic.destroy();
-      }
-    });
+    // Use the HabitatRenderer to render the habitats
+    this.habitatRenderer.renderHabitats(habitats);
   }
 
   // Set up all layers with appropriate depths
@@ -888,94 +777,21 @@ export default class BoardScene extends Phaser.Scene {
     console.log("Layers initialized with proper depth order");
   }
 
-  // Create circular highlight for a move tile
-  private createMoveHighlight(x: number, y: number): Phaser.GameObjects.Graphics {
-    // Use coordinate utility to get world position
-    const worldPosition = CoordinateUtils.gridToWorld(
-      x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-    );
-    
-    // Create a graphics object for the move highlight
-    const highlight = this.add.graphics();
-    
-    // Set the position
-    highlight.setPosition(worldPosition.x, worldPosition.y);
-    
-    // Apply scaling factor
-    const scaleFactor = 0.85;
-    
-    // Create scaled diamond points using utility
-    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
-      this.tileSize,
-      this.tileHeight,
-      scaleFactor
-    );
-    
-    // Draw outer glow (slightly larger, more transparent)
-    highlight.lineStyle(5, 0xFFFF00, 0.3); // Yellow with 30% opacity, thicker line for glow effect
-    highlight.beginPath();
-    highlight.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      highlight.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    highlight.closePath();
-    highlight.strokePath();
-    
-    // Draw the main diamond shape
-    highlight.lineStyle(3, 0xFFFF00, 0.7); // Yellow with 70% opacity, standard line width
-    highlight.beginPath();
-    highlight.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      highlight.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    highlight.closePath();
-    highlight.strokePath();
-    
-    return highlight;
-  }
-  
-  // Render move range highlights
+  // Updated to use MoveRangeRenderer
   renderMoveRange(validMoves: ValidMove[], moveMode: boolean) {
     // If an animation is in progress, don't update the move range
     if (this.animationInProgress) {
       return;
     }
     
-    // Clear existing highlights
-    this.clearMoveHighlights();
-    
-    // Get the move range layer using the layer manager
-    const moveRangeLayer = this.layerManager.getMoveRangeLayer();
-    
-    // If not in move mode or no valid moves, we're done
-    if (!moveMode || !validMoves.length || !moveRangeLayer) {
-      return;
-    }
-    
-    console.log(`Rendering ${validMoves.length} valid move highlights`);
-    
-    // Create highlight for each valid move
-    validMoves.forEach(move => {
-      const highlight = this.createMoveHighlight(move.x, move.y);
-      this.moveRangeHighlights.push(highlight);
-      
-      // Add the highlight to the move range layer using layer manager
-      this.layerManager.addToLayer('moveRange', highlight);
-    });
+    // Use the move range renderer to show the range
+    this.moveRangeRenderer.showMoveRange(validMoves, moveMode);
   }
   
-  // Clear move highlights
+  // Updated to use MoveRangeRenderer
   clearMoveHighlights() {
-    // Destroy all existing highlights
-    this.moveRangeHighlights.forEach(highlight => {
-      highlight.destroy();
-    });
-    
-    // Reset the array
-    this.moveRangeHighlights = [];
-    
-    // Also clear the layer using layer manager
-    this.layerManager.clearLayer('moveRange', true);
+    // Delegate to the move range renderer
+    this.moveRangeRenderer.clearMoveHighlights();
   }
 
   /**
@@ -1172,11 +988,12 @@ export default class BoardScene extends Phaser.Scene {
     };
   }
 
-  // Create a selection indicator to show the currently selected tile
+  // Updated to initialize all renderers with the current anchor values
   private createSelectionIndicator() {
-    // We now delegate this to the SelectionRenderer
-    // Initialize the selection renderer with the current anchor values
+    // Initialize the renderers with the current anchor values
     this.selectionRenderer.initialize(this.anchorX, this.anchorY);
+    this.moveRangeRenderer.initialize(this.anchorX, this.anchorY);
+    this.habitatRenderer.initialize(this.anchorX, this.anchorY);
     
     // Return null to satisfy the method signature (this can be removed in a future cleanup)
     return null;
@@ -1328,9 +1145,9 @@ export default class BoardScene extends Phaser.Scene {
     // Mark animation as in progress
     this.animationInProgress = true;
     
-    // Clear move highlights if requested
+    // Clear move highlights if requested using MoveRangeRenderer
     if (clearMoveHighlights) {
-      this.clearMoveHighlights();
+      this.moveRangeRenderer.clearMoveHighlights();
     }
     
     // Hide selection indicator during animation
@@ -1458,5 +1275,15 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     return { valid: true };
+  }
+
+  // Add getter for move range renderer
+  public getMoveRangeRenderer(): MoveRangeRenderer {
+    return this.moveRangeRenderer;
+  }
+
+  // Add getter for habitat renderer
+  public getHabitatRenderer(): HabitatRenderer {
+    return this.habitatRenderer;
   }
 }

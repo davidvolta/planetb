@@ -84,25 +84,25 @@
     - [x] Check selection indicator appears on correct tiles
     - [x] Ensure selection state changes update visuals properly
 
-- [ ] Create MoveRangeRenderer
-  - [ ] Create MoveRangeRenderer class
-  - [ ] Extract move range highlight methods
-  - [ ] Extract methods for creating and clearing highlights
-  - [ ] Refactor BoardScene to use MoveRangeRenderer
-  - [ ] Test MoveRangeRenderer
-    - [ ] Verify move range highlights appear correctly
-    - [ ] Check that highlights clear when selection changes
-    - [ ] Ensure range is calculated and displayed accurately
+- [x] Create MoveRangeRenderer
+  - [x] Create MoveRangeRenderer class
+  - [x] Extract move range highlight methods
+  - [x] Extract methods for creating and clearing highlights
+  - [x] Refactor BoardScene to use MoveRangeRenderer
+  - [x] Test MoveRangeRenderer
+    - [x] Verify move range highlights appear correctly
+    - [x] Check that highlights clear when selection changes
+    - [x] Ensure range is calculated and displayed accurately
 
-- [ ] Create HabitatRenderer
-  - [ ] Create HabitatRenderer class
-  - [ ] Extract habitat graphics creation
-  - [ ] Extract habitat rendering and update methods
-  - [ ] Refactor BoardScene to use HabitatRenderer
-  - [ ] Test HabitatRenderer
-    - [ ] Verify all habitat states render correctly 
-    - [ ] Check that habitat state changes update visuals
-    - [ ] Ensure habitat click interactions work properly
+- [x] Create HabitatRenderer
+  - [x] Create HabitatRenderer class
+  - [x] Extract habitat graphics creation
+  - [x] Extract habitat rendering and update methods
+  - [x] Refactor BoardScene to use HabitatRenderer
+  - [x] Test HabitatRenderer
+    - [x] Verify all habitat states render correctly 
+    - [x] Check that habitat state changes update visuals
+    - [x] Ensure habitat click interactions work properly
 
 - [ ] Create AnimalRenderer
   - [ ] Create AnimalRenderer class
