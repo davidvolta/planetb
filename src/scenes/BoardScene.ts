@@ -228,16 +228,7 @@ export default class BoardScene extends Phaser.Scene {
     console.log("Board updated with layer-based structure");
   }
   
-  /**
-   * Debug method to log information about layers
-   */
-  private logLayerInfo() {
-    this.layerManager.logLayerInfo();
-    
-    // Log tile count
-    console.log(`Total tiles: ${this.tiles.length}`);
-  }
-  
+
   /**
    * Render animals using AnimalRenderer
    * @param animals Animals to render
@@ -369,26 +360,10 @@ export default class BoardScene extends Phaser.Scene {
     // Get contents at this location
     const contents = this.checkTileContents(gridX, gridY);
     
-    // Check if there are habitats at this location
-    if (contents.habitats.length > 0) {
-      const clickedHabitat = contents.habitats[0]; // Just use the first one for now
-      
-      // Log the habitat click
-      console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
-      
-      // Select habitat in store
-      actions.selectHabitat(clickedHabitat.id);
-      
-      // Show selection indicator at the habitat location
-      this.selectionRenderer.showSelectionAt(gridX, gridY);
-      
-      return;
-    }
-    
     // Show selection indicator at the clicked tile using SelectionRenderer
     this.selectionRenderer.showSelectionAt(gridX, gridY);
     
-    // Check if this tile is a valid move target
+    // First, check if this tile is a valid move target - this gets priority over other interactions
     const isValidMoveTarget = this.moveRangeRenderer.isValidMoveTarget(gridX, gridY);
     
     if (isValidMoveTarget) {
@@ -412,8 +387,36 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // If we have an active unit at this tile, select it
-    if (contents.activeUnits.length > 0) {
+    // Check if the tile contains both active and dormant units
+    const hasActiveUnit = contents.activeUnits.length > 0;
+    const hasDormantUnit = contents.dormantUnits.length > 0;
+    
+    // Get currently selected unit (if any)
+    const selectedUnitId = actions.getSelectedUnitId();
+    
+    // Check if we're clicking the same tile that has the currently selected unit
+    const isClickingSelectedUnit = hasActiveUnit && 
+      selectedUnitId === contents.activeUnits[0].id && 
+      hasDormantUnit;
+    
+    // If we're clicking on a tile that has both unit types AND we already have the active unit selected,
+    // select the dormant unit instead (toggle behavior)
+    if (isClickingSelectedUnit) {
+      const dormantUnit = contents.dormantUnits[0];
+      
+      // Select the dormant unit without showing move range (it can't move)
+      this.handleUnitSelection(dormantUnit.id, { x: gridX, y: gridY });
+      
+      // Clear any existing move highlights
+      this.moveRangeRenderer.clearMoveHighlights();
+      
+      console.log(`Toggled to dormant unit: ${dormantUnit.id} at ${gridX},${gridY}`);
+      
+      return;
+    }
+    
+    // Normal priority - active units first, then dormant
+    if (hasActiveUnit) {
       const unit = contents.activeUnits[0]; // Just use the first one for now
       
       this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
@@ -428,9 +431,11 @@ export default class BoardScene extends Phaser.Scene {
           this.moveRangeRenderer.showMoveRange(validMoves, true);
         }
       }
-    } 
+      
+      return;
+    }
     // If we have a dormant unit at this tile, select it (for spawning)
-    else if (contents.dormantUnits.length > 0) {
+    else if (hasDormantUnit) {
       const dormantUnit = contents.dormantUnits[0]; // Just use the first one for now
       
       // Select the dormant unit without showing move range (it can't move)
@@ -440,14 +445,28 @@ export default class BoardScene extends Phaser.Scene {
       this.moveRangeRenderer.clearMoveHighlights();
       
       console.log(`Selected dormant unit: ${dormantUnit.id} at ${gridX},${gridY}`);
-    }
-    // If we clicked on an empty tile, deselect any selected unit
-    else {
-      this.handleUnitSelection(null);
       
-      // Hide valid moves - clear the move highlights
-      this.moveRangeRenderer.clearMoveHighlights();
+      return;
     }
+    
+    // Only then check for habitats if no units are present
+    if (contents.habitats.length > 0) {
+      const clickedHabitat = contents.habitats[0]; // Just use the first one for now
+      
+      // Log the habitat click
+      console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
+      
+      // Select habitat in store
+      actions.selectHabitat(clickedHabitat.id);
+      
+      return;
+    }
+    
+    // If we clicked on an empty tile, deselect any selected unit
+    this.handleUnitSelection(null);
+    
+    // Hide valid moves - clear the move highlights
+    this.moveRangeRenderer.clearMoveHighlights();
   }
 
   /**
@@ -540,7 +559,7 @@ export default class BoardScene extends Phaser.Scene {
     if (unitId && showSelectionAt) {
       this.selectionRenderer.showSelectionAt(showSelectionAt.x, showSelectionAt.y);
     } else {
-      // Otherwise hide it (when deselecting or selecting an active unit)
+      // Otherwise hide it (when deselecting)
       this.selectionRenderer.hideSelection();
     }
   }

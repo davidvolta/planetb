@@ -1,6 +1,8 @@
 import { StateObserver } from '../utils/stateObserver';
 import { Animal, GameState, ValidMove, Habitat } from '../store/gameStore';
 import * as actions from '../store/actions';
+import { SelectionRenderer } from '../renderers/SelectionRenderer';
+import BoardScene from '../scenes/BoardScene';
 
 /**
  * Component interfaces
@@ -112,6 +114,7 @@ export class StateSubscriptionManager {
     VALID_MOVES: 'StateSubscriptionManager.validMoves',
     DISPLACEMENT: 'StateSubscriptionManager.displacement',
     SPAWN: 'StateSubscriptionManager.spawn',
+    HABITAT_IMPROVE: 'StateSubscriptionManager.habitatImprove',
     
     // UI state subscriptions
     SELECTED_UNIT: 'StateSubscriptionManager.selectedUnit',
@@ -196,7 +199,7 @@ export class StateSubscriptionManager {
           this.tileRenderer.createBoardTiles(board);
         }
       },
-      { immediate: true, debug: false } // Set immediate: true to render on subscription
+      { immediate: false, debug: false } // Changed from true to false to prevent duplicate creation
     );
   }
   
@@ -275,8 +278,33 @@ export class StateSubscriptionManager {
         if (spawnEvent && spawnEvent.occurred) {
           console.log("Spawn event detected in StateSubscriptionManager");
           
+          // Clear the selection indicator - cast scene to BoardScene to access the method
+          if (this.scene instanceof BoardScene) {
+            this.scene.getSelectionRenderer().hideSelection();
+          }
+          
           // Clear the spawn event after handling it
           actions.clearSpawnEvent();
+        }
+      }
+    );
+    
+    // Subscribe to habitat improvement events
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.HABITAT_IMPROVE,
+      (state) => state.habitatImproveEvent,
+      (habitatImproveEvent) => {
+        // Handle habitat improvement events
+        if (habitatImproveEvent && habitatImproveEvent.occurred) {
+          console.log("Habitat improvement event detected in StateSubscriptionManager");
+          
+          // Clear the selection indicator - cast scene to BoardScene to access the method
+          if (this.scene instanceof BoardScene) {
+            this.scene.getSelectionRenderer().hideSelection();
+          }
+          
+          // Clear the habitat improvement event after handling it
+          actions.clearHabitatImproveEvent();
         }
       }
     );

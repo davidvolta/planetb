@@ -168,8 +168,8 @@ export class InputManager {
         const selectedHabitatIsPotential = actions.isSelectedHabitatPotential();
         
         if (selectedHabitatId && selectedHabitatIsPotential) {
-          // Call the improve habitat action (this would need to be implemented)
-          // actions.improveHabitat(selectedHabitatId);
+          // Call the improve habitat action
+          actions.improveHabitat(selectedHabitatId);
           actions.selectHabitat(null); // Deselect the habitat after improving
         }
       });

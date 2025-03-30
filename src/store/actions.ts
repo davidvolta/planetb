@@ -133,6 +133,33 @@ export function clearSpawnEvent(): void {
   });
 }
 
+/**
+ * Record a habitat improvement event in the state
+ * @param habitatId ID of the habitat that was improved
+ */
+export function recordHabitatImproveEvent(habitatId: string): void {
+  useGameStore.setState({
+    habitatImproveEvent: {
+      occurred: true,
+      habitatId: habitatId,
+      timestamp: Date.now()
+    }
+  });
+}
+
+/**
+ * Clear the current habitat improvement event
+ */
+export function clearHabitatImproveEvent(): void {
+  useGameStore.setState({
+    habitatImproveEvent: {
+      occurred: false,
+      habitatId: null,
+      timestamp: null
+    }
+  });
+}
+
 //
 // Habitat Actions
 //
@@ -288,5 +315,8 @@ export function improveHabitat(habitatId: string): void {
     
     // Update the state
     useGameStore.setState({ habitats: updatedHabitats });
+    
+    // Record the habitat improvement event
+    recordHabitatImproveEvent(habitatId);
   }
 } 

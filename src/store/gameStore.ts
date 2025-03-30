@@ -159,6 +159,13 @@ export interface GameState {
     timestamp: number | null; // When the spawn occurred
   };
   
+  // Habitat improvement event tracking
+  habitatImproveEvent: {
+    occurred: boolean;        // Whether a habitat was just improved
+    habitatId: string | null; // ID of the habitat that was improved
+    timestamp: number | null; // When the improvement occurred
+  };
+  
   nextTurn: () => void;
   resetMovementFlags: () => void; // Reset hasMoved flags for all animals
   addPlayer: (name: string, color: string) => void;
@@ -215,6 +222,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     unitId: null,
     timestamp: null
   } as GameState['spawnEvent'], // Force type alignment
+  
+  // Initialize habitat improvement event with default values
+  habitatImproveEvent: {
+    occurred: false,
+    habitatId: null,
+    timestamp: null
+  } as GameState['habitatImproveEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
     // Process habitat production
@@ -249,12 +263,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       timestamp: null
     } as GameState['spawnEvent']; // Force type alignment
     
+    // Reset habitat improvement event
+    const resetHabitatImproveEvent = {
+      occurred: false,
+      habitatId: null,
+      timestamp: null
+    } as GameState['habitatImproveEvent']; // Force type alignment
+    
     return { 
       ...updatedState,
       animals: resetAnimals,
       turn: state.turn + 1,
       displacementEvent: resetDisplacementEvent,
-      spawnEvent: resetSpawnEvent
+      spawnEvent: resetSpawnEvent,
+      habitatImproveEvent: resetHabitatImproveEvent
     };
   }),
 
