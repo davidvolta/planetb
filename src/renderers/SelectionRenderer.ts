@@ -66,8 +66,15 @@ export class SelectionRenderer extends BaseRenderer {
     // Create a new graphics object for the selection indicator
     this.selectionIndicator = this.scene.add.graphics();
     
-    // Diamond shape for the selection indicator
-    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
+    // Apply scaling factor to match move indicators
+    const scaleFactor = 0.85;
+    
+    // Diamond shape for the selection indicator with scaling to match move indicators
+    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
+      this.tileSize, 
+      this.tileHeight,
+      scaleFactor
+    );
     
     // Draw the selection indicator
     this.selectionIndicator.lineStyle(3, 0xFFFFFF, 0.8); // 3px white line with 80% opacity
@@ -109,11 +116,18 @@ export class SelectionRenderer extends BaseRenderer {
     // Create a new graphics object for the hover indicator
     this.hoverIndicator = this.scene.add.graphics();
     
-    // Diamond shape for the hover indicator
-    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
+    // Apply scaling factor to match move indicators
+    const scaleFactor = 0.85;
     
-    // Draw the hover indicator
-    this.hoverIndicator.lineStyle(2, 0xD3D3D3, 0.4); // 2px light gray line with 40% opacity
+    // Diamond shape for the hover indicator with scaling to match move indicators
+    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
+      this.tileSize, 
+      this.tileHeight,
+      scaleFactor
+    );
+    
+    // Draw the hover indicator with same style as move indicators
+    this.hoverIndicator.lineStyle(2, 0x999999, 0.7); // Match move indicator style
     this.hoverIndicator.beginPath();
     this.hoverIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
     for (let i = 1; i < diamondPoints.length; i++) {
@@ -162,8 +176,15 @@ export class SelectionRenderer extends BaseRenderer {
       // Clear previous graphics
       this.selectionIndicator.clear();
       
+      // Apply scaling factor to match move indicators
+      const scaleFactor = 0.85;
+      
       // Redraw with the specified color
-      const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
+      const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
+        this.tileSize, 
+        this.tileHeight,
+        scaleFactor
+      );
       this.selectionIndicator.lineStyle(3, color, 0.8); // 3px line with 80% opacity
       this.selectionIndicator.beginPath();
       this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);

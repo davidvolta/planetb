@@ -93,18 +93,10 @@ export class MoveRangeRenderer extends BaseRenderer {
       scaleFactor
     );
     
-    // Draw outer glow (slightly larger, more transparent)
-    highlight.lineStyle(5, 0xFFFF00, 0.3); // Yellow with 30% opacity, thicker line for glow effect
-    highlight.beginPath();
-    highlight.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      highlight.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    highlight.closePath();
-    highlight.strokePath();
+ 
     
     // Draw the main diamond shape
-    highlight.lineStyle(3, 0xFFFF00, 0.7); // Yellow with 70% opacity, standard line width
+    highlight.lineStyle(2, 0x999999, 0.7); // Reduced from 3px to 2px, changed color to gray
     highlight.beginPath();
     highlight.moveTo(diamondPoints[0].x, diamondPoints[0].y);
     for (let i = 1; i < diamondPoints.length; i++) {

@@ -57,46 +57,6 @@ function App() {
           {/* Game canvas takes the full screen */}
           <Game onGameMount={setGameInstance} />
           
-          {/* UI elements overlay on top */}
-          <div style={{ 
-            position: 'absolute', 
-            top: 20, 
-            right: 20, 
-            zIndex: 10,
-            background: 'rgba(0,0,0,0.5)',
-            padding: '10px',
-            borderRadius: '5px',
-            color: 'white',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            maxWidth: '300px'
-          }}>
-            {/* Map size controls */}
-            {/* Commented out map size controls
-            <div>
-              <div>Width: {mapWidth}</div>
-              <input 
-                type="range" 
-                min="10" 
-                max="50" 
-                value={mapWidth} 
-                onChange={handleWidthChange}
-                style={{ width: '100%' }}
-              />
-              
-              <div>Height: {mapHeight}</div>
-              <input 
-                type="range" 
-                min="10" 
-                max="50" 
-                value={mapHeight} 
-                onChange={handleHeightChange}
-                style={{ width: '100%' }}
-              />
-            </div>
-            */}
-          </div>
         </div>
       } />
     </Routes>

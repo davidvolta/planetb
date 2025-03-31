@@ -173,7 +173,6 @@ export interface GameState {
   initializeBoard: (width: number, height: number, mapType?: MapGenerationType, forceHabitatGeneration?: boolean) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   
-  addAnimal: (x: number, y: number, type?: string) => void;
   evolveAnimal: (id: string) => void;
   
   // Movement-related methods
@@ -455,20 +454,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (x < 0 || x >= board.width || y < 0 || y >= board.height) return undefined;
     return board.tiles[y][x];
   },
-
-  addAnimal: (x, y, type = "buffalo") =>
-    set((state) => {
-      const newAnimal: Animal = {
-        id: `animal-${state.animals.length}`,
-        type: type,
-        state: AnimalState.DORMANT,
-        position: { x, y },
-        previousPosition: null,
-        hasMoved: false,
-        ownerId: null,
-      };
-      return { animals: [...state.animals, newAnimal] };
-    }),
 
   evolveAnimal: (id) =>
     set((state) => {

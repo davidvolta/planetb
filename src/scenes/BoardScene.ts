@@ -185,6 +185,8 @@ export default class BoardScene extends Phaser.Scene {
       // Set up state subscriptions
       this.setupSubscriptions();
       
+      // Center camera on player's first unit
+      this.centerCameraOnPlayerUnit();
     }
   }
   
@@ -1032,5 +1034,46 @@ export default class BoardScene extends Phaser.Scene {
         }
       });
     }
+  }
+
+  /**
+   * Centers the camera on the player's first unit
+   */
+  private centerCameraOnPlayerUnit(): void {
+    const unitPosition = this.findPlayerFirstUnit();
+    if (unitPosition) {
+      const worldPos = CoordinateUtils.gridToWorld(
+        unitPosition.x, 
+        unitPosition.y, 
+        this.tileSize, 
+        this.tileHeight,
+        this.anchorX,
+        this.anchorY
+      );
+      this.cameraManager.centerOn(worldPos.x, worldPos.y);
+      // Set zoom to maximum level
+      this.cameraManager.zoomTo(2.0);
+      console.log(`Camera centered on player unit at grid (${unitPosition.x},${unitPosition.y}) with max zoom`);
+    }
+  }
+  
+  /**
+   * Finds the first unit owned by the player
+   */
+  private findPlayerFirstUnit(): { x: number, y: number } | null {
+    const animals = actions.getAnimals();
+    const currentPlayerId = actions.getCurrentPlayerId();
+    
+    // Find the first active unit owned by the current player
+    const playerUnit = animals.find(animal => 
+      animal.ownerId === currentPlayerId && 
+      animal.state === AnimalState.ACTIVE
+    );
+    
+    if (playerUnit) {
+      return playerUnit.position;
+    }
+    
+    return null;
   }
 }
