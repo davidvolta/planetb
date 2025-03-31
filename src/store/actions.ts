@@ -306,10 +306,17 @@ export function improveHabitat(habitatId: string): void {
   const habitat = state.habitats.find(h => h.id === habitatId);
   
   if (habitat && habitat.state === HabitatState.POTENTIAL) {
+    // Get the current player ID
+    const currentPlayerId = state.currentPlayerId;
+    
     // Create a new array with the updated habitat
     const updatedHabitats = state.habitats.map(h => 
       h.id === habitatId 
-        ? { ...h, state: HabitatState.IMPROVED }
+        ? { 
+            ...h, 
+            state: HabitatState.IMPROVED,
+            ownerId: currentPlayerId // Set the owner to current player
+          }
         : h
     );
     

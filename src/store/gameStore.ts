@@ -760,6 +760,12 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
   const updatedHabitats = state.habitats.map(habitat => {
     // Skip if no production
     if (habitat.productionRate <= 0) return habitat;
+    
+    // Skip if not improved - only improved habitats owned by a player can produce eggs after initialization
+    if (habitat.state !== HabitatState.IMPROVED) return habitat;
+    
+    // Skip if not owned by a player
+    if (habitat.ownerId === null) return habitat;
 
     // Calculate turns since last production
     const turnsSinceProduction = state.turn - habitat.lastProductionTurn;
