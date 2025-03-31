@@ -52,7 +52,7 @@ export default class BoardScene extends Phaser.Scene {
   private subscriptionsSetup = false;
   
   // Fog of War state
-  private fogOfWarEnabled = false;
+  private fogOfWarEnabled = true;
   
   // Managers and controllers
   private inputManager: InputManager;

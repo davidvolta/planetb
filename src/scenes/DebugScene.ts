@@ -11,7 +11,7 @@ export default class DebugScene extends Phaser.Scene {
   private fowCheckboxText!: Phaser.GameObjects.Text;
   private fowCheckboxBox!: Phaser.GameObjects.Rectangle;
   private fowCheckboxInner!: Phaser.GameObjects.Rectangle;
-  private fowEnabled: boolean = false;
+  private fowEnabled: boolean = true;
 
   constructor() {
     super({ 

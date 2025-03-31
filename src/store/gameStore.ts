@@ -407,8 +407,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             habitats.push(newHabitat);
             terrainTypesWithHabitats.add(terrainType);
 
-            // Place initial eggs around the habitat if it has production
-            if (newHabitat.productionRate > 0) {
+            // Place initial eggs around the habitat, but ONLY for the player's improved water habitat
+            if (newHabitat.productionRate > 0 && shouldImproveForPlayer) {
               const validTiles = getValidEggPlacementTiles(newHabitat, {
                 board: { width, height, tiles },
                 animals,

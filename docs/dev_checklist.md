@@ -23,17 +23,9 @@
 - [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
 
 # Playable Game
-- [ ] Non-Overlapping Habitat Zones
-  - [ ] Modify Initial Player Habitat: Change from beach to water terrain
-  - [ ] Create Helper Function: Implement isHabitatZoneOverlapping using Manhattan distance
-  - [ ] Update Primary Habitat Placement: Ensure one per terrain with no zone overlap
-  - [ ] Implement Additional Placement: Fill with extra habitats using terrain priority order
-  - [ ] Update Habitat ID Assignment: Account for multiple habitats per terrain type
-  - [ ] Testing and Verification: Confirm non-overlapping zones visually
-  - [ ] Optimize Performance: For larger maps if needed
-
-- [ ] Do not let players spawn units from habitats they do not own
-- [ ] Fix egg rendering in fog of war (used smaller graphic for now to cheat the issue)
+- [ ] Do not let players spawn units from habitats they do not own (during multiplayer)
 - [ ] Fix habitat/unit bug
 - [ ] Limit player movement to only those biomes they are allowed in
 - [ ] Players can only improve habitat on their next turn and that ends their turn
+- [ ] Get the correct isometric units (fish, octopus, bird, turtle, egg)
+- [ ] Fix bug that produces a ton of eggs on the newly owned habitat... sometimes
