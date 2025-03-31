@@ -362,12 +362,30 @@ export const useGameStore = create<GameState>((set, get) => ({
             }
           }
           
-          // If we have tiles of this type, place a habitat on one randomly
+          // If we have tiles of this type, try to place a habitat without zone overlap
           if (tilesOfType.length > 0) {
-            const randomIndex = Math.floor(Math.random() * tilesOfType.length);
-            const { x, y } = tilesOfType[randomIndex];
+            // Shuffle the tiles to try them in random order
+            const shuffledTiles = [...tilesOfType].sort(() => Math.random() - 0.5);
             
-            const habitatId = terrainTypesWithHabitats.size;
+            // Try to find a position that doesn't overlap with existing habitat zones
+            let position: { x: number, y: number } | null = null;
+            
+            for (const tile of shuffledTiles) {
+              if (!isHabitatZoneOverlapping(tile, habitats)) {
+                position = tile;
+                break;
+              }
+            }
+            
+            // If we couldn't find a non-overlapping position, fall back to random selection
+            if (!position) {
+              console.log(`Could not find non-overlapping position for ${terrainType} habitat, using random placement`);
+              const randomIndex = Math.floor(Math.random() * tilesOfType.length);
+              position = tilesOfType[randomIndex];
+            }
+            
+            // Use sequential habitat indexing instead of terrain type count
+            const habitatId = habitats.length;
             
             // Check if this is a water habitat and if we're in initial board setup
             const isWaterHabitat = terrainType === TerrainType.WATER;
@@ -375,7 +393,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             
             const newHabitat: Habitat = {
               id: `habitat-${habitatId}`,
-              position: { x, y },
+              position: position,
               // If this is a water habitat during initial setup and we have a player, set to IMPROVED
               state: shouldImproveForPlayer ? HabitatState.IMPROVED : HabitatState.POTENTIAL,
               // Set shelterType to REEF for water if improved for player
@@ -437,6 +455,96 @@ export const useGameStore = create<GameState>((set, get) => ({
         
         // Verify we've placed exactly one habitat per available terrain type
         console.log(`Initialized ${habitats.length} habitats on ${terrainTypesWithHabitats.size} terrain types`);
+        
+        // Now place additional habitats with non-overlapping zones
+        console.log('Placing additional habitats with non-overlapping zones...');
+        
+        // Use HABITAT_TERRAIN_ORDER for prioritized placement
+        let placedAdditionalHabitats = true;
+        let additionalHabitatsCount = 0;
+        let iterationCount = 0;
+        const MAX_ITERATIONS = 100; // Safety limit to prevent infinite loops
+        
+        // Continue placing habitats until we can't place any more
+        while (placedAdditionalHabitats && iterationCount < MAX_ITERATIONS) {
+          placedAdditionalHabitats = false;
+          iterationCount++;
+          
+          // Try each terrain type in priority order
+          for (const terrainType of HABITAT_TERRAIN_ORDER) {
+            // Collect all tiles of this terrain type that aren't already used for habitats
+            const availableTiles: {x: number, y: number}[] = [];
+            
+            for (let y = 0; y < height; y++) {
+              for (let x = 0; x < width; x++) {
+                if (terrainData[y][x] === terrainType) {
+                  // Check if this position already has a habitat
+                  const alreadyHasHabitat = habitats.some(h => 
+                    h.position.x === x && h.position.y === y
+                  );
+                  
+                  if (!alreadyHasHabitat) {
+                    availableTiles.push({ x, y });
+                  }
+                }
+              }
+            }
+            
+            // Shuffle the available tiles
+            const shuffledTiles = [...availableTiles].sort(() => Math.random() - 0.5);
+            
+            // Try to find a position that doesn't overlap with existing habitat zones
+            for (const tile of shuffledTiles) {
+              if (!isHabitatZoneOverlapping(tile, habitats)) {
+                // We found a valid position, create a habitat here
+                const newHabitat: Habitat = {
+                  id: `habitat-${habitats.length}`,
+                  position: tile,
+                  state: HabitatState.POTENTIAL,
+                  shelterType: null,
+                  ownerId: null,
+                  productionRate: 1, // Same as primary habitats
+                  lastProductionTurn: 0,
+                };
+                
+                habitats.push(newHabitat);
+                additionalHabitatsCount++;
+                placedAdditionalHabitats = true;
+                
+                // Place one additional habitat per terrain type per iteration
+                // to ensure even distribution across terrain types
+                break;
+              }
+            }
+          }
+        }
+        
+        console.log(`Placed ${additionalHabitatsCount} additional habitats`);
+        console.log(`Total habitats: ${habitats.length}`);
+        console.log(`Placement completed in ${iterationCount} iterations`);
+        
+        // Log habitat distribution by terrain type
+        const habitatsByTerrain = new Map<TerrainType, number>();
+        for (const terrain of Object.values(TerrainType)) {
+          habitatsByTerrain.set(terrain, 0);
+        }
+        
+        habitats.forEach(habitat => {
+          const position = habitat.position;
+          const terrain = terrainData[position.y][position.x];
+          const count = habitatsByTerrain.get(terrain) || 0;
+          habitatsByTerrain.set(terrain, count + 1);
+        });
+        
+        console.log('Habitat distribution by terrain type:');
+        habitatsByTerrain.forEach((count, terrain) => {
+          console.log(`  ${terrain}: ${count} habitats`);
+        });
+        
+        // Visualize habitat positions and their zones
+        if (habitats.length > 0 && state.board) {
+          logHabitatZoneMap(width, height, habitats);
+        }
       }
 
       return { 
@@ -753,7 +861,7 @@ const getValidEggPlacementTiles = (
 /**
  * Checks if a potential habitat position would result in overlapping zones with existing habitats
  * A habitat zone consists of the habitat itself and its 8 adjacent tiles
- * Zones overlap if habitats are less than Manhattan distance 3 apart
+ * Zones overlap if habitats are less than Manhattan distance 5 apart
  * 
  * @param position The potential habitat position to check
  * @param existingHabitats Array of existing habitats to check against
@@ -770,8 +878,8 @@ export function isHabitatZoneOverlapping(
       habitat.position.x, habitat.position.y
     );
     
-    // If distance is less than 3, zones will overlap
-    if (distance < 3) {
+    // If distance is less than 5, zones will overlap
+    if (distance < 5) {
       return true;
     }
   }
