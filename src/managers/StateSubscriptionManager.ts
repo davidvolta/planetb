@@ -188,15 +188,30 @@ export class StateSubscriptionManager {
    * Set up subscriptions related to the game board
    */
   private setupBoardSubscriptions(): void {
+    // Keep track of previous board state to compare
+    let previousBoardHash = ''; // this is a hack and one day you'll need to fix board state updates for real      
+    
     // Subscribe to board changes
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.BOARD,
       (state) => state.board,
       (board) => {
-        console.log("Board state updated in BoardScene");
         if (board) {
-          // Update board using tile renderer
-          this.tileRenderer.createBoardTiles(board);
+          // Create a simple hash representing the essential board properties
+          // We only care about dimensions and tiles, not unit positions
+          const currentBoardHash = `${board.width}-${board.height}`;
+          
+          // Only recreate board if this is the first time or if essential properties changed
+          if (previousBoardHash !== currentBoardHash) {
+            console.log("Board dimensions changed, recreating tiles");
+            // Update board using tile renderer
+            this.tileRenderer.createBoardTiles(board);
+            // Update the hash
+            previousBoardHash = currentBoardHash;
+          } else {
+            // Board dimensions haven't changed, skip recreation
+            console.log("Skipping board recreation - only unit positions changed");
+          }
         }
       },
       { immediate: false, debug: false } // Changed from true to false to prevent duplicate creation

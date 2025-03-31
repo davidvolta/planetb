@@ -28,4 +28,5 @@
 - [ ] Limit player movement to only those biomes they are allowed in
 - [ ] Players can only improve habitat on their next turn and that ends their turn
 - [ ] Get the correct isometric units (fish, octopus, bird, turtle, egg)
-- [ ] Fix bug that produces a ton of eggs on the newly owned habitat... sometimes
+- [ ] Fix bug that produces a ton of eggs on the newly owned habitat
+- [ ] Make sure habitats are not produced on the very edge of the board

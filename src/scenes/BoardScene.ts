@@ -576,8 +576,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // If fog of war is enabled, update visibility around the destination position BEFORE moving
     if (this.fogOfWarEnabled) {
-      console.log(`Revealing fog of war before unit moves to (${toX}, ${toY})`);
-      
       // Get the board to check boundaries
       const board = actions.getBoard();
       if (board) {
@@ -991,8 +989,6 @@ export default class BoardScene extends Phaser.Scene {
    * @param isVisible Whether objects should be visible
    */
   private updateObjectVisibility(x: number, y: number, isVisible: boolean): void {
-    console.log(`${isVisible ? 'Showing' : 'Hiding'} objects at (${x}, ${y})`);
-    
     // Update terrain tile visibility
     const terrainLayer = this.layerManager.getTerrainLayer();
     if (terrainLayer) {

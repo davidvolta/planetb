@@ -47,8 +47,8 @@ export class LayerManager {
     this.selectionLayer = this.scene.add.layer().setDepth(2);
     this.moveRangeLayer = this.scene.add.layer().setDepth(3);
     this.staticObjectsLayer = this.scene.add.layer().setDepth(4);
-    this.unitsLayer = this.scene.add.layer().setDepth(5);
-    this.fogOfWarLayer = this.scene.add.layer().setDepth(6);
+    this.fogOfWarLayer = this.scene.add.layer().setDepth(5);
+    this.unitsLayer = this.scene.add.layer().setDepth(6);
     this.uiLayer = this.scene.add.layer().setDepth(10);
     
     // Mark layers as initialized
