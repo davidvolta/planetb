@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { generateIslandTerrain } from "../utils/TerrainGenerator";
+import { calculateManhattanDistance } from "../utils/CoordinateUtils";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -368,17 +369,17 @@ export const useGameStore = create<GameState>((set, get) => ({
             
             const habitatId = terrainTypesWithHabitats.size;
             
-            // Check if this is a beach habitat and if we're in initial board setup
-            const isBeachHabitat = terrainType === TerrainType.BEACH;
-            const shouldImproveForPlayer = isBeachHabitat && !state.isInitialized && state.players.length > 0;
+            // Check if this is a water habitat and if we're in initial board setup
+            const isWaterHabitat = terrainType === TerrainType.WATER;
+            const shouldImproveForPlayer = isWaterHabitat && !state.isInitialized && state.players.length > 0;
             
             const newHabitat: Habitat = {
               id: `habitat-${habitatId}`,
               position: { x, y },
-              // If this is a beach habitat during initial setup and we have a player, set to IMPROVED
+              // If this is a water habitat during initial setup and we have a player, set to IMPROVED
               state: shouldImproveForPlayer ? HabitatState.IMPROVED : HabitatState.POTENTIAL,
-              // Set shelterType to TIDEPOOL for beach if improved for player
-              shelterType: shouldImproveForPlayer ? ShelterType.TIDEPOOL : null,
+              // Set shelterType to REEF for water if improved for player
+              shelterType: shouldImproveForPlayer ? ShelterType.REEF : null,
               // Set ownerId to player's ID if improved for player
               ownerId: shouldImproveForPlayer ? playerId : null,
               productionRate: 1, // Fixed at 1
@@ -417,10 +418,10 @@ export const useGameStore = create<GameState>((set, get) => ({
                   terrain: tiles[tile.y][tile.x].terrain 
                 });
                 
-                // If this animal is from an improved player-owned beach habitat, make it active and owned
+                // If this animal is from an improved player-owned water habitat, make it active and owned
                 if (newHabitat.state === HabitatState.IMPROVED && 
                     newHabitat.ownerId !== null && 
-                    newHabitat.shelterType === ShelterType.TIDEPOOL) {
+                    newHabitat.shelterType === ShelterType.REEF) {
                   // Make this the active player unit
                   newAnimal.state = AnimalState.ACTIVE;
                   // Type assertion to handle the number assignment to the ownerId property
@@ -748,6 +749,89 @@ const getValidEggPlacementTiles = (
   
   return validTiles;
 };
+
+/**
+ * Checks if a potential habitat position would result in overlapping zones with existing habitats
+ * A habitat zone consists of the habitat itself and its 8 adjacent tiles
+ * Zones overlap if habitats are less than Manhattan distance 3 apart
+ * 
+ * @param position The potential habitat position to check
+ * @param existingHabitats Array of existing habitats to check against
+ * @returns true if the position would overlap with any existing habitat zone, false otherwise
+ */
+export function isHabitatZoneOverlapping(
+  position: Coordinate,
+  existingHabitats: Habitat[]
+): boolean {
+  // For each existing habitat, calculate Manhattan distance
+  for (const habitat of existingHabitats) {
+    const distance = calculateManhattanDistance(
+      position.x, position.y,
+      habitat.position.x, habitat.position.y
+    );
+    
+    // If distance is less than 3, zones will overlap
+    if (distance < 3) {
+      return true;
+    }
+  }
+  
+  // No overlaps found
+  return false;
+}
+
+/**
+ * Debug utility to visualize habitat positions and their zones
+ * Creates a text-based map for debugging habitat placement
+ * 
+ * @param width Width of the board
+ * @param height Height of the board
+ * @param habitats List of habitats to visualize
+ */
+export function logHabitatZoneMap(
+  width: number,
+  height: number,
+  habitats: Habitat[]
+): void {
+  // Create a 2D grid for visualization
+  const grid: string[][] = Array(height).fill(0).map(() => Array(width).fill('.'));
+  
+  // Mark habitat positions with 'H'
+  habitats.forEach(habitat => {
+    const { x, y } = habitat.position;
+    grid[y][x] = 'H';
+  });
+  
+  // Mark zone areas with 'z'
+  habitats.forEach(habitat => {
+    const { x, y } = habitat.position;
+    
+    // Mark the 8 adjacent tiles as zone
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        // Skip the habitat's own position
+        if (dx === 0 && dy === 0) continue;
+        
+        const zx = x + dx;
+        const zy = y + dy;
+        
+        // Skip if out of bounds
+        if (zx < 0 || zx >= width || zy < 0 || zy >= height) continue;
+        
+        // Only mark as zone if not already a habitat
+        if (grid[zy][zx] !== 'H') {
+          grid[zy][zx] = 'z';
+        }
+      }
+    }
+  });
+  
+  // Output the grid
+  console.log('Habitat Zone Map:');
+  grid.forEach(row => {
+    console.log(row.join(' '));
+  });
+}
 
 // Process production for all habitats
 const processHabitatProduction = (state: GameState): Partial<GameState> => {
