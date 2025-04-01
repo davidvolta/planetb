@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import * as actions from "../store/actions";
+import { AnimalState } from "../store/gameStore";
 
 /**
  * Manages the camera system for the board scene, including:
@@ -287,6 +289,73 @@ export class CameraManager {
     
     // Stop following if following something
     camera.stopFollow();
+  }
+  
+  /**
+   * Centers the camera on the player's first unit
+   * @param tileSize Size of each tile
+   * @param tileHeight Height of each tile
+   * @param anchorX X coordinate of the grid anchor
+   * @param anchorY Y coordinate of the grid anchor
+   */
+  centerCameraOnPlayerUnit(
+    tileSize: number,
+    tileHeight: number,
+    anchorX: number,
+    anchorY: number
+  ): void {
+    const unitPosition = this.findPlayerFirstUnit();
+    if (unitPosition) {
+      const worldPos = this.gridToWorld(
+        unitPosition.x, 
+        unitPosition.y, 
+        tileSize, 
+        tileHeight,
+        anchorX,
+        anchorY
+      );
+      this.centerOn(worldPos.x, worldPos.y);
+      // Set zoom to maximum level
+      this.zoomTo(2.0);
+      console.log(`Camera centered on player unit at grid (${unitPosition.x},${unitPosition.y}) with max zoom`);
+    }
+  }
+  
+  /**
+   * Finds the first unit owned by the player
+   * @returns Position of the first player unit or null if none found
+   */
+  private findPlayerFirstUnit(): { x: number, y: number } | null {
+    const animals = actions.getAnimals();
+    const currentPlayerId = actions.getCurrentPlayerId();
+    
+    // Find the first active unit owned by the current player
+    const playerUnit = animals.find((animal: any) => 
+      animal.ownerId === currentPlayerId && 
+      animal.state === AnimalState.ACTIVE
+    );
+    
+    if (playerUnit) {
+      return playerUnit.position;
+    }
+    
+    return null;
+  }
+
+  /**
+   * Convert grid coordinates to world coordinates
+   */
+  private gridToWorld(
+    gridX: number,
+    gridY: number,
+    tileSize: number,
+    tileHeight: number,
+    anchorX: number,
+    anchorY: number
+  ): { x: number, y: number } {
+    const worldX = (gridX - gridY) * (tileSize / 2) + anchorX;
+    const worldY = (gridX + gridY) * (tileHeight / 2) + anchorY;
+    return { x: worldX, y: worldY };
   }
   
   /**
