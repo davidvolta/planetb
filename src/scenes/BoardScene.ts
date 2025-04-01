@@ -477,17 +477,6 @@ export default class BoardScene extends Phaser.Scene {
       
       this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
       
-      // Show valid moves for the selected unit
-      if (!unit.hasMoved) {
-        // Check if the action method exists and call it safely
-        if (typeof actions.getValidMoves === 'function') {
-          // Get valid moves for the unit
-          const validMoves = actions.getValidMoves();
-          // Render the moves using MoveRangeRenderer
-          this.moveRangeRenderer.showMoveRange(validMoves, true);
-        }
-      }
-      
       return;
     }
     // If we have a dormant unit at this tile, select it (for spawning)
@@ -525,21 +514,6 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.clearMoveHighlights();
   }
 
-  /**
-   * Render move range
-   * @param validMoves Valid move positions
-   * @param moveMode Whether we're in move mode
-   */
-  renderMoveRange(validMoves: ValidMove[], moveMode: boolean) {
-    // If the animation controller is animating, don't update
-    if (this.animationController.isAnimating()) {
-      return;
-    }
-    
-    // Use the move range renderer to show the range
-    this.moveRangeRenderer.showMoveRange(validMoves, moveMode);
-  }
-  
   /**
    * Clear all move highlights
    */
