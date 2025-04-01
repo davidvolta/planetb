@@ -163,14 +163,19 @@ export class InputManager {
       
       // Handle improve habitat with 'I' key
       this.scene.input.keyboard.on('keydown-I', () => {
-        // Only handle if a potential habitat is selected
+        // Only handle if a potential habitat is selected and can be improved
         const selectedHabitatId = actions.getSelectedHabitatId();
         const selectedHabitatIsPotential = actions.isSelectedHabitatPotential();
         
-        if (selectedHabitatId && selectedHabitatIsPotential) {
+        if (selectedHabitatId && 
+            selectedHabitatIsPotential && 
+            actions.canImproveHabitat(selectedHabitatId)) {
           // Call the improve habitat action
           actions.improveHabitat(selectedHabitatId);
           actions.selectHabitat(null); // Deselect the habitat after improving
+          
+          // End the turn after habitat improvement
+          actions.getNextTurn()();
         }
       });
     }

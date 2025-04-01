@@ -193,6 +193,33 @@ export function isSelectedHabitatPotential(): boolean {
   return useGameStore.getState().selectedHabitatIsPotential;
 }
 
+/**
+ * Checks if a habitat can be improved based on unit position and movement state
+ * Returns true if there's an active unit on the habitat that hasn't moved yet
+ * @param habitatId The ID of the habitat to check
+ * @returns boolean indicating if habitat can be improved
+ */
+export function canImproveHabitat(habitatId: string): boolean {
+  const state = useGameStore.getState();
+  const habitat = state.habitats.find(h => h.id === habitatId);
+  
+  if (!habitat || habitat.state !== HabitatState.POTENTIAL) {
+    return false;
+  }
+  
+  // Find any active units on this habitat's position
+  const unitsOnHabitat = state.animals.filter(animal => 
+    animal.position.x === habitat.position.x && 
+    animal.position.y === habitat.position.y &&
+    animal.state === AnimalState.ACTIVE &&
+    !animal.hasMoved &&
+    animal.ownerId === state.currentPlayerId // Must be current player's unit
+  );
+  
+  // Return true if there's at least one unmoved active unit on the habitat
+  return unitsOnHabitat.length > 0;
+}
+
 //
 // Movement Actions
 //

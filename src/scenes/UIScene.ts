@@ -47,9 +47,13 @@ export default class UIScene extends Phaser.Scene {
           this.updateBackgroundSize();
         }
         
-        // Show/hide improve habitat button based on habitat selection
+        // Show/hide improve habitat button based on habitat selection and unit presence
         if (this.improveHabitatButton) {
-          this.improveHabitatButton.setVisible(data.selectedHabitatId !== null && data.selectedHabitatIsPotential);
+          const canImprove = data.selectedHabitatId !== null && 
+                           data.selectedHabitatIsPotential && 
+                           actions.canImproveHabitat(data.selectedHabitatId);
+          
+          this.improveHabitatButton.setVisible(canImprove);
           // Update background size when button visibility changes
           this.updateBackgroundSize();
         }
@@ -208,10 +212,13 @@ export default class UIScene extends Phaser.Scene {
 
   handleImproveHabitat() {
     const selectedHabitatId = actions.getSelectedHabitatId();
-    if (selectedHabitatId) {
+    if (selectedHabitatId && actions.canImproveHabitat(selectedHabitatId)) {
       // Call the improve habitat action
       actions.improveHabitat(selectedHabitatId);
       actions.selectHabitat(null); // Deselect the habitat after improving
+      
+      // End the turn after habitat improvement
+      actions.getNextTurn()();
     }
   }
 
