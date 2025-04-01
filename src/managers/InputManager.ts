@@ -2,12 +2,9 @@ import Phaser from 'phaser';
 import * as actions from '../store/actions';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 
-/**
- * Manages all input handling for the BoardScene, including:
- * - Mouse/touch interactions (clicking, hovering, panning, zooming)
- * - Keyboard controls and shortcuts
- * - Event delegation for game objects
- */
+// Manages all input handling for the BoardScene, including: 
+// Mouse/touch interactions (clicking, hovering, panning, zooming), keyboard controls and shortcuts
+// Event delegation for game objects
 export class InputManager {
   // Reference to the scene
   private scene: Phaser.Scene;
@@ -30,14 +27,7 @@ export class InputManager {
     onPointerMove?: (worldX: number, worldY: number, pointer: Phaser.Input.Pointer) => void;
   } = {};
   
-  /**
-   * Creates a new InputManager
-   * @param scene The parent scene
-   * @param tileSize Width of a tile in pixels
-   * @param tileHeight Height of a tile in pixels
-   * @param anchorX Grid anchor X coordinate
-   * @param anchorY Grid anchor Y coordinate
-   */
+  // Creates a new InputManager
   constructor(
     scene: Phaser.Scene,
     tileSize: number = 64,
@@ -52,26 +42,18 @@ export class InputManager {
     this.anchorY = anchorY;
   }
   
-  /**
-   * Get the camera - only access when needed to avoid initialization issues
-   */
+  // Get the camera - only access when needed to avoid initialization issues
   private getCamera(): Phaser.Cameras.Scene2D.Camera {
     return this.scene.cameras.main;
   }
   
-  /**
-   * Initialize the input manager with current anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
+  // Initialize the input manager with current anchor position
   initialize(anchorX: number, anchorY: number): void {
     this.anchorX = anchorX;
     this.anchorY = anchorY;
   }
   
-  /**
-   * Set up all input controls (camera panning, zooming, etc.)
-   */
+  // Set up all input controls (camera panning, zooming, etc.)
   setupControls(): void {
     // Don't set up controls more than once
     if (this.controlsSetup) {
@@ -105,9 +87,7 @@ export class InputManager {
     this.controlsSetup = true;
   }
   
-  /**
-   * Set up click event delegation for game objects
-   */
+  // Set up click event delegation for game objects
   setupClickEventDelegation(): void {
     // Don't set up click delegation more than once
     if (this.clickDelegationSetup) {
@@ -133,9 +113,7 @@ export class InputManager {
     this.clickDelegationSetup = true;
   }
   
-  /**
-   * Set up keyboard shortcuts
-   */
+  // Set up keyboard shortcuts
   setupKeyboardControls(): void {
     // Clear any existing keyboard shortcuts to prevent duplication
     if (this.scene.input.keyboard) {
@@ -181,28 +159,17 @@ export class InputManager {
     }
   }
   
-  /**
-   * Set callback for tile click events (for both tiles and habitats)
-   * @param callback The function to call when a tile is clicked
-   */
+  // Set callback for tile click events (for both tiles and habitats)
   onTileClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void {
     this.callbacks.onTileClick = callback;
   }
   
-  /**
-   * Set callback for pointer move events
-   * @param callback The function to call when the pointer moves
-   */
+  // Set callback for pointer move events
   onPointerMove(callback: (worldX: number, worldY: number, pointer: Phaser.Input.Pointer) => void): void {
     this.callbacks.onPointerMove = callback;
   }
   
-  /**
-   * Convert screen coordinates to grid coordinates
-   * @param screenX X coordinate on screen
-   * @param screenY Y coordinate on screen
-   * @returns Grid coordinates or null if invalid
-   */
+  // Convert screen coordinates to grid coordinates
   getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
     // Get board data
     const board = actions.getBoard();
@@ -229,17 +196,12 @@ export class InputManager {
     return null;
   }
   
-  /**
-   * Clean up all resources and event listeners
-   */
+  // Clean up all resources and event listeners
   destroy(): void {
     // Remove all keyboard shortcuts
     if (this.scene.input.keyboard) {
       this.scene.input.keyboard.removeAllKeys(true);
     }
-    
-    // We don't need to manually remove input event listeners
-    // as they are automatically cleaned up when the scene is destroyed
     
     // Clear all callback references
     this.callbacks = {};
