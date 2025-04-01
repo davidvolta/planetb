@@ -315,7 +315,8 @@ export function improveHabitat(habitatId: string): void {
         ? { 
             ...h, 
             state: HabitatState.IMPROVED,
-            ownerId: currentPlayerId // Set the owner to current player
+            ownerId: currentPlayerId, // Set the owner to current player
+            lastProductionTurn: state.turn - 1 // Set lastProductionTurn to previous turn to maintain correct egg production timing
           }
         : h
     );

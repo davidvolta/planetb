@@ -356,6 +356,11 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
+              // Skip tiles on the edges of the board
+              if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                continue;
+              }
+              
               if (terrainData[y][x] === terrainType) {
                 tilesOfType.push({ x, y });
               }
@@ -477,6 +482,11 @@ export const useGameStore = create<GameState>((set, get) => ({
             
             for (let y = 0; y < height; y++) {
               for (let x = 0; x < width; x++) {
+                // Skip tiles on the edges of the board
+                if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                  continue;
+                }
+                
                 if (terrainData[y][x] === terrainType) {
                   // Check if this position already has a habitat
                   const alreadyHasHabitat = habitats.some(h => 
