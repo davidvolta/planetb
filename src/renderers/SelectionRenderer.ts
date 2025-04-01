@@ -3,26 +3,14 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
 
-/**
- * Responsible for rendering and managing selection indicators and hover effects
- */
+// Responsible for rendering and managing selection indicators and hover effects
 export class SelectionRenderer extends BaseRenderer {
-  // Selection indicator for showing selected tiles
-  private selectionIndicator: Phaser.GameObjects.Graphics | null = null;
   
-  // Hover indicator for showing mouse hover
-  private hoverIndicator: Phaser.GameObjects.Graphics | null = null;
+  private selectionIndicator: Phaser.GameObjects.Graphics | null = null; // Selection indicator for showing selected tiles
+  private hoverIndicator: Phaser.GameObjects.Graphics | null = null;   // Hover indicator for showing mouse hover
+  private hoveredGridPosition: { x: number, y: number } | null = null;  // Track currently hovered grid position
   
-  // Track currently hovered grid position
-  private hoveredGridPosition: { x: number, y: number } | null = null;
-  
-  /**
-   * Creates a new SelectionRenderer
-   * @param scene The parent scene
-   * @param layerManager Layer manager for organizing display
-   * @param tileSize The width of a tile in pixels
-   * @param tileHeight The height of a tile in pixels
-   */
+  // Creates a new SelectionRenderer
   constructor(
     scene: Phaser.Scene, 
     layerManager: LayerManager, 
@@ -32,11 +20,7 @@ export class SelectionRenderer extends BaseRenderer {
     super(scene, layerManager, tileSize, tileHeight);
   }
   
-  /**
-   * Initialize the renderer with board anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
+  //Initialize the renderer with board anchor position
   initialize(anchorX: number, anchorY: number): void {
     this.setAnchor(anchorX, anchorY);
     
@@ -45,10 +29,7 @@ export class SelectionRenderer extends BaseRenderer {
     this.createHoverIndicator();
   }
   
-  /**
-   * Creates the selection indicator graphics
-   * @returns The created selection indicator
-   */
+  // Creates the selection indicator graphics
   private createSelectionIndicator(): Phaser.GameObjects.Graphics | null {
     // Destroy existing selection indicator if it exists
     if (this.selectionIndicator) {
@@ -62,12 +43,9 @@ export class SelectionRenderer extends BaseRenderer {
       console.warn("selectionLayer not available, cannot create selection indicator");
       return null;
     }
-    
-    // Create a new graphics object for the selection indicator
-    this.selectionIndicator = this.scene.add.graphics();
-    
-    // Apply scaling factor to match move indicators
-    const scaleFactor = 0.85;
+  
+    this.selectionIndicator = this.scene.add.graphics();     // Create a new graphics object for the selection indicator
+    const scaleFactor = 0.85;    // Apply scaling factor to match move indicators
     
     // Diamond shape for the selection indicator with scaling to match move indicators
     const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
@@ -95,10 +73,7 @@ export class SelectionRenderer extends BaseRenderer {
     return this.selectionIndicator;
   }
   
-  /**
-   * Creates the hover indicator graphics
-   * @returns The created hover indicator
-   */
+  //Creates the hover indicator graphics
   private createHoverIndicator(): Phaser.GameObjects.Graphics | null {
     // Destroy existing hover indicator if it exists
     if (this.hoverIndicator) {
@@ -113,11 +88,8 @@ export class SelectionRenderer extends BaseRenderer {
       return null;
     }
     
-    // Create a new graphics object for the hover indicator
-    this.hoverIndicator = this.scene.add.graphics();
-    
-    // Apply scaling factor to match move indicators
-    const scaleFactor = 0.85;
+    this.hoverIndicator = this.scene.add.graphics();   // Create a new graphics object for the hover indicator
+    const scaleFactor = 0.85;     // Apply scaling factor to match move indicators
     
     // Diamond shape for the hover indicator with scaling to match move indicators
     const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
@@ -135,23 +107,13 @@ export class SelectionRenderer extends BaseRenderer {
     }
     this.hoverIndicator.closePath();
     this.hoverIndicator.strokePath();
-    
-    // Hide the hover indicator initially
-    this.hoverIndicator.setVisible(false);
-    
-    // Add hover indicator to selection layer using layer manager
-    this.layerManager.addToLayer('selection', this.hoverIndicator);
+    this.hoverIndicator.setVisible(false);     // Hide the hover indicator initially
+    this.layerManager.addToLayer('selection', this.hoverIndicator); // Add hover indicator to selection layer using layer manager
     
     return this.hoverIndicator;
   }
   
-  /**
-   * Updates the selection indicator visibility and position
-   * @param shouldShow Whether to show the indicator
-   * @param x Grid X position (if showing)
-   * @param y Grid Y position (if showing)
-   * @param color Color for the selection indicator (default: 0xFFFFFF)
-   */
+  // Updates the selection indicator visibility and position
   updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number, color: number = 0xFFFFFF): void {
     if (!this.selectionIndicator) {
       // Create the indicator if it doesn't exist
@@ -214,16 +176,10 @@ export class SelectionRenderer extends BaseRenderer {
     }
   }
   
-  /**
-   * Updates the hover indicator visibility and position
-   * @param shouldShow Whether to show the indicator
-   * @param x Grid X position (if showing)
-   * @param y Grid Y position (if showing)
-   */
+  //Updates the hover indicator visibility and position
   updateHoverIndicator(shouldShow: boolean, x?: number, y?: number): void {
     if (!this.hoverIndicator) {
-      // Create the indicator if it doesn't exist
-      this.createHoverIndicator();
+      this.createHoverIndicator();      // Create the indicator if it doesn't exist
       
       // If still null after attempting to create, exit
       if (!this.hoverIndicator) {
@@ -233,16 +189,15 @@ export class SelectionRenderer extends BaseRenderer {
     }
     
     if (shouldShow && x !== undefined && y !== undefined) {
-      // Store the hovered position
-      this.hoveredGridPosition = { x, y };
+
+      this.hoveredGridPosition = { x, y };       // Store the hovered position
       
       // Calculate world position from grid coordinates
       const worldPosition = CoordinateUtils.gridToWorld(
         x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
-      
-      // Position the indicator
-      this.hoverIndicator.setPosition(worldPosition.x, worldPosition.y);
+  
+      this.hoverIndicator.setPosition(worldPosition.x, worldPosition.y);     // Position the indicator
       
       // Make the indicator visible
       this.hoverIndicator.setVisible(true);
@@ -257,12 +212,7 @@ export class SelectionRenderer extends BaseRenderer {
     }
   }
   
-  /**
-   * Update the hover indicator based on the current pointer position
-   * @param pointer The Phaser pointer (mouse/touch) to track
-   * @param boardWidth Width of the game board in tiles
-   * @param boardHeight Height of the game board in tiles
-   */
+  //Update the hover indicator based on the current pointer position
   updateFromPointer(
     pointer: Phaser.Input.Pointer, 
     boardWidth: number, 
@@ -298,44 +248,27 @@ export class SelectionRenderer extends BaseRenderer {
     }
   }
   
-  /**
-   * Show the selection indicator at a specific grid position
-   * @param x Grid X position
-   * @param y Grid Y position
-   * @param color Optional color for the selection indicator (default: white)
-   */
+  //Show the selection indicator at a specific grid position
   showSelectionAt(x: number, y: number, color?: number): void {
     this.updateSelectionIndicator(true, x, y, color);
   }
   
-  /**
-   * Show a red selection indicator at a specific grid position
-   * @param x Grid X position
-   * @param y Grid Y position
-   */
+  // Show a red selection indicator at a specific grid position
   showRedSelectionAt(x: number, y: number): void {
-    // Use a red color (0xFF0000)
     this.showSelectionAt(x, y, 0xFF0000);
   }
   
-  /**
-   * Hide the selection indicator
-   */
+  //Hide the selection indicator
   hideSelection(): void {
     this.updateSelectionIndicator(false);
   }
   
-  /**
-   * Get the currently hovered grid position
-   * @returns The hovered grid coordinates or null if none
-   */
+  //Get the currently hovered grid position
   getHoveredPosition(): { x: number, y: number } | null {
     return this.hoveredGridPosition;
   }
   
-  /**
-   * Clean up resources when destroying this renderer
-   */
+  //Clean up resources when destroying this renderer
   override destroy(): void {
     super.destroy();
     
