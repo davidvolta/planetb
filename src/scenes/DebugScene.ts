@@ -3,9 +3,6 @@ import BoardScene from "./BoardScene";
 
 export default class DebugScene extends Phaser.Scene {
   private fpsText!: Phaser.GameObjects.Text;
-  // private mousePositionText!: Phaser.GameObjects.Text;
-  // private gridCoordinatesText!: Phaser.GameObjects.Text;
-  // private terrainTypeText!: Phaser.GameObjects.Text;
   private boardScene: BoardScene | null = null;
   private fowCheckbox!: Phaser.GameObjects.Container;
   private fowCheckboxText!: Phaser.GameObjects.Text;
@@ -53,16 +50,9 @@ export default class DebugScene extends Phaser.Scene {
     // Listen for resize events to reposition the debug elements
     this.scale.on('resize', this.handleResize, this);
     
-    /* 
-    // Commented out UI elements...
-    */
   }
 
-  /**
-   * Create a FOW toggle checkbox
-   * @param x X position
-   * @param y Y position
-   */
+  // Create a FOW toggle checkbox
   private createFowCheckbox(x: number, y: number): void {
     // Create container for the checkbox and label
     this.fowCheckbox = this.add.container(x, y);
@@ -103,9 +93,7 @@ export default class DebugScene extends Phaser.Scene {
     this.fowCheckboxText.on('pointerdown', this.toggleFow, this);
   }
   
-  /**
-   * Toggle fog of war state
-   */
+  // Toggle fog of war state
   private toggleFow(): void {
     this.fowEnabled = !this.fowEnabled;
     this.fowCheckboxInner.setVisible(this.fowEnabled);
@@ -119,38 +107,6 @@ export default class DebugScene extends Phaser.Scene {
   update() {
     const fps = this.game.loop.actualFps.toFixed(1);
     this.fpsText.setText(`FPS: ${fps}`);
-    
-    /*
-    // Update mouse position (screen coordinates)
-    const pointer = this.input.activePointer;
-    this.mousePositionText.setText(`Mouse: X: ${Math.floor(pointer.x)}, Y: ${Math.floor(pointer.y)}`);
-    */
-    
-    /*
-    // Update grid coordinates if board scene is available
-    if (this.boardScene && this.boardScene.scene.isActive()) {
-      const hoveredPosition = this.boardScene.getHoveredGridPosition();
-      
-      if (hoveredPosition) {
-        // Show grid coordinates
-        this.gridCoordinatesText.setText(`Grid: X: ${hoveredPosition.x}, Y: ${hoveredPosition.y}`);
-        
-        /* 
-        // Show terrain type
-        const terrain = this.boardScene.getTerrainAtPosition(hoveredPosition.x, hoveredPosition.y);
-        if (terrain) {
-          this.terrainTypeText.setText(`Terrain: ${terrain}`);
-        } else {
-          this.terrainTypeText.setText(`Terrain: --`);
-        }
-        *//*
-      } else {
-        // Show placeholder when not hovering a valid tile
-        this.gridCoordinatesText.setText(`Grid: X: --, Y: --`);
-        // this.terrainTypeText.setText(`Terrain: --`);
-      }
-    }
-    */
   }
 
   // Handle window resize

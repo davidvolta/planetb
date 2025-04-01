@@ -123,9 +123,6 @@ export default class UIScene extends Phaser.Scene {
     // Add to container
     this.nextTurnButton.add(buttonBg);
     this.nextTurnButton.add(buttonText);
-    
-    // Position the button below the turn indicator and center horizontally
-    // Background width is 200, button width is 150, so position at (25, 60) to center
     this.nextTurnButton.setPosition(25, 60);
     
     // Add to main container
@@ -264,9 +261,7 @@ export default class UIScene extends Phaser.Scene {
     this.container.setPosition(padding, padding);
   }
 
-  /**
-   * Clean up when scene is shut down
-   */
+  // Clean up when scene is shut down
   shutdown() {
     // Clean up any resources
     if (this.container) {
