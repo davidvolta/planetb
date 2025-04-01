@@ -23,7 +23,6 @@ export const EVENTS = {
 };
 
 // Delegate functionality to managers and ensure proper lifecycle management
-
 export default class BoardScene extends Phaser.Scene {
   // Keep the tiles array for compatibility with existing code
   private tiles: Phaser.GameObjects.GameObject[] = [];
@@ -35,9 +34,6 @@ export default class BoardScene extends Phaser.Scene {
   // Store fixed anchor positions for the grid
   private anchorX = 0; 
   private anchorY = 0;
-  
-  // Layer management
-  private layerManager: LayerManager;
   
   // Renderers
   private tileRenderer: TileRenderer;
@@ -55,6 +51,7 @@ export default class BoardScene extends Phaser.Scene {
   private fogOfWarEnabled = true;
   
   // Managers and controllers
+  private layerManager: LayerManager;
   private inputManager: InputManager;
   private animationController: AnimationController;
   private cameraManager: CameraManager;
@@ -92,54 +89,37 @@ export default class BoardScene extends Phaser.Scene {
     );
   }
 
-  /**
-   * Preload assets needed for the scene
-   */
+  // Preload assets needed for the scene
   preload() {
     // Load all animal sprites
-    this.load.image("egg", "assets/egg.png");      // Dormant state for all animals
+    this.load.image("egg", "assets/egg.png");  
     this.load.image("buffalo", "assets/buffalo.png");
-    this.load.image("bird", "assets/bird.png");    // For mountain habitats
+    this.load.image("bird", "assets/bird.png"); 
     this.load.image("snake", "assets/snake.png");
     this.load.image("octopus", "assets/octopus.png");
     this.load.image("turtle", "assets/turtle.png");
-    
-    // Load the selection indicator asset
-    this.load.image("selector", "assets/selector.png");
 
     this.load.on('complete', () => {
       this.events.emit(EVENTS.ASSETS_LOADED);
     });
   }
   
-  /**
-   * Initialize the scene
-   * @param data Optional data passed to the scene
-   */
+  // Initialize the scene
   init(data?: any) {
     console.log("BoardScene init() called", data ? `with data: ${JSON.stringify(data)}` : "without data");
     
-    // Clear previous tiles array
-    this.tiles = [];
-    
-    // Ensure all old subscriptions are cleaned up before creating new ones
-    this.unsubscribeAll();
+    this.tiles = [];    // Clear previous tiles array
+    this.unsubscribeAll();  // Ensure all old subscriptions are cleaned up before creating new ones
     
     // Reset setup flags
     this.subscriptionsSetup = false;
     this.controlsSetup = false;
     
-    // Set up layers FIRST
-    this.layerManager.setupLayers();
-    
-    // THEN initialize managers and renderers
-    this.initializeManagers();
+    this.layerManager.setupLayers(); // Set up layers FIRST
+    this.initializeManagers(); // THEN initialize managers and renderers
   }
   
-  /**
-   * Initialize all managers with current settings
-   * This centralizes all manager initialization in one place
-   */
+  //Initialize all managers with current settings
   private initializeManagers(): void {
     // Set anchor points for coordinate system
     const anchorX = this.cameras.main.width / 2;
@@ -162,28 +142,18 @@ export default class BoardScene extends Phaser.Scene {
     this.animationController.initialize(anchorX, anchorY);
   }
   
-  /**
-   * Create and set up the scene
-   */
+  // Create and set up the scene
   create() {
     console.log("BoardScene create() called", this.scene.key);
     
-    // Initialize camera manager
-    this.cameraManager.initialize();
-    
-    // Set up input handlers
-    this.setupInputHandlers();
-    
-    // Get board data
-    const board = actions.getBoard();
+    this.cameraManager.initialize();   // Initialize camera manager
+    this.setupInputHandlers();  // Set up input handlers
+    const board = actions.getBoard(); // Get board data
     
     // If we have board data, create the board
     if (board) {
-      // Create board tiles
-      this.createTiles();
-      
-      // Set up state subscriptions
-      this.setupSubscriptions();
+      this.createTiles();    // Create board tiles    
+      this.setupSubscriptions();   // Set up state subscriptions
       
       // Center camera on player's first unit
       this.cameraManager.centerCameraOnPlayerUnit(
@@ -195,25 +165,19 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
   
-  /**
-   * Set up all state subscriptions
-   */
+  // Set up all state subscriptions
   private setupSubscriptions() {
     // Use the StateSubscriptionManager to set up subscriptions
     this.subscriptionManager.setupSubscriptions(
       (animalId, gridX, gridY) => this.handleUnitSelection(animalId)
     );
-    
-    // Mark subscriptions as set up
-    this.subscriptionsSetup = true;
+
+    this.subscriptionsSetup = true;     // Mark subscriptions as set up
   }
   
-  /**
-   * Clean up all subscriptions to prevent memory leaks
-   */
+  // Clean up all subscriptions to prevent memory leak
   private unsubscribeAll() {
-    // Use the StateSubscriptionManager to unsubscribe
-    this.subscriptionManager.unsubscribeAll();
+    this.subscriptionManager.unsubscribeAll();   // Use the StateSubscriptionManager to unsubscribe
     
     // Also unsubscribe any lingering direct subscriptions by key prefix
     const boardScenePrefix = 'BoardScene.';
@@ -224,39 +188,23 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  /**
-   * Update the board without restarting the scene
-   */
+  // Update the board without restarting the scene
   updateBoard() {
-    // Check if we need to setup the layers
-    const needsSetup = !this.layerManager.isLayersSetup();
+    const needsSetup = !this.layerManager.isLayersSetup();     // Check if we need to setup the layers
     
     // Set up layers if needed
     if (needsSetup) {
       this.layerManager.setupLayers();
     }
-    
-    // Create new tiles using TileRenderer
-    this.createTiles();
-    
-    console.log("Board updated with layer-based structure");
+  
+    this.createTiles();     // Create new tiles using TileRenderer
   }
   
-  /**
-   * Scene shutdown handler
-   * Cleans up resources and event listeners
-   */
+  // Scene shutdown handler
   shutdown() {
-    console.log("BoardScene shutdown() called");
     
-    // Clean up subscriptions
-    this.unsubscribeAll();
-    
-    // Clean up layers
-    this.layerManager.clearAllLayers(true);
-    
-    // Clean up input handlers
-    this.input.removeAllListeners();
+    this.unsubscribeAll();    // Clean up subscriptions    
+    this.input.removeAllListeners(); // Clean up input handlers
     
     // Clean up renderers
     this.tileRenderer.destroy();
@@ -267,6 +215,7 @@ export default class BoardScene extends Phaser.Scene {
     this.fogOfWarRenderer.destroy();
     
     // Clean up managers
+    this.layerManager.clearAllLayers(true);
     this.inputManager.destroy();
     this.cameraManager.destroy();
     this.animationController.destroy();
@@ -278,9 +227,7 @@ export default class BoardScene extends Phaser.Scene {
     this.subscriptionsSetup = false;
   }
   
-  /**
-   * Create tiles for the board
-   */
+  // Create tiles for the board
   private createTiles() {
     // Get board data using actions
     const board = actions.getBoard();
@@ -332,10 +279,7 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Handle tile clicks
-   * @param clickedObject The clicked game object
-   */
+  // Handle tile clicks
   private handleTileClick(clickedObject: Phaser.GameObjects.GameObject) {
     // Get stored grid coordinates from the object
     const gridX = clickedObject.getData('gridX');
@@ -475,17 +419,12 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.clearMoveHighlights();
   }
 
-  /**
-   * Clear all move highlights
-   */
+  // Clear all move highlights
   clearMoveHighlights() {
-    // Delegate to the move range renderer
-    this.moveRangeRenderer.clearMoveHighlights();
+    this.moveRangeRenderer.clearMoveHighlights();     // Delegate to the move range renderer
   }
 
-  /**
-   * Start movement animation of a unit
-   */
+  // Start movement animation of a unit
   private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
     // Find the unit sprite in the units layer
     let unitSprite: Phaser.GameObjects.Sprite | null = null;
@@ -542,9 +481,7 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  /**
-   * Handle unit spawned events
-   */
+  // Handle unit spawned events
   private handleUnitSpawned() {
     console.log('Unit spawned, updating UI');
     
@@ -556,11 +493,7 @@ export default class BoardScene extends Phaser.Scene {
     actions.clearSpawnEvent();
   }
 
-  /**
-   * Handle unit selection
-   * @param unitId Unit ID to select, or null to deselect
-   * @param position Optional grid position for selection indicator
-   */
+  // Handle unit selection
   private handleUnitSelection(unitId: string | null, showSelectionAt?: { x: number, y: number }) {
     // Select or deselect the unit in store
     actions.selectUnit(unitId);
@@ -574,11 +507,7 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Check what entities exist at specific coordinates
-   * @param x Grid X coordinate
-   * @param y Grid Y coordinate
-   */
+  // Check what entities exist at specific coordinates
   private checkTileContents(x: number, y: number) {
     // Get all animals and habitats
     const animals = actions.getAnimals();
@@ -611,9 +540,7 @@ export default class BoardScene extends Phaser.Scene {
     };
   }
 
-  /**
-   * Update method called each frame
-   */
+  // Update method called each frame
   update() {
     // Let the selection renderer handle hover updates
     const pointer = this.input.activePointer;
@@ -629,9 +556,7 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Set up input handlers for clicks and keyboard
-   */
+  // Set up input handlers for clicks and keyboard
   private setupInputHandlers(): void {
     // Initialize input manager with current anchor values
     this.inputManager.initialize(this.anchorX, this.anchorY);
@@ -693,29 +618,17 @@ export default class BoardScene extends Phaser.Scene {
     return this.animationController;
   }
 
-  /**
-   * Get the current input mode
-   */
+  //et the current input mode
   isInMoveMode(): boolean {
     return actions.isMoveMode();
   }
   
-  /**
-   * Check if the game is initialized
-   */
+  // Check if the game is initialized
   isGameInitialized(): boolean {
     return actions.isInitialized();
   }
 
-  /**
-   * Handle displacement events for animals
-   * This is called by the StateSubscriptionManager when a displacement event occurs
-   * @param unitId ID of the unit to displace
-   * @param fromX Starting X position
-   * @param fromY Starting Y position
-   * @param toX Destination X position
-   * @param toY Destination Y position
-   */
+  // Handle displacement events for animals
   handleDisplacementEvent(unitId: string, fromX: number, fromY: number, toX: number, toY: number): void {
     console.log(`Handling displacement for unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
@@ -771,9 +684,7 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  /**
-   * Initialize visibility for starting units and habitats
-   */
+  // Initialize visibility for starting units and habitats
   private initializeVisibility(): void {
     const board = actions.getBoard();
     if (!board) return;
@@ -821,20 +732,12 @@ export default class BoardScene extends Phaser.Scene {
     this.fogOfWarRenderer.revealTiles(uniqueTiles);
   }
   
-  /**
-   * Update a tile's visibility in the game state
-   * @param x X coordinate of the tile
-   * @param y Y coordinate of the tile
-   * @param visible Whether the tile should be visible
-   */
+  // Update a tile's visibility in the game state
   private updateTileVisibility(x: number, y: number, visible: boolean): void {
     actions.updateTileVisibility(x, y, visible);
   }
   
-  /**
-   * Toggle fog of war on/off
-   * @param enabled Whether fog of war should be enabled
-   */
+  // Toggle fog of war on/off
   public toggleFogOfWar(enabled: boolean): void {
     this.fogOfWarEnabled = enabled;
     
@@ -879,20 +782,12 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
   
-  /**
-   * Get the fog of war renderer
-   * @returns The fog of war renderer
-   */
+  // Get the fog of war renderer
   public getFogOfWarRenderer(): FogOfWarRenderer {
     return this.fogOfWarRenderer;
   }
 
-  /**
-   * Update visibility of objects at a specific tile location
-   * @param x X coordinate of the tile
-   * @param y Y coordinate of the tile
-   * @param isVisible Whether objects should be visible
-   */
+  // Update visibility of objects at a specific tile location
   private updateObjectVisibility(x: number, y: number, isVisible: boolean): void {
     // Update terrain tile visibility
     const terrainLayer = this.layerManager.getTerrainLayer();
