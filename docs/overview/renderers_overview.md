@@ -31,8 +31,12 @@ class TileRenderer extends BaseRenderer {
   
   initialize(anchorX: number, anchorY: number): void;
   createBoardTiles(board: { width: number, height: number, tiles: any[][] }, centerX?: number, centerY?: number): Phaser.GameObjects.GameObject[];
-  clearTiles(destroyChildren?: boolean): void;
+  updateTiles(board: { width: number, height: number, tiles: any[][] }): void;
+  clearTiles(destroy?: boolean): void;
   setupTileInteraction(tile: Phaser.GameObjects.Graphics, gridX: number, gridY: number): void;
+  getTiles(): Phaser.GameObjects.GameObject[];
+  getTileSize(): { tileSize: number, tileHeight: number };
+  getAnchorPosition(): { anchorX: number, anchorY: number };
   
   override destroy(): void;
 }
@@ -42,6 +46,8 @@ class TileRenderer extends BaseRenderer {
 - Creating visual representations of different terrain types
 - Rendering the complete game board based on terrain data
 - Managing tile interactivity and event delegation
+- Updating tiles when the board state changes
+- Providing access to the tile collection and properties
 - Properly cleaning up resources
 
 ## SelectionRenderer
@@ -54,9 +60,13 @@ class SelectionRenderer extends BaseRenderer {
   constructor(scene: Phaser.Scene, layerManager: LayerManager, tileSize: number, tileHeight: number);
   
   initialize(anchorX: number, anchorY: number): void;
-  showSelectionAt(x: number, y: number): void;
+  showSelectionAt(x: number, y: number, color?: number): void;
+  showRedSelectionAt(x: number, y: number): void;
   hideSelection(): void;
+  updateSelectionIndicator(shouldShow: boolean, x?: number, y?: number, color?: number): void;
+  updateHoverIndicator(shouldShow: boolean, x?: number, y?: number): void;
   updateFromPointer(pointer: Phaser.Input.Pointer, boardWidth: number, boardHeight: number): void;
+  getHoveredPosition(): { x: number, y: number } | null;
   
   override destroy(): void;
 }
@@ -67,6 +77,8 @@ class SelectionRenderer extends BaseRenderer {
 - Showing/hiding selection based on game state
 - Handling hover effects for interactive elements
 - Providing visual feedback for user interactions
+- Supporting different colors for selections
+- Tracking currently hovered grid position
 
 ## MoveRangeRenderer
 
@@ -92,6 +104,8 @@ class MoveRangeRenderer extends BaseRenderer {
 - Showing/hiding movement range based on selected unit
 - Checking if a position is a valid move target
 - Managing the lifecycle of movement highlight objects
+- Providing scaled diamond highlights for move targets
+- Supporting efficient retrieval of move range state
 
 ## HabitatRenderer
 
@@ -107,11 +121,6 @@ class HabitatRenderer extends BaseRenderer {
   createHabitatGraphic(x: number, y: number, state: HabitatState): Phaser.GameObjects.Container;
   clearHabitats(): void;
   
-  // State diffing methods
-  addHabitat(habitat: Habitat): void;
-  updateHabitat(habitat: Habitat): void;
-  removeHabitat(habitatId: string): void;
-  
   override destroy(): void;
 }
 ```
@@ -120,7 +129,38 @@ class HabitatRenderer extends BaseRenderer {
 - Creating visual representations of different habitat types
 - Rendering habitats based on their state (potential, improved, etc.)
 - Efficiently adding, updating, and removing habitats
-- Supporting state diffing for optimized rendering
+- Supporting state-specific visual effects (pulsing for unimproved habitats)
+- Managing proper depth in the isometric view
+- Cleaning up habitat graphics when no longer needed
+
+## FogOfWarRenderer
+
+Manages the fog of war system that obscures unexplored areas of the game board.
+
+**API:**
+```typescript
+class FogOfWarRenderer extends BaseRenderer {
+  constructor(scene: Phaser.Scene, layerManager: LayerManager, tileSize: number, tileHeight: number);
+  
+  setTileVisibilityCallback(callback: (x: number, y: number, isVisible: boolean) => void): void;
+  createFogTile(gridX: number, gridY: number): Phaser.GameObjects.Graphics;
+  revealTile(gridX: number, gridY: number): void;
+  revealTiles(tiles: { x: number, y: number }[]): void;
+  createFogOfWar(board: { width: number, height: number }): void;
+  clearFogOfWar(): void;
+  isTileFogged(gridX: number, gridY: number): boolean;
+  
+  override destroy(): void;
+}
+```
+
+**Responsibilities:**
+- Creating and managing fog tiles that obscure unexplored areas
+- Animating the reveal of tiles as they are discovered
+- Managing visibility callbacks to update game state
+- Tracking the fog state of individual tiles
+- Supporting batch operations for efficient revealing of multiple tiles
+- Providing toggle functionality for enabling/disabling fog of war
 
 ## AnimalRenderer
 
@@ -135,6 +175,7 @@ class AnimalRenderer extends BaseRenderer {
   renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void;
   animateUnit(unitId: string, fromX: number, fromY: number, toX: number, toY: number, options?: any): Promise<void>;
   updateSpriteDepth(sprite: Phaser.GameObjects.Sprite, gridX: number, gridY: number, isActive: boolean): void;
+  updateSpriteInteractivity(sprite: Phaser.GameObjects.Sprite, animal: Animal): void;
   
   // State diffing methods
   addAnimal(animal: Animal): void;
@@ -148,6 +189,9 @@ class AnimalRenderer extends BaseRenderer {
 **Responsibilities:**
 - Creating and managing sprites for different animal types
 - Handling unit state visualization (active, dormant, moved)
-- Managing sprite depth for proper layering
+- Managing sprite depth for proper isometric layering 
 - Supporting efficient state diffing for optimized rendering
-- Managing unit interactivity and click handling 
+- Managing unit interactivity and click handling
+- Animating unit movement with proper depth transitions
+- Applying visual indicators for unit state (tinting for moved units)
+- Rendering proper textures based on animal state (egg vs active) 

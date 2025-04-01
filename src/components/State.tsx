@@ -176,6 +176,7 @@ const State: React.FC = () => {
                     <div style={styles.item}>board</div>
                     <div style={styles.item}>animals</div>
                     <div style={styles.item}>habitats</div>
+                    <div style={styles.item}>fogOfWarState</div>
                   </div>
                 </div>
                 <div style={styles.component}>
@@ -184,6 +185,7 @@ const State: React.FC = () => {
                     <div style={styles.item}>players</div>
                     <div style={styles.item}>currentPlayerId</div>
                     <div style={styles.item}>selectedUnitId</div>
+                    <div style={styles.item}>selectedHabitatId</div>
                   </div>
                 </div>
               </div>
@@ -201,6 +203,10 @@ const State: React.FC = () => {
                     <div style={styles.item}>habitats</div>
                     <div style={styles.item}>validMoves</div>
                     <div style={styles.item}>moveMode</div>
+                    <div style={styles.item}>fogOfWarEnabled</div>
+                    <div style={styles.item}>visibleTiles</div>
+                    <div style={styles.item}>displacementEvents</div>
+                    <div style={styles.item}>spawnEvents</div>
                   </div>
                 </div>
               </div>
@@ -221,28 +227,42 @@ const State: React.FC = () => {
                   <div style={styles.item}>currentPlayerId: number</div>
                   <div style={styles.item}>animals: Animal[]</div>
                   <div style={styles.item}>habitats: Habitat[]</div>
+                  <div style={styles.item}>isInitialized: boolean</div>
                   <div style={styles.item}>selectedUnitId: string | null</div>
+                  <div style={styles.item}>selectedUnitIsDormant: boolean</div>
+                  <div style={styles.item}>selectedHabitatId: string | null</div>
+                  <div style={styles.item}>selectedHabitatIsPotential: boolean</div>
                   <div style={styles.item}>validMoves: ValidMove[]</div>
                   <div style={styles.item}>moveMode: boolean</div>
+                  <div style={styles.item}>displacementEvent: object</div>
+                  <div style={styles.item}>spawnEvent: object</div>
+                  <div style={styles.item}>habitatImproveEvent: object</div>
                 </div>
               </div>
               <div style={styles.component}>
                 <div style={styles.title as any}>Board State</div>
                 <div style={styles.itemsList as any}>
                   <div style={styles.item}>board: {"{width, height, tiles: Tile[][]}"}</div>
+                  <div style={styles.item}>tiles: {"{coordinate, terrain, explored, visible}"}</div>
                 </div>
               </div>
               <div style={styles.component}>
                 <div style={styles.title as any}>Actions</div>
                 <div style={styles.itemsList as any}>
                   <div style={styles.item}>nextTurn()</div>
+                  <div style={styles.item}>addPlayer()</div>
+                  <div style={styles.item}>setActivePlayer()</div>
                   <div style={styles.item}>initializeBoard()</div>
                   <div style={styles.item}>selectUnit()</div>
                   <div style={styles.item}>deselectUnit()</div>
                   <div style={styles.item}>moveUnit()</div>
+                  <div style={styles.item}>moveDisplacedUnit()</div>
                   <div style={styles.item}>resetMovementFlags()</div>
                   <div style={styles.item}>evolveAnimal()</div>
+                  <div style={styles.item}>selectHabitat()</div>
                   <div style={styles.item}>improveHabitat()</div>
+                  <div style={styles.item}>updateTileVisibility()</div>
+                  <div style={styles.item}>getValidMoves()</div>
                 </div>
               </div>
             </div>

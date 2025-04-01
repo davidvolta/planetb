@@ -845,8 +845,27 @@ export default class BoardScene extends Phaser.Scene {
     if (enabled) {
       // Re-enable fog of war
       this.fogOfWarRenderer.createFogOfWar(board);
-      this.initializeVisibility();
-      // Note: Object visibility is handled by the callback we set in createTiles
+      
+      // Collect all previously explored tiles
+      const exploredTiles: { x: number, y: number }[] = [];
+      for (let y = 0; y < board.height; y++) {
+        for (let x = 0; x < board.width; x++) {
+          const tile = board.tiles[y][x];
+          if (tile.explored) {
+            exploredTiles.push({ x, y });
+            // Update object visibility for this tile
+            this.updateObjectVisibility(x, y, true);
+          } else {
+            // Hide objects at unexplored tiles
+            this.updateObjectVisibility(x, y, false);
+          }
+        }
+      }
+      
+      // Reveal all explored tiles in one batch operation
+      if (exploredTiles.length > 0) {
+        this.fogOfWarRenderer.revealTiles(exploredTiles);
+      }
     } else {
       // Disable fog of war by clearing all fog tiles
       this.fogOfWarRenderer.clearFogOfWar();
