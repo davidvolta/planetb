@@ -101,8 +101,8 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("buffalo", "assets/buffalo.png");
     this.load.image("bird", "assets/bird.png");    // For mountain habitats
     this.load.image("bunny", "assets/bunny.png");
-    this.load.image("snake", "assets/snake.png");
-    this.load.image("fish", "assets/fish.png");
+    this.load.image("octopus", "assets/octopus.png");
+    this.load.image("turtle", "assets/turtle.png");
     
     // Load the selection indicator asset
     this.load.image("selector", "assets/selector.png");

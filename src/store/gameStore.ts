@@ -21,8 +21,8 @@ export enum TerrainType {
 const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
   [TerrainType.GRASS]: 'buffalo',
   [TerrainType.MOUNTAIN]: 'bird',
-  [TerrainType.WATER]: 'fish',
-  [TerrainType.UNDERWATER]: 'snake',
+  [TerrainType.WATER]: 'turtle',
+  [TerrainType.UNDERWATER]: 'octopus',
   [TerrainType.BEACH]: 'bunny', // Default to bunny for beach
 };
 
@@ -30,8 +30,8 @@ const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
 const MOVEMENT_RANGE_BY_TYPE: Record<string, number> = {
   'buffalo': 1,  // Buffalo are strong but slower
   'bird': 1,     // Birds have highest mobility
-  'fish': 1,     // Fish are fast in water
-  'snake': 1,    // Snakes are slower
+  'turtle': 1,     // Turtles are fast in water
+  'octopus': 1,    // Octopuses are slower
   'bunny': 1     // Bunnies are quick
 };
 
