@@ -242,48 +242,6 @@ export default class BoardScene extends Phaser.Scene {
     console.log("Board updated with layer-based structure");
   }
   
-
-  /**
-   * Render animals using AnimalRenderer
-   * @param animals Animals to render
-   */
-  renderAnimalSprites(animals: Animal[]) {
-    // Delegate to the AnimalRenderer, providing a callback for handling unit clicks
-    this.animalRenderer.renderAnimals(animals, (animalId, gridX, gridY) => {
-      console.log(`Animal clicked: ${animalId} at ${gridX},${gridY}`);
-            
-      // Handle active unit click - select for movement
-      const selectedUnitId = actions.getSelectedUnitId();
-      
-      if (selectedUnitId && actions.isMoveMode()) {
-        // If we already have a unit selected, check if this is a valid move target
-        const validMoves = actions.getValidMoves();
-        const canMoveHere = validMoves.some(move => move.x === gridX && move.y === gridY);
-        
-        if (canMoveHere) {
-          // Get current position of selected unit
-          const selectedUnit = actions.getAnimals().find(a => a.id === selectedUnitId);
-          if (selectedUnit) {
-            // Start movement animation
-            this.startUnitMovement(
-              selectedUnitId, 
-              selectedUnit.position.x, 
-              selectedUnit.position.y, 
-              gridX, 
-              gridY
-            );
-          }
-        } else {
-          // Not a valid move target, select this unit instead
-          this.handleUnitSelection(animalId);
-        }
-      } else {
-        // No unit selected, select this one
-        this.handleUnitSelection(animalId);
-      }
-    });
-  }
-  
   /**
    * Scene shutdown handler
    * Cleans up resources and event listeners
@@ -509,6 +467,9 @@ export default class BoardScene extends Phaser.Scene {
     
     // If we clicked on an empty tile, deselect any selected unit
     this.handleUnitSelection(null);
+    
+    // Deselect any selected habitat
+    actions.selectHabitat(null);
     
     // Hide valid moves - clear the move highlights
     this.moveRangeRenderer.clearMoveHighlights();

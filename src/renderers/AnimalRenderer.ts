@@ -129,14 +129,6 @@ export class AnimalRenderer extends BaseRenderer {
         // Handle interactivity based on state
         this.updateSpriteInteractivity(animalSprite, animal);
         
-        // Only add click handler for active units
-        if (animal.state === AnimalState.ACTIVE && !animal.hasMoved && onUnitClicked) {
-          animalSprite.on('pointerdown', () => {
-            console.log(`Animal clicked: ${animal.id} at ${gridX},${gridY}`);
-            onUnitClicked(animal.id, gridX, gridY);
-          });
-        }
-        
         // Add the new sprite to the units layer
         this.layerManager.addToLayer('units', animalSprite);
       }
@@ -156,21 +148,17 @@ export class AnimalRenderer extends BaseRenderer {
    * @param animal The animal data
    */
   private updateSpriteInteractivity(sprite: Phaser.GameObjects.Sprite, animal: Animal): void {
+    // Always disable interactivity for all units, regardless of state
+    sprite.disableInteractive();
+    
+    // Still apply visual indicators based on state
     if (animal.state === AnimalState.DORMANT) {
-      // ALWAYS disable interactivity for dormant units (eggs)
-      sprite.disableInteractive();
       sprite.clearTint(); // Make sure eggs are not tinted
     } else if (animal.state === AnimalState.ACTIVE) {
       if (animal.hasMoved) {
-        // Ensure interactivity is disabled for moved units
-        sprite.disableInteractive();
-        
         // Make sure the tint is applied
         sprite.setTint(0xAAAAAA);
       } else {
-        // Re-enable interactivity for units that can move
-        sprite.setInteractive({ pixelPerfect: true, alphaTolerance: 128 });
-        
         // Clear any tint
         sprite.clearTint();
       }
