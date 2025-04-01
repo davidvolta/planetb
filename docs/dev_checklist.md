@@ -1,32 +1,32 @@
 # Development Checklist
 
-## Project Context
-- Project Name: Planet B
-- Description: A unique turn-based 4x ecological strategy game that dispenses with traditional mechanics and power structures. Planet B models nature and population dynamics to create gameplay that asks the user to balance their growth and exploitation with the world's natural rates of production. 
-
-## Environment Setup
-- Node.js environment
-- React + Vite
-- TypeScript
-- Zustand + immer for game state management
-- Phaser as our game engine
-
-## Current Focus:
-
-# Upcoming Tasks
+## Upcoming Tasks
 - [ ] Fog of War Fixes
   - [ ] Document Fog of War!
   - [ ] Fix the FOW checkbox to retain state
   - [ ] Track visibility changes for fog of war state / generally connect it to zustand
-  - [ ] I think I lost my optimizations for fog of war where we hide objects/units/tiles cause i can see eggs peaking out of the edge of the board.
 
-- [ ] Move Unit range to a new kind of structure where each animal has its abilities stored
 
-# Playable Game
+- [ ] Animal Movement Abilities System
+  - [x] Phase 1: Core Structure
+    - [x] Create Animal Abilities interface (moveRange and compatibleTerrains)
+    - [x] Establish Species Registry with abilities for each animal type
+    - [x] Update Animal interface (rename type to species)
+    - [x] Create utility functions to access species abilities
+  - [x] Phase 2: Implementation
+    - [x] Update all references from animal.type to animal.species
+    - [x] Refactor movement calculation to check terrain compatibility
+    - [x] Update displacement logic to respect terrain restrictions
+  - [x] Phase 3: Habitat Integration
+    - [x] Update habitat spawning to use terrain-compatible species
+    - [x] Ensure compatibility with existing sprite system
+    - [ ] Test all animal/terrain combinations
+  - [ ] Phase 4: Polish
+    - [x] Fix AnimalRenderer to use species for sprite textures
+    - [ ] Documentation and code cleanup
+
+## Playable Game Tasks
 - [ ] Do not let players spawn units from habitats they do not own (during multiplayer)
 - [ ] Fix habitat/unit bug
 - [ ] Limit player movement to only those biomes they are allowed in
 - [ ] Players can only improve habitat on their next turn and that ends their turn
-- [ ] Get the correct isometric units (fish, octopus, bird, turtle, egg)
-- [ ] Fix bug that produces a ton of eggs on the newly owned habitat
-- [ ] Make sure habitats are not produced on the very edge of the board

@@ -85,7 +85,7 @@ export class AnimalRenderer extends BaseRenderer {
       const worldY = worldPosition.y + this.verticalOffset;
       
       // Determine the texture based on animal state
-      const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.type;
+      const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.species;
       
       // Determine if the unit is active (for depth calculation)
       const isActive = animal.state === AnimalState.ACTIVE;
@@ -122,7 +122,7 @@ export class AnimalRenderer extends BaseRenderer {
         
         // Store the animal ID and type on the sprite
         animalSprite.setData('animalId', animal.id);
-        animalSprite.setData('animalType', animal.type);
+        animalSprite.setData('animalType', animal.species);
         animalSprite.setData('gridX', gridX);
         animalSprite.setData('gridY', gridY);
         

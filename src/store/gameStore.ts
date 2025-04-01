@@ -17,23 +17,83 @@ export enum TerrainType {
   UNDERWATER = 'underwater',
 }
 
-// Map terrain types to animal types
+// Define the core interface for animal abilities
+export interface AnimalAbilities {
+  moveRange: number;
+  compatibleTerrains: TerrainType[];
+  // Extensible for future abilities
+}
+
+// Create the species registry with abilities for each animal type - THESE KEYS MUST MATCH SPRITE NAMES
+export const SPECIES_REGISTRY: Record<string, AnimalAbilities> = {
+  'buffalo': {
+    moveRange: 1,
+    compatibleTerrains: [TerrainType.GRASS, TerrainType.MOUNTAIN]
+  },
+  'bird': {
+    moveRange: 4,
+    compatibleTerrains: [TerrainType.MOUNTAIN, TerrainType.GRASS, TerrainType.BEACH, TerrainType.WATER, TerrainType.UNDERWATER]
+  },
+  'snake': {
+    moveRange: 2,
+    compatibleTerrains: [TerrainType.BEACH, TerrainType.GRASS]
+  },
+  'octopus': {
+    moveRange: 3,
+    compatibleTerrains: [TerrainType.UNDERWATER, TerrainType.WATER]
+  },
+  'turtle': {
+    moveRange: 1,
+    compatibleTerrains: [TerrainType.WATER, TerrainType.BEACH, TerrainType.UNDERWATER]
+  }
+};
+
+// Map terrain types to animal types - KEEP THIS FOR COMPATIBILITY WITH SPRITE SYSTEM
 const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
   [TerrainType.GRASS]: 'buffalo',
   [TerrainType.MOUNTAIN]: 'bird',
   [TerrainType.WATER]: 'turtle',
   [TerrainType.UNDERWATER]: 'octopus',
-  [TerrainType.BEACH]: 'bunny', // Default to bunny for beach
+  [TerrainType.BEACH]: 'snake',
 };
 
-// Movement range for each animal type
-const MOVEMENT_RANGE_BY_TYPE: Record<string, number> = {
-  'buffalo': 1,  // Buffalo are strong but slower
-  'bird': 1,     // Birds have highest mobility
-  'turtle': 1,     // Turtles are fast in water
-  'octopus': 1,    // Octopuses are slower
-  'bunny': 1     // Bunnies are quick
+// Default abilities for fallback
+const DEFAULT_ABILITIES: AnimalAbilities = {
+  moveRange: 1,
+  compatibleTerrains: [TerrainType.GRASS]
 };
+
+// Helper functions to access species abilities
+export function getSpeciesAbilities(species: string): AnimalAbilities {
+  return SPECIES_REGISTRY[species] || DEFAULT_ABILITIES;
+}
+
+export function isTerrainCompatible(species: string, terrain: TerrainType): boolean {
+  const abilities = getSpeciesAbilities(species);
+  return abilities.compatibleTerrains.includes(terrain);
+}
+
+export function getSpeciesMoveRange(species: string): number {
+  return getSpeciesAbilities(species).moveRange;
+}
+
+// Get all species compatible with a given terrain type
+export function getCompatibleSpeciesForTerrain(terrain: TerrainType): string[] {
+  return Object.entries(SPECIES_REGISTRY)
+    .filter(([_, abilities]) => abilities.compatibleTerrains.includes(terrain))
+    .map(([species, _]) => species);
+}
+
+// Function to randomly select a compatible species for a terrain
+export function getRandomCompatibleSpecies(terrain: TerrainType): string {
+  const compatibleSpecies = getCompatibleSpeciesForTerrain(terrain);
+  if (compatibleSpecies.length === 0) {
+    console.warn(`No compatible species found for terrain ${terrain}`);
+    return 'snake'; // Default fallback
+  }
+  const randomIndex = Math.floor(Math.random() * compatibleSpecies.length);
+  return compatibleSpecies[randomIndex];
+}
 
 // Order of terrain types for habitat placement
 // Start with beaches, then move inward (grass, mountain), then outward (water, underwater)
@@ -88,7 +148,7 @@ interface Tile {
 // Base animal structure
 export interface Animal {
   id: string;
-  type: string;
+  species: string; // Renamed from 'type'
   state: AnimalState;
   position: Coordinate;
   previousPosition: Coordinate | null; // Track previous position for direction calculation
@@ -428,7 +488,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 // Create new egg
                 const newAnimal = {
                   id: `animal-${animals.length}`,
-                  type: TERRAIN_ANIMAL_MAP[tiles[tile.y][tile.x].terrain],
+                  species: TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
                   state: AnimalState.DORMANT,
                   position: tile,
                   previousPosition: null,
@@ -437,8 +497,8 @@ export const useGameStore = create<GameState>((set, get) => ({
                 };
                 console.log(`Created new animal during init:`, { 
                   id: newAnimal.id, 
-                  type: newAnimal.type, 
-                  terrain: tiles[tile.y][tile.x].terrain 
+                  type: newAnimal.species, 
+                  terrain: terrainData[tile.y][tile.x] 
                 });
                 
                 // If this animal is from an improved player-owned water habitat, make it active and owned
@@ -669,7 +729,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const evolvedAnimal = updatedAnimals.find(a => a.id === id);
       console.log(`Evolving animal:`, { 
         id, 
-        type: evolvedAnimal?.type, 
+        type: evolvedAnimal?.species, 
         newState: AnimalState.ACTIVE 
       });
       
@@ -994,7 +1054,7 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
       // Create new egg
       const newAnimal = {
         id: `animal-${newAnimals.length}`,
-        type: TERRAIN_ANIMAL_MAP[state.board!.tiles[tile.y][tile.x].terrain],
+        species: TERRAIN_ANIMAL_MAP[state.board!.tiles[tile.y][tile.x].terrain],
         state: AnimalState.DORMANT,
         position: tile,
         previousPosition: null,
@@ -1003,7 +1063,7 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
       };
       console.log(`Created new animal during production:`, { 
         id: newAnimal.id, 
-        type: newAnimal.type, 
+        type: newAnimal.species, 
         terrain: state.board!.tiles[tile.y][tile.x].terrain 
       });
       newAnimals.push(newAnimal);
@@ -1199,8 +1259,8 @@ const calculateValidMoves = (unitId: string, state: GameState): ValidMove[] => {
   // Add starting position to visited set
   visited.add(`${startX},${startY}`);
   
-  // Get movement range based on animal type
-  const maxDistance = MOVEMENT_RANGE_BY_TYPE[unit.type] || 3; // Default to 3 if type not found
+  // Get movement range based on species abilities
+  const maxDistance = getSpeciesMoveRange(unit.species);
   
   while (queue.length > 0) {
     const [x, y, distance] = queue.shift()!;
@@ -1233,6 +1293,12 @@ const calculateValidMoves = (unitId: string, state: GameState): ValidMove[] => {
       // Skip if already visited or out of bounds
       if (visited.has(key) || newX < 0 || newX >= board.width || newY < 0 || newY >= board.height) {
         continue;
+      }
+      
+      // Check terrain compatibility
+      const terrain = board.tiles[newY][newX].terrain;
+      if (!isTerrainCompatible(unit.species, terrain)) {
+        continue; // Skip incompatible terrain
       }
       
       // Check if the tile has a non-dormant unit (can't move to tiles with active units)
@@ -1282,7 +1348,7 @@ const handleDisplacement = (
     { x: x + 1, y: y + 1 }  // SE
   ];
   
-  // Filter valid positions (on board and not occupied)
+  // Filter valid positions (on board, not occupied, and compatible terrain)
   const validDisplacementPositions = neighborPositions.filter(pos => {
     // Check if within board boundaries
     if (pos.x < 0 || pos.x >= board.width || pos.y < 0 || pos.y >= board.height) {
@@ -1292,6 +1358,11 @@ const handleDisplacement = (
     // Get tile at position
     const tile = board.tiles[pos.y][pos.x];
     if (!tile) {
+      return false;
+    }
+    
+    // Check terrain compatibility for the species
+    if (!isTerrainCompatible(activeUnitAtPosition.species, tile.terrain)) {
       return false;
     }
     
