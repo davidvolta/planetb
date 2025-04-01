@@ -583,7 +583,7 @@ export default class BoardScene extends Phaser.Scene {
       const board = actions.getBoard();
       if (board) {
         // Get tiles around the destination position that need to be revealed
-        const tilesToReveal = this.getAdjacentTiles(toX, toY, board.width, board.height);
+        const tilesToReveal = CoordinateUtils.getAdjacentTiles(toX, toY, board.width, board.height);
         
         // Update visibility in game state
         tilesToReveal.forEach(tile => {
@@ -591,7 +591,7 @@ export default class BoardScene extends Phaser.Scene {
         });
         
         // Remove duplicates and reveal visually
-        const uniqueTiles = this.removeDuplicateTiles(tilesToReveal);
+        const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
         this.fogOfWarRenderer.revealTiles(uniqueTiles);
       }
     }
@@ -809,7 +809,7 @@ export default class BoardScene extends Phaser.Scene {
       const board = actions.getBoard();
       if (board) {
         // Get tiles around the destination position that need to be revealed
-        const tilesToReveal = this.getAdjacentTiles(toX, toY, board.width, board.height);
+        const tilesToReveal = CoordinateUtils.getAdjacentTiles(toX, toY, board.width, board.height);
         
         // Update visibility in game state
         tilesToReveal.forEach(tile => {
@@ -817,7 +817,7 @@ export default class BoardScene extends Phaser.Scene {
         });
         
         // Remove duplicates and reveal visually
-        const uniqueTiles = this.removeDuplicateTiles(tilesToReveal);
+        const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
         this.fogOfWarRenderer.revealTiles(uniqueTiles);
       }
     }
@@ -853,7 +853,7 @@ export default class BoardScene extends Phaser.Scene {
     animals.forEach(animal => {
       if (animal.ownerId === currentPlayerId && animal.state === AnimalState.ACTIVE) {
         // Reveal 8 adjacent tiles around this unit
-        this.getAdjacentTiles(animal.position.x, animal.position.y, board.width, board.height)
+        CoordinateUtils.getAdjacentTiles(animal.position.x, animal.position.y, board.width, board.height)
           .forEach(tile => {
             // Mark as explored and visible in the game state
             this.updateTileVisibility(tile.x, tile.y, true);
@@ -868,7 +868,7 @@ export default class BoardScene extends Phaser.Scene {
     habitats.forEach(habitat => {
       if (habitat.ownerId === currentPlayerId) {
         // Reveal 8 adjacent tiles around this habitat
-        this.getAdjacentTiles(habitat.position.x, habitat.position.y, board.width, board.height)
+        CoordinateUtils.getAdjacentTiles(habitat.position.x, habitat.position.y, board.width, board.height)
           .forEach(tile => {
             // Mark as explored and visible in the game state
             this.updateTileVisibility(tile.x, tile.y, true);
@@ -879,43 +879,11 @@ export default class BoardScene extends Phaser.Scene {
     });
     
     // Remove duplicates from the revealedTiles array
-    const uniqueTiles = this.removeDuplicateTiles(revealedTiles);
+    const uniqueTiles = CoordinateUtils.removeDuplicateTiles(revealedTiles);
     
     // Reveal these tiles in the fog of war - this will also update object visibility
     // through the callback we set up in createTiles
     this.fogOfWarRenderer.revealTiles(uniqueTiles);
-  }
-  
-  /**
-   * Get the 8 adjacent tiles around a central position
-   * @param x Central X coordinate
-   * @param y Central Y coordinate
-   * @param boardWidth Width of the board
-   * @param boardHeight Height of the board
-   * @returns Array of valid adjacent coordinates
-   */
-  private getAdjacentTiles(x: number, y: number, boardWidth: number, boardHeight: number): { x: number, y: number }[] {
-    const adjacentOffsets = [
-      { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
-      { x: -1, y: 0 }, /* Center */ { x: 1, y: 0 },
-      { x: -1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 1 }
-    ];
-    
-    // Include the central tile itself
-    const result = [{ x, y }];
-    
-    // Add all valid adjacent tiles
-    adjacentOffsets.forEach(offset => {
-      const newX = x + offset.x;
-      const newY = y + offset.y;
-      
-      // Check if coordinates are within board boundaries
-      if (newX >= 0 && newX < boardWidth && newY >= 0 && newY < boardHeight) {
-        result.push({ x: newX, y: newY });
-      }
-    });
-    
-    return result;
   }
   
   /**
@@ -928,26 +896,6 @@ export default class BoardScene extends Phaser.Scene {
     actions.updateTileVisibility(x, y, visible);
   }
   
-  /**
-   * Remove duplicate tiles from an array
-   * @param tiles Array of tiles with potential duplicates
-   * @returns Array with duplicates removed
-   */
-  private removeDuplicateTiles(tiles: { x: number, y: number }[]): { x: number, y: number }[] {
-    const uniqueKeys = new Set<string>();
-    const uniqueTiles: { x: number, y: number }[] = [];
-    
-    tiles.forEach(tile => {
-      const key = `${tile.x},${tile.y}`;
-      if (!uniqueKeys.has(key)) {
-        uniqueKeys.add(key);
-        uniqueTiles.push(tile);
-      }
-    });
-    
-    return uniqueTiles;
-  }
-
   /**
    * Toggle fog of war on/off
    * @param enabled Whether fog of war should be enabled

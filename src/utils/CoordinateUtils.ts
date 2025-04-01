@@ -129,6 +129,40 @@ export function getNeighbors(x: number, y: number, boardWidth: number, boardHeig
 }
 
 /**
+ * Gets all valid adjacent coordinates including diagonals for a given grid position
+ * Also includes the central position itself
+ * 
+ * @param x X position on the grid
+ * @param y Y position on the grid
+ * @param boardWidth Width of the board in tiles
+ * @param boardHeight Height of the board in tiles
+ * @returns Array of adjacent coordinate objects including the center position
+ */
+export function getAdjacentTiles(x: number, y: number, boardWidth: number, boardHeight: number): { x: number, y: number }[] {
+  const adjacentOffsets = [
+    { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
+    { x: -1, y: 0 }, /* Center */ { x: 1, y: 0 },
+    { x: -1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 1 }
+  ];
+  
+  // Include the central tile itself
+  const result = [{ x, y }];
+  
+  // Add all valid adjacent tiles
+  adjacentOffsets.forEach(offset => {
+    const newX = x + offset.x;
+    const newY = y + offset.y;
+    
+    // Check if coordinates are within board boundaries
+    if (newX >= 0 && newX < boardWidth && newY >= 0 && newY < boardHeight) {
+      result.push({ x: newX, y: newY });
+    }
+  });
+  
+  return result;
+}
+
+/**
  * Calculates Manhattan distance between two grid coordinates
  * 
  * @param x1 X position of first coordinate
@@ -198,4 +232,25 @@ export function validateCoordinateConversion(
     world,
     converted
   };
+}
+
+/**
+ * Remove duplicate coordinate objects from an array
+ * 
+ * @param tiles Array of coordinate objects with potential duplicates
+ * @returns Array with duplicate coordinates removed
+ */
+export function removeDuplicateTiles(tiles: { x: number, y: number }[]): { x: number, y: number }[] {
+  const uniqueKeys = new Set<string>();
+  const uniqueTiles: { x: number, y: number }[] = [];
+  
+  tiles.forEach(tile => {
+    const key = `${tile.x},${tile.y}`;
+    if (!uniqueKeys.has(key)) {
+      uniqueKeys.add(key);
+      uniqueTiles.push(tile);
+    }
+  });
+  
+  return uniqueTiles;
 } 
