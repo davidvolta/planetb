@@ -4,36 +4,25 @@ import * as actions from '../store/actions';
 import { SelectionRenderer } from '../renderers/SelectionRenderer';
 import BoardScene from '../scenes/BoardScene';
 
-/**
- * Component interfaces
- * These define the contracts that components must fulfill to receive state updates
- */
+// Component interfaces: These define the contracts that components must fulfill to receive state updates
 
-/**
- * Interface for a component that can render animals
- */
+// Interface for a component that can render animals
 interface AnimalRenderer {
   renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void;
 }
 
-/**
- * Interface for a component that can render habitats
- */
+// Interface for a component that can render habitats
 interface HabitatRenderer {
   renderHabitats(habitats: Habitat[]): void;
 }
 
-/**
- * Interface for a component that can render move ranges
- */
+// Interface for a component that can render move ranges
 interface MoveRangeRenderer {
   showMoveRange(validMoves: ValidMove[], moveMode: boolean): void;
   clearMoveHighlights(): void;
 }
 
-/**
- * Interface for a component that can handle animations
- */
+// Interface for a component that can handle animations
 interface AnimationController {
   moveUnit(
     unitId: string,
@@ -62,9 +51,7 @@ interface AnimationController {
   ): Promise<void>;
 }
 
-/**
- * Interface for a component that can update the board
- */
+// Interface for a component that can update the board
 interface TileRenderer {
   createBoardTiles(
     board: { width: number, height: number, tiles: any[][] },
@@ -73,20 +60,7 @@ interface TileRenderer {
   ): Phaser.GameObjects.GameObject[];
 }
 
-/**
- * StateSubscriptionManager
- * 
- * This manager centralizes all state subscriptions for the BoardScene and its components.
- * It provides the following benefits:
- * 
- * 1. Separation of Concerns: Keeps subscription logic separate from rendering logic
- * 2. Data Flow Management: Ensures consistent flow of data from state to components
- * 3. Memory Management: Properly tracks and cleans up subscriptions
- * 4. Organization: Groups subscriptions by functional area (board, entities, interactions)
- * 
- * Using this manager reduces code duplication and ensures that components only 
- * receive the state data they need to function.
- */
+// This manager centralizes all state subscriptions for the BoardScene and its components.
 export class StateSubscriptionManager {
   // Scene reference
   private scene: Phaser.Scene;
@@ -122,12 +96,7 @@ export class StateSubscriptionManager {
     TURN: 'StateSubscriptionManager.turn',
   };
   
-  /**
-   * Create a new StateSubscriptionManager
-   * 
-   * @param scene The Phaser scene this manager belongs to
-   * @param components The renderers and controllers that will receive state updates
-   */
+  // Create a new StateSubscriptionManager
   constructor(
     scene: Phaser.Scene,
     components: {
@@ -146,16 +115,7 @@ export class StateSubscriptionManager {
     this.tileRenderer = components.tileRenderer;
   }
   
-  /**
-   * Set up all state subscriptions
-   * 
-   * Subscriptions are grouped by functional area:
-   * - Board: Game board structure and layout
-   * - Entities: Game objects like animals and habitats
-   * - Interactions: User interactions and events
-   * 
-   * @param onUnitClicked Callback for when a unit is clicked
-   */
+  // Set up all state subscriptions
   setupSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
     // Check if subscriptions are already set up
     if (this.subscriptionsSetup) {
@@ -163,30 +123,13 @@ export class StateSubscriptionManager {
       return;
     }
     
-    console.log("Setting up BoardScene subscriptions via StateSubscriptionManager");
-    
-    // ----------------
-    // BOARD SUBSCRIPTIONS
-    // ----------------
     this.setupBoardSubscriptions();
-    
-    // ----------------
-    // ENTITY SUBSCRIPTIONS
-    // ----------------
     this.setupEntitySubscriptions(onUnitClicked);
-    
-    // ----------------
-    // INTERACTION SUBSCRIPTIONS
-    // ----------------
     this.setupInteractionSubscriptions();
-    
-    // Mark subscriptions as set up
-    this.subscriptionsSetup = true;
+    this.subscriptionsSetup = true;  // Mark subscriptions as set up
   }
   
-  /**
-   * Set up subscriptions related to the game board
-   */
+  // Set up subscriptions related to the game board
   private setupBoardSubscriptions(): void {
     // Keep track of previous board state to compare
     let previousBoardHash = ''; // this is a hack and one day you'll need to fix board state updates for real      
@@ -218,9 +161,7 @@ export class StateSubscriptionManager {
     );
   }
   
-  /**
-   * Set up subscriptions related to game entities (animals, habitats)
-   */
+  // Set up subscriptions related to game entities (animals, habitats)
   private setupEntitySubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
     // Subscribe to animal changes
     StateObserver.subscribe(
@@ -248,9 +189,7 @@ export class StateSubscriptionManager {
     );
   }
   
-  /**
-   * Set up subscriptions related to user interactions and gameplay events
-   */
+  // et up subscriptions related to user interactions and gameplay events
   private setupInteractionSubscriptions(): void {
     // Subscribe to valid moves changes
     StateObserver.subscribe(
@@ -383,10 +322,7 @@ export class StateSubscriptionManager {
     );
   }
   
-  /**
-   * Clean up all subscriptions
-   * This should be called when the scene is shut down to avoid memory leaks
-   */
+  // Clean up all subscriptions
   unsubscribeAll(): void {
     // Unsubscribe from all known subscriptions
     Object.values(StateSubscriptionManager.SUBSCRIPTIONS).forEach(key => {
@@ -399,35 +335,22 @@ export class StateSubscriptionManager {
     console.log("All StateSubscriptionManager subscriptions unsubscribed");
   }
   
-  /**
-   * Check if subscriptions are currently set up
-   */
+  // Check if subscriptions are currently set up
   isSubscribed(): boolean {
     return this.subscriptionsSetup;
   }
   
-  /**
-   * Get a list of active subscription keys for debugging
-   */
+  // Get a list of active subscription keys for debugging
   getActiveSubscriptions(): string[] {
     return StateObserver.getActiveSubscriptions();
   }
   
-  /**
-   * Clean up resources and unsubscribe from all state subscriptions
-   */
+  // Clean up resources and unsubscribe from all state subscriptions
   destroy(): void {
     this.unsubscribeAll();
   }
   
-  /**
-   * Get the 8 adjacent tiles around a central position
-   * @param x Central X coordinate
-   * @param y Central Y coordinate
-   * @param boardWidth Width of the board
-   * @param boardHeight Height of the board
-   * @returns Array of valid adjacent coordinates
-   */
+  // Get the 8 adjacent tiles around a central position
   private getAdjacentTiles(x: number, y: number, boardWidth: number, boardHeight: number): { x: number, y: number }[] {
     const adjacentOffsets = [
       { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
@@ -452,11 +375,7 @@ export class StateSubscriptionManager {
     return result;
   }
   
-  /**
-   * Remove duplicate tiles from an array
-   * @param tiles Array of tiles with potential duplicates
-   * @returns Array with duplicates removed
-   */
+  // Remove duplicate tiles from an array
   private removeDuplicateTiles(tiles: { x: number, y: number }[]): { x: number, y: number }[] {
     const uniqueKeys = new Set<string>();
     const uniqueTiles: { x: number, y: number }[] = [];
