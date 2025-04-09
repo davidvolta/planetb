@@ -203,7 +203,11 @@ export function canImproveHabitat(habitatId: string): boolean {
   const state = useGameStore.getState();
   const habitat = state.habitats.find(h => h.id === habitatId);
   
-  if (!habitat || habitat.state !== HabitatState.POTENTIAL) {
+  if (!habitat) {
+    return false;
+  }
+  
+  if (habitat.state !== HabitatState.POTENTIAL) {
     return false;
   }
   
@@ -215,8 +219,7 @@ export function canImproveHabitat(habitatId: string): boolean {
     !animal.hasMoved &&
     animal.ownerId === state.currentPlayerId // Must be current player's unit
   );
-  
-  // Return true if there's at least one unmoved active unit on the habitat
+
   return unitsOnHabitat.length > 0;
 }
 

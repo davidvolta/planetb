@@ -1059,7 +1059,7 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
         position: tile,
         previousPosition: null,
         hasMoved: false,
-        ownerId: null,
+        ownerId: habitat.ownerId,
       };
       console.log(`Created new animal during production:`, { 
         id: newAnimal.id, 
