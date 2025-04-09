@@ -70,9 +70,6 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
       parent: gameContainerRef.current,
       scene: [BoardScene, DebugScene, UIScene],
       pixelArt: true, // Ensures sharp pixel rendering
-      audio: {
-        noAudio: true // Properly disable audio system
-      },
       scale: {
         mode: Phaser.Scale.RESIZE,
         width: '100%',
