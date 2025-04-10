@@ -1071,8 +1071,9 @@ export function logHabitatZoneMap(
     }
   });
   
-  // Output the grid
+  // Output the grid without habitat IDs
   console.log('Habitat Zone Map:');
+  console.log(`Total habitats: ${habitats.length}`);
   grid.forEach(row => {
     console.log(row.join(' '));
   });

@@ -295,32 +295,6 @@ export class TileRenderer extends BaseRenderer {
             // Update tiles array
             this.tiles[index] = newTile;
           }
-          
-          // Add biome ID text if in biome mode
-          if (this.showBiomeMode && newBiomeId) {
-            // Extract habitat ID from biome ID (they should be the same)
-            const shortId = newBiomeId.split('-').pop() || '';
-            
-            const worldPos = CoordinateUtils.gridToWorld(
-              x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-            );
-            
-            // Create text in the center of the tile
-            const text = this.scene.add.text(worldPos.x, worldPos.y, shortId, {
-              fontSize: '12px',
-              color: '#000000',
-              stroke: '#FFFFFF',
-              strokeThickness: 2,
-              fontStyle: 'bold'
-            });
-            text.setOrigin(0.5, 0.5);
-            
-            // Add to tracking array
-            this.biomeTexts.push(text);
-            
-            // Add to UI layer so it's above the tiles
-            this.layerManager.addToLayer('ui', text);
-          }
         }
         index++;
       }
@@ -329,7 +303,7 @@ export class TileRenderer extends BaseRenderer {
     // Log biome sizes if in biome mode
     if (this.showBiomeMode && biomeSizes.size > 0) {
       console.log('----- Biome Sizes -----');
-      // Sort biomes by ID for consistent display
+      // Sort biomes by number for consistent display
       const sortedBiomes = Array.from(biomeSizes.entries())
         .sort((a, b) => {
           // Extract numeric part from biome ID for natural sorting
@@ -338,10 +312,12 @@ export class TileRenderer extends BaseRenderer {
           return numA - numB;
         });
       
-      // Log each biome's size
-      sortedBiomes.forEach(([biomeId, size]) => {
-        const shortId = biomeId.split('-').pop() || '';
-        console.log(`Biome ${shortId}: ${size} tiles`);
+      // Log total count of biomes
+      console.log(`Number of biomes: ${sortedBiomes.length}`);
+      
+      // Log sizes without showing specific IDs
+      sortedBiomes.forEach(([_, size], index) => {
+        console.log(`Biome #${index + 1}: ${size} tiles`);
       });
       
       // Log total tile count as a sanity check
@@ -459,7 +435,7 @@ export class TileRenderer extends BaseRenderer {
       }
     }
     
-    // Sort biomes by ID for consistent display
+    // Sort biomes by number for consistent display
     const sortedBiomes = Array.from(biomeSizes.entries())
       .sort((a, b) => {
         // Extract numeric part from biome ID for natural sorting
@@ -468,10 +444,12 @@ export class TileRenderer extends BaseRenderer {
         return numA - numB;
       });
     
-    // Log each biome's size
-    sortedBiomes.forEach(([biomeId, size]) => {
-      const shortId = biomeId.split('-').pop() || '';
-      console.log(`Biome ${shortId}: ${size} tiles`);
+    // Log total count of biomes
+    console.log(`Number of biomes: ${sortedBiomes.length}`);
+    
+    // Log sizes without showing specific IDs
+    sortedBiomes.forEach(([_, size], index) => {
+      console.log(`Biome #${index + 1}: ${size} tiles`);
     });
     
     // Log total tile count as a sanity check
