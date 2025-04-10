@@ -3,8 +3,13 @@
 ## Upcoming Tasks
 - [ ] Change tinting mechanism
 - [ ] Hide selector when move is done
-- [ ] Create concept of biomes (do zones exist already?)
+- [ ] Fix ineligble spawning moves on terrain
+
+- [ ] Create concept of biomes
 - [ ] Init map to create biomes, not just habitats
-- [ ] Populate biomes with resources (kelp for water and underwater, trees for grass, )
+- [ ] Populate biomes with resources (remove random function)
+- [ ] Implement harvesting
+    - Selecting a resource tile (double click behavior for units/eggs)
+- [ ] Implement energy counter (UI and gamestore)
 
 - [ ] Get rid of react!
