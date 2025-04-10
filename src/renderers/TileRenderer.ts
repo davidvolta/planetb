@@ -1,8 +1,9 @@
-import Phaser from 'phaser';
+import * as Phaser from "phaser";
 import { TerrainType, Biome } from '../store/gameStore';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
+import * as actions from "../store/actions";
 
 /**
  * Responsible for rendering and managing board tiles
@@ -235,9 +236,8 @@ export class TileRenderer extends BaseRenderer {
       return;
     }
     
-    // Get biome colors from game registry if available
-    const gameState = this.scene.game.registry.get('gameState');
-    const biomes = gameState?.biomes;
+    // Get biome colors using actions instead of directly from registry
+    const biomes = actions.getBiomes();
     
     // Clear existing biome texts
     this.clearBiomeTexts();
@@ -274,10 +274,10 @@ export class TileRenderer extends BaseRenderer {
               x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
             );
             
-            // Get biome color if available
+            // Get biome color if available using actions
             let biomeColor: number | undefined;
-            if (newBiomeId && biomes) {
-              const biome = biomes.get(newBiomeId);
+            if (newBiomeId) {
+              const biome = actions.getBiomeById(newBiomeId);
               if (biome) {
                 biomeColor = biome.color;
               }
@@ -400,7 +400,7 @@ export class TileRenderer extends BaseRenderer {
       this.showBiomeMode = enabled;
       
       // Force update all tiles with the new visualization mode
-      const board = this.scene.game.registry.get('gameState')?.board;
+      const board = actions.getBoard();
       if (board) {
         // Clear any existing biome texts if disabling
         if (!enabled) {

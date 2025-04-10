@@ -1,4 +1,4 @@
-import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState } from "./gameStore";
+import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState, Board, Biome } from "./gameStore";
 
 /**
  * Action dispatchers for React components
@@ -46,7 +46,7 @@ export function initializeBoard({ width, height, mapType = MapGenerationType.ISL
 /**
  * Get the current board state
  */
-export function getBoard() {
+export function getBoard(): Board | null {
   return useGameStore.getState().board;
 }
 
@@ -409,4 +409,19 @@ export function updateTileVisibility(x: number, y: number, visible: boolean): vo
     
     return { board: newBoard };
   });
+}
+
+/**
+ * Get all biomes from the game state
+ */
+export function getBiomes(): Map<string, Biome> {
+  return useGameStore.getState().biomes;
+}
+
+/**
+ * Get a specific biome by ID
+ * @param id The ID of the biome to retrieve
+ */
+export function getBiomeById(id: string): Biome | undefined {
+  return useGameStore.getState().biomes.get(id);
 } 
