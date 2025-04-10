@@ -152,8 +152,7 @@ export class InputManager {
           actions.improveHabitat(selectedHabitatId);
           actions.selectHabitat(null); // Deselect the habitat after improving
           
-          // End the turn after habitat improvement
-          actions.getNextTurn()();
+          // Let the player decide when to end their turn
         }
       });
     }
