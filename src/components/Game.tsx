@@ -68,7 +68,7 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
       parent: gameContainerRef.current,
       scene: [BoardScene, DebugScene, UIScene],
       pixelArt: true,
-      antialias: false,
+      antialias: true,
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,

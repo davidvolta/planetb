@@ -339,7 +339,13 @@ export class StateSubscriptionManager {
           
           // Clear the selection indicator - cast scene to BoardScene to access the method
           if (this.scene instanceof BoardScene) {
+            // Hide selection indicator
             this.scene.getSelectionRenderer().hideSelection();
+            
+            // Reveal the biome tiles for the improved habitat
+            if (habitatImproveEvent.habitatId) {
+              this.scene.revealBiomeTiles(habitatImproveEvent.habitatId);
+            }
           }
           
           // Clear the habitat improvement event after handling it

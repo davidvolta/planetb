@@ -720,11 +720,15 @@ export default class BoardScene extends Phaser.Scene {
       }
     });
     
-    // Reveal tiles around player's habitats
+    // Reveal player's starting biome
     const habitats = actions.getHabitats();
     habitats.forEach(habitat => {
-      if (habitat.ownerId === currentPlayerId) {
-        // Reveal 8 adjacent tiles around this habitat
+      if (habitat.ownerId === currentPlayerId && habitat.state === HabitatState.IMPROVED) {
+        // This is the player's starting improved habitat
+        // Find all tiles in this habitat's biome and reveal them
+        this.revealBiomeTiles(habitat.id, revealedTiles);
+      } else if (habitat.ownerId === currentPlayerId) {
+        // For other owned habitats that aren't improved, just reveal adjacent tiles
         CoordinateUtils.getAdjacentTiles(habitat.position.x, habitat.position.y, board.width, board.height)
           .forEach(tile => {
             // Mark as explored and visible in the game state
@@ -741,6 +745,44 @@ export default class BoardScene extends Phaser.Scene {
     // Reveal these tiles in the fog of war - this will also update object visibility
     // through the callback we set up in createTiles
     this.fogOfWarRenderer.revealTiles(uniqueTiles);
+  }
+  
+  // Reveal all tiles in a habitat's biome
+  public revealBiomeTiles(habitatId: string, revealedTiles?: { x: number, y: number }[]): void {
+    const habitat = actions.getHabitats().find(h => h.id === habitatId);
+    if (!habitat) return;
+    
+    const board = actions.getBoard();
+    if (!board) return;
+    
+    // Get the habitat's biome ID (which is the same as the habitat ID)
+    const biomeId = habitat.id;
+    
+    // Track tiles we reveal
+    const tilesToReveal: { x: number, y: number }[] = [];
+    
+    // Scan the board for all tiles in this biome
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        if (tile.biomeId === biomeId) {
+          // Set this tile to visible in the game state
+          this.updateTileVisibility(x, y, true);
+          // Add to our array of tiles to reveal
+          tilesToReveal.push({ x, y });
+          
+          // Add to the passed-in array if it exists
+          if (revealedTiles) {
+            revealedTiles.push({ x, y });
+          }
+        }
+      }
+    }
+    
+    // If we weren't adding to an existing array, reveal tiles now
+    if (!revealedTiles) {
+      this.fogOfWarRenderer.revealTiles(tilesToReveal);
+    }
   }
   
   // Update a tile's visibility in the game state
