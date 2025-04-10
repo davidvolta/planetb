@@ -100,14 +100,15 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
           // Update the registry with the current game state
           if (gameRef.current) {
             gameRef.current.registry.set('gameState', gameState);
-            console.log('Updated game registry with latest game state');
+            // Log with a note that this is a special case between React and Phaser
+            console.log('Updated game registry with latest game state (React-Phaser bridge)');
           }
         },
         { immediate: true } // Immediately sync the current state
       );
       
       stateObserverSetupRef.current = true;
-      console.log('State observer for registry sync is set up');
+      console.log('State observer for game state sync is set up');
     };
 
     // We don't need the resize handler with FIT mode

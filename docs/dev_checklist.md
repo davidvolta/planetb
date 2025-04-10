@@ -7,8 +7,10 @@
 - [ ] Fix bug where player can move after improving habitat
 
 - [ ] Populate biomes with resources (remove random function)
-    - [ ] Update resource generation to be biome-specific instead of random
-    - [ ] Associate resource types with specific biome/terrain combinations
+    - [ ] Update resource generation to be biome-specific instead of random based on lushness quotient of 8
+    - [ ] Add mountain/insects and underwater/plankton resource types
+- [ ] Style edges of owned biomes (flood fill with stroke)
+- [ ] Update egg production to be anywhere in biome
 
 
 - [ ] Implement harvesting

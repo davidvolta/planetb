@@ -12,23 +12,20 @@ export class TileRenderer extends BaseRenderer {
   // Track all created tiles
   private tiles: Phaser.GameObjects.GameObject[] = [];
   
-  // Flag to toggle between terrain and biome visualization
+  // Terrain visualization style
   private showBiomeMode: boolean = false;
   
-  // Track biome ID text objects
-  private biomeTexts: Phaser.GameObjects.Text[] = [];
-  
   /**
-   * Creates a new TileRenderer
-   * @param scene The parent scene
-   * @param layerManager Layer manager for organizing tile display
-   * @param tileSize The width of a tile in pixels
-   * @param tileHeight The height of a tile in pixels
+   * Create a new TileRenderer
+   * @param scene The scene this renderer is attached to
+   * @param layerManager The layer manager to use
+   * @param tileSize The size of tiles in pixels
+   * @param tileHeight The height of tiles in pixels
    */
   constructor(
-    scene: Phaser.Scene, 
-    layerManager: LayerManager, 
-    tileSize: number, 
+    scene: Phaser.Scene,
+    layerManager: LayerManager,
+    tileSize: number,
     tileHeight: number
   ) {
     super(scene, layerManager, tileSize, tileHeight);
@@ -239,9 +236,6 @@ export class TileRenderer extends BaseRenderer {
     // Get biome colors using actions instead of directly from registry
     const biomes = actions.getBiomes();
     
-    // Clear existing biome texts
-    this.clearBiomeTexts();
-    
     // Track biome sizes if in biome mode
     const biomeSizes = new Map<string, number>();
     
@@ -312,30 +306,10 @@ export class TileRenderer extends BaseRenderer {
           return numA - numB;
         });
       
-      // Log total count of biomes
       console.log(`Number of biomes: ${sortedBiomes.length}`);
-      
-      // Log sizes without showing specific IDs
-      sortedBiomes.forEach(([_, size], index) => {
-        console.log(`Biome #${index + 1}: ${size} tiles`);
-      });
-      
-      // Log total tile count as a sanity check
-      const totalTiles = Array.from(biomeSizes.values()).reduce((sum, count) => sum + count, 0);
-      console.log(`Total tiles: ${totalTiles}`);
+      console.log(`Total tiles: ${board.width * board.height}`);
       console.log('-----------------------');
     }
-  }
-  
-  /**
-   * Clears all biome ID text objects
-   */
-  private clearBiomeTexts(): void {
-    // Remove and destroy all biome text objects
-    this.biomeTexts.forEach(text => {
-      this.layerManager.removeFromLayer('ui', text, true);
-    });
-    this.biomeTexts = [];
   }
   
   /**
@@ -345,9 +319,6 @@ export class TileRenderer extends BaseRenderer {
   clearTiles(destroy: boolean = true): void {
     // Clear all tiles from the terrain layer
     this.layerManager.clearLayer('terrain', destroy);
-    
-    // Clear biome texts
-    this.clearBiomeTexts();
     
     // Clear the tiles array
     this.tiles = [];
@@ -384,11 +355,16 @@ export class TileRenderer extends BaseRenderer {
   }
   
   /**
-   * Clean up resources when destroying this renderer
+   * Clean up and prepare for destruction
    */
-  override destroy(): void {
-    super.destroy();
-    this.clearTiles();
+  destroy(): void {
+    // Clear all existing tiles
+    this.clearTiles(true);
+    
+    // Remove all event listeners
+    
+    // Clear arrays and properties
+    this.tiles = [];
   }
   
   /**
@@ -402,60 +378,10 @@ export class TileRenderer extends BaseRenderer {
       // Force update all tiles with the new visualization mode
       const board = actions.getBoard();
       if (board) {
-        // Clear any existing biome texts if disabling
-        if (!enabled) {
-          this.clearBiomeTexts();
-        } else {
-          // Log biome sizes when enabling biome mode
-          this.logBiomeSizes(board);
-        }
-        
+        // Update tiles with the new visualization mode
         this.updateTiles(board);
       }
     }
-  }
-  
-  /**
-   * Log biome sizes to the console
-   * @param board The game board data
-   */
-  private logBiomeSizes(board: { width: number, height: number, tiles: any[][] }): void {
-    console.log("----- BIOME SIZES -----");
-    
-    // Count tiles per biome
-    const biomeSizes = new Map<string, number>();
-    
-    // Count tiles for each biome
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        const biomeId = board.tiles[y][x]?.biomeId;
-        if (biomeId) {
-          biomeSizes.set(biomeId, (biomeSizes.get(biomeId) || 0) + 1);
-        }
-      }
-    }
-    
-    // Sort biomes by number for consistent display
-    const sortedBiomes = Array.from(biomeSizes.entries())
-      .sort((a, b) => {
-        // Extract numeric part from biome ID for natural sorting
-        const numA = parseInt(a[0].split('-').pop() || '0');
-        const numB = parseInt(b[0].split('-').pop() || '0');
-        return numA - numB;
-      });
-    
-    // Log total count of biomes
-    console.log(`Number of biomes: ${sortedBiomes.length}`);
-    
-    // Log sizes without showing specific IDs
-    sortedBiomes.forEach(([_, size], index) => {
-      console.log(`Biome #${index + 1}: ${size} tiles`);
-    });
-    
-    // Log total tile count as a sanity check
-    const totalTiles = Array.from(biomeSizes.values()).reduce((sum, count) => sum + count, 0);
-    console.log(`Total tiles: ${totalTiles}`);
-    console.log("-----------------------");
   }
   
   /**

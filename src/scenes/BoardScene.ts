@@ -865,14 +865,11 @@ export default class BoardScene extends Phaser.Scene {
   // Toggle biome visualization mode on/off
   public toggleBiomeVisualization(enabled: boolean): void {
     if (this.tileRenderer) {
-      console.log(`Toggling biome visualization to ${enabled ? 'enabled' : 'disabled'}`);
-      
       // Get biomes using actions instead of directly from registry
       const biomes = actions.getBiomes();
-      console.log('Biomes available:', biomes ? `${biomes.size} biomes` : 'no biomes');
       
+      // Toggle biome mode in the tile renderer
       this.tileRenderer.toggleBiomeMode(enabled);
-      console.log(`Biome visualization ${enabled ? 'enabled' : 'disabled'}`);
     }
   }
 }

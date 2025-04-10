@@ -637,11 +637,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         habitatsByTerrain.forEach((count, terrain) => {
           console.log(`  ${terrain}: ${count} habitats`);
         });
-        
-        // Visualize habitat positions and their zones
-        if (habitats.length > 0 && state.board) {
-          logHabitatZoneMap(width, height, habitats);
-        }
       }
 
       // Generate biomes if needed
@@ -1023,60 +1018,6 @@ export function isHabitatZoneOverlapping(
   
   // No overlaps found
   return false;
-}
-
-/**
- * Debug utility to visualize habitat positions and their zones
- * Creates a text-based map for debugging habitat placement
- * 
- * @param width Width of the board
- * @param height Height of the board
- * @param habitats List of habitats to visualize
- */
-export function logHabitatZoneMap(
-  width: number,
-  height: number,
-  habitats: Habitat[]
-): void {
-  // Create a 2D grid for visualization
-  const grid: string[][] = Array(height).fill(0).map(() => Array(width).fill('.'));
-  
-  // Mark habitat positions with 'H'
-  habitats.forEach(habitat => {
-    const { x, y } = habitat.position;
-    grid[y][x] = 'H';
-  });
-  
-  // Mark zone areas with 'z'
-  habitats.forEach(habitat => {
-    const { x, y } = habitat.position;
-    
-    // Mark the 8 adjacent tiles as zone
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        // Skip the habitat's own position
-        if (dx === 0 && dy === 0) continue;
-        
-        const zx = x + dx;
-        const zy = y + dy;
-        
-        // Skip if out of bounds
-        if (zx < 0 || zx >= width || zy < 0 || zy >= height) continue;
-        
-        // Only mark as zone if not already a habitat
-        if (grid[zy][zx] !== 'H') {
-          grid[zy][zx] = 'z';
-        }
-      }
-    }
-  });
-  
-  // Output the grid without habitat IDs
-  console.log('Habitat Zone Map:');
-  console.log(`Total habitats: ${habitats.length}`);
-  grid.forEach(row => {
-    console.log(row.join(' '));
-  });
 }
 
 // Process production for all habitats
