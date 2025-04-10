@@ -11,6 +11,7 @@ import { SelectionRenderer } from "../renderers/SelectionRenderer";
 import { MoveRangeRenderer } from "../renderers/MoveRangeRenderer";
 import { HabitatRenderer } from "../renderers/HabitatRenderer";
 import { AnimalRenderer } from "../renderers/AnimalRenderer";
+import { ResourceRenderer } from "../renderers/ResourceRenderer";
 import { InputManager } from "../managers/InputManager";
 import { AnimationController } from "../controllers/AnimationController";
 import { CameraManager } from "../managers/CameraManager";
@@ -42,6 +43,7 @@ export default class BoardScene extends Phaser.Scene {
   private moveRangeRenderer: MoveRangeRenderer;
   private habitatRenderer: HabitatRenderer;
   private animalRenderer: AnimalRenderer;
+  private resourceRenderer: ResourceRenderer;
   private fogOfWarRenderer: FogOfWarRenderer;
   
   // Setup tracking
@@ -70,6 +72,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer = new MoveRangeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.habitatRenderer = new HabitatRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    this.resourceRenderer = new ResourceRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     
     // Initialize managers
@@ -85,7 +88,8 @@ export default class BoardScene extends Phaser.Scene {
         habitatRenderer: this.habitatRenderer,
         moveRangeRenderer: this.moveRangeRenderer,
         animationController: this.animationController,
-        tileRenderer: this.tileRenderer
+        tileRenderer: this.tileRenderer,
+        resourceRenderer: this.resourceRenderer
       }
     );
   }
@@ -99,7 +103,8 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("snake", "assets/snake.png");
     this.load.image("octopus", "assets/octopus.png");
     this.load.image("turtle", "assets/turtle.png");
-    this.load.image("resource", "assets/tile.png");
+    this.load.image("forest", "assets/resources/forest.png");
+    this.load.image("kelp", "assets/resources/kelp.png");
 
     this.load.on('complete', () => {
       this.events.emit(EVENTS.ASSETS_LOADED);
@@ -137,6 +142,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.initialize(anchorX, anchorY);
     this.habitatRenderer.initialize(anchorX, anchorY);
     this.animalRenderer.initialize(anchorX, anchorY);
+    this.resourceRenderer.initialize(anchorX, anchorY);
     this.fogOfWarRenderer.initialize(anchorX, anchorY);
     
     // Initialize managers with anchor coordinates
@@ -165,24 +171,6 @@ export default class BoardScene extends Phaser.Scene {
         this.anchorY
       );
       
-      /* TEMPORARY RESOURCE TESTING - COMMENTED OUT
-      // TEMPORARY: Center camera on (0,0) for resource testing
-      const worldPos = CoordinateUtils.gridToWorld(
-        0, 
-        0, 
-        this.tileSize, 
-        this.tileHeight,
-        this.anchorX,
-        this.anchorY
-      );
-      this.cameraManager.centerOn(worldPos.x, worldPos.y);
-      
-      // Add resource test graphics to (0,0) and adjacent tiles
-      this.addResourceTestGraphic(0, 0);
-      this.addResourceTestGraphic(0, 1);
-      this.addResourceTestGraphic(1, 0);
-      this.addResourceTestGraphic(1, 1);
-      */
     }
   }
   
@@ -233,6 +221,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.destroy();
     this.habitatRenderer.destroy();
     this.animalRenderer.destroy();
+    this.resourceRenderer.destroy();
     this.fogOfWarRenderer.destroy();
     
     // Clean up managers
@@ -852,35 +841,24 @@ export default class BoardScene extends Phaser.Scene {
         }
       });
     }
+    
+    // Update resources visibility
+    if (staticObjectsLayer) {
+      staticObjectsLayer.getAll().forEach(object => {
+        if (object.getData && object.getData('gridX') === x && object.getData('gridY') === y) {
+          // Use type assertion to any as a safe way to access the method
+          const gameObject = object as any;
+          if (typeof gameObject.setVisible === 'function') {
+            gameObject.setVisible(isVisible);
+          }
+        }
+      });
+    }
   }
 
-  /* TEMPORARY RESOURCE TESTING - COMMENTED OUT BUT KEPT FOR REFERENCE
-  // TEMPORARY: Method to add a resource test graphic at the specified grid position
-  private addResourceTestGraphic(gridX: number, gridY: number): void {
-    // Convert grid coordinates to world coordinates
-    const worldPos = CoordinateUtils.gridToWorld(
-      gridX, 
-      gridY, 
-      this.tileSize, 
-      this.tileHeight,
-      this.anchorX,
-      this.anchorY
-    );
-    
-    // Create a sprite for the resource
-    const resourceSprite = this.add.sprite(worldPos.x, worldPos.y, 'resource');
-    
-    // Set scale to 1/3 size
-    resourceSprite.setScale(0.3333);
-    
-    // Store grid coordinates on the sprite for later reference
-    resourceSprite.setData('gridX', gridX);
-    resourceSprite.setData('gridY', gridY);
-    
-    // Add to the static objects layer (layer 4)
-    this.layerManager.addToLayer('staticObjects', resourceSprite);
-    
-    console.log(`Added resource test graphic at grid (${gridX}, ${gridY}), world (${worldPos.x}, ${worldPos.y})`);
+
+  // Get resource renderer
+  public getResourceRenderer(): ResourceRenderer {
+    return this.resourceRenderer;
   }
-  */
 }

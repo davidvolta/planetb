@@ -3,27 +3,33 @@ import { Animal, GameState, ValidMove, Habitat } from '../store/gameStore';
 import * as actions from '../store/actions';
 import { SelectionRenderer } from '../renderers/SelectionRenderer';
 import BoardScene from '../scenes/BoardScene';
+import { TileRenderer } from '../renderers/TileRenderer';
+import { AnimalRenderer } from '../renderers/AnimalRenderer';
+import { HabitatRenderer } from '../renderers/HabitatRenderer';
+import { ResourceRenderer } from '../renderers/ResourceRenderer';
+import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
+import { AnimationController } from '../controllers/AnimationController';
 
 // Component interfaces: These define the contracts that components must fulfill to receive state updates
 
 // Interface for a component that can render animals
-interface AnimalRenderer {
+interface IAnimalRenderer {
   renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void;
 }
 
 // Interface for a component that can render habitats
-interface HabitatRenderer {
+interface IHabitatRenderer {
   renderHabitats(habitats: Habitat[]): void;
 }
 
 // Interface for a component that can render move ranges
-interface MoveRangeRenderer {
+interface IMoveRangeRenderer {
   showMoveRange(validMoves: ValidMove[], moveMode: boolean): void;
   clearMoveHighlights(): void;
 }
 
 // Interface for a component that can handle animations
-interface AnimationController {
+interface IAnimationController {
   moveUnit(
     unitId: string,
     sprite: Phaser.GameObjects.Sprite,
@@ -52,7 +58,7 @@ interface AnimationController {
 }
 
 // Interface for a component that can update the board
-interface TileRenderer {
+interface ITileRenderer {
   createBoardTiles(
     board: { width: number, height: number, tiles: any[][] },
     centerX?: number, 
@@ -68,6 +74,7 @@ export class StateSubscriptionManager {
   // Renderers and controllers
   private animalRenderer: AnimalRenderer;
   private habitatRenderer: HabitatRenderer;
+  private resourceRenderer?: ResourceRenderer;
   private moveRangeRenderer: MoveRangeRenderer;
   private animationController: AnimationController;
   private tileRenderer: TileRenderer;
@@ -83,6 +90,7 @@ export class StateSubscriptionManager {
     // Entity state subscriptions
     ANIMALS: 'StateSubscriptionManager.animals',
     HABITATS: 'StateSubscriptionManager.habitats',
+    RESOURCES: 'StateSubscriptionManager.resources',
     
     // Interaction state subscriptions
     VALID_MOVES: 'StateSubscriptionManager.validMoves',
@@ -99,20 +107,22 @@ export class StateSubscriptionManager {
   // Create a new StateSubscriptionManager
   constructor(
     scene: Phaser.Scene,
-    components: {
+    renderers: {
       animalRenderer: AnimalRenderer;
       habitatRenderer: HabitatRenderer;
       moveRangeRenderer: MoveRangeRenderer;
       animationController: AnimationController;
       tileRenderer: TileRenderer;
+      resourceRenderer?: ResourceRenderer;
     }
   ) {
     this.scene = scene;
-    this.animalRenderer = components.animalRenderer;
-    this.habitatRenderer = components.habitatRenderer;
-    this.moveRangeRenderer = components.moveRangeRenderer;
-    this.animationController = components.animationController;
-    this.tileRenderer = components.tileRenderer;
+    this.animalRenderer = renderers.animalRenderer;
+    this.habitatRenderer = renderers.habitatRenderer;
+    this.moveRangeRenderer = renderers.moveRangeRenderer;
+    this.animationController = renderers.animationController;
+    this.tileRenderer = renderers.tileRenderer;
+    this.resourceRenderer = renderers.resourceRenderer;
   }
   
   // Set up all state subscriptions
@@ -125,6 +135,7 @@ export class StateSubscriptionManager {
     
     this.setupBoardSubscriptions();
     this.setupEntitySubscriptions(onUnitClicked);
+    this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
     this.subscriptionsSetup = true;  // Mark subscriptions as set up
   }
@@ -183,6 +194,22 @@ export class StateSubscriptionManager {
       (habitats) => {
         if (habitats) {
           this.habitatRenderer.renderHabitats(habitats);
+        }
+      },
+      { immediate: true, debug: false } // Set immediate: true to render on subscription
+    );
+  }
+  
+  // Set up subscriptions related to resources
+  private setupResourceSubscriptions(): void {
+    // Subscribe to resource changes
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.RESOURCES,
+      (state) => state.resources,
+      (resources) => {
+        if (resources) {
+          // If we have a ResourceRenderer, render the resources
+          this.resourceRenderer?.renderResources(resources);
         }
       },
       { immediate: true, debug: false } // Set immediate: true to render on subscription

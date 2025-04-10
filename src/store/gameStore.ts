@@ -17,6 +17,12 @@ export enum TerrainType {
   UNDERWATER = 'underwater',
 }
 
+// Resource types
+export enum ResourceType {
+  FOREST = 'forest',
+  KELP = 'kelp',
+}
+
 // Define the core interface for animal abilities
 export interface AnimalAbilities {
   moveRange: number;
@@ -182,6 +188,13 @@ export interface ValidMove {
   y: number;
 }
 
+// Resource structure
+export interface Resource {
+  id: string;
+  type: ResourceType;
+  position: Coordinate;
+}
+
 // Game state interface
 export interface GameState {
   turn: number;
@@ -190,6 +203,7 @@ export interface GameState {
   board: Board | null;
   animals: Animal[];
   habitats: Habitat[];
+  resources: Resource[]; // Added resources array
   isInitialized: boolean;  // Flag to track if the game has been initialized
   
   // Movement state
@@ -253,6 +267,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   board: null,
   animals: [],
   habitats: [],
+  resources: [],
   isInitialized: false,
   
   // Initialize movement state
@@ -624,6 +639,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         habitats: (!state.isInitialized || forceHabitatGeneration) ? habitats : state.habitats,
         // Replace animals when force generating, otherwise add to existing
         animals: (!state.isInitialized || forceHabitatGeneration) ? animals : [...state.animals, ...animals],
+        // Generate resources
+        resources: (!state.isInitialized || forceHabitatGeneration) 
+          ? generateResources(width, height, terrainData, habitats) 
+          : state.resources,
       };
     }),
 
@@ -1430,4 +1449,59 @@ const handleDisplacement = (
     console.warn("Could not find valid displacement position");
     return updatedAnimals;
   }
+};
+
+// New helper function to generate resources based on terrain type
+const generateResources = (
+  width: number, 
+  height: number, 
+  terrainData: TerrainType[][], 
+  habitats: Habitat[]
+): Resource[] => {
+  const resources: Resource[] = [];
+  
+  // Track positions where habitats exist
+  const habitatPositions = new Set<string>();
+  habitats.forEach(habitat => {
+    habitatPositions.add(`${habitat.position.x},${habitat.position.y}`);
+  });
+  
+  // Define resource chance (80% of eligible tiles should have resources)
+  const resourceChance = 0.8;
+  
+  // Generate resources for each tile
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      // Skip if this position has a habitat
+      if (habitatPositions.has(`${x},${y}`)) {
+        continue;
+      }
+      
+      // Determine resource type based on terrain
+      let resourceType: ResourceType | null = null;
+      
+      if (terrainData[y][x] === TerrainType.GRASS) {
+        resourceType = ResourceType.FOREST;
+      } else if (terrainData[y][x] === TerrainType.WATER) {
+        resourceType = ResourceType.KELP;
+      }
+      
+      // If this terrain supports resources and passes the random check
+      if (resourceType && Math.random() < resourceChance) {
+        resources.push({
+          id: `resource-${resources.length}`,
+          type: resourceType,
+          position: { x, y }
+        });
+      }
+    }
+  }
+  
+  console.log(`Generated ${resources.length} resources (${
+    resources.filter(r => r.type === ResourceType.FOREST).length
+  } forest, ${
+    resources.filter(r => r.type === ResourceType.KELP).length
+  } kelp)`);
+  
+  return resources;
 };
