@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TerrainType } from '../store/gameStore';
+import { TerrainType, Biome } from '../store/gameStore';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
@@ -10,6 +10,12 @@ import { BaseRenderer } from './BaseRenderer';
 export class TileRenderer extends BaseRenderer {
   // Track all created tiles
   private tiles: Phaser.GameObjects.GameObject[] = [];
+  
+  // Flag to toggle between terrain and biome visualization
+  private showBiomeMode: boolean = false;
+  
+  // Track biome ID text objects
+  private biomeTexts: Phaser.GameObjects.Text[] = [];
   
   /**
    * Creates a new TileRenderer
@@ -86,12 +92,16 @@ export class TileRenderer extends BaseRenderer {
    * @param terrain The terrain type for this tile
    * @param x World x-coordinate
    * @param y World y-coordinate
+   * @param biomeId Optional biome ID for this tile
+   * @param biomeColor Optional biome color for visualization
    * @returns The created tile game object
    */
   private createTerrainTile(
     terrain: TerrainType, 
     x: number, 
-    y: number
+    y: number,
+    biomeId?: string | null,
+    biomeColor?: number
   ): Phaser.GameObjects.Graphics {
     // Create a graphics object for the tile
     const tile = this.scene.add.graphics();
@@ -99,11 +109,23 @@ export class TileRenderer extends BaseRenderer {
     // Set the position
     tile.setPosition(x, y);
     
-    // Get color and style based on terrain type
-    const { fillColor, strokeColor } = this.getTerrainStyle(terrain);
-    
-    // Draw the tile - diamond shape for isometric view
+    // Get diamond points for the tile shape
     const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
+    
+    // Determine coloring based on mode
+    let fillColor: number;
+    let strokeColor: number;
+    
+    if (this.showBiomeMode && biomeId && biomeColor) {
+      // In biome mode, use the biome color with slightly darker stroke
+      fillColor = biomeColor;
+      strokeColor = this.darkenColor(biomeColor, 0.7); // 70% brightness for stroke
+    } else {
+      // In terrain mode, use terrain colors
+      const terrainStyle = this.getTerrainStyle(terrain);
+      fillColor = terrainStyle.fillColor;
+      strokeColor = terrainStyle.strokeColor;
+    }
     
     // Draw filled shape with outline
     tile.fillStyle(fillColor, 1);
@@ -120,10 +142,34 @@ export class TileRenderer extends BaseRenderer {
     tile.fillPath();
     tile.strokePath();
     
-    // Store terrain type on the tile for reference
+    // Store data on the tile for reference
     tile.setData('terrainType', terrain);
+    if (biomeId) {
+      tile.setData('biomeId', biomeId);
+    }
     
     return tile;
+  }
+  
+  /**
+   * Darken a color by a given factor
+   * @param color The color to darken
+   * @param factor The factor to darken by (0-1, where lower is darker)
+   * @returns The darkened color
+   */
+  private darkenColor(color: number, factor: number): number {
+    // Convert color to RGB components
+    const r = (color >> 16) & 0xFF;
+    const g = (color >> 8) & 0xFF;
+    const b = color & 0xFF;
+    
+    // Darken each component
+    const newR = Math.floor(r * factor);
+    const newG = Math.floor(g * factor);
+    const newB = Math.floor(b * factor);
+    
+    // Recombine into a color
+    return (newR << 16) | (newG << 8) | newB;
   }
   
   /**
@@ -189,6 +235,16 @@ export class TileRenderer extends BaseRenderer {
       return;
     }
     
+    // Get biome colors from game registry if available
+    const gameState = this.scene.game.registry.get('gameState');
+    const biomes = gameState?.biomes;
+    
+    // Clear existing biome texts
+    this.clearBiomeTexts();
+    
+    // Track biome sizes if in biome mode
+    const biomeSizes = new Map<string, number>();
+    
     // Otherwise, just update existing tiles
     let index = 0;
     for (let y = 0; y < board.height; y++) {
@@ -196,17 +252,40 @@ export class TileRenderer extends BaseRenderer {
         if (index < this.tiles.length) {
           const tile = this.tiles[index];
           const currentTerrain = tile.getData('terrainType');
-          const newTerrain = board.tiles[y]?.[x]?.terrain || TerrainType.GRASS;
+          const currentBiomeId = tile.getData('biomeId');
           
-          // Only update if terrain has changed
-          if (currentTerrain !== newTerrain) {
+          const newTerrain = board.tiles[y]?.[x]?.terrain || TerrainType.GRASS;
+          const newBiomeId = board.tiles[y]?.[x]?.biomeId;
+          
+          // Count tile for its biome if in biome mode
+          if (this.showBiomeMode && newBiomeId) {
+            // Increment count for this biome
+            biomeSizes.set(newBiomeId, (biomeSizes.get(newBiomeId) || 0) + 1);
+          }
+          
+          // Update if terrain or biome changed or if visualization mode changed
+          if (
+            currentTerrain !== newTerrain || 
+            currentBiomeId !== newBiomeId ||
+            tile.getData('visualMode') !== (this.showBiomeMode ? 'biome' : 'terrain')
+          ) {
             // Get position
             const worldPos = CoordinateUtils.gridToWorld(
               x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
             );
             
+            // Get biome color if available
+            let biomeColor: number | undefined;
+            if (newBiomeId && biomes) {
+              const biome = biomes.get(newBiomeId);
+              if (biome) {
+                biomeColor = biome.color;
+              }
+            }
+            
             // Create replacement tile
-            const newTile = this.createTerrainTile(newTerrain, worldPos.x, worldPos.y);
+            const newTile = this.createTerrainTile(newTerrain, worldPos.x, worldPos.y, newBiomeId, biomeColor);
+            newTile.setData('visualMode', this.showBiomeMode ? 'biome' : 'terrain');
             this.setupTileInteraction(newTile, x, y);
             
             // Replace in layer
@@ -216,10 +295,71 @@ export class TileRenderer extends BaseRenderer {
             // Update tiles array
             this.tiles[index] = newTile;
           }
+          
+          // Add biome ID text if in biome mode
+          if (this.showBiomeMode && newBiomeId) {
+            // Extract habitat ID from biome ID (they should be the same)
+            const shortId = newBiomeId.split('-').pop() || '';
+            
+            const worldPos = CoordinateUtils.gridToWorld(
+              x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+            );
+            
+            // Create text in the center of the tile
+            const text = this.scene.add.text(worldPos.x, worldPos.y, shortId, {
+              fontSize: '12px',
+              color: '#000000',
+              stroke: '#FFFFFF',
+              strokeThickness: 2,
+              fontStyle: 'bold'
+            });
+            text.setOrigin(0.5, 0.5);
+            
+            // Add to tracking array
+            this.biomeTexts.push(text);
+            
+            // Add to UI layer so it's above the tiles
+            this.layerManager.addToLayer('ui', text);
+          }
         }
         index++;
       }
     }
+    
+    // Log biome sizes if in biome mode
+    if (this.showBiomeMode && biomeSizes.size > 0) {
+      console.log('----- Biome Sizes -----');
+      // Sort biomes by ID for consistent display
+      const sortedBiomes = Array.from(biomeSizes.entries())
+        .sort((a, b) => {
+          // Extract numeric part from biome ID for natural sorting
+          const numA = parseInt(a[0].split('-').pop() || '0');
+          const numB = parseInt(b[0].split('-').pop() || '0');
+          return numA - numB;
+        });
+      
+      // Log each biome's size
+      sortedBiomes.forEach(([biomeId, size]) => {
+        const shortId = biomeId.split('-').pop() || '';
+        console.log(`Biome ${shortId}: ${size} tiles`);
+      });
+      
+      // Log total tile count as a sanity check
+      const totalTiles = Array.from(biomeSizes.values()).reduce((sum, count) => sum + count, 0);
+      console.log(`Total tiles: ${totalTiles}`);
+      console.log('-----------------------');
+    }
+  }
+  
+  /**
+   * Clears all biome ID text objects
+   */
+  private clearBiomeTexts(): void {
+    // Remove and destroy all biome text objects
+    this.biomeTexts.forEach(text => {
+      this.layerManager.removeFromLayer('ui', text, true);
+    });
+    this.biomeTexts = [];
   }
   
   /**
@@ -229,6 +369,9 @@ export class TileRenderer extends BaseRenderer {
   clearTiles(destroy: boolean = true): void {
     // Clear all tiles from the terrain layer
     this.layerManager.clearLayer('terrain', destroy);
+    
+    // Clear biome texts
+    this.clearBiomeTexts();
     
     // Clear the tiles array
     this.tiles = [];
@@ -270,5 +413,77 @@ export class TileRenderer extends BaseRenderer {
   override destroy(): void {
     super.destroy();
     this.clearTiles();
+  }
+  
+  /**
+   * Toggle biome visualization mode
+   * @param enabled Whether to enable biome visualization
+   */
+  toggleBiomeMode(enabled: boolean): void {
+    if (this.showBiomeMode !== enabled) {
+      this.showBiomeMode = enabled;
+      
+      // Force update all tiles with the new visualization mode
+      const board = this.scene.game.registry.get('gameState')?.board;
+      if (board) {
+        // Clear any existing biome texts if disabling
+        if (!enabled) {
+          this.clearBiomeTexts();
+        } else {
+          // Log biome sizes when enabling biome mode
+          this.logBiomeSizes(board);
+        }
+        
+        this.updateTiles(board);
+      }
+    }
+  }
+  
+  /**
+   * Log biome sizes to the console
+   * @param board The game board data
+   */
+  private logBiomeSizes(board: { width: number, height: number, tiles: any[][] }): void {
+    console.log("----- BIOME SIZES -----");
+    
+    // Count tiles per biome
+    const biomeSizes = new Map<string, number>();
+    
+    // Count tiles for each biome
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const biomeId = board.tiles[y][x]?.biomeId;
+        if (biomeId) {
+          biomeSizes.set(biomeId, (biomeSizes.get(biomeId) || 0) + 1);
+        }
+      }
+    }
+    
+    // Sort biomes by ID for consistent display
+    const sortedBiomes = Array.from(biomeSizes.entries())
+      .sort((a, b) => {
+        // Extract numeric part from biome ID for natural sorting
+        const numA = parseInt(a[0].split('-').pop() || '0');
+        const numB = parseInt(b[0].split('-').pop() || '0');
+        return numA - numB;
+      });
+    
+    // Log each biome's size
+    sortedBiomes.forEach(([biomeId, size]) => {
+      const shortId = biomeId.split('-').pop() || '';
+      console.log(`Biome ${shortId}: ${size} tiles`);
+    });
+    
+    // Log total tile count as a sanity check
+    const totalTiles = Array.from(biomeSizes.values()).reduce((sum, count) => sum + count, 0);
+    console.log(`Total tiles: ${totalTiles}`);
+    console.log("-----------------------");
+  }
+  
+  /**
+   * Check if biome visualization mode is active
+   */
+  isBiomeModeActive(): boolean {
+    return this.showBiomeMode;
   }
 } 

@@ -861,4 +861,19 @@ export default class BoardScene extends Phaser.Scene {
   public getResourceRenderer(): ResourceRenderer {
     return this.resourceRenderer;
   }
+
+  // Toggle biome visualization mode on/off
+  public toggleBiomeVisualization(enabled: boolean): void {
+    if (this.tileRenderer) {
+      console.log(`Toggling biome visualization to ${enabled ? 'enabled' : 'disabled'}`);
+      
+      // Get current game state from registry to check if biomes exist
+      const gameState = this.game.registry.get('gameState');
+      console.log('Game state in registry:', gameState ? 'exists' : 'missing');
+      console.log('Biomes in registry:', gameState?.biomes ? `${gameState.biomes.size} biomes` : 'no biomes');
+      
+      this.tileRenderer.toggleBiomeMode(enabled);
+      console.log(`Biome visualization ${enabled ? 'enabled' : 'disabled'}`);
+    }
+  }
 }

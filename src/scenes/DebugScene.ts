@@ -4,11 +4,20 @@ import BoardScene from "./BoardScene";
 export default class DebugScene extends Phaser.Scene {
   private fpsText!: Phaser.GameObjects.Text;
   private boardScene: BoardScene | null = null;
+  
+  // FOW toggle elements
   private fowCheckbox!: Phaser.GameObjects.Container;
   private fowCheckboxText!: Phaser.GameObjects.Text;
   private fowCheckboxBox!: Phaser.GameObjects.Rectangle;
   private fowCheckboxInner!: Phaser.GameObjects.Rectangle;
   private fowEnabled: boolean = true;
+  
+  // Biome visualization toggle elements
+  private biomeCheckbox!: Phaser.GameObjects.Container;
+  private biomeCheckboxText!: Phaser.GameObjects.Text;
+  private biomeCheckboxBox!: Phaser.GameObjects.Rectangle;
+  private biomeCheckboxInner!: Phaser.GameObjects.Rectangle;
+  private biomeEnabled: boolean = false;
 
   constructor() {
     super({ 
@@ -31,8 +40,9 @@ export default class DebugScene extends Phaser.Scene {
     // Get the board scene
     this.boardScene = this.scene.get('BoardScene') as BoardScene;
     
-    // Create FOW checkbox container
+    // Create UI elements stacked from bottom to top
     this.createFowCheckbox(leftX, bottomY - 30);
+    this.createBiomeCheckbox(leftX, bottomY - 60); // Above FOW toggle
     
     this.fpsText = this.add.text(leftX, bottomY, "FPS: 0", {
       fontSize: "14px",
@@ -49,7 +59,58 @@ export default class DebugScene extends Phaser.Scene {
     
     // Listen for resize events to reposition the debug elements
     this.scale.on('resize', this.handleResize, this);
+  }
+
+  // Create a biome visualization toggle checkbox
+  private createBiomeCheckbox(x: number, y: number): void {
+    // Create container for the checkbox and label
+    this.biomeCheckbox = this.add.container(x, y);
+    this.biomeCheckbox.setDepth(1000);
     
+    // Create label first
+    this.biomeCheckboxText = this.add.text(0, 0, "Biomes", {
+      fontSize: "14px",
+      fontFamily: "monospace",
+      color: "#00FF00",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      padding: { x: 5, y: 2 },
+    }).setOrigin(0, 0.5);
+    
+    // Get width of text to position checkbox after it
+    const textWidth = this.biomeCheckboxText.width;
+    
+    // Create checkbox background (outline) after the text
+    this.biomeCheckboxBox = this.add.rectangle(textWidth + 10, 0, 16, 16, 0x00FF00, 0)
+      .setStrokeStyle(2, 0x00FF00)
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true });
+    
+    // Create checkbox inner fill (shown when checked)
+    this.biomeCheckboxInner = this.add.rectangle(textWidth + 10, 0, 10, 10, 0x00FF00, 1)
+      .setOrigin(0, 0.5)
+      .setPosition(textWidth + 13, 0); // Center in the box
+    
+    // Set initial state
+    this.biomeCheckboxInner.setVisible(this.biomeEnabled);
+    
+    // Add components to container
+    this.biomeCheckbox.add([this.biomeCheckboxText, this.biomeCheckboxBox, this.biomeCheckboxInner]);
+    
+    // Set up click handler
+    this.biomeCheckboxBox.on('pointerdown', this.toggleBiome, this);
+    this.biomeCheckboxText.setInteractive({ useHandCursor: true });
+    this.biomeCheckboxText.on('pointerdown', this.toggleBiome, this);
+  }
+  
+  // Toggle biome visualization state
+  private toggleBiome(): void {
+    this.biomeEnabled = !this.biomeEnabled;
+    this.biomeCheckboxInner.setVisible(this.biomeEnabled);
+    
+    // Call BoardScene's toggleBiomeVisualization method
+    if (this.boardScene) {
+      this.boardScene.toggleBiomeVisualization(this.biomeEnabled);
+    }
   }
 
   // Create a FOW toggle checkbox
@@ -121,6 +182,11 @@ export default class DebugScene extends Phaser.Scene {
     if (this.fowCheckbox) {
       // Update position to be above the FPS counter
       this.fowCheckbox.setPosition(10, bottomY - 30);
+    }
+    
+    if (this.biomeCheckbox) {
+      // Update position to be above the FOW toggle
+      this.biomeCheckbox.setPosition(10, bottomY - 60);
     }
   }
 

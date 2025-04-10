@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import BoardScene, { EVENTS } from '../scenes/BoardScene';
 import DebugScene from '../scenes/DebugScene';
 import UIScene from '../scenes/UIScene';
-import { MapGenerationType } from '../store/gameStore';
+import { MapGenerationType, useGameStore } from '../store/gameStore';
 import * as actions from '../store/actions';
 import { StateObserver } from '../utils/stateObserver';
 import { GAME_WIDTH, GAME_HEIGHT, BOARD_WIDTH_TILES, BOARD_HEIGHT_TILES } from '../constants/gameConfig';
@@ -17,6 +17,7 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
   const gameContainerRef = React.useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const listenersAttachedRef = useRef<boolean>(false);
+  const stateObserverSetupRef = useRef<boolean>(false);
   
   // Create and initialize the game
   useEffect(() => {
@@ -87,6 +88,28 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
       }
     }
 
+    // Setup state observer to sync game state with Phaser registry
+    const setupStateObserver = () => {
+      if (stateObserverSetupRef.current || !gameRef.current) return;
+      
+      // Subscribe to the entire game state and update the registry
+      StateObserver.subscribe(
+        'Game.gameStateSync',
+        (state) => state, // Select the entire state
+        (gameState) => {
+          // Update the registry with the current game state
+          if (gameRef.current) {
+            gameRef.current.registry.set('gameState', gameState);
+            console.log('Updated game registry with latest game state');
+          }
+        },
+        { immediate: true } // Immediately sync the current state
+      );
+      
+      stateObserverSetupRef.current = true;
+      console.log('State observer for registry sync is set up');
+    };
+
     // We don't need the resize handler with FIT mode
     
     // Wait for the board scene to be created, then set up event listeners
@@ -95,6 +118,7 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
         const boardScene = gameRef.current.scene.getScene('BoardScene') as BoardScene;
         if (boardScene) {
           attachSceneListeners(boardScene);
+          setupStateObserver(); // Set up state observer once board scene exists
           return true;
         }
       }
@@ -131,8 +155,12 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
         gameRef.current = null;
       }
       
-      // Reset the listeners attached flag for next mount
+      // Unsubscribe from state observer
+      StateObserver.unsubscribe('Game.gameStateSync');
+      
+      // Reset the flags for next mount
       listenersAttachedRef.current = false;
+      stateObserverSetupRef.current = false;
     };
   }, [onGameMount]);
 

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { generateIslandTerrain } from "../utils/TerrainGenerator";
 import { calculateManhattanDistance } from "../utils/CoordinateUtils";
+import { generateVoronoiBiomes } from "../utils/BiomeGenerator";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -149,6 +150,7 @@ interface Tile {
   terrain: TerrainType;
   explored: boolean;
   visible: boolean;
+  biomeId: string | null; // Track which biome this tile belongs to
 }
 
 // Base animal structure
@@ -195,6 +197,13 @@ export interface Resource {
   position: Coordinate;
 }
 
+// Biome structure
+export interface Biome {
+  id: string;
+  habitatId: string; // Each biome is associated with a habitat
+  color: number; // Store a color for visualization
+}
+
 // Game state interface
 export interface GameState {
   turn: number;
@@ -204,6 +213,7 @@ export interface GameState {
   animals: Animal[];
   habitats: Habitat[];
   resources: Resource[]; // Added resources array
+  biomes: Map<string, Biome>; // Track biomes by ID
   isInitialized: boolean;  // Flag to track if the game has been initialized
   
   // Movement state
@@ -268,6 +278,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   animals: [],
   habitats: [],
   resources: [],
+  biomes: new Map(),
   isInitialized: false,
   
   // Initialize movement state
@@ -408,8 +419,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           row.push({
             coordinate: { x, y },
             terrain: terrainData[y][x],
-            explored: false,
-            visible: true,
+            explored: false, // Start with all tiles explored for now
+            visible: true,  // Start with all tiles visible for now
+            biomeId: null   // Will be set after biome generation
           });
         }
         tiles.push(row);
@@ -632,6 +644,40 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
 
+      // Generate biomes if needed
+      let biomes = state.biomes;
+      let biomeMap: (string | null)[][] = [];
+      
+      if (!state.isInitialized || forceHabitatGeneration) {
+        // Generate new biomes
+        const biomeResult = generateVoronoiBiomes(width, height, habitats, terrainData);
+        biomeMap = biomeResult.biomeMap;
+        
+        // Create biomes map based on the results
+        biomes = new Map<string, Biome>();
+        
+        // For each habitat, create a biome
+        habitats.forEach(habitat => {
+          const biomeId = habitat.id;
+          const color = biomeResult.biomeColors.get(biomeId) || 0x000000; // Default to black if no color
+          
+          biomes.set(biomeId, {
+            id: biomeId,
+            habitatId: habitat.id,
+            color
+          });
+        });
+        
+        // Update tiles with biome IDs
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            tiles[y][x].biomeId = biomeMap[y][x];
+          }
+        }
+        
+        console.log(`Generated ${biomes.size} biomes`);
+      }
+      
       return { 
         board: { width, height, tiles },
         isInitialized: true,
@@ -643,6 +689,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         resources: (!state.isInitialized || forceHabitatGeneration) 
           ? generateResources(width, height, terrainData, habitats) 
           : state.resources,
+        // Use new biomes if generated, otherwise keep existing ones
+        biomes: (!state.isInitialized || forceHabitatGeneration) ? biomes : state.biomes
       };
     }),
 
