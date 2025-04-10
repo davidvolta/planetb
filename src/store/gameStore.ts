@@ -946,33 +946,91 @@ interface ValidEggPlacementState {
 }
 
 /**
- * Gets all valid tiles for egg placement around a habitat
- * A valid tile is one of the 8 adjacent tiles that doesn't already have an egg
+ * Gets all valid tiles for egg placement in a habitat's biome
+ * Valid tiles are in the same biome as the habitat, don't have eggs, and don't have resources
  * 
- * @param habitat The habitat to check around
- * @param state Simplified game state containing only board and animals
- * @returns Array of valid tile coordinates for egg placement
+ * @param habitat The habitat to find valid egg placement tiles for
+ * @param state Simplified game state containing board and animals
+ * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources
  */
 const getValidEggPlacementTiles = (
   habitat: Habitat,
   state: ValidEggPlacementState
 ): Coordinate[] => {
+  // Start performance timer
+  console.time('getValidEggPlacementTiles');
+  
   const validTiles: Coordinate[] = [];
   const board = state.board;
   
-  if (!board) return validTiles;
+  if (!board) {
+    console.timeEnd('getValidEggPlacementTiles');
+    return validTiles;
+  }
   
-  // Check all 8 adjacent tiles
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      const x = habitat.position.x + dx;
-      const y = habitat.position.y + dy;
-      
+  // Get the biome ID for this habitat by looking up the tile's biome ID
+  const habitatTile = board.tiles[habitat.position.y][habitat.position.x];
+  const biomeId = habitatTile.biomeId;
+  
+  // If biome ID is null (during initialization) or undefined, fall back to original behavior
+  if (!biomeId) {
+    console.log(`No biome found for habitat at ${habitat.position.x},${habitat.position.y}, using adjacent tiles only`);
+    
+    // Check all 8 adjacent tiles (original behavior)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = habitat.position.x + dx;
+        const y = habitat.position.y + dy;
+        
+        // Skip the habitat's own position
+        if (dx === 0 && dy === 0) continue;
+        
+        // Skip if out of bounds
+        if (x < 0 || x >= board.width || y < 0 || y >= board.height) continue;
+        
+        // Check if tile already has an egg
+        const hasEgg = state.animals.some(animal => 
+          animal.state === AnimalState.DORMANT &&
+          animal.position.x === x &&
+          animal.position.y === y
+        );
+        
+        if (!hasEgg) {
+          validTiles.push({ x, y });
+        }
+      }
+    }
+    
+    console.log(`Found ${validTiles.length} valid adjacent tiles for initialization`);
+    console.timeEnd('getValidEggPlacementTiles');
+    return validTiles; 
+  }
+  
+  console.log(`Finding valid egg placement tiles in biome ${biomeId}`);
+  
+  // Create a set of resource positions for quick lookup
+  const resourcePositions = new Set<string>();
+  const resources = useGameStore.getState().resources;
+  resources.forEach(resource => {
+    resourcePositions.add(`${resource.position.x},${resource.position.y}`);
+  });
+  
+  // Track positions with resources for prioritization
+  const resourceAdjacencyMap = new Map<string, number>();
+  
+  // Scan the entire board for tiles in this biome
+  for (let y = 0; y < board.height; y++) {
+    for (let x = 0; x < board.width; x++) {
       // Skip the habitat's own position
-      if (dx === 0 && dy === 0) continue;
+      if (x === habitat.position.x && y === habitat.position.y) continue;
       
-      // Skip if out of bounds
-      if (x < 0 || x >= board.width || y < 0 || y >= board.height) continue;
+      const tile = board.tiles[y][x];
+      
+      // Skip if not in the same biome
+      if (tile.biomeId !== biomeId) continue;
+      
+      // Skip if there's a resource on this tile
+      if (resourcePositions.has(`${x},${y}`)) continue;
       
       // Check if tile already has an egg
       const hasEgg = state.animals.some(animal => 
@@ -982,10 +1040,46 @@ const getValidEggPlacementTiles = (
       );
       
       if (!hasEgg) {
+        // Calculate adjacency score for prioritization (count adjacent resources)
+        let adjacencyScore = 0;
+        
+        // Check all 8 adjacent positions for resources
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const adjX = x + dx;
+            const adjY = y + dy;
+            
+            // Skip if out of bounds or the tile itself
+            if (dx === 0 && dy === 0) continue;
+            if (adjX < 0 || adjX >= board.width || adjY < 0 || adjY >= board.height) continue;
+            
+            // Increase score if there's a resource adjacent
+            if (resourcePositions.has(`${adjX},${adjY}`)) {
+              adjacencyScore += 1;
+            }
+          }
+        }
+        
+        // Store the score for later sorting
+        resourceAdjacencyMap.set(`${x},${y}`, adjacencyScore);
+        
+        // Add to valid tiles
         validTiles.push({ x, y });
       }
     }
   }
+  
+  // Sort valid tiles by resource adjacency score (higher is better)
+  validTiles.sort((a, b) => {
+    const scoreA = resourceAdjacencyMap.get(`${a.x},${a.y}`) || 0;
+    const scoreB = resourceAdjacencyMap.get(`${b.x},${b.y}`) || 0;
+    return scoreB - scoreA;
+  });
+  
+  console.log(`Found ${validTiles.length} valid tiles for egg placement in biome ${biomeId}`);
+  
+  // End performance timer
+  console.timeEnd('getValidEggPlacementTiles');
   
   return validTiles;
 };

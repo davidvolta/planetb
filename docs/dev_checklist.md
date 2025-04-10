@@ -11,6 +11,11 @@
     - [ ] Add mountain/insects and underwater/plankton resource types
 - [ ] Style edges of owned biomes (flood fill with stroke)
 - [ ] Update egg production to be anywhere in biome
+    - [ ] Extend getValidEggPlacementTiles to find all valid tiles in biome
+    - [ ] Add filter to prevent placing eggs on resource tiles
+    - [ ] Prioritize placement next to resource tiles
+    - [ ] Add performance tracking to measure execution time
+    - [ ] Maintain existing production rate rules and limitations
 
 
 - [ ] Implement harvesting
