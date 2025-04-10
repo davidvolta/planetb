@@ -98,6 +98,9 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("snake", "assets/snake.png");
     this.load.image("octopus", "assets/octopus.png");
     this.load.image("turtle", "assets/turtle.png");
+    
+    // Load resource test tile
+    this.load.image("resource", "assets/tile.png");
 
     this.load.on('complete', () => {
       this.events.emit(EVENTS.ASSETS_LOADED);
@@ -155,13 +158,33 @@ export default class BoardScene extends Phaser.Scene {
       this.createTiles();    // Create board tiles    
       this.setupSubscriptions();   // Set up state subscriptions
       
+      // TEMPORARILY DISABLED FOR RESOURCE TESTING
       // Center camera on player's first unit
+      /*
       this.cameraManager.centerCameraOnPlayerUnit(
         this.tileSize,
         this.tileHeight,
         this.anchorX,
         this.anchorY
       );
+      */
+      
+      // TEMPORARY: Center camera on (0,0) for resource testing
+      const worldPos = CoordinateUtils.gridToWorld(
+        0, 
+        0, 
+        this.tileSize, 
+        this.tileHeight,
+        this.anchorX,
+        this.anchorY
+      );
+      this.cameraManager.centerOn(worldPos.x, worldPos.y);
+      
+      // Add resource test graphics to (0,0) and adjacent tiles
+      this.addResourceTestGraphic(0, 0);
+      this.addResourceTestGraphic(0, 1);
+      this.addResourceTestGraphic(1, 0);
+      this.addResourceTestGraphic(1, 1);
     }
   }
   
@@ -260,7 +283,9 @@ export default class BoardScene extends Phaser.Scene {
       this.updateObjectVisibility(x, y, isVisible);
     });
     
+    // TEMPORARILY DISABLED FOR RESOURCE TESTING
     // Create Fog of War if it's enabled
+    /*
     if (this.fogOfWarEnabled) {
       this.fogOfWarRenderer.createFogOfWar(board);
       this.initializeVisibility();
@@ -270,6 +295,14 @@ export default class BoardScene extends Phaser.Scene {
         for (let x = 0; x < board.width; x++) {
           this.updateObjectVisibility(x, y, true);
         }
+      }
+    }
+    */
+    
+    // TEMPORARY: Force all objects to be visible for resource testing
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        this.updateObjectVisibility(x, y, true);
       }
     }
     
@@ -830,5 +863,33 @@ export default class BoardScene extends Phaser.Scene {
         }
       });
     }
+  }
+
+  // TEMPORARY: Method to add a resource test graphic at the specified grid position
+  private addResourceTestGraphic(gridX: number, gridY: number): void {
+    // Convert grid coordinates to world coordinates
+    const worldPos = CoordinateUtils.gridToWorld(
+      gridX, 
+      gridY, 
+      this.tileSize, 
+      this.tileHeight,
+      this.anchorX,
+      this.anchorY
+    );
+    
+    // Create a sprite for the resource
+    const resourceSprite = this.add.sprite(worldPos.x, worldPos.y, 'resource');
+    
+    // Set scale to normal size
+    resourceSprite.setScale(1);
+    
+    // Store grid coordinates on the sprite for later reference
+    resourceSprite.setData('gridX', gridX);
+    resourceSprite.setData('gridY', gridY);
+    
+    // Add to the static objects layer (layer 4)
+    this.layerManager.addToLayer('staticObjects', resourceSprite);
+    
+    console.log(`Added resource test graphic at grid (${gridX}, ${gridY}), world (${worldPos.x}, ${worldPos.y})`);
   }
 }

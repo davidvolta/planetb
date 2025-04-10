@@ -69,6 +69,7 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
       backgroundColor: '#1c1117',
       parent: gameContainerRef.current,
       scene: [BoardScene, DebugScene, UIScene],
+      antialias: false, // true (default) or false
       pixelArt: true, // Ensures sharp pixel rendering
       scale: {
         mode: Phaser.Scale.RESIZE,

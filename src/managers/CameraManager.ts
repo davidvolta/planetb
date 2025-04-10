@@ -10,8 +10,8 @@ export class CameraManager {
   
   // Camera zoom constraints
   private minZoom: number = 0.5;
-  private maxZoom: number = 2.0;
-  private defaultZoom: number = 2.0;
+  private maxZoom: number = 6.0;
+  private defaultZoom: number = 3.0;
   
   // Track if camera is already set up
   private cameraSetup: boolean = false;
