@@ -293,23 +293,6 @@ export class TileRenderer extends BaseRenderer {
         index++;
       }
     }
-    
-    // Log biome sizes if in biome mode
-    if (this.showBiomeMode && biomeSizes.size > 0) {
-      console.log('----- Biome Sizes -----');
-      // Sort biomes by number for consistent display
-      const sortedBiomes = Array.from(biomeSizes.entries())
-        .sort((a, b) => {
-          // Extract numeric part from biome ID for natural sorting
-          const numA = parseInt(a[0].split('-').pop() || '0');
-          const numB = parseInt(b[0].split('-').pop() || '0');
-          return numA - numB;
-        });
-      
-      console.log(`Number of biomes: ${sortedBiomes.length}`);
-      console.log(`Total tiles: ${board.width * board.height}`);
-      console.log('-----------------------');
-    }
   }
   
   /**

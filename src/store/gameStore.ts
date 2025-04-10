@@ -498,50 +498,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             
             habitats.push(newHabitat);
             terrainTypesWithHabitats.add(terrainType);
-
-            // Place initial eggs around the habitat, but ONLY for the player's improved water habitat
-            if (newHabitat.productionRate > 0 && shouldImproveForPlayer) {
-              const validTiles = getValidEggPlacementTiles(newHabitat, {
-                board: { width, height, tiles },
-                animals,
-              });
-
-              // Place eggs based on production rate
-              for (let i = 0; i < Math.min(newHabitat.productionRate, validTiles.length); i++) {
-                const randomTileIndex = Math.floor(Math.random() * validTiles.length);
-                const tile = validTiles[randomTileIndex];
-                validTiles.splice(randomTileIndex, 1);
-
-                // Create new egg
-                const newAnimal = {
-                  id: `animal-${animals.length}`,
-                  species: TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
-                  state: AnimalState.DORMANT,
-                  position: tile,
-                  previousPosition: null,
-                  hasMoved: false,
-                  ownerId: null,
-                };
-                console.log(`Created new animal during init:`, { 
-                  id: newAnimal.id, 
-                  type: newAnimal.species, 
-                  terrain: terrainData[tile.y][tile.x] 
-                });
-                
-                // If this animal is from an improved player-owned water habitat, make it active and owned
-                if (newHabitat.state === HabitatState.IMPROVED && 
-                    newHabitat.ownerId !== null && 
-                    newHabitat.shelterType === ShelterType.REEF) {
-                  // Make this the active player unit
-                  newAnimal.state = AnimalState.ACTIVE;
-                  // Type assertion to handle the number assignment to the ownerId property
-                  (newAnimal as Animal).ownerId = newHabitat.ownerId;
-                  console.log(`Set animal ${newAnimal.id} as active player unit for player ${newAnimal.ownerId}`);
-                }
-                
-                animals.push(newAnimal);
-              }
-            }
           }
         });
         
@@ -637,19 +593,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         habitatsByTerrain.forEach((count, terrain) => {
           console.log(`  ${terrain}: ${count} habitats`);
         });
-      }
-
-      // Generate biomes if needed
-      let biomes = state.biomes;
-      let biomeMap: (string | null)[][] = [];
-      
-      if (!state.isInitialized || forceHabitatGeneration) {
+        
+        // Generate biomes immediately after creating habitats
+        // Move biome generation code here - BEFORE egg placement
         // Generate new biomes
         const biomeResult = generateVoronoiBiomes(width, height, habitats, terrainData);
-        biomeMap = biomeResult.biomeMap;
+        let biomeMap = biomeResult.biomeMap;
         
         // Create biomes map based on the results
-        biomes = new Map<string, Biome>();
+        let biomes = new Map<string, Biome>();
         
         // For each habitat, create a biome
         habitats.forEach(habitat => {
@@ -670,23 +622,95 @@ export const useGameStore = create<GameState>((set, get) => ({
           }
         }
         
-        console.log(`Generated ${biomes.size} biomes`);
+        // Now place eggs after biomes are generated
+        // Place initial eggs around the habitat, but ONLY for the player's improved water habitat
+        habitats.forEach(habitat => {
+          // Only place eggs for improved habitats with owners
+          if (habitat.productionRate > 0 && 
+              habitat.state === HabitatState.IMPROVED && 
+              habitat.ownerId !== null) {
+            
+            // For the initial player unit, use adjacent tiles only
+            // This ensures the player's starting unit is close to their habitat
+            const adjacentTiles: Coordinate[] = [];
+            
+            // Check all 8 adjacent tiles
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const x = habitat.position.x + dx;
+                const y = habitat.position.y + dy;
+                
+                // Skip the habitat's own position
+                if (dx === 0 && dy === 0) continue;
+                
+                // Skip if out of bounds
+                if (x < 0 || x >= width || y < 0 || y >= height) continue;
+                
+                // Check if tile already has an egg
+                const hasEgg = animals.some(animal => 
+                  animal.state === AnimalState.DORMANT &&
+                  animal.position.x === x &&
+                  animal.position.y === y
+                );
+                
+                if (!hasEgg) {
+                  adjacentTiles.push({ x, y });
+                }
+              }
+            }
+            
+            console.log(`Found ${adjacentTiles.length} valid adjacent tiles for initial player unit`);
+            
+            // Place eggs based on production rate
+            for (let i = 0; i < Math.min(habitat.productionRate, adjacentTiles.length); i++) {
+              const randomTileIndex = Math.floor(Math.random() * adjacentTiles.length);
+              const tile = adjacentTiles[randomTileIndex];
+              adjacentTiles.splice(randomTileIndex, 1);
+
+              // Create new egg
+              const newAnimal = {
+                id: `animal-${animals.length}`,
+                species: TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
+                state: AnimalState.DORMANT,
+                position: tile,
+                previousPosition: null,
+                hasMoved: false,
+                ownerId: null,
+              };
+              console.log(`Created new animal during init:`, { 
+                id: newAnimal.id, 
+                type: newAnimal.species, 
+                terrain: terrainData[tile.y][tile.x] 
+              });
+              
+              // If this animal is from an improved player-owned water habitat, make it active and owned
+              if (habitat.state === HabitatState.IMPROVED && 
+                  habitat.ownerId !== null && 
+                  habitat.shelterType === ShelterType.REEF) {
+                // Make this the active player unit
+                newAnimal.state = AnimalState.ACTIVE;
+                // Type assertion to handle the number assignment to the ownerId property
+                (newAnimal as Animal).ownerId = habitat.ownerId;
+                console.log(`Set animal ${newAnimal.id} as active player unit for player ${newAnimal.ownerId}`);
+              }
+              
+              animals.push(newAnimal);
+            }
+          }
+        });
+        
+        return { 
+          board: { width, height, tiles },
+          isInitialized: true,
+          habitats: habitats,
+          animals: animals,
+          resources: generateResources(width, height, terrainData, habitats),
+          biomes: biomes
+        };
       }
       
-      return { 
-        board: { width, height, tiles },
-        isInitialized: true,
-        // Use new habitats if generating, otherwise keep existing ones
-        habitats: (!state.isInitialized || forceHabitatGeneration) ? habitats : state.habitats,
-        // Replace animals when force generating, otherwise add to existing
-        animals: (!state.isInitialized || forceHabitatGeneration) ? animals : [...state.animals, ...animals],
-        // Generate resources
-        resources: (!state.isInitialized || forceHabitatGeneration) 
-          ? generateResources(width, height, terrainData, habitats) 
-          : state.resources,
-        // Use new biomes if generated, otherwise keep existing ones
-        biomes: (!state.isInitialized || forceHabitatGeneration) ? biomes : state.biomes
-      };
+      // If we're not initializing or regenerating, return unchanged state
+      return state;
     }),
 
   getTile: (x, y) => {
@@ -957,14 +981,10 @@ const getValidEggPlacementTiles = (
   habitat: Habitat,
   state: ValidEggPlacementState
 ): Coordinate[] => {
-  // Start performance timer
-  console.time('getValidEggPlacementTiles');
-  
   const validTiles: Coordinate[] = [];
   const board = state.board;
   
   if (!board) {
-    console.timeEnd('getValidEggPlacementTiles');
     return validTiles;
   }
   
@@ -972,41 +992,10 @@ const getValidEggPlacementTiles = (
   const habitatTile = board.tiles[habitat.position.y][habitat.position.x];
   const biomeId = habitatTile.biomeId;
   
-  // If biome ID is null (during initialization) or undefined, fall back to original behavior
   if (!biomeId) {
-    console.log(`No biome found for habitat at ${habitat.position.x},${habitat.position.y}, using adjacent tiles only`);
-    
-    // Check all 8 adjacent tiles (original behavior)
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const x = habitat.position.x + dx;
-        const y = habitat.position.y + dy;
-        
-        // Skip the habitat's own position
-        if (dx === 0 && dy === 0) continue;
-        
-        // Skip if out of bounds
-        if (x < 0 || x >= board.width || y < 0 || y >= board.height) continue;
-        
-        // Check if tile already has an egg
-        const hasEgg = state.animals.some(animal => 
-          animal.state === AnimalState.DORMANT &&
-          animal.position.x === x &&
-          animal.position.y === y
-        );
-        
-        if (!hasEgg) {
-          validTiles.push({ x, y });
-        }
-      }
-    }
-    
-    console.log(`Found ${validTiles.length} valid adjacent tiles for initialization`);
-    console.timeEnd('getValidEggPlacementTiles');
+    console.warn(`Habitat at ${habitat.position.x},${habitat.position.y} has no biome ID`);
     return validTiles; 
   }
-  
-  console.log(`Finding valid egg placement tiles in biome ${biomeId}`);
   
   // Create a set of resource positions for quick lookup
   const resourcePositions = new Set<string>();
@@ -1075,11 +1064,6 @@ const getValidEggPlacementTiles = (
     const scoreB = resourceAdjacencyMap.get(`${b.x},${b.y}`) || 0;
     return scoreB - scoreA;
   });
-  
-  console.log(`Found ${validTiles.length} valid tiles for egg placement in biome ${biomeId}`);
-  
-  // End performance timer
-  console.timeEnd('getValidEggPlacementTiles');
   
   return validTiles;
 };
