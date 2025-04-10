@@ -9,7 +9,7 @@ export class CameraManager {
   private scene: Phaser.Scene;
   
   // Camera zoom constraints
-  private minZoom: number = 0.5;
+  private minZoom: number = 2.0;
   private maxZoom: number = 6.0;
   private defaultZoom: number = 3.0;
   

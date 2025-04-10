@@ -6,6 +6,7 @@ import UIScene from '../scenes/UIScene';
 import { MapGenerationType } from '../store/gameStore';
 import * as actions from '../store/actions';
 import { StateObserver } from '../utils/stateObserver';
+import { GAME_WIDTH, GAME_HEIGHT, BOARD_WIDTH_TILES, BOARD_HEIGHT_TILES } from '../constants/gameConfig';
 
 // Define prop types for the Game component
 interface GameProps {
@@ -44,8 +45,8 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
         if (!actions.isInitialized()) {
           console.log('Board not initialized, initializing now');
           actions.initializeBoard({
-            width: 30,
-            height: 30,
+            width: BOARD_WIDTH_TILES,
+            height: BOARD_HEIGHT_TILES,
             mapType: MapGenerationType.ISLAND
           });
         } else {
@@ -57,24 +58,21 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
       listenersAttachedRef.current = true;
     };
 
-    // Calculate initial size
-    const width = gameContainerRef.current.clientWidth;
-    const height = gameContainerRef.current.clientHeight;
-
-    // Create config
+    // Create config with fixed dimensions
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      width,
-      height,
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
       backgroundColor: '#1c1117',
       parent: gameContainerRef.current,
       scene: [BoardScene, DebugScene, UIScene],
-      antialias: false, // true (default) or false
-      pixelArt: true, // Ensures sharp pixel rendering
+      pixelArt: true,
+      antialias: false,
       scale: {
-        mode: Phaser.Scale.RESIZE,
-        width: '100%',
-        height: '100%'
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: GAME_WIDTH, 
+        height: GAME_HEIGHT
       }
     };
 
@@ -89,17 +87,8 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
       }
     }
 
-    // Set up window resize handler
-    const handleResize = () => {
-      if (gameRef.current) {
-        const newWidth = gameContainerRef.current?.clientWidth || width;
-        const newHeight = gameContainerRef.current?.clientHeight || height;
-        gameRef.current.scale.resize(newWidth, newHeight);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
+    // We don't need the resize handler with FIT mode
+    
     // Wait for the board scene to be created, then set up event listeners
     const checkForBoardScene = () => {
       if (gameRef.current) {
@@ -125,9 +114,6 @@ const Game: React.FC<GameProps> = ({ onGameMount }) => {
     }
 
     return () => {
-      // Clean up all resources when the component unmounts
-      window.removeEventListener('resize', handleResize);
-      
       // Clear any pending intervals
       if (interval !== null) {
         clearInterval(interval);

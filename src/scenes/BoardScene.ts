@@ -16,6 +16,7 @@ import { AnimationController } from "../controllers/AnimationController";
 import { CameraManager } from "../managers/CameraManager";
 import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
 import { FogOfWarRenderer } from '../renderers/FogOfWarRenderer';
+import { TILE_SIZE, TILE_HEIGHT } from '../constants/gameConfig';
 
 // Custom event names
 export const EVENTS = {
@@ -28,8 +29,8 @@ export default class BoardScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.GameObject[] = [];
   
   // Fixed tile properties
-  private tileSize = 64; 
-  private tileHeight = 32; 
+  private tileSize = TILE_SIZE; 
+  private tileHeight = TILE_HEIGHT; 
   
   // Store fixed anchor positions for the grid
   private anchorX = 0; 
@@ -880,8 +881,8 @@ export default class BoardScene extends Phaser.Scene {
     // Create a sprite for the resource
     const resourceSprite = this.add.sprite(worldPos.x, worldPos.y, 'resource');
     
-    // Set scale to normal size
-    resourceSprite.setScale(1);
+    // Set scale to 1/3 size
+    resourceSprite.setScale(0.3333);
     
     // Store grid coordinates on the sprite for later reference
     resourceSprite.setData('gridX', gridX);

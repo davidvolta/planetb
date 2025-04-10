@@ -100,6 +100,9 @@ export class AnimalRenderer extends BaseRenderer {
         // Update position with vertical offset
         existing.sprite.setPosition(worldX, worldY);
         
+        // Set scale to 1/3 size
+        existing.sprite.setScale(0.3333);
+        
         // Set depth based on position and state
         existing.sprite.setDepth(this.calculateUnitDepth(gridX, gridY, isActive));
         
@@ -115,7 +118,7 @@ export class AnimalRenderer extends BaseRenderer {
         const animalSprite = this.scene.add.sprite(worldX, worldY, textureKey);
         
         // Set appropriate scale
-        animalSprite.setScale(1);
+        animalSprite.setScale(0.3333);
         
         // Set depth based on position and state
         animalSprite.setDepth(this.calculateUnitDepth(gridX, gridY, isActive));

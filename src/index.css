@@ -26,6 +26,13 @@ html, body {
 }
 canvas {
   display: block;
+  margin: 0 auto !important; /* Force center alignment */
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  image-rendering: pixelated; /* Crisp pixel art rendering */
+  image-rendering: crisp-edges; /* Firefox alternative */
+  -ms-interpolation-mode: nearest-neighbor; /* IE alternative */
 }
 
 a {
@@ -104,4 +111,7 @@ button:focus-visible {
 #root {
   height: 100%;
   width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
