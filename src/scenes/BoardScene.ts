@@ -306,8 +306,11 @@ export default class BoardScene extends Phaser.Scene {
     // Get contents at this location
     const contents = this.checkTileContents(gridX, gridY);
     
-    // Show selection indicator at the clicked tile using SelectionRenderer
-    this.selectionRenderer.showSelectionAt(gridX, gridY);
+    // Check if there's an active unit that has already moved
+    const hasMovedUnit = contents.activeUnits.some(unit => unit.hasMoved);
+    
+    // Check if there's an improved habitat at this location
+    const hasImprovedHabitat = contents.habitats.some(habitat => habitat.state === HabitatState.IMPROVED);
     
     // First, check if this tile is a valid move target - this gets priority over other interactions
     const isValidMoveTarget = this.moveRangeRenderer.isValidMoveTarget(gridX, gridY);
@@ -333,6 +336,12 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
+    // Show selection indicator at the clicked tile using SelectionRenderer
+    // Do NOT show white selection if the tile has a unit that has already moved or an improved habitat
+    if (!hasMovedUnit && !hasImprovedHabitat) {
+      this.selectionRenderer.showSelectionAt(gridX, gridY);
+    }
+    
     // Check if the tile contains both active and dormant units
     const hasActiveUnit = contents.activeUnits.length > 0;
     const hasDormantUnit = contents.dormantUnits.length > 0;
@@ -342,12 +351,11 @@ export default class BoardScene extends Phaser.Scene {
     const selectedUnitId = actions.getSelectedUnitId();
     
     // Check if we're clicking the same tile that has the currently selected unit
-    const isClickingSelectedUnit = hasActiveUnit && 
-      selectedUnitId === contents.activeUnits[0].id;
+    const selectedUnit = selectedUnitId ? contents.activeUnits.find(unit => unit.id === selectedUnitId) : null;
+    const isClickingSelectedUnit = selectedUnit !== null;
     
-    // If we're clicking on a tile that has both active unit and dormant unit AND we already have the active unit selected,
-    // select the dormant unit instead (toggle behavior)
-    if (isClickingSelectedUnit && hasDormantUnit) {
+    // First check if there's a dormant unit we can interact with
+    if (hasDormantUnit) {
       const dormantUnit = contents.dormantUnits[0];
       
       // Select the dormant unit without showing move range (it can't move)
@@ -359,65 +367,47 @@ export default class BoardScene extends Phaser.Scene {
       // Clear any existing move highlights
       this.moveRangeRenderer.clearMoveHighlights();
       
-      console.log(`Toggled to dormant unit: ${dormantUnit.id} at ${gridX},${gridY}`);
-      
-      return;
-    }
-    
-    // If we're clicking on a tile that has both active unit and habitat AND we already have the active unit selected,
-    // select the habitat instead (toggle behavior)
-    if (isClickingSelectedUnit && hasHabitat) {
-      const clickedHabitat = contents.habitats[0];
-      
-      // Deselect the unit
-      this.handleUnitSelection(null);
-      
-      // Select habitat in store
-      actions.selectHabitat(clickedHabitat.id);
-      
-      // Show RED selection indicator for habitat
-      this.selectionRenderer.showRedSelectionAt(gridX, gridY);
-      
-      // Clear any existing move highlights
-      this.moveRangeRenderer.clearMoveHighlights();
-      
-      console.log(`Toggled to habitat: ${clickedHabitat.id} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
-      
-      return;
-    }
-    
-    // Normal priority - active units first, then dormant
-    if (hasActiveUnit) {
-      const unit = contents.activeUnits[0]; // Just use the first one for now
-      
-      this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
-      
-      return;
-    }
-    // If we have a dormant unit at this tile, select it (for spawning)
-    else if (hasDormantUnit) {
-      const dormantUnit = contents.dormantUnits[0]; // Just use the first one for now
-      
-      // Select the dormant unit without showing move range (it can't move)
-      this.handleUnitSelection(dormantUnit.id, { x: gridX, y: gridY });
-      
-      // Clear any existing move highlights
-      this.moveRangeRenderer.clearMoveHighlights();
-      
       console.log(`Selected dormant unit: ${dormantUnit.id} at ${gridX},${gridY}`);
       
       return;
     }
     
-    // Only then check for habitats if no units are present
+    // Then check if there's a habitat we can interact with
     if (hasHabitat) {
       const clickedHabitat = contents.habitats[0]; // Just use the first one for now
       
       // Log the habitat click
       console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
       
-      // Select habitat in store
-      actions.selectHabitat(clickedHabitat.id);
+      // Only select and show red indicator if habitat is NOT already improved
+      if (clickedHabitat.state !== HabitatState.IMPROVED) {
+        // Select habitat in store
+        actions.selectHabitat(clickedHabitat.id);
+        
+        // Show RED selection indicator for habitat
+        this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+      } else {
+        console.log(`Habitat ${clickedHabitat.id} is already improved and cannot be selected`);
+        
+        // Deselect any currently selected habitat
+        actions.selectHabitat(null);
+      }
+      
+      return;
+    }
+    
+    // Only handle active unit selection if none of the above actions were taken
+    // and if the unit hasn't moved
+    if (hasActiveUnit) {
+      const unit = contents.activeUnits[0]; // Just use the first one for now
+      
+      // Skip selection if the unit has already moved this turn
+      if (unit.hasMoved) {
+        console.log(`Unit ${unit.id} has already moved this turn and cannot be selected`);
+        return;
+      }
+      
+      this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
       
       return;
     }

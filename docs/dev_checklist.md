@@ -2,7 +2,7 @@
 
 ## Upcoming Tasks
 - [ ] Change tinting mechanism
-- [ ] Hide selector when move is done
+- [x] Hide selector when move is done (Completed: White selector hidden for moved units, but red selector still available for secondary actions on same tile)
 - [ ] Fix ineligble spawning moves on terrain
 - [x] Fix bug where player can move after improving habitat
 - [ ] Fix Raley Font (lost during architecture update)
