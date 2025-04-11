@@ -7,10 +7,7 @@ import * as actions from './store/actions';
 import { GAME_WIDTH, GAME_HEIGHT, BOARD_WIDTH_TILES, BOARD_HEIGHT_TILES } from './constants/gameConfig';
 import { StateObserver } from './utils/stateObserver';
 
-// Add a global console message to confirm the script is loading
-console.log('Planet B: Standalone mode script loaded');
-
-// Default game config
+// Game configuration
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: GAME_WIDTH,
@@ -35,10 +32,8 @@ let gameInstance: Phaser.Game | null = null;
  * Initialize the game board with default settings
  */
 function initializeGameBoard() {
-  // Add a default player if none exists
   const gameState = useGameStore.getState();
   if (gameState.players.length === 0) {
-    // Use the store's addPlayer method directly
     useGameStore.getState().addPlayer('Player 1', '#3498db');
   }
   
@@ -51,20 +46,17 @@ function initializeGameBoard() {
 }
 
 /**
- * Set up the game's state observer
- * This replaces the React-Phaser bridge functionality
+ * Set up the game's state observer to sync game state with Phaser
  */
 function setupStateObserver(game: Phaser.Game) {
-  // Set up state observer to sync game state with Phaser registry
+  // Single subscription to sync game state with Phaser's registry
   StateObserver.subscribe(
     'Game.gameStateSync',
-    (state) => state, // Select the entire state
+    (state) => state, 
     (gameState) => {
-      // Update the registry with the current game state
       game.registry.set('gameState', gameState);
-      console.log('Updated game registry with latest game state');
     },
-    { immediate: true } // Immediately sync the current state
+    { immediate: true }
   );
 }
 
@@ -77,12 +69,8 @@ function setupAssetLoadedListener(game: Phaser.Game) {
     // Remove any existing listeners first
     boardScene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
     
-    // Listen for assets loaded event
-    boardScene.events.on(EVENTS.ASSETS_LOADED, () => {
-      console.log('Assets loaded, initializing board');
-      // Initialize the game board
-      initializeGameBoard();
-    });
+    // Listen for assets loaded event to initialize the game board
+    boardScene.events.on(EVENTS.ASSETS_LOADED, initializeGameBoard);
     
     return true;
   }
@@ -91,7 +79,6 @@ function setupAssetLoadedListener(game: Phaser.Game) {
 
 /**
  * Initializes and returns the Phaser game instance
- * @returns The Phaser game instance
  */
 export function initializeGame(): Phaser.Game {
   // If game instance already exists, return it
@@ -106,7 +93,7 @@ export function initializeGame(): Phaser.Game {
   // Set up the state observer
   setupStateObserver(game);
   
-  // Try to set up the listener immediately, or poll until the scene is available
+  // Set up asset loaded listener with polling if needed
   if (!setupAssetLoadedListener(game)) {
     const interval = setInterval(() => {
       if (setupAssetLoadedListener(game)) {
@@ -119,23 +106,19 @@ export function initializeGame(): Phaser.Game {
 }
 
 /**
- * Destroy the game instance
+ * Destroy the game instance and clean up resources
  */
 export function destroyGame() {
   if (gameInstance) {
-    // Clean up subscriptions
     StateObserver.unsubscribeAll();
-    
-    // Destroy the game
     gameInstance.destroy(true);
     gameInstance = null;
   }
 }
 
-// When this file is loaded directly, automatically initialize the game
+// Initialize the game when the window loads
 if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
-    console.log('Initializing standalone Phaser game');
     initializeGame();
   });
 } 

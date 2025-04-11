@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
+/**
+ * Vite configuration for Planet B
+ */
 export default defineConfig({
-  plugins: [react()],
-  // Add a build script for standalone mode
   build: {
-    outDir: 'dist',
-    emptyOutDir: true
+    outDir: 'dist', // Output to standard dist directory
   }
-})
+}) 
