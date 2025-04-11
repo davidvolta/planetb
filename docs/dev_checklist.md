@@ -12,6 +12,11 @@
 - [ ] Populate biomes with resources (remove random function)
     - [ ] Update resource generation to be biome-specific instead of random based on lushness quotient of 8
     - [ ] Add mountain/insects and underwater/plankton resource types
+        - [ ] Update ResourceType enum to include INSECTS and PLANKTON
+        - [ ] Modify generateResources() to create insects on mountain terrain and plankton on underwater terrain
+        - [ ] Update ResourceRenderer to handle new resource types using the existing sprites
+        - [ ] Test resource generation and distribution on all terrain types
+        
 - [ ] Style edges of owned biomes (flood fill with stroke)
 
 - [ ] Implement harvesting
