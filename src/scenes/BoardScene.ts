@@ -560,7 +560,16 @@ export default class BoardScene extends Phaser.Scene {
     const board = actions.getBoard();
     
     if (board) {
-      this.selectionRenderer.updateFromPointer(pointer, board.width, board.height);
+      // Only show hover indicator when not in move mode
+      const moveMode = actions.isMoveMode();
+      
+      if (!moveMode) {
+        // Normal hover behavior when not in move mode
+        this.selectionRenderer.updateFromPointer(pointer, board.width, board.height);
+      } else {
+        // Hide hover indicator when in move mode
+        this.selectionRenderer.updateHoverIndicator(false);
+      }
     }
     
     // Let the animation controller handle any active animations if needed
