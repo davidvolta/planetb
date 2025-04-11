@@ -351,8 +351,35 @@ export function improveHabitat(habitatId: string): void {
         : h
     );
     
-    // Update the state
-    useGameStore.setState({ habitats: updatedHabitats });
+    // Find the unit that is on the habitat and mark it as having moved
+    const unitsOnHabitat = state.animals.filter(animal => 
+      animal.position.x === habitat.position.x && 
+      animal.position.y === habitat.position.y &&
+      animal.state === AnimalState.ACTIVE &&
+      !animal.hasMoved &&
+      animal.ownerId === currentPlayerId
+    );
+    
+    // Update the unit's hasMoved flag
+    if (unitsOnHabitat.length > 0) {
+      const unitId = unitsOnHabitat[0].id; // Use the first unit if multiple
+      const updatedAnimals = state.animals.map(animal => 
+        animal.id === unitId 
+          ? { ...animal, hasMoved: true } 
+          : animal
+      );
+      
+      // Update both habitats and animals
+      useGameStore.setState({ 
+        habitats: updatedHabitats,
+        animals: updatedAnimals
+      });
+      
+      console.log(`Unit ${unitId} marked as moved after improving habitat ${habitatId}`);
+    } else {
+      // Just update habitats if no unit found (shouldn't happen due to canImproveHabitat check)
+      useGameStore.setState({ habitats: updatedHabitats });
+    }
     
     // Record the habitat improvement event
     recordHabitatImproveEvent(habitatId);

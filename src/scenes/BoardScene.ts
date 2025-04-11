@@ -105,6 +105,8 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("turtle", "assets/turtle.png");
     this.load.image("forest", "assets/resources/forest.png");
     this.load.image("kelp", "assets/resources/kelp.png");
+    this.load.image("insects", "assets/resources/insects.png");
+    this.load.image("plankton", "assets/resources/plankton.png");
 
     this.load.on('complete', () => {
       this.events.emit(EVENTS.ASSETS_LOADED);

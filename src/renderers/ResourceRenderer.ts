@@ -75,7 +75,7 @@ export class ResourceRenderer extends BaseRenderer {
       const worldY = worldPosition.y;
       
       // Determine the texture based on resource type
-      const textureKey = resource.type === ResourceType.FOREST ? 'forest' : 'kelp';
+      const textureKey = this.getTextureKeyForResourceType(resource.type);
       
       // Check if we have an existing sprite
       const existing = existingResources.get(resource.id);
@@ -133,7 +133,7 @@ export class ResourceRenderer extends BaseRenderer {
     
     const worldX = worldPosition.x;
     const worldY = worldPosition.y;
-    const textureKey = resource.type === ResourceType.FOREST ? 'forest' : 'kelp';
+    const textureKey = this.getTextureKeyForResourceType(resource.type);
     
     const resourceSprite = this.scene.add.sprite(worldX, worldY, textureKey);
     resourceSprite.setScale(this.resourceScale);
@@ -174,7 +174,7 @@ export class ResourceRenderer extends BaseRenderer {
         child.setPosition(worldX, worldY);
         
         // Update texture if type changed
-        const textureKey = resource.type === ResourceType.FOREST ? 'forest' : 'kelp';
+        const textureKey = this.getTextureKeyForResourceType(resource.type);
         if (child.texture.key !== textureKey) {
           child.setTexture(textureKey);
         }
@@ -223,5 +223,26 @@ export class ResourceRenderer extends BaseRenderer {
   override destroy(): void {
     super.destroy();
     this.clearResources();
+  }
+  
+  /**
+   * Get the appropriate texture key for a resource type
+   * @param resourceType The type of resource
+   * @returns The texture key to use for this resource type
+   */
+  private getTextureKeyForResourceType(resourceType: ResourceType): string {
+    switch (resourceType) {
+      case ResourceType.FOREST:
+        return 'forest';
+      case ResourceType.KELP:
+        return 'kelp';
+      case ResourceType.INSECTS:
+        return 'insects';
+      case ResourceType.PLANKTON:
+        return 'plankton';
+      default:
+        console.warn(`Unknown resource type: ${resourceType}, falling back to forest`);
+        return 'forest';
+    }
   }
 } 

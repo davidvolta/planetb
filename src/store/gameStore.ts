@@ -22,6 +22,8 @@ export enum TerrainType {
 export enum ResourceType {
   FOREST = 'forest',
   KELP = 'kelp',
+  INSECTS = 'insects',
+  PLANKTON = 'plankton'
 }
 
 // Define the core interface for animal abilities
@@ -51,7 +53,7 @@ export const SPECIES_REGISTRY: Record<string, AnimalAbilities> = {
   },
   'turtle': {
     moveRange: 1,
-    compatibleTerrains: [TerrainType.WATER, TerrainType.BEACH, TerrainType.UNDERWATER]
+    compatibleTerrains: [TerrainType.WATER, TerrainType.BEACH, TerrainType.UNDERWATER, TerrainType.GRASS]
   }
 };
 
@@ -1617,6 +1619,10 @@ const generateResources = (
         resourceType = ResourceType.FOREST;
       } else if (terrainData[y][x] === TerrainType.WATER) {
         resourceType = ResourceType.KELP;
+      } else if (terrainData[y][x] === TerrainType.MOUNTAIN) {
+        resourceType = ResourceType.INSECTS;
+      } else if (terrainData[y][x] === TerrainType.UNDERWATER) {
+        resourceType = ResourceType.PLANKTON;
       }
       
       // If this terrain supports resources and passes the random check
@@ -1630,11 +1636,16 @@ const generateResources = (
     }
   }
   
+  // Log the distribution of resources by type
   console.log(`Generated ${resources.length} resources (${
     resources.filter(r => r.type === ResourceType.FOREST).length
   } forest, ${
     resources.filter(r => r.type === ResourceType.KELP).length
-  } kelp)`);
+  } kelp, ${
+    resources.filter(r => r.type === ResourceType.INSECTS).length
+  } insects, ${
+    resources.filter(r => r.type === ResourceType.PLANKTON).length
+  } plankton)`);
   
   return resources;
 };
