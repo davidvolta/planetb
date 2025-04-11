@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:standalone": "vite --config vite.standalone.config.ts",
     "build": "tsc -b && vite build",
+    "build:standalone": "vite build --config vite.standalone.config.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
