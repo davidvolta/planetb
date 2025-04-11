@@ -7,6 +7,7 @@
 - [ ] Fix bug where player can move after improving habitat
 - [ ] Fix Raley Font (lost during architecture update)
 - [ ] Hide hover selector during unit movement
+- [x] Start player 1 on beach with turtle, adjust turtles to move on grass (Completed: Player 1 starts on beach with turtle unit; turtle unit always spawns on beach tiles)
 
 - [ ] Populate biomes with resources (remove random function)
     - [ ] Update resource generation to be biome-specific instead of random based on lushness quotient of 8

@@ -1,7 +1,8 @@
 // Import and initialize the game
-import { initializeGame } from './game';
+import { createPhaserEngine } from './game';
 
 // Initialize the game when the page loads
 window.addEventListener('load', () => {
-  initializeGame();
+  console.log('Window loaded, starting game...');
+  createPhaserEngine();
 });

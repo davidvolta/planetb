@@ -29,16 +29,16 @@ const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
 let gameInstance: Phaser.Game | null = null;
 
 /**
- * Initialize the game board with default settings
+ * Set up the initial game state with default settings
  */
-function initializeGameBoard() {
+function setupGameState() {
   const gameState = useGameStore.getState();
   if (gameState.players.length === 0) {
     actions.addPlayer('Player 1', '#3498db');
   }
   
-  // Initialize the game board
-  actions.initializeBoard({
+  // Set up the game board
+  actions.setupGameBoard({
     width: BOARD_WIDTH_TILES,
     height: BOARD_HEIGHT_TILES,
     mapType: MapGenerationType.ISLAND
@@ -70,7 +70,7 @@ function setupAssetLoadedListener(game: Phaser.Game) {
     boardScene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
     
     // Listen for assets loaded event to initialize the game board
-    boardScene.events.on(EVENTS.ASSETS_LOADED, initializeGameBoard);
+    boardScene.events.on(EVENTS.ASSETS_LOADED, setupGameState);
     
     return true;
   }
@@ -78,9 +78,9 @@ function setupAssetLoadedListener(game: Phaser.Game) {
 }
 
 /**
- * Initializes and returns the Phaser game instance
+ * Creates and initializes the Phaser game engine
  */
-export function initializeGame(): Phaser.Game {
+export function createPhaserEngine(): Phaser.Game {
   // If game instance already exists, return it
   if (gameInstance) {
     return gameInstance;
@@ -119,6 +119,6 @@ export function destroyGame() {
 // Initialize the game when the window loads
 if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
-    initializeGame();
+    createPhaserEngine();
   });
 } 

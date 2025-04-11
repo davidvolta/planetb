@@ -37,9 +37,9 @@ export function getNextTurn(): () => void {
 //
 
 /**
- * Initialize the game board with the specified dimensions and options
+ * Set up the game board with the specified dimensions and options
  */
-export function initializeBoard({ width, height, mapType = MapGenerationType.ISLAND, forceHabitatGeneration = false }: BoardInitOptions): void {
+export function setupGameBoard({ width, height, mapType = MapGenerationType.ISLAND, forceHabitatGeneration = false }: BoardInitOptions): void {
   useGameStore.getState().initializeBoard(width, height, mapType, forceHabitatGeneration);
 }
 

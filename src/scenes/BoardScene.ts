@@ -629,7 +629,7 @@ export default class BoardScene extends Phaser.Scene {
     return this.animationController;
   }
 
-  //et the current input mode
+  //Get the current input mode
   isInMoveMode(): boolean {
     return actions.isMoveMode();
   }

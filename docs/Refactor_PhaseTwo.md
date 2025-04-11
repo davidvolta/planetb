@@ -1,13 +1,20 @@
 # BoardScene Refactoring: Phase Two
 
-## Recommended Optimizations
+## Remaining Optimizations After React Removal
+
+### Priority Optimizations
 
 1. **Delegate Event Handling to InputManager**
    - Move more event handling logic from BoardScene to InputManager
    - The `handleTileClick` and `handleHabitatClick` methods are still quite large and contain game logic
    - Create a proper EventManager that can coordinate between user input and game actions
 
-2. **Create a ContentManager**
+2. **Implement GameController**
+   - Create the GameController outlined in the documentation
+   - Move game logic out of BoardScene and into proper controller
+   - Establish clear responsibility boundaries between rendering and game logic
+
+3. **Create a ContentManager**
    - Extract `checkTileContents()` into a dedicated ContentManager class
    - This manager would be responsible for querying entity positions and providing access to entities at specific grid locations
 
@@ -16,30 +23,26 @@
    - Move `startUnitMovement` and related code there
    - This would centralize all movement logic in one place
 
-5. **Consolidate Initialization**
-   - The initialization code is spread across multiple methods (`init`, `create`, `setupCamera`, etc.)
-   - Create a more structured initialization pipeline with clear ownership
+5. **Use Proper TypeScript Interfaces**
+   - Replace 'any' types with proper interfaces
+   - Consider using generics for more flexible code
+   - Improve type safety throughout the codebase
 
-7. **Reduce Direct Store Access**
-   - BoardScene still has many direct calls to the store via actions
-   - Consider implementing a facade/adapter pattern for cleaner store access
+### Secondary Optimizations
 
-8. **Remove Direct DOM References**
-   - Check for and remove any direct DOM manipulation
-   - Ensure all rendering goes through Phaser's systems
+6. **Command Pattern for Actions**
+   - Replace direct method calls with command objects
+   - This would make actions more testable and allow for undo/redo functionality
+   - Provides better history tracking for game actions
 
-10. **Clean Up Getter Methods**
-    - Remove unnecessary getter methods at the end of the file
-    - Use dependency injection to provide components where needed
+7. **Separate Concerns in Update Method**
+   - The update method is mixing concerns
+   - Create a dedicated update pipeline with clear responsibilities
 
-11. **Implement Command Pattern**
-    - Replace direct method calls with command objects
-    - This would make actions more testable and allow for undo/redo functionality
+8. **Clean Up Getter Methods**
+   - Remove unnecessary getter methods at the end of the file
+   - Use dependency injection to provide components where needed
 
-12. **Separate Concerns in Update Method**
-    - The update method is mixing concerns
-    - Create a dedicated update pipeline with clear responsibilities
-
-13. **Use Proper TypeScript Interfaces**
-    - Replace 'any' types with proper interfaces
-    - Consider using generics for more flexible code
+9. **Consistent API Patterns**
+   - Make store methods and action functions follow consistent parameter patterns
+   - Either both use object parameters or both use individual parameters

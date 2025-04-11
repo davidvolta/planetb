@@ -479,17 +479,17 @@ export const useGameStore = create<GameState>((set, get) => ({
             // Use sequential habitat indexing instead of terrain type count
             const habitatId = habitats.length;
             
-            // Check if this is a water habitat and if we're in initial board setup
-            const isWaterHabitat = terrainType === TerrainType.WATER;
-            const shouldImproveForPlayer = isWaterHabitat && !state.isInitialized && state.players.length > 0;
+            // Check if this is a beach habitat and if we're in initial board setup
+            const isBeachHabitat = terrainType === TerrainType.BEACH;
+            const shouldImproveForPlayer = isBeachHabitat && !state.isInitialized && state.players.length > 0;
             
             const newHabitat: Habitat = {
               id: `habitat-${habitatId}`,
               position: position,
-              // If this is a water habitat during initial setup and we have a player, set to IMPROVED
+              // If this is a beach habitat during initial setup and we have a player, set to IMPROVED
               state: shouldImproveForPlayer ? HabitatState.IMPROVED : HabitatState.POTENTIAL,
-              // Set shelterType to REEF for water if improved for player
-              shelterType: shouldImproveForPlayer ? ShelterType.REEF : null,
+              // Set shelterType to TIDEPOOL for beach if improved for player
+              shelterType: shouldImproveForPlayer ? ShelterType.TIDEPOOL : null,
               // Set ownerId to player's ID if improved for player
               ownerId: shouldImproveForPlayer ? playerId : null,
               productionRate: 1, // Fixed at 1
@@ -623,7 +623,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
         
         // Now place eggs after biomes are generated
-        // Place initial eggs around the habitat, but ONLY for the player's improved water habitat
+        // Place initial eggs around the habitat, but ONLY for the player's improved beach habitat
         habitats.forEach(habitat => {
           // Only place eggs for improved habitats with owners
           if (habitat.productionRate > 0 && 
@@ -653,7 +653,15 @@ export const useGameStore = create<GameState>((set, get) => ({
                   animal.position.y === y
                 );
                 
-                if (!hasEgg) {
+                // For player 1's starting unit, only allow beach terrain
+                if (habitat.shelterType === ShelterType.TIDEPOOL && 
+                    habitat.ownerId === playerId) {
+                  // Only add beach tiles
+                  if (terrainData[y][x] === TerrainType.BEACH && !hasEgg) {
+                    adjacentTiles.push({ x, y });
+                  }
+                } else if (!hasEgg) {
+                  // For other habitats, add any valid tile
                   adjacentTiles.push({ x, y });
                 }
               }
@@ -670,7 +678,10 @@ export const useGameStore = create<GameState>((set, get) => ({
               // Create new egg
               const newAnimal = {
                 id: `animal-${animals.length}`,
-                species: TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
+                // For the player 1's starting unit, always use turtle
+                species: (habitat.shelterType === ShelterType.TIDEPOOL && 
+                          habitat.ownerId === playerId) ? 
+                         'turtle' : TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
                 state: AnimalState.DORMANT,
                 position: tile,
                 previousPosition: null,
@@ -683,10 +694,10 @@ export const useGameStore = create<GameState>((set, get) => ({
                 terrain: terrainData[tile.y][tile.x] 
               });
               
-              // If this animal is from an improved player-owned water habitat, make it active and owned
+              // If this animal is from an improved player-owned beach habitat, make it active and owned
               if (habitat.state === HabitatState.IMPROVED && 
                   habitat.ownerId !== null && 
-                  habitat.shelterType === ShelterType.REEF) {
+                  habitat.shelterType === ShelterType.TIDEPOOL) {
                 // Make this the active player unit
                 newAnimal.state = AnimalState.ACTIVE;
                 // Type assertion to handle the number assignment to the ownerId property
@@ -975,7 +986,7 @@ interface ValidEggPlacementState {
  * 
  * @param habitat The habitat to find valid egg placement tiles for
  * @param state Simplified game state containing board and animals
- * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources
+ * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources in owned biomes
  */
 const getValidEggPlacementTiles = (
   habitat: Habitat,
@@ -988,24 +999,50 @@ const getValidEggPlacementTiles = (
     return validTiles;
   }
   
-  // Get the biome ID for this habitat by looking up the tile's biome ID
+  // Get the habitat's owner and biome ID
+  const habitatOwnerId = habitat.ownerId;
   const habitatTile = board.tiles[habitat.position.y][habitat.position.x];
-  const biomeId = habitatTile.biomeId;
+  const habitatBiomeId = habitatTile.biomeId;
   
-  if (!biomeId) {
+  if (!habitatBiomeId) {
     console.warn(`Habitat at ${habitat.position.x},${habitat.position.y} has no biome ID`);
     return validTiles; 
   }
   
+  // Get all biomes owned by this player
+  const playerBiomeIds = new Set<string>();
+  playerBiomeIds.add(habitatBiomeId); // Always include current biome
+  
+  // Find all biomes owned by this player by checking habitats
+  const habitats = useGameStore.getState().habitats;
+  habitats.forEach(h => {
+    if (h.ownerId === habitatOwnerId && h.ownerId !== null) {
+      const biomeTile = board.tiles[h.position.y][h.position.x];
+      if (biomeTile.biomeId) {
+        playerBiomeIds.add(biomeTile.biomeId);
+      }
+    }
+  });
+  
+  console.log(`Player ${habitatOwnerId} owns ${playerBiomeIds.size} biomes`);
+  
   // Create a set of resource positions for quick lookup
   const resourcePositions = new Set<string>();
+  const resourceBiomeMap = new Map<string, string | undefined>();
   const resources = useGameStore.getState().resources;
+  
   resources.forEach(resource => {
-    resourcePositions.add(`${resource.position.x},${resource.position.y}`);
+    const key = `${resource.position.x},${resource.position.y}`;
+    resourcePositions.add(key);
+    // Store the biome ID for each resource
+    const resourceTile = board.tiles[resource.position.y][resource.position.x];
+    resourceBiomeMap.set(key, resourceTile.biomeId || undefined);
   });
   
   // Track positions with resources for prioritization
   const resourceAdjacencyMap = new Map<string, number>();
+  // Track proximity to habitat
+  const habitatProximityMap = new Map<string, boolean>();
   
   // Scan the entire board for tiles in this biome
   for (let y = 0; y < board.height; y++) {
@@ -1016,7 +1053,7 @@ const getValidEggPlacementTiles = (
       const tile = board.tiles[y][x];
       
       // Skip if not in the same biome
-      if (tile.biomeId !== biomeId) continue;
+      if (tile.biomeId !== habitatBiomeId) continue;
       
       // Skip if there's a resource on this tile
       if (resourcePositions.has(`${x},${y}`)) continue;
@@ -1042,15 +1079,28 @@ const getValidEggPlacementTiles = (
             if (dx === 0 && dy === 0) continue;
             if (adjX < 0 || adjX >= board.width || adjY < 0 || adjY >= board.height) continue;
             
-            // Increase score if there's a resource adjacent
-            if (resourcePositions.has(`${adjX},${adjY}`)) {
-              adjacencyScore += 1;
+            const resourcePos = `${adjX},${adjY}`;
+            
+            // Check if there's a resource at this position
+            if (resourcePositions.has(resourcePos)) {
+              // Get the biome ID of this resource
+              const resourceBiomeId = resourceBiomeMap.get(resourcePos);
+              
+              // Only count if the resource is in a biome owned by the player
+              if (resourceBiomeId && playerBiomeIds.has(resourceBiomeId)) {
+                adjacencyScore += 1;
+              }
             }
           }
         }
         
         // Store the score for later sorting
         resourceAdjacencyMap.set(`${x},${y}`, adjacencyScore);
+        
+        // Check if tile is adjacent to the habitat (for tie-breaking)
+        const isAdjacentToHabitat = Math.abs(x - habitat.position.x) <= 1 && 
+                                   Math.abs(y - habitat.position.y) <= 1;
+        habitatProximityMap.set(`${x},${y}`, isAdjacentToHabitat);
         
         // Add to valid tiles
         validTiles.push({ x, y });
@@ -1059,10 +1109,26 @@ const getValidEggPlacementTiles = (
   }
   
   // Sort valid tiles by resource adjacency score (higher is better)
+  // Use habitat proximity as a tie-breaker
   validTiles.sort((a, b) => {
     const scoreA = resourceAdjacencyMap.get(`${a.x},${a.y}`) || 0;
     const scoreB = resourceAdjacencyMap.get(`${b.x},${b.y}`) || 0;
-    return scoreB - scoreA;
+    
+    // First compare by resource adjacency
+    if (scoreB !== scoreA) {
+      return scoreB - scoreA;
+    }
+    
+    // If resource adjacency is equal, use habitat proximity as tie-breaker
+    const isATouchingHabitat = habitatProximityMap.get(`${a.x},${a.y}`) || false;
+    const isBTouchingHabitat = habitatProximityMap.get(`${b.x},${b.y}`) || false;
+    
+    // If A is touching habitat and B is not, A should come first
+    if (isATouchingHabitat && !isBTouchingHabitat) return -1;
+    // If B is touching habitat and A is not, B should come first
+    if (!isATouchingHabitat && isBTouchingHabitat) return 1;
+    // Otherwise, keep original order
+    return 0;
   });
   
   return validTiles;
@@ -1132,11 +1198,10 @@ const processHabitatProduction = (state: GameState): Partial<GameState> => {
       animals: newAnimals
     });
 
-    // Place eggs on valid tiles
+    // Place eggs on valid tiles - use best tiles first (highest resource adjacency)
     for (let i = 0; i < Math.min(eggsToCreate, validTiles.length); i++) {
-      const randomIndex = Math.floor(Math.random() * validTiles.length);
-      const tile = validTiles[randomIndex];
-      validTiles.splice(randomIndex, 1);
+      // Take from the start of the array (highest resource adjacency first)
+      const tile = validTiles[i];
 
       // Create new egg
       const newAnimal = {
