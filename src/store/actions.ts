@@ -424,4 +424,13 @@ export function getBiomes(): Map<string, Biome> {
  */
 export function getBiomeById(id: string): Biome | undefined {
   return useGameStore.getState().biomes.get(id);
+}
+
+/**
+ * Add a player to the game
+ * @param name Player name
+ * @param color Player color in hex format
+ */
+export function addPlayer(name: string, color: string): void {
+  useGameStore.getState().addPlayer(name, color);
 } 

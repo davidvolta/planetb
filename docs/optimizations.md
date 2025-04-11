@@ -11,7 +11,7 @@
    - Expected gain: 30-40% improvement for large maps when zoomed in
 
 3. **Optimize Event Listeners** (Medium Impact)
-   - ⚠️ Partial Optimization: Each tile still has setInteractive() called on it individually, which is necessary for Phaser to detect which specific tile was clicked, but isn't the most optimal approach from a pure performance perspective.For 100% optimization, you'd need to replace the individual setInteractive() calls with a custom hit detection system, but that would be more complex and might not be worth the effort given the current performance.
+   - ⚠️ Partial Optimization: Each tile still has setInteractive() called on it individually, which is necessary for Phaser to detect which specific tile was clicked, but isn't the most optimal approach from a pure performance perspective. For 100% optimization, you'd need to replace the individual setInteractive() calls with a custom hit detection system, but that would be more complex and might not be worth the effort given the current performance.
 
 4. **Incremental Board Updates** (Medium Impact)
    - You're recreating the entire board when state changes

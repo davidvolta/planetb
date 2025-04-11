@@ -5,7 +5,7 @@
 - [ ] Hide selector when move is done
 - [ ] Fix ineligble spawning moves on terrain
 - [ ] Fix bug where player can move after improving habitat
-- [ ] Fix Raley Font (lost during React fix)
+- [ ] Fix Raley Font (lost during architecture update)
 - [ ] Hide hover selector during unit movement
 
 - [ ] Populate biomes with resources (remove random function)

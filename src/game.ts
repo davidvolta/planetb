@@ -34,7 +34,7 @@ let gameInstance: Phaser.Game | null = null;
 function initializeGameBoard() {
   const gameState = useGameStore.getState();
   if (gameState.players.length === 0) {
-    useGameStore.getState().addPlayer('Player 1', '#3498db');
+    actions.addPlayer('Player 1', '#3498db');
   }
   
   // Initialize the game board

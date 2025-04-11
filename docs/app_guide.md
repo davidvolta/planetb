@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Planet B is a turn-based ecological strategy game where players compete to build sustainable ecosystems by placing habitats and managing animal populations. The game is built using Phaser 3 as the core game engine with React for UI components, and TypeScript for type safety and improved developer experience.
+Planet B is a turn-based ecological strategy game where players compete to build sustainable ecosystems by placing habitats and managing animal populations. The game is built using Phaser 3 as the core game engine with TypeScript for type safety and improved developer experience.
 
 ## Project Architecture
 
@@ -10,22 +10,20 @@ The project follows a component-based architecture with clear separation of conc
 
 ```
 src/
-├── components/  # React UI components
 ├── controllers/ # Game logic controllers
 ├── game/        # Core game initialization
 ├── managers/    # System managers
 ├── renderers/   # Visual rendering components
 ├── scenes/      # Phaser scenes including the main BoardScene
 ├── store/       # State management system
-├── ui/          # UI-related components
 └── utils/       # Utility functions (coordinates, terrain generation, state observation)
 ```
 
-### Game Engine Integration
+### Game Engine Implementation
 
-- **Phaser + React Integration**: The game uses a custom integration layer to connect the Phaser game engine with React UI components
-- **Scene Management**: Game scenes are loaded dynamically based on the application state
-- **UI Overlay**: React UI components are rendered as an overlay on top of the Phaser canvas
+- **Phaser Implementation**: The game uses Phaser 3 for rendering the game world and handling user interactions
+- **Scene Management**: Game scenes are loaded based on the application state
+- **UI Layer**: Game UI elements are rendered using Phaser for a cohesive experience
 
 ## Core Game Systems
 
@@ -41,6 +39,8 @@ Renderers are responsible for visualizing game elements:
 - **AnimalRenderer**: Handles animal visualization, movement animations, and state changes
 - **SelectionRenderer**: Shows selection indicators for tiles, animals, and habitats
 - **MoveRangeRenderer**: Visualizes movement ranges and valid action targets
+- **FogOfWarRenderer**: Manages the fog of war system that obscures unexplored areas
+- **ResourceRenderer**: Handles visualization of resources like forests and kelp on the game board
 
 #### Managers
 Managers handle system-level concerns:
@@ -51,7 +51,6 @@ Managers handle system-level concerns:
 
 #### Controllers
 Controllers implement game logic:
-- **GameController**: Manages game rules, turn flow, and action processing
 - **AnimationController**: Coordinates complex animation sequences
 
 ### State Management
@@ -68,12 +67,12 @@ The game uses a custom state management system:
 
 #### State Flow
 
-1. User interactions trigger events in Phaser or React
+1. User interactions trigger events in Phaser scenes
 2. Events are processed by controllers/components
 3. Controllers dispatch actions to modify state
 4. Reducers process actions and update the state store
 5. State changes are communicated to subscribers
-6. Components react to state changes and update visuals
+6. Components respond to state changes and update visuals
 
 
 ### Component Lifecycle
@@ -83,11 +82,11 @@ All components follow a consistent lifecycle:
 - **Destruction**: Clean up resources, unsubscribe from events
 
 
-# Application Architecture Guide: React, Zustand & Phaser
+# Application Architecture Guide: Zustand & Phaser
 ## Core Principles
 - **Global Game State**: Held in Zustand (turns, players, board)
 - **Rendering State**: Managed by Phaser (rendering, physics, frame-by-frame updates)
-- **Connection Strategy**: Connect Zustand and Phaser sparingly (use Zustand at turn changes, not per-frame updates)
+- **Connection Strategy**: Connect Zustand and Phaser efficiently (use Zustand at turn changes, not per-frame updates)
 - **Separation of Concerns**: Logical game state is separate from visual representation
 
 ## State Update Flow
@@ -101,19 +100,18 @@ All components follow a consistent lifecycle:
 - **Players**: Player entities with properties like name, color, and active status
 - **Board**: Grid of tiles with terrain types (water, grass, beach, mountain, underwater)
 - **Tiles**: Individual grid cells with coordinates, terrain type, and visibility properties
-- **Units**: (Planned) Player-controlled entities that can move and interact
-- **Habitats**: (Planned) Structures on the board
+- **Units**: Player-controlled entities that can move and interact
+- **Habitats**: Structures on the board
 
 ## Architecture Principles and Patterns
 Our core architectural pattern follows: **"Components trigger actions, actions modify state"**
 
-This creates a unidirectional data flow where React components and Phaser scenes never directly mutate the state. Instead, they trigger actions, which encapsulate state mutation logic in a centralized location.
+This creates a unidirectional data flow where Phaser scenes never directly mutate the state. Instead, they trigger actions, which encapsulate state mutation logic in a centralized location.
 
 1. **Rendering Responsibility**
-   - ✅ DO: Use Phaser for game rendering, React for UI only
+   - ✅ DO: Use Phaser for game rendering and UI
    - ✅ DO: Keep rendering logic in appropriate components
-   - ❌ DON'T: Use React to render game objects/tiles
-   - ❌ DON'T: Create unnecessary React re-renders for game state changes
+   - ❌ DON'T: Mix rendering responsibilities across systems
 
 2. **Subscription Model**
    - ✅ DO: Implement a proper Observer pattern for Phaser to subscribe to state changes
@@ -126,7 +124,7 @@ This creates a unidirectional data flow where React components and Phaser scenes
    - ❌ DON'T: Create duplicate subscriptions for the same state data
 
 3. **Unidirectional Data Flow**
-   - ✅ DO: React/UI → triggers state changes through action functions
+   - ✅ DO: Phaser UI → triggers state changes through action functions
    - ✅ DO: Action functions → interact with Zustand using getState()/setState()
    - ✅ DO: Zustand → notifies subscribers of changes 
    - ✅ DO: Phaser → renders based on received state updates
@@ -135,23 +133,20 @@ This creates a unidirectional data flow where React components and Phaser scenes
 
 4. **Event Delegation**
    - ✅ DO: Emit events from Phaser when user interacts with game objects
-   - ✅ DO: Handle game input events in React components
+   - ✅ DO: Handle game input events in appropriate handler functions
    - ✅ DO: Update state through action functions
    - ❌ DON'T: Handle input events directly in Phaser scenes that modify state
    - ❌ DON'T: Mix event handling with rendering logic
 
 5. **State Access Pattern**
-   - ✅ DO: Use direct Zustand hooks for reading state in React components
    - ✅ DO: Use action functions for ALL state mutations
    - ✅ DO: Create action functions in a central location (actions.ts)
-   - ✅ DO: Use action functions for state access in non-React contexts (like Phaser scenes)
-   - ❌ DON'T: Call getState() directly in components or Phaser scenes
+   - ❌ DON'T: Call getState() directly in Phaser scenes
    - ❌ DON'T: Perform state mutations directly in components
 
 6. **Clear Separation of Concerns**
-   - ✅ DO: Phaser: Rendering and input handling only
+   - ✅ DO: Phaser: Rendering and input handling
    - ✅ DO: Zustand: State management only
-   - ✅ DO: React: UI rendering and action triggering only
    - ✅ DO: Actions: Centralized state access and modification
    - ❌ DON'T: Mix responsibilities across boundaries
    - ❌ DON'T: Allow implementation details to leak between layers 
@@ -160,7 +155,7 @@ This creates a unidirectional data flow where React components and Phaser scenes
 
 Our approach balances pragmatism with maintainability:
 
-1. **Reading State**: React components use direct Zustand hooks for reading state, leveraging Zustand's efficient subscription system and keeping components simple.
+1. **Reading State**: We use the StateObserver to efficiently track state changes, providing a reactive programming model.
 
 2. **Modifying State**: ALL state mutations go through action functions, creating a centralized place for mutation logic which makes the codebase more maintainable, testable, and easier to debug.
 
@@ -214,3 +209,62 @@ The BoardScene demonstrates the correct implementation pattern:
 2. Setup of all subscriptions in one method (setupSubscriptions)
 3. Cleanup of subscriptions in scene lifecycle methods (init/shutdown)
 4. Configuration of subscriptions with options when needed 
+
+### FogOfWarRenderer
+
+The FogOfWarRenderer manages the fog of war system that obscures unexplored areas of the map, enhancing gameplay through exploration mechanics.
+
+#### Key Features
+
+1. **Progressive Discovery**
+   - Tiles start concealed under fog of war
+   - Areas are revealed as units explore the map
+   - Provides visual feedback through fade animations
+   - Reveals biomes when habitats are improved
+
+2. **Efficient Implementation**
+   - Uses Phaser Graphics objects for diamond-shaped fog tiles
+   - Manages visibility state with a tile coordinate tracking system
+   - Provides batch reveal operations for multiple tiles at once
+   - Supports callbacks for game state updates when visibility changes
+
+3. **Visualization**
+   - Renders fog at depth 5, above static objects but below units
+   - Smooth fade-out transitions when revealing tiles
+   - Can toggle fog of war system on/off
+   - Maintains internal map of visible/fogged tiles
+
+4. **API Highlights**
+   - `revealTile(x, y)`: Reveals a single tile with animation
+   - `revealTiles(tilesArray)`: Batch reveals multiple tiles efficiently
+   - `isTileFogged(x, y)`: Checks if a specific tile is under fog
+   - `setTileVisibilityCallback()`: Sets a callback for visibility changes
+
+### ResourceRenderer
+
+The ResourceRenderer visualizes resources like forests and kelp on the game board, providing visual representation for harvestable game elements.
+
+#### Key Features
+
+1. **Resource Visualization**
+   - Renders different resource types with appropriate sprites
+   - Positions resources correctly in the isometric view
+   - Maintains proper depth ordering with other game elements
+   - Supports multiple resource types (forest, kelp)
+
+2. **Efficient State Management**
+   - Uses optimized state diffing for updates
+   - Only creates/updates sprites when resource data changes
+   - Reuses existing sprites when possible
+   - Properly cleans up removed resources
+
+3. **Integration**
+   - Resources are displayed on the static objects layer
+   - Coordinates with other renderers for proper visual layering
+   - Stores resource metadata on sprites for interaction
+
+4. **API Highlights**
+   - `renderResources(resources)`: Renders all resources based on the provided data
+   - `addResource(resource)`: Adds a single resource sprite
+   - `updateResource(resource)`: Updates an existing resource
+   - `removeResource(resourceId)`: Removes a resource sprite 

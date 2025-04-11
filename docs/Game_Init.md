@@ -2,15 +2,14 @@
 
 ## Initialization Sequence
 
-1. **React Application Starts**:
-   - `main.tsx` renders the `App` component in StrictMode
-   - `App.tsx` renders the `Game` component when on the main route
+1. **Application Starts**:
+   - The browser loads `index.html` which includes the main script
+   - `index.ts` is the entry point that initializes the game
 
-2. **Game Component Initialization** (`src/components/Game.tsx`):
-   - Creates a `useEffect` hook that runs once on component mount
-   - Creates a Phaser game instance with `BoardScene` as the main scene
-   - Sets up an interval to check for when the BoardScene is ready
-   - Attaches event listeners once BoardScene is available
+2. **Game Initialization** (`src/game.ts`):
+   - Creates a Phaser game instance with the required scenes (BoardScene, DebugScene, UIScene)
+   - Sets up state observers to sync the game state with Phaser
+   - Initializes event listeners for asset loading
 
 3. **BoardScene Lifecycle** (`src/scenes/BoardScene.ts`):
    - **Constructor**: Initializes managers, controllers and renderers from their respective directories
@@ -18,10 +17,10 @@
    - **Init**: Clears previous state, unsubscribes all subscriptions, resets the subscriptionsSetup flag, sets up layers
    - **Create**: Sets up camera controls, gets board data, updates board, sets up subscriptions
 
-4. **Game Component Interaction with BoardScene**:
+4. **Game Interaction with BoardScene**:
    - When assets are loaded, the BoardScene emits ASSETS_LOADED
-   - Game component listener catches this and calls `actions.initializeBoard()`
-   - This triggers the Zustand store update via `useGameStore.getState().initializeBoard()`
+   - The game listens for this event and calls `initializeGameBoard()`
+   - This triggers the Zustand store update via `actions.initializeBoard()`
 
 5. **State Management and Subscriptions**:
    - BoardScene delegates subscription setup to `StateSubscriptionManager` from `src/managers/`

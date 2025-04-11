@@ -2,7 +2,7 @@
 
 This directory contains controller modules that handle game logic and mechanics for the BoardScene.
 
-## GameController
+## GameController (THIS ISN'T BUILT YET)
 
 Manages the game state and rules logic.
 
@@ -36,7 +36,7 @@ onHabitatSelected(habitatId: string): void; // Handle habitat selection
 
 The GameController interacts with the state management system to:
 - Update game state based on player actions
-- React to state changes from other components
+- Respond to state changes from other components
 - Validate actions against current state
 - Trigger state updates when game rules are applied
 
