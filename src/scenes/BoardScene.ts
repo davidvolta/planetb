@@ -386,14 +386,16 @@ export default class BoardScene extends Phaser.Scene {
         
         // Show RED selection indicator for habitat
         this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+        
+        return; // Only return early if we actually select the habitat
       } else {
         console.log(`Habitat ${clickedHabitat.id} is already improved and cannot be selected`);
         
         // Deselect any currently selected habitat
         actions.selectHabitat(null);
+        
+        // Continue execution to check for units on the same tile
       }
-      
-      return;
     }
     
     // Only handle active unit selection if none of the above actions were taken
