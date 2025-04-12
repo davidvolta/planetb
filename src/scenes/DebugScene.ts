@@ -20,10 +20,9 @@ export default class DebugScene extends Phaser.Scene {
   private biomeEnabled: boolean = false;
 
   constructor() {
-    super({ 
-      key: "DebugScene",
-      active: true,
-      visible: true 
+    super({
+      key: 'DebugScene',
+      active: true
     });
   }
 

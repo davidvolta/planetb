@@ -1,4 +1,4 @@
-import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState, Board, Biome } from "./gameStore";
+import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState, Board, Biome, TerrainType, Habitat, generateResources, GameConfig } from "./gameStore";
 
 /**
  * Action dispatchers for React components
@@ -460,4 +460,29 @@ export function getBiomeById(id: string): Biome | undefined {
  */
 export function addPlayer(name: string, color: string): void {
   useGameStore.getState().addPlayer(name, color);
+}
+
+/**
+ * Regenerate resources with the current settings
+ */
+export function regenerateResources(
+  width: number, 
+  height: number, 
+  terrainData: TerrainType[][], 
+  habitats: Habitat[]
+): void {
+  // Generate new resources with current settings
+  const newResources = generateResources(width, height, terrainData, habitats);
+  
+  // Update the resources in the store
+  useGameStore.setState({
+    resources: newResources
+  });
+}
+
+/**
+ * Get all resources in the game
+ */
+export function getResources(): any[] {
+  return useGameStore.getState().resources;
 } 

@@ -197,6 +197,7 @@ export interface Resource {
   id: string;
   type: ResourceType;
   position: Coordinate;
+  biomeId: string | null; // Add biome ID to track which biome each resource belongs to
 }
 
 // Biome structure
@@ -204,7 +205,13 @@ export interface Biome {
   id: string;
   habitatId: string; // Each biome is associated with a habitat
   color: number; // Store a color for visualization
+  lushness: number; // Lushness value from 0-10, where 8.0 is "stable"
 }
+
+// Game configuration and settings
+export const GameConfig = {
+  resourceGenerationPercentage: 0.5, // 50% chance fixed value
+};
 
 // Game state interface
 export interface GameState {
@@ -613,7 +620,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           biomes.set(biomeId, {
             id: biomeId,
             habitatId: habitat.id,
-            color
+            color,
+            lushness: 8.0 // Initialize lushness to the "stable" value
           });
         });
         
@@ -717,7 +725,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           isInitialized: true,
           habitats: habitats,
           animals: animals,
-          resources: generateResources(width, height, terrainData, habitats),
+          resources: [], // Start with empty resources array
           biomes: biomes
         };
       }
@@ -1587,7 +1595,7 @@ const handleDisplacement = (
 };
 
 // New helper function to generate resources based on terrain type
-const generateResources = (
+export const generateResources = (
   width: number, 
   height: number, 
   terrainData: TerrainType[][], 
@@ -1601,10 +1609,14 @@ const generateResources = (
     habitatPositions.add(`${habitat.position.x},${habitat.position.y}`);
   });
   
-  // Define resource chance (80% of eligible tiles should have resources)
-  const resourceChance = 0.8;
+  // Define resource chance (percentage of eligible tiles that should have resources)
+  const resourceChance = GameConfig.resourceGenerationPercentage;
   
-  // Generate resources for each tile
+  // Group tiles by biome (needs to be extracted from state.board.tiles)
+  const state = useGameStore.getState();
+  const biomeToTiles = new Map<string | null, {x: number, y: number, terrain: TerrainType}[]>();
+  
+  // First, we group all tiles by their biome ID
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       // Skip if this position has a habitat
@@ -1612,40 +1624,78 @@ const generateResources = (
         continue;
       }
       
-      // Determine resource type based on terrain
-      let resourceType: ResourceType | null = null;
+      // Get the biome ID from the corresponding tile
+      const biomeId = state.board?.tiles[y][x].biomeId || null;
       
-      if (terrainData[y][x] === TerrainType.GRASS) {
-        resourceType = ResourceType.FOREST;
-      } else if (terrainData[y][x] === TerrainType.WATER) {
-        resourceType = ResourceType.KELP;
-      } else if (terrainData[y][x] === TerrainType.MOUNTAIN) {
-        resourceType = ResourceType.INSECTS;
-      } else if (terrainData[y][x] === TerrainType.UNDERWATER) {
-        resourceType = ResourceType.PLANKTON;
+      // If this biome isn't in our map yet, add it
+      if (!biomeToTiles.has(biomeId)) {
+        biomeToTiles.set(biomeId, []);
       }
       
-      // If this terrain supports resources and passes the random check
-      if (resourceType && Math.random() < resourceChance) {
-        resources.push({
-          id: `resource-${resources.length}`,
-          type: resourceType,
-          position: { x, y }
-        });
-      }
+      // Add this tile to its biome group
+      biomeToTiles.get(biomeId)?.push({
+        x, 
+        y, 
+        terrain: terrainData[y][x]
+      });
     }
   }
   
-  // Log the distribution of resources by type
-  console.log(`Generated ${resources.length} resources (${
-    resources.filter(r => r.type === ResourceType.FOREST).length
-  } forest, ${
-    resources.filter(r => r.type === ResourceType.KELP).length
-  } kelp, ${
-    resources.filter(r => r.type === ResourceType.INSECTS).length
-  } insects, ${
-    resources.filter(r => r.type === ResourceType.PLANKTON).length
-  } plankton)`);
+  // Now process each biome separately
+  biomeToTiles.forEach((tiles, biomeId) => {
+    // Count resources by type for this biome
+    const biomeResourceCounts = {
+      [ResourceType.FOREST]: 0,
+      [ResourceType.KELP]: 0,
+      [ResourceType.INSECTS]: 0,
+      [ResourceType.PLANKTON]: 0
+    };
+    
+    // First, filter for tiles that can have resources
+    const eligibleTiles = tiles.filter(tile => {
+      // Only grass, water, mountain, and underwater can have resources
+      return tile.terrain === TerrainType.GRASS ||
+             tile.terrain === TerrainType.WATER ||
+             tile.terrain === TerrainType.MOUNTAIN ||
+             tile.terrain === TerrainType.UNDERWATER;
+    });
+    
+    // Calculate exactly how many tiles should have resources
+    const resourceCount = Math.round(eligibleTiles.length * resourceChance);
+    
+    // Randomly shuffle eligible tiles and select the first resourceCount tiles
+    const shuffledTiles = [...eligibleTiles].sort(() => Math.random() - 0.5);
+    const selectedTiles = shuffledTiles.slice(0, resourceCount);
+    
+    // Create resources on the selected tiles
+    selectedTiles.forEach(tile => {
+      // Determine resource type based on terrain
+      let resourceType: ResourceType | null = null;
+      
+      if (tile.terrain === TerrainType.GRASS) {
+        resourceType = ResourceType.FOREST;
+      } else if (tile.terrain === TerrainType.WATER) {
+        resourceType = ResourceType.KELP;
+      } else if (tile.terrain === TerrainType.MOUNTAIN) {
+        resourceType = ResourceType.INSECTS;
+      } else if (tile.terrain === TerrainType.UNDERWATER) {
+        resourceType = ResourceType.PLANKTON;
+      }
+      
+      // Add the resource
+      if (resourceType) {
+        resources.push({
+          id: `resource-${resources.length}`,
+          type: resourceType,
+          position: { x: tile.x, y: tile.y },
+          biomeId: biomeId
+        });
+        
+        // Increment count for this resource type in this biome
+        biomeResourceCounts[resourceType]++;
+      }
+    });
+  });
   
   return resources;
 };

@@ -284,7 +284,13 @@ export default class BoardScene extends Phaser.Scene {
         }
       }
     }
-
+    
+    // Generate resources if none exist yet
+    const resources = actions.getResources();
+    if (resources.length === 0) {
+      console.log("Initial resource generation");
+      this.regenerateResources();
+    }
     
     // Set up input handlers if they're not already set up
     if (!this.controlsSetup) {
@@ -916,5 +922,36 @@ export default class BoardScene extends Phaser.Scene {
       // Toggle biome mode in the tile renderer
       this.tileRenderer.toggleBiomeMode(enabled);
     }
+  }
+
+  // Public method to regenerate resources with current settings
+  public regenerateResources(): void {
+    console.log("Regenerating resources with current settings");
+    
+    // Get the current board data
+    const board = actions.getBoard();
+    if (!board) {
+      console.warn("Cannot regenerate resources: No board data available");
+      return;
+    }
+    
+    // Get the current habitats
+    const habitats = actions.getHabitats();
+    if (!habitats || habitats.length === 0) {
+      console.warn("Cannot regenerate resources: No habitats available");
+      return;
+    }
+    
+    // Create terrain data array from board tiles
+    const terrainData: TerrainType[][] = Array(board.height)
+      .fill(null)
+      .map((_, y) => 
+        Array(board.width)
+          .fill(null)
+          .map((_, x) => board.tiles[y][x].terrain)
+      );
+    
+    // Call the regenerate action to create new resources
+    actions.regenerateResources(board.width, board.height, terrainData, habitats);
   }
 }
