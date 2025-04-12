@@ -6,7 +6,6 @@
 - [ ] Fix ineligble spawning moves on terrain
 - [ ] Now its kind of boring that eggs appear in the same place always
 - [ ] Fix Raley Font (lost during architecture update)
-- [ ] Populate biomes with resources (remove random function)
 
 ### Phase 3: Full Lushness Ecosystem
 1. Implement resource harvesting mechanics
