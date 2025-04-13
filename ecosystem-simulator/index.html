@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ecosystem Simulator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    
+    .container {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 5px;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .left-panel {
+      padding: 10px;
+      background-color: #f5f5f5;
+      overflow-y: auto;
+      max-height: 100vh;
+      font-size: 11px;
+    }
+    
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .section-header h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+    
+    .controls {
+      margin-bottom: 15px;
+    }
+    
+    .param-control {
+      margin-bottom: 10px;
+    }
+    
+    .param-control label {
+      display: block;
+      margin-bottom: 2px;
+    }
+    
+    .param-range {
+      width: 100%;
+    }
+    
+    .charts-container {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      padding: 10px;
+    }
+    
+    .chart-wrapper {
+      width: 50%;
+      height: 200px;
+    }
+    
+    .biomes-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 10px;
+    }
+    
+    .biome {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .biome-header {
+      background-color: #e0e0e0;
+      padding: 5px 10px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .biome-stats {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .harvest-controls {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .harvest-control {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+    }
+    
+    .harvest-control input {
+      width: 80px;
+    }
+    
+    .harvest-strategy select {
+      padding: 2px;
+      font-size: 10px;
+    }
+    
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
+      grid-gap: 2px;
+      padding: 10px;
+    }
+    
+    .resource {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      color: white;
+      font-weight: bold;
+      font-size: 9px;
+      text-shadow: 0 0 2px rgba(0,0,0,0.5);
+    }
+    
+    .habitat {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      background-color: #000;
+      color: white;
+      font-weight: bold;
+      font-size: 9px;
+    }
+    
+    .charts-container {
+      order: 1;
+    }
+    
+    .biomes-container {
+      order: 2;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 5px;
+    }
+    
+    button {
+      padding: 3px 8px;
+      border: 1px solid #ccc;
+      background-color: #f0f0f0;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    
+    button:hover {
+      background-color: #e0e0e0;
+    }
+    
+    select {
+      padding: 3px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left-panel">
+      <div class="controls">
+        <div class="section-header">
+          <h2>Simulation</h2>
+          <div>Turn: <span id="current-turn">0</span></div>
+        </div>
+        <div class="btn-group">
+          <button id="btn-step">Step</button>
+          <button id="btn-play">Play</button>
+          <button id="btn-reset">Reset</button>
+          <select id="simulation-speed">
+            <option value="1">1x</option>
+            <option value="2">2x</option>
+            <option value="5" selected>5x</option>
+            <option value="10">10x</option>
+          </select>
+        </div>
+        
+        <div class="sync-control" style="margin-top: 8px;">
+          <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="sync-biomes">
+            <span>Sync Biomes</span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Resource generation formula parameters -->
+      <div class="controls">
+        <!-- Resource Generation Formula -->
+        <div class="param-control">
+          <label for="param-a">Cubic Term (a): <span id="param-a-value">-0.0025</span></label>
+          <input type="range" id="param-a" class="param-range" min="-0.01" max="0.01" step="0.0001" value="-0.0025">
+        </div>
+        
+        <div class="param-control">
+          <label for="param-b">Quadratic Term (b): <span id="param-b-value">0.035</span></label>
+          <input type="range" id="param-b" class="param-range" min="-0.1" max="0.1" step="0.001" value="0.035">
+        </div>
+        
+        <div class="param-control">
+          <label for="param-c">Linear Term (c): <span id="param-c-value">0.04</span></label>
+          <input type="range" id="param-c" class="param-range" min="-0.5" max="0.5" step="0.01" value="0.04">
+        </div>
+        
+        <div class="param-control">
+          <label for="param-d">Constant Term (d): <span id="param-d-value">0.1</span></label>
+          <input type="range" id="param-d" class="param-range" min="0" max="1" step="0.01" value="0.1">
+        </div>
+      </div>
+      
+      <div class="controls">
+        <!-- Lushness Calculation Parameters -->
+        <div class="section-header">
+          <h2>Lushness Weights</h2>
+        </div>
+        
+        <div class="param-control">
+          <label for="resource-value-weight">Resource Value Weight: <span id="resource-value-weight-value">0.9</span></label>
+          <input type="range" id="resource-value-weight" class="param-range" min="0" max="1" step="0.05" value="0.9">
+        </div>
+        
+        <div class="param-control">
+          <label for="non-depleted-weight">Non-Depleted Weight: <span id="non-depleted-weight-value">0.1</span></label>
+          <input type="range" id="non-depleted-weight" class="param-range" min="0" max="1" step="0.05" value="0.1">
+        </div>
+        
+        <div class="note" style="font-size: 10px; margin-top: 6px;">
+          Note: These weights determine how much impact each factor has on lushness.
+        </div>
+      </div>
+    </div>
+    
+    <div class="right-panel">
+      <div class="charts-container">
+        <div class="chart-wrapper">
+          <canvas id="lushness-chart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="resources-chart"></canvas>
+        </div>
+      </div>
+      
+      <div class="biomes-container" id="biomes-container">
+        <!-- Biomes will be rendered here -->
+      </div>
+    </div>
+  </div>
+  
+  <script type="module" src="js/simulator.js"></script>
+</body>
+</html>

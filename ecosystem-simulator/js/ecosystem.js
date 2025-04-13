@@ -1,0 +1,273 @@
+// js/ecosystem.js
+export class EcosystemModel {
+  constructor(params = {}) {
+    // Default parameters
+    this.params = {
+      // Resource generation formula parameters (polynomial)
+      resourceGeneration: {
+        a: -0.0025, // cubic term
+        b: 0.035,   // quadratic term
+        c: 0.04,    // linear term
+        d: 0.1      // constant term
+      },
+      
+      // Lushness recovery parameters
+      lushnessRecovery: {
+        baseRate: 0.05,
+        scaleFactor: 0.5
+      },
+      
+      // Lushness calculation weights
+      lushnessCalculation: {
+        resourceValueWeight: 0.9,  // Weight given to resource value ratio (0-1)
+        nonDepletedWeight: 0.1     // Weight given to non-depleted resources ratio (0-1)
+      },
+      
+      // Harvesting impact parameters
+      harvestImpact: {
+        lushnessDecrease: 0.01 // per unit harvested
+      },
+      
+      ...params
+    };
+  }
+  
+  // Calculate resource generation rate based on lushness
+  calculateResourceGenerationRate(lushness) {
+    const p = this.params.resourceGeneration;
+    
+    // Cap lushness at 8.0 for consistent calculations
+    const cappedLushness = Math.min(lushness, 8.0);
+    
+    return Math.max(0, Math.min(1, 
+      p.a * Math.pow(cappedLushness, 3) + 
+      p.b * Math.pow(cappedLushness, 2) + 
+      p.c * cappedLushness + 
+      p.d
+    ));
+  }
+  
+  // Calculate lushness recovery amount per turn - modified to prevent recovery for fully depleted biomes
+  calculateLushnessRecovery(biome) {
+    // If fully depleted (all resources at 0), no recovery possible
+    if (biome.nonDepletedCount === 0) return 0;
+    
+    const p = this.params.lushnessRecovery;
+    const currentLushness = biome.lushness;
+    
+    // Non-depleted ratio affects recovery rate
+    const nonDepletedRatio = biome.nonDepletedCount / biome.initialResourceCount;
+    
+    // No recovery beyond initial lushness (8.0)
+    if (currentLushness >= 8.0) return 0;
+    
+    // Calculate deficit from baseline (8.0)
+    const deficit = 8.0 - currentLushness;
+    
+    // Recovery formula creates faster recovery in mid-range (3-7)
+    // and slower as it approaches 8.0
+    return nonDepletedRatio * p.baseRate * Math.pow(deficit / 8.0, p.scaleFactor);
+  }
+  
+  // Calculate impact of harvesting on lushness
+  calculateHarvestingImpact(harvestedAmount) {
+    return harvestedAmount * this.params.harvestImpact.lushnessDecrease;
+  }
+  
+  // Simulate a single turn for a biome with controlled harvest rate
+  simulateTurn(biome, harvestRate = 0) {
+    // Calculate resource regeneration
+    const generationRate = this.calculateResourceGenerationRate(biome.lushness);
+    let regeneratedAmount = 0;
+    
+    // For each resource in the biome
+    biome.resources.forEach(resource => {
+      // Skip fully regenerated resources
+      if (resource.value >= 10) return;
+      
+      // Skip depleted resources - they never regenerate
+      if (resource.value === 0) return;
+      
+      // Regenerate based on lushness and current value
+      const regenerationAmount = generationRate * (1 - resource.value / 10);
+      resource.value = Math.min(10, resource.value + regenerationAmount);
+      regeneratedAmount += regenerationAmount;
+    });
+    
+    // Apply harvesting based on harvestRate (units per turn)
+    let harvestedAmount = 0;
+    if (harvestRate > 0) {
+      harvestedAmount = this.harvestResources(biome, harvestRate);
+      biome.totalHarvested += harvestedAmount;
+    }
+    
+    // Recalculate lushness based on new resource state
+    // This reflects both harvesting impact and regeneration benefits
+    biome.lushness = this.calculateBiomeLushness(biome);
+    
+    // Ensure lushness stays within bounds
+    biome.lushness = Math.max(0, Math.min(8.0, biome.lushness));
+    
+    // Track historical data
+    biome.history.push({
+      turn: biome.history.length,
+      lushness: biome.lushness,
+      resourceTotal: this.calculateTotalResourceValue(biome),
+      harvestedAmount,
+      regeneratedAmount,
+      recoveryAmount: 0 // No separate recovery now
+    });
+    
+    return {
+      generationRate,
+      lushness: biome.lushness,
+      resourceTotal: this.calculateTotalResourceValue(biome),
+      harvestedAmount,
+      regeneratedAmount
+    };
+  }
+  
+  // Harvest resources from a biome at specified rate
+  harvestResources(biome, unitsPerTurn) {
+    let amountHarvested = 0;
+    let remainingToHarvest = unitsPerTurn;
+    
+    // Track biome's turn count for periodic behaviors
+    biome.turnsCount++;
+    
+    // FIRST PASS: Harvest resources with value > 1 down to 1
+    for (let i = biome.resources.length - 1; i >= 0 && remainingToHarvest > 0; i--) {
+      const resource = biome.resources[i];
+      
+      // Skip resources that are already depleted (value 0)
+      if (resource.value === 0) continue;
+      
+      // Skip resources that are already at minimum (value 1)
+      if (resource.value <= 1) continue;
+      
+      // Calculate how much we can safely harvest from this resource down to 1
+      const harvestFromThis = Math.min(resource.value - 1, remainingToHarvest);
+      
+      resource.value -= harvestFromThis;
+      amountHarvested += harvestFromThis;
+      remainingToHarvest -= harvestFromThis;
+    }
+    
+    // SECOND PASS: Based on strategy, decide whether to harvest resources with value 1 down to 0
+    
+    // Strategy: Preservation (default)
+    // Only harvest resources with value 1 if all resources are at value 1 or 0
+    if (biome.harvestStrategy === "preservation" && remainingToHarvest > 0) {
+      // Check if all resources are at value 1 or 0
+      const hasHigherValueResources = biome.resources.some(resource => resource.value > 1);
+      
+      // If all resources are at 1 or 0, we can start depleting them
+      if (!hasHigherValueResources) {
+        for (let i = biome.resources.length - 1; i >= 0 && remainingToHarvest > 0; i--) {
+          const resource = biome.resources[i];
+          
+          // Skip resources that are already depleted
+          if (resource.value === 0) continue;
+          
+          // At this point, resource.value must be 1, so we can take it all
+          resource.value = 0;
+          amountHarvested += 1;
+          remainingToHarvest -= 1;
+        }
+      }
+    } 
+    // Strategy: Realistic
+    // Every 3rd turn, harvest one resource with value 1 down to 0 if any exist
+    else if (biome.harvestStrategy === "realistic" && biome.turnsCount % 3 === 0) {
+      // Find a resource with value 1
+      for (let i = biome.resources.length - 1; i >= 0; i--) {
+        const resource = biome.resources[i];
+        
+        if (resource.value === 1) {
+          // Deplete this resource
+          resource.value = 0;
+          amountHarvested += 1;
+          break; // Only deplete one resource per 3rd turn
+        }
+      }
+    }
+    // Strategy: Abusive
+    // Every turn, harvest one resource with value 1 down to 0 if any exist
+    else if (biome.harvestStrategy === "abusive") {
+      // Find a resource with value 1
+      for (let i = biome.resources.length - 1; i >= 0; i--) {
+        const resource = biome.resources[i];
+        
+        if (resource.value === 1) {
+          // Deplete this resource
+          resource.value = 0;
+          amountHarvested += 1;
+          break; // Only deplete one resource per turn
+        }
+      }
+    }
+    
+    return amountHarvested;
+  }
+  
+  // Calculate total resource value in a biome
+  calculateTotalResourceValue(biome) {
+    return biome.resources.reduce((sum, r) => sum + r.value, 0);
+  }
+  
+  // Initialize a biome with resources
+  initializeBiome(id, name, resourceCount, lushness = 8.0) {
+    const resources = Array(resourceCount).fill().map(() => ({
+      value: 10, // Start all resources at full value
+      initialValue: 10 // Track initial value for each resource
+    }));
+    
+    return {
+      id,
+      name,
+      lushness,
+      resources,
+      initialResourceCount: resourceCount, // Track initial count
+      nonDepletedCount: resourceCount, // Track number of non-depleted resources
+      totalHarvested: 0,
+      history: [{
+        turn: 0,
+        lushness: lushness,
+        resourceTotal: resourceCount * 10,
+        harvestedAmount: 0,
+        regeneratedAmount: 0,
+        recoveryAmount: 0
+      }]
+    };
+  }
+  
+  // Calculate lushness based on resource state compared to initial state
+  calculateBiomeLushness(biome) {
+    // Count non-depleted resources
+    const nonDepletedResources = biome.resources.filter(r => r.value > 0).length;
+    biome.nonDepletedCount = nonDepletedResources;
+    
+    // If all resources are depleted, lushness is 0
+    if (nonDepletedResources === 0) return 0;
+    
+    // Calculate how far current resources are from initial state
+    const currentTotal = biome.resources.reduce((sum, r) => sum + r.value, 0);
+    const initialTotal = biome.initialResourceCount * 10; // All resources started at 10
+    
+    // Resource health ratio (how close to initial state)
+    const resourceRatio = currentTotal / initialTotal;
+    
+    // Non-depleted ratio (percentage of resources not fully depleted)
+    const nonDepletedRatio = nonDepletedResources / biome.initialResourceCount;
+    
+    // Get weights from parameters
+    const { resourceValueWeight, nonDepletedWeight } = this.params.lushnessCalculation;
+    
+    // Calculate lushness as a weighted combination of these factors
+    // This creates a non-linear response where any depletion has an outsized impact
+    const combinedFactor = (resourceRatio * resourceValueWeight) + (nonDepletedRatio * nonDepletedWeight);
+    
+    // Scale to lushness range with 8.0 as the baseline
+    return Math.min(8.0, combinedFactor * 8.0);
+  }
+}
