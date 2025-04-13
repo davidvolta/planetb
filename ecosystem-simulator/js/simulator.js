@@ -10,6 +10,7 @@ class Simulator {
     this.currentTurn = 0;
     this.maxHistoryLength = 100; // For charts
     this.syncBiomes = false; // Track whether biomes should be synced
+    this.resourceCapability = 50; // Percentage of tiles capable of resource generation
     
     this.charts = {};
     
@@ -24,18 +25,37 @@ class Simulator {
     this.biomes = [];
     
     // Initialize 5 biomes with different resource counts
-    // Making biomes 2 and 3 have the same resource count (22)
-    const resourceCounts = [30, 26, 22, 22, 15];
+    const resourceCounts = [30, 26, 22, 18, 15];
     
     for (let i = 0; i < 5; i++) {
-      this.biomes.push(
-        this.ecosystem.initializeBiome(
-          `biome-${i}`, 
-          `Biome ${i+1}`, 
-          resourceCounts[i], 
-          8.0 // All start with lushness 8.0
-        )
+      // Create the biome using ecosystem's initialization
+      const biome = this.ecosystem.initializeBiome(
+        `biome-${i}`, 
+        `Biome ${i+1}`, 
+        resourceCounts[i], 
+        8.0 // All start with lushness 8.0
       );
+      
+      // Determine how many tiles should have resources based on resourceCapability
+      const resourceTileCount = Math.round(resourceCounts[i] * (this.resourceCapability / 100));
+      
+      // Arrange resources in order: active resources first (after habitat), then blank tiles
+      for (let j = 0; j < resourceCounts[i]; j++) {
+        if (j < resourceTileCount) {
+          // First tiles are active with value 10
+          biome.resources[j].active = true;
+          biome.resources[j].value = 10;
+        } else {
+          // Remaining tiles are inactive (blank) with value 0
+          biome.resources[j].active = false;
+          biome.resources[j].value = 0;
+        }
+      }
+      
+      // Update the history with the correct initial total
+      biome.history[0].resourceTotal = this.ecosystem.calculateTotalResourceValue(biome);
+      
+      this.biomes.push(biome);
     }
   }
   
@@ -69,6 +89,18 @@ class Simulator {
     document.getElementById('sync-biomes').addEventListener('change', (e) => {
       this.syncBiomes = e.target.checked;
       console.log(`Biome sync ${this.syncBiomes ? 'enabled' : 'disabled'}`);
+    });
+    
+    // Resource capability slider
+    document.getElementById('resource-capability').addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      document.getElementById('resource-capability-value').textContent = value;
+      this.resourceCapability = value;
+      
+      // Reset the simulation to apply the new resource capability
+      this.reset();
+      
+      console.log(`Resource capability set to ${value}%`);
     });
     
     // Lushness calculation weight sliders
@@ -255,13 +287,20 @@ class Simulator {
       // Create resource squares
       biome.resources.forEach((resource, i) => {
         const resourceElement = document.createElement('div');
-        resourceElement.className = 'resource';
         resourceElement.id = `${biome.id}-resource-${i}`;
         
-        // Set color intensity based on value
-        const intensity = resource.value / 10;
-        resourceElement.style.backgroundColor = `rgba(0, 128, 0, ${intensity})`;
-        resourceElement.textContent = Math.round(resource.value);
+        if (resource.active) {
+          // Active resource tile
+          resourceElement.className = 'resource';
+          // Set color intensity based on value
+          const intensity = resource.value / 10;
+          resourceElement.style.backgroundColor = `rgba(0, 128, 0, ${intensity})`;
+          resourceElement.textContent = Math.round(resource.value);
+        } else {
+          // Inactive/blank resource tile
+          resourceElement.className = 'resource inactive';
+          // No content for blank tiles
+        }
         
         resourceGrid.appendChild(resourceElement);
       });
@@ -389,9 +428,19 @@ class Simulator {
     // Update resource display
     biome.resources.forEach((resource, i) => {
       const resourceElement = document.getElementById(`${biome.id}-resource-${i}`);
-      const intensity = resource.value / 10;
-      resourceElement.style.backgroundColor = `rgba(0, 128, 0, ${intensity})`;
-      resourceElement.textContent = Math.round(resource.value);
+      
+      if (resource.active) {
+        // Active resource tile
+        resourceElement.className = 'resource';
+        const intensity = resource.value / 10;
+        resourceElement.style.backgroundColor = `rgba(0, 128, 0, ${intensity})`;
+        resourceElement.textContent = Math.round(resource.value);
+      } else {
+        // Inactive/blank resource tile
+        resourceElement.className = 'resource inactive';
+        resourceElement.style.backgroundColor = '';
+        resourceElement.textContent = '';
+      }
     });
   }
   

@@ -82,6 +82,9 @@ export class EcosystemModel {
     
     // For each resource in the biome
     biome.resources.forEach(resource => {
+      // Skip inactive resources
+      if (!resource.active) return;
+      
       // Skip fully regenerated resources
       if (resource.value >= 10) return;
       
@@ -135,9 +138,17 @@ export class EcosystemModel {
     // Track biome's turn count for periodic behaviors
     biome.turnsCount++;
     
+    // Get all active resources with their indices
+    const activeResources = biome.resources
+      .map((resource, index) => ({ resource, index }))
+      .filter(item => item.resource.active);
+    
+    // Sort resources by index (highest first) to harvest from right to left
+    activeResources.sort((a, b) => b.index - a.index);
+    
     // FIRST PASS: Harvest resources with value > 1 down to 1
-    for (let i = biome.resources.length - 1; i >= 0 && remainingToHarvest > 0; i--) {
-      const resource = biome.resources[i];
+    for (let i = 0; i < activeResources.length && remainingToHarvest > 0; i++) {
+      const { resource } = activeResources[i];
       
       // Skip resources that are already depleted (value 0)
       if (resource.value === 0) continue;
@@ -158,18 +169,18 @@ export class EcosystemModel {
     // Strategy: Preservation (default)
     // Only harvest resources with value 1 if all resources are at value 1 or 0
     if (biome.harvestStrategy === "preservation" && remainingToHarvest > 0) {
-      // Check if all resources are at value 1 or 0
-      const hasHigherValueResources = biome.resources.some(resource => resource.value > 1);
+      // Check if all active resources are at value 1 or 0
+      const hasHigherValueResources = activeResources.some(item => item.resource.value > 1);
       
-      // If all resources are at 1 or 0, we can start depleting them
+      // If all active resources are at 1 or 0, we can start depleting them
       if (!hasHigherValueResources) {
-        for (let i = biome.resources.length - 1; i >= 0 && remainingToHarvest > 0; i--) {
-          const resource = biome.resources[i];
+        // Resources are already sorted by index (highest first)
+        const resourcesAtValueOne = activeResources.filter(item => item.resource.value === 1);
+        
+        for (let i = 0; i < resourcesAtValueOne.length && remainingToHarvest > 0; i++) {
+          const { resource } = resourcesAtValueOne[i];
           
-          // Skip resources that are already depleted
-          if (resource.value === 0) continue;
-          
-          // At this point, resource.value must be 1, so we can take it all
+          // Deplete this resource
           resource.value = 0;
           amountHarvested += 1;
           remainingToHarvest -= 1;
@@ -179,31 +190,25 @@ export class EcosystemModel {
     // Strategy: Realistic
     // Every 3rd turn, harvest one resource with value 1 down to 0 if any exist
     else if (biome.harvestStrategy === "realistic" && biome.turnsCount % 3 === 0) {
-      // Find a resource with value 1
-      for (let i = biome.resources.length - 1; i >= 0; i--) {
-        const resource = biome.resources[i];
-        
-        if (resource.value === 1) {
-          // Deplete this resource
-          resource.value = 0;
-          amountHarvested += 1;
-          break; // Only deplete one resource per 3rd turn
-        }
+      // Find a resource with value 1, starting from the highest index
+      const resourcesAtValueOne = activeResources.filter(item => item.resource.value === 1);
+      
+      if (resourcesAtValueOne.length > 0) {
+        // Deplete the first resource (which is the rightmost one due to our sorting)
+        resourcesAtValueOne[0].resource.value = 0;
+        amountHarvested += 1;
       }
     }
     // Strategy: Abusive
     // Every turn, harvest one resource with value 1 down to 0 if any exist
     else if (biome.harvestStrategy === "abusive") {
-      // Find a resource with value 1
-      for (let i = biome.resources.length - 1; i >= 0; i--) {
-        const resource = biome.resources[i];
-        
-        if (resource.value === 1) {
-          // Deplete this resource
-          resource.value = 0;
-          amountHarvested += 1;
-          break; // Only deplete one resource per turn
-        }
+      // Find a resource with value 1, starting from the highest index
+      const resourcesAtValueOne = activeResources.filter(item => item.resource.value === 1);
+      
+      if (resourcesAtValueOne.length > 0) {
+        // Deplete the first resource (which is the rightmost one due to our sorting)
+        resourcesAtValueOne[0].resource.value = 0;
+        amountHarvested += 1;
       }
     }
     
@@ -212,15 +217,21 @@ export class EcosystemModel {
   
   // Calculate total resource value in a biome
   calculateTotalResourceValue(biome) {
-    return biome.resources.reduce((sum, r) => sum + r.value, 0);
+    return biome.resources.reduce((sum, r) => r.active ? sum + r.value : sum, 0);
   }
   
   // Initialize a biome with resources
   initializeBiome(id, name, resourceCount, lushness = 8.0) {
-    const resources = Array(resourceCount).fill().map(() => ({
-      value: 10, // Start all resources at full value
-      initialValue: 10 // Track initial value for each resource
-    }));
+    const resources = [];
+    
+    // Create resources - all resources start with value 10
+    for (let i = 0; i < resourceCount; i++) {
+      resources.push({
+        value: 10, // Start all resources at full value
+        initialValue: 10, // Track initial value for each resource
+        active: true // All resources are active by default
+      });
+    }
     
     return {
       id,
@@ -243,22 +254,25 @@ export class EcosystemModel {
   
   // Calculate lushness based on resource state compared to initial state
   calculateBiomeLushness(biome) {
-    // Count non-depleted resources
-    const nonDepletedResources = biome.resources.filter(r => r.value > 0).length;
+    // Only consider active resources for lushness calculation
+    const activeResources = biome.resources.filter(r => r.active);
+    
+    // Count non-depleted resources (only from active ones)
+    const nonDepletedResources = activeResources.filter(r => r.value > 0).length;
     biome.nonDepletedCount = nonDepletedResources;
     
-    // If all resources are depleted, lushness is 0
+    // If all active resources are depleted, lushness is 0
     if (nonDepletedResources === 0) return 0;
     
     // Calculate how far current resources are from initial state
-    const currentTotal = biome.resources.reduce((sum, r) => sum + r.value, 0);
-    const initialTotal = biome.initialResourceCount * 10; // All resources started at 10
+    const currentTotal = activeResources.reduce((sum, r) => sum + r.value, 0);
+    const initialTotal = activeResources.length * 10; // All active resources started at 10
     
     // Resource health ratio (how close to initial state)
     const resourceRatio = currentTotal / initialTotal;
     
-    // Non-depleted ratio (percentage of resources not fully depleted)
-    const nonDepletedRatio = nonDepletedResources / biome.initialResourceCount;
+    // Non-depleted ratio (percentage of active resources not fully depleted)
+    const nonDepletedRatio = nonDepletedResources / activeResources.length;
     
     // Get weights from parameters
     const { resourceValueWeight, nonDepletedWeight } = this.params.lushnessCalculation;

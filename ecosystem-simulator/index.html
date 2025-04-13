@@ -138,14 +138,20 @@
     .resource {
       width: 20px;
       height: 20px;
+      border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 3px;
       color: white;
       font-weight: bold;
       font-size: 9px;
       text-shadow: 0 0 2px rgba(0,0,0,0.5);
+    }
+    
+    .resource.inactive {
+      background-color: white !important;
+      border: 1px dashed #aaa;
+      color: transparent;
     }
     
     .habitat {
@@ -265,6 +271,14 @@
         
         <div class="note" style="font-size: 10px; margin-top: 6px;">
           Note: These weights determine how much impact each factor has on lushness.
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <h4>Resource Settings</h4>
+        <div class="control">
+          <label for="resource-capability">Resource Capability: <span id="resource-capability-value">50</span>%</label>
+          <input type="range" id="resource-capability" min="0" max="100" value="50">
         </div>
       </div>
     </div>
