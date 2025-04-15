@@ -110,33 +110,6 @@ class Simulator {
       console.log(`Resource capability set to ${value}%`);
     });
     
-    // Lushness calculation weight sliders
-    document.getElementById('resource-value-weight').addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      document.getElementById('resource-value-weight-value').textContent = value.toFixed(2);
-      this.ecosystem.params.lushnessCalculation.resourceValueWeight = value;
-      
-      // Update the complementary weight to ensure they sum to 1.0
-      const complementaryWeight = Math.round((1.0 - value) * 100) / 100;
-      document.getElementById('non-depleted-weight').value = complementaryWeight;
-      document.getElementById('non-depleted-weight-value').textContent = complementaryWeight.toFixed(2);
-      this.ecosystem.params.lushnessCalculation.nonDepletedWeight = complementaryWeight;
-    });
-    
-    document.getElementById('non-depleted-weight').addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      document.getElementById('non-depleted-weight-value').textContent = value.toFixed(2);
-      this.ecosystem.params.lushnessCalculation.nonDepletedWeight = value;
-      
-      // Update the complementary weight to ensure they sum to 1.0
-      const complementaryWeight = Math.round((1.0 - value) * 100) / 100;
-      document.getElementById('resource-value-weight').value = complementaryWeight;
-      document.getElementById('resource-value-weight-value').textContent = complementaryWeight.toFixed(2);
-      this.ecosystem.params.lushnessCalculation.resourceValueWeight = complementaryWeight;
-    });
-    
-    // Note: Harvest rate sliders are now set up in renderBiomes
-    
     // Simulation controls
     document.getElementById('btn-step').addEventListener('click', () => this.step());
     document.getElementById('btn-play').addEventListener('click', () => this.togglePlay());

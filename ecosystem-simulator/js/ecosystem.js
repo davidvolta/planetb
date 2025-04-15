@@ -17,12 +17,6 @@ export class EcosystemModel {
         scaleFactor: 0.5
       },
       
-      // Lushness calculation weights
-      lushnessCalculation: {
-        resourceValueWeight: 0.9,  // Weight given to resource value ratio (0-1)
-        nonDepletedWeight: 0.1     // Weight given to non-depleted resources ratio (0-1)
-      },
-      
       // Harvesting impact parameters
       harvestImpact: {
         lushnessDecrease: 0.01 // per unit harvested
@@ -265,24 +259,14 @@ export class EcosystemModel {
     // If all active resources are depleted, lushness is 0
     if (nonDepletedResources === 0) return 0;
     
-    // Calculate how far current resources are from initial state
+    // Calculate total resource value ratio
     const currentTotal = activeResources.reduce((sum, r) => sum + r.value, 0);
     const initialTotal = activeResources.length * 10; // All active resources started at 10
     
     // Resource health ratio (how close to initial state)
     const resourceRatio = currentTotal / initialTotal;
     
-    // Non-depleted ratio (percentage of active resources not fully depleted)
-    const nonDepletedRatio = nonDepletedResources / activeResources.length;
-    
-    // Get weights from parameters
-    const { resourceValueWeight, nonDepletedWeight } = this.params.lushnessCalculation;
-    
-    // Calculate lushness as a weighted combination of these factors
-    // This creates a non-linear response where any depletion has an outsized impact
-    const combinedFactor = (resourceRatio * resourceValueWeight) + (nonDepletedRatio * nonDepletedWeight);
-    
-    // Scale to lushness range with 8.0 as the baseline
-    return Math.min(8.0, combinedFactor * 8.0);
+    // Direct linear mapping of resource ratio to lushness (max 8.0)
+    return Math.min(8.0, resourceRatio * 8.0);
   }
 }
