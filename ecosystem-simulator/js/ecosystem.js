@@ -39,12 +39,13 @@ export class EcosystemModel {
     // Cap lushness at 8.0 for consistent calculations
     const cappedLushness = Math.min(lushness, 8.0);
     
-    return Math.max(0, Math.min(1, 
+    // Remove the cap on generation rate to allow faster regeneration at high lushness
+    return Math.max(0, 
       p.a * Math.pow(cappedLushness, 3) + 
       p.b * Math.pow(cappedLushness, 2) + 
       p.c * cappedLushness + 
       p.d
-    ));
+    );
   }
   
   // Calculate lushness recovery amount per turn - modified to prevent recovery for fully depleted biomes

@@ -12,6 +12,13 @@ class Simulator {
     this.syncBiomes = false; // Track whether biomes should be synced
     this.resourceCapability = 50; // Percentage of tiles capable of resource generation
     
+    // Check for dark mode preference
+    const darkModePreference = localStorage.getItem('darkMode');
+    if (darkModePreference === 'enabled') {
+      document.body.classList.add('dark-mode');
+      // Update button will be handled in setupControls
+    }
+    
     this.charts = {};
     
     this.initializeBiomes();
@@ -25,7 +32,7 @@ class Simulator {
     this.biomes = [];
     
     // Initialize 5 biomes with different resource counts
-    const resourceCounts = [30, 26, 22, 18, 15];
+    const resourceCounts = [30, 26, 22, 22, 15];
     
     for (let i = 0; i < 5; i++) {
       // Create the biome using ecosystem's initialization
@@ -138,9 +145,42 @@ class Simulator {
     document.getElementById('simulation-speed').addEventListener('change', (e) => {
       this.speed = parseInt(e.target.value);
     });
+    
+    // Dark mode toggle
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const body = document.body;
+    
+    // Check if user preference exists in localStorage
+    const darkModePreference = localStorage.getItem('darkMode');
+    if (darkModePreference === 'enabled') {
+      body.classList.add('dark-mode');
+      darkModeToggle.innerHTML = '☀️ Light Mode';
+    }
+    
+    darkModeToggle.addEventListener('click', () => {
+      // Toggle dark mode
+      body.classList.toggle('dark-mode');
+      
+      // Update button text
+      if (body.classList.contains('dark-mode')) {
+        darkModeToggle.innerHTML = '☀️ Light Mode';
+        localStorage.setItem('darkMode', 'enabled');
+      } else {
+        darkModeToggle.innerHTML = '🌙 Dark Mode';
+        localStorage.setItem('darkMode', 'disabled');
+      }
+      
+      // Update charts to match the theme
+      this.updateChartsTheme();
+    });
   }
   
   setupCharts() {
+    // Determine if dark mode is active
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const textColor = isDarkMode ? '#e0e0e0' : '#666';
+    
     // Common chart options
     const chartOptions = {
       responsive: true,
@@ -149,7 +189,8 @@ class Simulator {
           position: 'top',
           labels: {
             boxWidth: 10, // Smaller legend boxes
-            padding: 6    // Less padding between items
+            padding: 6,   // Less padding between items
+            color: textColor
           }
         }
       }
@@ -177,18 +218,30 @@ class Simulator {
             max: 8.0,
             title: {
               display: true,
-              text: 'Lushness'
+              text: 'Lushness',
+              color: textColor
+            },
+            ticks: {
+              color: textColor
+            },
+            grid: {
+              color: gridColor
             }
           },
           x: {
             title: {
               display: true,
-              text: 'Turn'
+              text: 'Turn',
+              color: textColor
             },
             ticks: {
               callback: function(value) {
                 return value % 5 === 0 ? value : '';
-              }
+              },
+              color: textColor
+            },
+            grid: {
+              color: gridColor
             }
           }
         }
@@ -215,18 +268,30 @@ class Simulator {
           y: {
             title: {
               display: true,
-              text: 'Total Resource Value'
+              text: 'Total Resource Value',
+              color: textColor
+            },
+            ticks: {
+              color: textColor
+            },
+            grid: {
+              color: gridColor
             }
           },
           x: {
             title: {
               display: true,
-              text: 'Turn'
+              text: 'Turn',
+              color: textColor
             },
             ticks: {
               callback: function(value) {
                 return value % 5 === 0 ? value : '';
-              }
+              },
+              color: textColor
+            },
+            grid: {
+              color: gridColor
             }
           }
         }
@@ -544,6 +609,33 @@ class Simulator {
       'rgba(153, 102, 255, 1)'
     ];
     return colors[index % colors.length];
+  }
+  
+  // Update chart colors based on current theme
+  updateChartsTheme() {
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    
+    // Grid line color for charts
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const textColor = isDarkMode ? '#e0e0e0' : '#666';
+    
+    // Update both charts
+    [this.charts.lushness, this.charts.resources].forEach(chart => {
+      if (!chart) return;
+      
+      // Update grid lines
+      chart.options.scales.x.grid.color = gridColor;
+      chart.options.scales.y.grid.color = gridColor;
+      
+      // Update text color
+      chart.options.scales.x.ticks.color = textColor;
+      chart.options.scales.y.ticks.color = textColor;
+      chart.options.plugins.legend.labels.color = textColor;
+      chart.options.scales.x.title.color = textColor;
+      chart.options.scales.y.title.color = textColor;
+      
+      chart.update();
+    });
   }
 }
 
