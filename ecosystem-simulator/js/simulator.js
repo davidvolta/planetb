@@ -32,7 +32,7 @@ class Simulator {
     this.biomes = [];
     
     // Initialize 5 biomes with different resource counts
-    const resourceCounts = [30, 24, 20, 18, 15];
+    const resourceCounts = [30, 30, 30, 30, 30];
     
     for (let i = 0; i < 5; i++) {
       // Create the biome using ecosystem's initialization

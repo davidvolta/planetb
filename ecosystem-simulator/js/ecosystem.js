@@ -216,12 +216,15 @@ export class EcosystemModel {
         const resourcesAtValueOne = activeResources.filter(item => item.resource.value === 1);
         
         for (let i = 0; i < resourcesAtValueOne.length && remainingToHarvest > 0; i++) {
-          const { resource } = resourcesAtValueOne[i];
+          const { resource, index } = resourcesAtValueOne[i];
           
           // Deplete this resource
           resource.value = 0;
           amountHarvested += 1;
           remainingToHarvest -= 1;
+          
+          // Convert depleted resource to blank tile
+          resource.active = false;
         }
       }
     } 
@@ -233,8 +236,12 @@ export class EcosystemModel {
       
       if (resourcesAtValueOne.length > 0) {
         // Deplete the first resource (which is the rightmost one due to our sorting)
-        resourcesAtValueOne[0].resource.value = 0;
+        const { resource, index } = resourcesAtValueOne[0];
+        resource.value = 0;
         amountHarvested += 1;
+        
+        // Convert depleted resource to blank tile
+        resource.active = false;
       }
     }
     // Strategy: Abusive
@@ -245,8 +252,12 @@ export class EcosystemModel {
       
       if (resourcesAtValueOne.length > 0) {
         // Deplete the first resource (which is the rightmost one due to our sorting)
-        resourcesAtValueOne[0].resource.value = 0;
+        const { resource, index } = resourcesAtValueOne[0];
+        resource.value = 0;
         amountHarvested += 1;
+        
+        // Convert depleted resource to blank tile
+        resource.active = false;
       }
     }
     
