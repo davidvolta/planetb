@@ -1,0 +1,54 @@
+### Ecosystem Integration Plan
+
+#### Phase 1: Enhance Biome Structure & Setup Ecosystem Utilities
+1. Extend the `Biome` interface in gameStore.ts to include:
+   - Resources array with status tracking (value, active, hasEgg)
+   - Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value
+   - Resource tracking (initialResourceCount, nonDepletedCount, totalHarvested, eggCount)
+
+2. Create a new utils file `EcosystemUtils.ts` containing:
+   - The polynomial resource generation formula with fixed coefficient values
+   - Lushness calculation functions
+   - Egg production logic based on lushness threshold (≥7.0)
+
+3. Update the BiomeGenerator to initialize biomes with proper ecosystem values
+
+#### Phase 2: Update Rendering System
+1. Enhance ResourceRenderer to:
+   - Display resource values numerically on tiles
+   - Use opacity to visualize resource health (value/10)
+   - Keep the existing resource assets, just modify their display
+
+2. Update HabitatRenderer to show biome lushness:
+   - Display total lushness value on the habitat
+   - Use red text for lushness below 7.0, green for 7.0+
+
+#### Phase 3: Replace Habitat Production with Biome-Based Ecosystem
+1. Replace the current processHabitatProduction function with ecosystem-based logic:
+   - Calculate resource regeneration based on lushness
+   - Update lushness values for each biome
+   - Produce dormant animal units (eggs) based on lushness thresholds
+   - Keep existing system where eggs are represented as dormant animal units
+
+2. Connect this to the existing evolveAnimal function for converting eggs to active animals
+
+#### Phase 4: Implement Harvesting System
+1. Create new action functions in actions.ts:
+   - selectResourceTile(x, y)
+   - harvestResource(resourceId, amount)
+
+2. Add UI components for harvesting:
+   - Harvest button that appears when a resource is selected
+   - Amount slider for selecting harvest amount (0-10 scale)
+
+3. Implement the harvest logic in gameStore:
+   - Update resource values based on the harvested amount
+   - Convert depleted resources (value 0) to blank tiles immediately
+   - Update the biome's lushness based on the new resource state
+
+#### Phase 5: Refactor Simulator to Use Shared Code
+1. Update simulator.js to use the shared EcosystemUtils functions
+2. Keep the simulator UI largely the same
+3. Ensure both the game and simulator use exactly the same calculation methods
+
+This plan integrates the ecosystem simulator mechanics into the main game while maintaining compatibility with existing systems and adding the new harvesting functionality you described.
