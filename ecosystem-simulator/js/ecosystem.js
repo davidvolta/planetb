@@ -28,15 +28,12 @@ export class EcosystemModel {
   // Calculate resource generation rate based on lushness
   calculateResourceGenerationRate(lushness) {
     const p = this.params.resourceGeneration;
-    
-    // Cap lushness at MAX_LUSHNESS for consistent calculations
-    const cappedLushness = Math.min(lushness, MAX_LUSHNESS);
-    
-    // Remove the cap on generation rate to allow faster regeneration at high lushness
+
+    // Use the polynomial formula to calculate generation rate
     return Math.max(0, 
-      p.a * Math.pow(cappedLushness, 3) + 
-      p.b * Math.pow(cappedLushness, 2) + 
-      p.c * cappedLushness + 
+      p.a * Math.pow(lushness, 3) + 
+      p.b * Math.pow(lushness, 2) + 
+      p.c * lushness + 
       p.d
     );
   }
@@ -58,8 +55,11 @@ export class EcosystemModel {
       return 0;
     }
     
-    // Only produce eggs if lushness is 6.0 or above
-    if (biome.lushness < 6.0) {
+    // Get total lushness (base + boost)
+    const totalLushness = biome.lushness;
+    
+    // Only produce eggs if total lushness is 7.0 or above
+    if (totalLushness < 7.0) {
       return 0;
     }
     
@@ -129,17 +129,25 @@ export class EcosystemModel {
       biome.totalHarvested += harvestedAmount;
     }
     
-    // Recalculate lushness based on new resource state
-    // This reflects both harvesting impact and regeneration benefits
-    biome.lushness = this.calculateBiomeLushness(biome);
+    // Recalculate base lushness based on new resource state
+    biome.baseLushness = this.calculateBiomeLushness(biome);
     
-    // Produce eggs based on turn number
+    // Calculate lushness boost from eggs for next turn
+    const eggPercentage = this.calculateEggPercentage(biome);
+    biome.lushnessBoost = this.calculateLushnessBoost(eggPercentage);
+    
+    // Set total lushness (base + boost)
+    biome.lushness = biome.baseLushness + biome.lushnessBoost;
+    
+    // NOW produce eggs based on total lushness AFTER all calculations
     const eggsProduced = this.produceEggs(biome, biome.history.length);
     
     // Track historical data
     biome.history.push({
       turn: biome.history.length,
       lushness: biome.lushness,
+      baseLushness: biome.baseLushness,
+      lushnessBoost: biome.lushnessBoost,
       resourceTotal: this.calculateTotalResourceValue(biome),
       harvestedAmount,
       regeneratedAmount,
@@ -150,6 +158,8 @@ export class EcosystemModel {
     return {
       generationRate,
       lushness: biome.lushness,
+      baseLushness: biome.baseLushness,
+      lushnessBoost: biome.lushnessBoost,
       resourceTotal: this.calculateTotalResourceValue(biome),
       harvestedAmount,
       regeneratedAmount,
@@ -243,6 +253,61 @@ export class EcosystemModel {
     return amountHarvested;
   }
   
+  // Calculate the percentage of blank tiles with eggs
+  calculateEggPercentage(biome) {
+    // Count blank tiles (inactive tiles without eggs)
+    const blankTiles = biome.resources.filter(r => !r.active && !r.hasEgg).length;
+    
+    // Count eggs
+    const eggsCount = biome.eggCount;
+    
+    // Calculate total possible egg placement spaces
+    const totalPossibleEggSpaces = blankTiles + eggsCount;
+    
+    // If there are no possible egg spaces, return 0
+    if (totalPossibleEggSpaces === 0) return 0;
+    
+    // Calculate percentage
+    return eggsCount / totalPossibleEggSpaces;
+  }
+  
+  // Calculate lushness boost based on egg percentage with diminishing returns
+  calculateLushnessBoost(eggPercentage) {
+    // Use linear function instead of square root
+    // At 100% eggs, boost = 2.0
+    // At 50% eggs, boost = 1.0
+    // At 25% eggs, boost = 0.5
+    return 2.0 * eggPercentage;
+  }
+  
+  // Get detailed egg statistics for a biome
+  getEggStats(biome) {
+    // Count blank tiles (inactive tiles without eggs)
+    const blankTiles = biome.resources.filter(r => !r.active && !r.hasEgg).length;
+    
+    // Count eggs
+    const eggsCount = biome.eggCount;
+    
+    // Calculate total possible egg placement spaces
+    const totalPossibleEggSpaces = blankTiles + eggsCount;
+    
+    // Calculate percentage
+    const percentage = totalPossibleEggSpaces > 0 ? eggsCount / totalPossibleEggSpaces : 0;
+    
+    // Calculate boost amount
+    const boostAmount = this.calculateLushnessBoost(percentage);
+    
+    return {
+      blankTiles,
+      eggsCount,
+      totalPossibleEggSpaces,
+      percentage,
+      boostAmount,
+      formattedPercentage: `${Math.round(percentage * 100)}%`,
+      formattedBoost: boostAmount.toFixed(2)
+    };
+  }
+  
   // Calculate total resource value in a biome
   calculateTotalResourceValue(biome) {
     return biome.resources.reduce((sum, r) => r.active ? sum + r.value : sum, 0);
@@ -265,7 +330,9 @@ export class EcosystemModel {
     const biome = {
       id,
       name,
-      lushness,
+      lushness, // Total lushness (base + boost)
+      baseLushness: lushness, // Lushness from resource state
+      lushnessBoost: 0, // Additional lushness from eggs
       resources,
       initialResourceCount: resourceCount, // Track initial count
       nonDepletedCount: resourceCount, // Track number of non-depleted resources
@@ -274,6 +341,8 @@ export class EcosystemModel {
       history: [{
         turn: 1,
         lushness: lushness,
+        baseLushness: lushness,
+        lushnessBoost: 0,
         resourceTotal: resourceCount * 10,
         harvestedAmount: 0,
         regeneratedAmount: 0,
@@ -307,7 +376,8 @@ export class EcosystemModel {
     // Resource health ratio (how close to initial state)
     const resourceRatio = currentTotal / initialTotal;
     
-    // Direct linear mapping of resource ratio to lushness (max MAX_LUSHNESS)
+    // Direct linear mapping of resource ratio to base lushness (max MAX_LUSHNESS)
+    // Note: This calculates the BASE lushness only, not including egg boost
     return resourceRatio * MAX_LUSHNESS;
   }
 }

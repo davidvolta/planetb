@@ -176,12 +176,24 @@ class Simulator {
       responsive: true,
       plugins: {
         legend: {
-          display: false // Hide the legend
+          display: false, // Hide legend as requested
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              // Get the dataset label
+              const label = context.dataset.label || '';
+              
+              // Include biome name and value
+              const value = context.parsed.y.toFixed(2);
+              return `${label}: ${value}`;
+            }
+          }
         }
       }
     };
 
-    // Lushness chart for all biomes
+    // Lushness chart for all biomes - now shows both base and total lushness
     const lushnessCtx = document.getElementById('lushness-chart').getContext('2d');
     this.charts.lushness = new Chart(lushnessCtx, {
       type: 'line',
@@ -200,7 +212,7 @@ class Simulator {
         scales: {
           y: {
             min: 0,
-            max: MAX_LUSHNESS,
+            max: MAX_LUSHNESS + 2, // Increased to accommodate boost
             title: {
               display: true,
               text: 'Lushness',
@@ -306,10 +318,17 @@ class Simulator {
       const header = document.createElement('div');
       header.className = 'biome-header';
       header.style.backgroundColor = biomeColor + '22'; // Add slight background color with transparency
+      const canProduceEggs = biome.lushness >= 7.0;
+      
       header.innerHTML = `
         <div class="biome-stats">
           <div style="font-weight: bold; color: ${biomeColor}; margin-bottom: 3px;">${biome.name}</div>
-          <div style="color: ${biome.lushness >= 6.0 ? 'green' : 'red'}" title="${biome.lushness >= 6.0 ? 'Egg production active (lushness ≥ 6.0)' : 'Egg production inactive (requires lushness ≥ 6.0)'}">Lushness: <span id="${biome.id}-lushness">${biome.lushness.toFixed(2)}</span></div>
+          <div style="color: ${canProduceEggs ? 'green' : 'red'}" title="${canProduceEggs ? 'Egg production active (lushness ≥ 7.0)' : 'Egg production inactive (requires lushness ≥ 7.0)'}">
+            Lushness: <span id="${biome.id}-lushness" style="color: ${canProduceEggs ? 'inherit' : 'red'}">${biome.baseLushness.toFixed(2)}</span>
+            <span id="${biome.id}-lushness-boost" style="color: ${canProduceEggs ? (biome.lushnessBoost > 0 ? '#8BC34A' : '#9E9E9E') : 'red'}">
+              ${biome.lushnessBoost > 0 ? ' +' + biome.lushnessBoost.toFixed(2) : ''}
+            </span>
+          </div>
           <div>Total: <span id="${biome.id}-total">${Math.round(this.ecosystem.calculateTotalResourceValue(biome))}</span>/${Math.round(biome.initialResourceCount * 10)}</div>
           <div>Harvested: <span id="${biome.id}-harvested">${Math.round(biome.totalHarvested)}</span></div>
         </div>
@@ -511,21 +530,46 @@ class Simulator {
   }
   
   updateBiomeDisplay(biome) {
+    // Check if egg production is active
+    const canProduceEggs = biome.lushness >= 7.0;
+    
     // Update stats
-    document.getElementById(`${biome.id}-lushness`).textContent = biome.lushness.toFixed(2);
+    const lushnessElement = document.getElementById(`${biome.id}-lushness`);
+    lushnessElement.textContent = biome.baseLushness.toFixed(2);
+    lushnessElement.style.color = canProduceEggs ? 'inherit' : 'red';
+    
+    // Update lushness boost indicator
+    const lushnessBoostElement = document.getElementById(`${biome.id}-lushness-boost`);
+    
+    if (lushnessBoostElement) {
+      lushnessBoostElement.textContent = biome.lushnessBoost > 0 ? 
+        ` +${biome.lushnessBoost.toFixed(2)}` : 
+        '';
+      
+      // Apply color based on combined lushness and boost amount
+      if (!canProduceEggs) {
+        lushnessBoostElement.style.color = 'red';
+      } else if (biome.lushnessBoost > 1.0) {
+        lushnessBoostElement.style.color = '#4CAF50'; // Deeper green for high boost
+      } else if (biome.lushnessBoost > 0) {
+        lushnessBoostElement.style.color = '#8BC34A'; // Light green for some boost
+      } else {
+        lushnessBoostElement.style.color = '#9E9E9E'; // Gray for no boost
+      }
+    }
+    
     document.getElementById(`${biome.id}-total`).textContent = Math.round(this.ecosystem.calculateTotalResourceValue(biome));
     document.getElementById(`${biome.id}-harvested`).textContent = Math.round(biome.totalHarvested);
     
     // Update lushness indicator color
-    const canProduceEggs = biome.lushness >= 6.0;  // Updated to 6.0 to match the ecosystem.js change
-    const lushnessElement = document.getElementById(`${biome.id}-lushness`).parentElement;
+    const lushnessParentElement = lushnessElement.parentElement;
     
     if (canProduceEggs) {
-      lushnessElement.style.color = 'green';
-      lushnessElement.title = 'Egg production active (lushness ≥ 6.0)';  // Updated to 6.0
+      lushnessParentElement.style.color = 'green';
+      lushnessParentElement.title = 'Egg production active (lushness ≥ 7.0)';
     } else {
-      lushnessElement.style.color = 'red';
-      lushnessElement.title = 'Egg production inactive (requires lushness ≥ 6.0)';  // Updated to 6.0
+      lushnessParentElement.style.color = 'red';
+      lushnessParentElement.title = 'Egg production inactive (requires lushness ≥ 7.0)';
     }
     
     // Update resource display
@@ -594,8 +638,8 @@ class Simulator {
       const lushnessHistory = biome.history.map(h => h.lushness);
       const harvestedHistory = biome.history.map(h => h.harvestedAmount);
       
-      // Add most recent data point
-      this.charts.lushness.data.datasets[index].data = lushnessHistory;
+      // Add most recent data point - only update total lushness
+      this.charts.lushness.data.datasets[index].data = lushnessHistory; // Combined lushness
       this.charts.harvested.data.datasets[index].data = harvestedHistory;
     });
     
@@ -612,8 +656,13 @@ class Simulator {
   step() {
     // Simulate one turn for each biome
     this.biomes.forEach(biome => {
-      this.ecosystem.simulateTurn(biome, biome.harvestRate);
+      const result = this.ecosystem.simulateTurn(biome, biome.harvestRate);
       this.updateBiomeDisplay(biome);
+      
+      // Log simplified info for debugging
+      console.log(`${biome.name} - Turn ${this.currentTurn}:`);
+      console.log(`  Base Lushness: ${biome.baseLushness.toFixed(2)} + ${biome.lushnessBoost.toFixed(2)} = ${biome.lushness.toFixed(2)}`);
+      console.log(`  Eggs: ${biome.eggCount}`);
     });
     
     // Update current turn
