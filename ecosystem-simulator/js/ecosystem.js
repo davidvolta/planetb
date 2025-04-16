@@ -181,21 +181,32 @@ export class EcosystemModel {
       .map((resource, index) => ({ resource, index }))
       .filter(item => item.resource.active);
     
-    // Sort resources by index (highest first) to harvest from right to left
-    activeResources.sort((a, b) => b.index - a.index);
+    // FIRST PASS: Harvest resources with value > 1 down to 1 from right to left
+    // Create a pool of resources with value > 1
+    let harvestPool = activeResources
+      .filter(item => item.resource.value > 1)
+      .sort((a, b) => b.index - a.index); // Sort right to left (highest index first)
     
-    // FIRST PASS: Harvest resources with value > 1 down to 1
-    for (let i = 0; i < activeResources.length && remainingToHarvest > 0; i++) {
-      const { resource } = activeResources[i];
+    // Calculate the maximum amount to harvest from any single resource in one selection
+    // Use 20% of the resource's available value (down to 1) or 1 unit, whichever is higher
+    const calculateMaxHarvestPerResource = (resource) => {
+      const availableToHarvest = resource.value - 1; // Can only harvest down to 1
+      return Math.max(1, Math.ceil(availableToHarvest * 0.2)); // At least 1 unit, at most 20% of available
+    };
+    
+    // Iterate through resources from right to left, taking a limited amount from each
+    for (let i = 0; i < harvestPool.length && remainingToHarvest > 0; i++) {
+      const { resource } = harvestPool[i];
       
-      // Skip resources that are already depleted (value 0)
-      if (resource.value === 0) continue;
+      // Calculate the maximum amount to harvest from this resource in this pass
+      const maxHarvestFromResource = calculateMaxHarvestPerResource(resource);
       
-      // Skip resources that are already at minimum (value 1)
-      if (resource.value <= 1) continue;
-      
-      // Calculate how much we can safely harvest from this resource down to 1
-      const harvestFromThis = Math.min(resource.value - 1, remainingToHarvest);
+      // Calculate how much we can safely harvest from this resource, limited by our max per-resource amount
+      const harvestFromThis = Math.min(
+        resource.value - 1,    // Don't go below 1
+        maxHarvestFromResource, // Limit per selection
+        remainingToHarvest     // Don't harvest more than requested
+      );
       
       resource.value -= harvestFromThis;
       amountHarvested += harvestFromThis;
@@ -212,10 +223,20 @@ export class EcosystemModel {
       
       // If all active resources are at 1 or 0, we can start depleting them
       if (!hasHigherValueResources) {
-        // Resources are already sorted by index (highest first)
-        const resourcesAtValueOne = activeResources.filter(item => item.resource.value === 1);
+        // Get resources at value 1, sorted right to left
+        const resourcesAtValueOne = activeResources
+          .filter(item => item.resource.value === 1)
+          .sort((a, b) => b.index - a.index); // Sort right to left
         
-        for (let i = 0; i < resourcesAtValueOne.length && remainingToHarvest > 0; i++) {
+        // Calculate how many resources to deplete (limited to what's available)
+        // For preservation, we'll deplete up to 25% of value-1 resources per turn
+        const maxToDeplete = Math.min(
+          Math.ceil(resourcesAtValueOne.length * 0.25), // 25% of available resources
+          remainingToHarvest // Can't deplete more than requested
+        );
+        
+        // Deplete resources from right to left
+        for (let i = 0; i < maxToDeplete && i < resourcesAtValueOne.length; i++) {
           const { resource, index } = resourcesAtValueOne[i];
           
           // Deplete this resource
@@ -229,35 +250,62 @@ export class EcosystemModel {
       }
     } 
     // Strategy: Realistic
-    // Every 3rd turn, harvest one resource with value 1 down to 0 if any exist
+    // Every 3rd turn, harvest multiple resources with value 1 down to 0
     else if (biome.harvestStrategy === "realistic" && biome.turnsCount % 3 === 0) {
-      // Find a resource with value 1, starting from the highest index
-      const resourcesAtValueOne = activeResources.filter(item => item.resource.value === 1);
+      // Find all resources with value 1, sorted right to left
+      const resourcesAtValueOne = activeResources
+        .filter(item => item.resource.value === 1)
+        .sort((a, b) => b.index - a.index); // Sort right to left
       
       if (resourcesAtValueOne.length > 0) {
-        // Deplete the first resource (which is the rightmost one due to our sorting)
-        const { resource, index } = resourcesAtValueOne[0];
-        resource.value = 0;
-        amountHarvested += 1;
+        // In realistic strategy, deplete up to 10% of value-1 resources every 3rd turn
+        const maxToDeplete = Math.min(
+          Math.ceil(resourcesAtValueOne.length * 0.1), // 10% of available resources
+          remainingToHarvest, // Can't deplete more than requested
+          3 // Hard limit of 3 resources per turn for realism
+        );
         
-        // Convert depleted resource to blank tile
-        resource.active = false;
+        // Deplete resources from right to left
+        for (let i = 0; i < maxToDeplete && i < resourcesAtValueOne.length; i++) {
+          const { resource, index } = resourcesAtValueOne[i];
+          
+          // Deplete this resource
+          resource.value = 0;
+          amountHarvested += 1;
+          remainingToHarvest -= 1;
+          
+          // Convert depleted resource to blank tile
+          resource.active = false;
+        }
       }
     }
     // Strategy: Abusive
-    // Every turn, harvest one resource with value 1 down to 0 if any exist
+    // Every turn, harvest multiple resources with value 1 down to 0
     else if (biome.harvestStrategy === "abusive") {
-      // Find a resource with value 1, starting from the highest index
-      const resourcesAtValueOne = activeResources.filter(item => item.resource.value === 1);
+      // Find all resources with value 1, sorted right to left
+      const resourcesAtValueOne = activeResources
+        .filter(item => item.resource.value === 1)
+        .sort((a, b) => b.index - a.index); // Sort right to left
       
       if (resourcesAtValueOne.length > 0) {
-        // Deplete the first resource (which is the rightmost one due to our sorting)
-        const { resource, index } = resourcesAtValueOne[0];
-        resource.value = 0;
-        amountHarvested += 1;
+        // In abusive strategy, deplete up to 15% of value-1 resources every turn
+        const maxToDeplete = Math.min(
+          Math.ceil(resourcesAtValueOne.length * 0.15), // 15% of available resources
+          remainingToHarvest // Can't deplete more than requested
+        );
         
-        // Convert depleted resource to blank tile
-        resource.active = false;
+        // Deplete resources from right to left
+        for (let i = 0; i < maxToDeplete && i < resourcesAtValueOne.length; i++) {
+          const { resource, index } = resourcesAtValueOne[i];
+          
+          // Deplete this resource
+          resource.value = 0;
+          amountHarvested += 1;
+          remainingToHarvest -= 1;
+          
+          // Convert depleted resource to blank tile
+          resource.active = false;
+        }
       }
     }
     

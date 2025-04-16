@@ -7,12 +7,8 @@
 - [ ] Now its kind of boring that eggs appear in the same place always
 - [ ] Fix Raley Font (lost during architecture update)
 
-### Phase 3: Full Lushness Ecosystem
   
-1. Refactor egg production to respond to lushness
-   - Replace hardcoded rate (1 egg/2 turns)
-
-2. Balance testing and tuning
+- [ ] Balance testing and tuning of ecosystem
    - Test recovery rates at different lushness values
    - Ensure strategic trade-offs for different playstyles
    - Validate ecological balance mechanics
