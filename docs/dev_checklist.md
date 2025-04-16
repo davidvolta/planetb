@@ -11,8 +11,6 @@
   
 1. Refactor egg production to respond to lushness
    - Replace hardcoded rate (1 egg/2 turns)
-   - Link egg production rate to current lushness value
-   - Implement "unspawned eggs increase lushness" mechanic
 
 2. Balance testing and tuning
    - Test recovery rates at different lushness values
@@ -20,16 +18,6 @@
    - Validate ecological balance mechanics
    - Fine-tune the resilience curve and impact reduction values
 
-3. Implement Lushness Boost from Eggs
-   - [ ] Modify Biome Data Structure: Add lushnessBoost and baseLushness properties
-   - [ ] Create Egg Percentage Calculation: Count ratio of eggs to blank tiles
-   - [ ] Implement Diminishing Returns Boost Function: Convert egg % to boost (0-2.0)
-   - [ ] Modify SimulateTurn: Calculate boost at end of turn for next turn
-   - [ ] Update Resource Generation Logic: Use boosted lushness values
-   - [ ] Update UI: Show base lushness and boost separately
-   - [ ] Adapt MAX_LUSHNESS Usage: Change from hard cap to reference value
-   - [ ] Testing: Verify edge cases and resource generation scaling
-   - [ ] Ensure Compatibility: Design for easy portability to core game
 
 - [ ] Style edges of owned biomes (flood fill with stroke)
 

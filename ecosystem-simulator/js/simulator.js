@@ -348,6 +348,7 @@ class Simulator {
               <option value="abusive">Abusive</option>
             </select>
           </div>
+          <button id="${biome.id}-clear-eggs" class="clear-eggs-btn">Clear Eggs</button>
         </div>
       `;
       
@@ -431,7 +432,35 @@ class Simulator {
       const percentSlider = document.getElementById(`harvest-percent-${index}`);
       const unitsSlider = document.getElementById(`harvest-units-${index}`);
       const strategySelect = document.getElementById(`harvest-strategy-${index}`);
+      const clearEggsButton = document.getElementById(`${biome.id}-clear-eggs`);
       const maxHarvestUnits = biome.resources.length;
+      
+      // Set up Clear Eggs button
+      clearEggsButton.addEventListener('click', () => {
+        // Remove all eggs from the biome
+        biome.resources.forEach(resource => {
+          resource.hasEgg = false;
+        });
+        biome.eggCount = 0;
+        
+        // Update the UI
+        this.updateBiomeDisplay(biome);
+        
+        // Recalculate lushness boost
+        const eggPercentage = this.ecosystem.calculateEggPercentage(biome);
+        biome.lushnessBoost = this.ecosystem.calculateLushnessBoost(eggPercentage);
+        biome.lushness = biome.baseLushness + biome.lushnessBoost;
+        
+        // Update the latest history entry
+        if (biome.history.length > 0) {
+          const latestEntry = biome.history[biome.history.length - 1];
+          latestEntry.eggCount = 0;
+          latestEntry.lushnessBoost = biome.lushnessBoost;
+          latestEntry.lushness = biome.lushness;
+        }
+        
+        console.log(`All eggs cleared from ${biome.name}`);
+      });
       
       // Strategy dropdown event listener
       strategySelect.addEventListener('change', (e) => {
