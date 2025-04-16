@@ -21,10 +21,19 @@
    - Replace hardcoded rate (1 egg/2 turns)
    - Link egg production rate to current lushness value
    - Implement "unspawned eggs increase lushness" mechanic
-4. Balance testing and tuning
+4. Implement Biome Resilience System
+   - Add eggs as "ecological guardians" that protect biomes
+   - Reduce harvesting impact based on egg count (3-5% reduction per egg)
+   - Implement diminishing returns curve to prevent exploitation
+   - Cap maximum reduction (50%) to ensure harvesting always has impact
+   - Add visual feedback showing current resilience level
+   - Track resilience property in biome statistics
+   - Create meaningful strategic tradeoff between hatching eggs and maintaining resilience
+5. Balance testing and tuning
    - Test recovery rates at different lushness values
    - Ensure strategic trade-offs for different playstyles
    - Validate ecological balance mechanics
+   - Fine-tune the resilience curve and impact reduction values
 
 - [ ] Style edges of owned biomes (flood fill with stroke)
 

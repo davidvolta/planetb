@@ -32,7 +32,7 @@ class Simulator {
     this.biomes = [];
     
     // Initialize 5 biomes with different resource counts
-    const resourceCounts = [30, 30, 30, 30, 30];
+    const resourceCounts = [30, 24, 20, 18, 15];
     
     for (let i = 0; i < 5; i++) {
       // Create the biome using ecosystem's initialization
@@ -283,58 +283,6 @@ class Simulator {
         }
       }
     });
-    
-    // Eggs chart
-    const eggsCtx = document.getElementById('eggs-chart').getContext('2d');
-    this.charts.eggs = new Chart(eggsCtx, {
-      type: 'line',
-      data: {
-        labels: Array(this.maxHistoryLength).fill().map((_, i) => i + 1),
-        datasets: this.biomes.map((biome, i) => ({
-          label: biome.name,
-          data: [biome.eggCount], // Start with initial egg count
-          borderColor: this.getBiomeColor(i),
-          fill: false,
-          tension: 0.1
-        }))
-      },
-      options: {
-        ...chartOptions,
-        scales: {
-          y: {
-            min: 0,
-            title: {
-              display: true,
-              text: 'Egg Count',
-              color: textColor
-            },
-            ticks: {
-              color: textColor,
-              stepSize: 1 // Eggs are whole numbers
-            },
-            grid: {
-              color: gridColor
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Turn',
-              color: textColor
-            },
-            ticks: {
-              callback: function(value) {
-                return value % 5 === 0 ? value : '';
-              },
-              color: textColor
-            },
-            grid: {
-              color: gridColor
-            }
-          }
-        }
-      }
-    });
   }
   
   renderBiomes() {
@@ -361,10 +309,9 @@ class Simulator {
       header.innerHTML = `
         <div class="biome-stats">
           <div style="font-weight: bold; color: ${biomeColor}; margin-bottom: 3px;">${biome.name}</div>
-          <div>Lushness: <span id="${biome.id}-lushness">${biome.lushness.toFixed(2)}</span></div>
+          <div style="color: ${biome.lushness >= 7.0 ? 'green' : 'red'}" title="${biome.lushness >= 7.0 ? 'Egg production active (lushness ≥ 7.0)' : 'Egg production inactive (requires lushness ≥ 7.0)'}">Lushness: <span id="${biome.id}-lushness">${biome.lushness.toFixed(2)}</span></div>
           <div>Total: <span id="${biome.id}-total">${Math.round(this.ecosystem.calculateTotalResourceValue(biome))}</span>/${Math.round(biome.initialResourceCount * 10)}</div>
           <div>Harvested: <span id="${biome.id}-harvested">${Math.round(biome.totalHarvested)}</span></div>
-          <div>Eggs: <span id="${biome.id}-eggs">${biome.eggCount}</span></div>
         </div>
         <div class="harvest-controls">
           <div class="harvest-control">
@@ -548,7 +495,18 @@ class Simulator {
     document.getElementById(`${biome.id}-lushness`).textContent = biome.lushness.toFixed(2);
     document.getElementById(`${biome.id}-total`).textContent = Math.round(this.ecosystem.calculateTotalResourceValue(biome));
     document.getElementById(`${biome.id}-harvested`).textContent = Math.round(biome.totalHarvested);
-    document.getElementById(`${biome.id}-eggs`).textContent = biome.eggCount;
+    
+    // Update lushness indicator color
+    const canProduceEggs = biome.lushness >= 7.0;
+    const lushnessElement = document.getElementById(`${biome.id}-lushness`).parentElement;
+    
+    if (canProduceEggs) {
+      lushnessElement.style.color = 'green';
+      lushnessElement.title = 'Egg production active (lushness ≥ 7.0)';
+    } else {
+      lushnessElement.style.color = 'red';
+      lushnessElement.title = 'Egg production inactive (requires lushness ≥ 7.0)';
+    }
     
     // Update resource display
     biome.resources.forEach((resource, i) => {
@@ -595,24 +553,20 @@ class Simulator {
       // Get history data for this biome
       const lushnessHistory = biome.history.map(h => h.lushness);
       const harvestedHistory = biome.history.map(h => h.harvestedAmount);
-      const eggHistory = biome.history.map(h => h.eggCount);
       
       // Add most recent data point
       this.charts.lushness.data.datasets[index].data = lushnessHistory;
       this.charts.harvested.data.datasets[index].data = harvestedHistory;
-      this.charts.eggs.data.datasets[index].data = eggHistory;
     });
     
     // Update labels for turns
     const turnLabels = Array(this.currentTurn).fill().map((_, i) => i + 1);
     this.charts.lushness.data.labels = turnLabels;
     this.charts.harvested.data.labels = turnLabels;
-    this.charts.eggs.data.labels = turnLabels;
     
     // Update the charts
     this.charts.lushness.update();
     this.charts.harvested.update();
-    this.charts.eggs.update();
   }
   
   step() {
@@ -666,9 +620,6 @@ class Simulator {
     if (this.charts.harvested) {
       this.charts.harvested.destroy();
     }
-    if (this.charts.eggs) {
-      this.charts.eggs.destroy();
-    }
     
     // Reinitialize biomes and charts
     this.initializeBiomes();
@@ -707,7 +658,7 @@ class Simulator {
     const textColor = isDarkMode ? '#e0e0e0' : '#666';
     
     // Update all charts
-    [this.charts.lushness, this.charts.harvested, this.charts.eggs].forEach(chart => {
+    [this.charts.lushness, this.charts.harvested].forEach(chart => {
       if (!chart) return;
       
       // Update grid lines

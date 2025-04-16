@@ -28,7 +28,7 @@ export class EcosystemModel {
       
       // Egg production parameters
       eggProduction: {
-        initialCount: 1,
+        initialCount: 0,
         turnInterval: 2 // Produce eggs every 2 turns
       },
       
@@ -93,6 +93,11 @@ export class EcosystemModel {
   produceEggs(biome, turn) {
     // Only produce eggs every X turns (default: every 2 turns)
     if (turn % this.params.eggProduction.turnInterval !== 0) {
+      return 0;
+    }
+    
+    // Only produce eggs if lushness is 7.0 or above
+    if (biome.lushness < 7.0) {
       return 0;
     }
     
