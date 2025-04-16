@@ -15,17 +15,6 @@ export class EcosystemModel {
         d: 0.1      // constant term
       },
       
-      // Lushness recovery parameters
-      lushnessRecovery: {
-        baseRate: 0.05,
-        scaleFactor: 0.5
-      },
-      
-      // Harvesting impact parameters
-      harvestImpact: {
-        lushnessDecrease: 0.01 // per unit harvested
-      },
-      
       // Egg production parameters
       eggProduction: {
         initialCount: 0,
@@ -52,33 +41,6 @@ export class EcosystemModel {
     );
   }
   
-  // Calculate lushness recovery amount per turn - modified to prevent recovery for fully depleted biomes
-  calculateLushnessRecovery(biome) {
-    // If fully depleted (all resources at 0), no recovery possible
-    if (biome.nonDepletedCount === 0) return 0;
-    
-    const p = this.params.lushnessRecovery;
-    const currentLushness = biome.lushness;
-    
-    // Non-depleted ratio affects recovery rate
-    const nonDepletedRatio = biome.nonDepletedCount / biome.initialResourceCount;
-    
-    // No recovery beyond initial lushness (MAX_LUSHNESS)
-    if (currentLushness >= MAX_LUSHNESS) return 0;
-    
-    // Calculate deficit from baseline (MAX_LUSHNESS)
-    const deficit = MAX_LUSHNESS - currentLushness;
-    
-    // Recovery formula creates faster recovery in mid-range (3-7)
-    // and slower as it approaches MAX_LUSHNESS
-    return nonDepletedRatio * p.baseRate * Math.pow(deficit / MAX_LUSHNESS, p.scaleFactor);
-  }
-  
-  // Calculate impact of harvesting on lushness
-  calculateHarvestingImpact(harvestedAmount) {
-    return harvestedAmount * this.params.harvestImpact.lushnessDecrease;
-  }
-  
   // Find the leftmost blank tile in a biome
   findLeftmostBlankTile(biome) {
     for (let i = 0; i < biome.resources.length; i++) {
@@ -96,8 +58,8 @@ export class EcosystemModel {
       return 0;
     }
     
-    // Only produce eggs if lushness is 7.0 or above
-    if (biome.lushness < 7.0) {
+    // Only produce eggs if lushness is 6.0 or above
+    if (biome.lushness < 6.0) {
       return 0;
     }
     
@@ -181,7 +143,6 @@ export class EcosystemModel {
       resourceTotal: this.calculateTotalResourceValue(biome),
       harvestedAmount,
       regeneratedAmount,
-      recoveryAmount: 0, // No separate recovery now
       eggsProduced: eggsProduced,
       eggCount: biome.eggCount
     });
@@ -316,7 +277,6 @@ export class EcosystemModel {
         resourceTotal: resourceCount * 10,
         harvestedAmount: 0,
         regeneratedAmount: 0,
-        recoveryAmount: 0,
         eggsProduced: 0,
         eggCount: 0
       }]

@@ -309,7 +309,7 @@ class Simulator {
       header.innerHTML = `
         <div class="biome-stats">
           <div style="font-weight: bold; color: ${biomeColor}; margin-bottom: 3px;">${biome.name}</div>
-          <div style="color: ${biome.lushness >= 7.0 ? 'green' : 'red'}" title="${biome.lushness >= 7.0 ? 'Egg production active (lushness ≥ 7.0)' : 'Egg production inactive (requires lushness ≥ 7.0)'}">Lushness: <span id="${biome.id}-lushness">${biome.lushness.toFixed(2)}</span></div>
+          <div style="color: ${biome.lushness >= 6.0 ? 'green' : 'red'}" title="${biome.lushness >= 6.0 ? 'Egg production active (lushness ≥ 6.0)' : 'Egg production inactive (requires lushness ≥ 6.0)'}">Lushness: <span id="${biome.id}-lushness">${biome.lushness.toFixed(2)}</span></div>
           <div>Total: <span id="${biome.id}-total">${Math.round(this.ecosystem.calculateTotalResourceValue(biome))}</span>/${Math.round(biome.initialResourceCount * 10)}</div>
           <div>Harvested: <span id="${biome.id}-harvested">${Math.round(biome.totalHarvested)}</span></div>
         </div>
@@ -368,6 +368,26 @@ class Simulator {
             eggIndicator.style.borderRadius = '50%';
             eggIndicator.style.backgroundColor = '#000';
             eggIndicator.style.margin = 'auto';
+            eggIndicator.style.cursor = 'pointer'; // Add pointer cursor to indicate it's clickable
+            
+            // Add click event listener to remove the egg
+            eggIndicator.addEventListener('click', (e) => {
+              e.stopPropagation(); // Prevent event bubbling
+              
+              // Remove the egg from the model
+              resource.hasEgg = false;
+              biome.eggCount -= 1;
+              
+              // Clear the egg indicator from the UI
+              resourceElement.innerHTML = '';
+              
+              // Update the latest history entry
+              if (biome.history.length > 0) {
+                biome.history[biome.history.length - 1].eggCount = biome.eggCount;
+              }
+              
+              console.log(`Egg removed from ${biome.name}, tile ${i}. Remaining eggs: ${biome.eggCount}`);
+            });
             
             resourceElement.appendChild(eggIndicator);
           }
@@ -497,15 +517,15 @@ class Simulator {
     document.getElementById(`${biome.id}-harvested`).textContent = Math.round(biome.totalHarvested);
     
     // Update lushness indicator color
-    const canProduceEggs = biome.lushness >= 7.0;
+    const canProduceEggs = biome.lushness >= 6.0;  // Updated to 6.0 to match the ecosystem.js change
     const lushnessElement = document.getElementById(`${biome.id}-lushness`).parentElement;
     
     if (canProduceEggs) {
       lushnessElement.style.color = 'green';
-      lushnessElement.title = 'Egg production active (lushness ≥ 7.0)';
+      lushnessElement.title = 'Egg production active (lushness ≥ 6.0)';  // Updated to 6.0
     } else {
       lushnessElement.style.color = 'red';
-      lushnessElement.title = 'Egg production inactive (requires lushness ≥ 7.0)';
+      lushnessElement.title = 'Egg production inactive (requires lushness ≥ 6.0)';  // Updated to 6.0
     }
     
     // Update resource display
@@ -537,6 +557,26 @@ class Simulator {
           eggIndicator.style.borderRadius = '50%';
           eggIndicator.style.backgroundColor = '#000';
           eggIndicator.style.margin = 'auto';
+          eggIndicator.style.cursor = 'pointer'; // Add pointer cursor to indicate it's clickable
+          
+          // Add click event listener to remove the egg
+          eggIndicator.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            
+            // Remove the egg from the model
+            resource.hasEgg = false;
+            biome.eggCount -= 1;
+            
+            // Clear the egg indicator from the UI
+            resourceElement.innerHTML = '';
+            
+            // Update the latest history entry
+            if (biome.history.length > 0) {
+              biome.history[biome.history.length - 1].eggCount = biome.eggCount;
+            }
+            
+            console.log(`Egg removed from ${biome.name}, tile ${i}. Remaining eggs: ${biome.eggCount}`);
+          });
           
           resourceElement.appendChild(eggIndicator);
         } else {
