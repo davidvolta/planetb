@@ -1,4 +1,8 @@
 // js/ecosystem.js
+
+// Constants
+export const MAX_LUSHNESS = 8.0;
+
 export class EcosystemModel {
   constructor(params = {}) {
     // Default parameters
@@ -30,8 +34,8 @@ export class EcosystemModel {
   calculateResourceGenerationRate(lushness) {
     const p = this.params.resourceGeneration;
     
-    // Cap lushness at 8.0 for consistent calculations
-    const cappedLushness = Math.min(lushness, 8.0);
+    // Cap lushness at MAX_LUSHNESS for consistent calculations
+    const cappedLushness = Math.min(lushness, MAX_LUSHNESS);
     
     // Remove the cap on generation rate to allow faster regeneration at high lushness
     return Math.max(0, 
@@ -53,15 +57,15 @@ export class EcosystemModel {
     // Non-depleted ratio affects recovery rate
     const nonDepletedRatio = biome.nonDepletedCount / biome.initialResourceCount;
     
-    // No recovery beyond initial lushness (8.0)
-    if (currentLushness >= 8.0) return 0;
+    // No recovery beyond initial lushness (MAX_LUSHNESS)
+    if (currentLushness >= MAX_LUSHNESS) return 0;
     
-    // Calculate deficit from baseline (8.0)
-    const deficit = 8.0 - currentLushness;
+    // Calculate deficit from baseline (MAX_LUSHNESS)
+    const deficit = MAX_LUSHNESS - currentLushness;
     
     // Recovery formula creates faster recovery in mid-range (3-7)
-    // and slower as it approaches 8.0
-    return nonDepletedRatio * p.baseRate * Math.pow(deficit / 8.0, p.scaleFactor);
+    // and slower as it approaches MAX_LUSHNESS
+    return nonDepletedRatio * p.baseRate * Math.pow(deficit / MAX_LUSHNESS, p.scaleFactor);
   }
   
   // Calculate impact of harvesting on lushness
@@ -75,22 +79,43 @@ export class EcosystemModel {
     const generationRate = this.calculateResourceGenerationRate(biome.lushness);
     let regeneratedAmount = 0;
     
-    // For each resource in the biome
-    biome.resources.forEach(resource => {
-      // Skip inactive resources
-      if (!resource.active) return;
+    const eligibleResources = biome.resources.filter(resource => 
+      resource.active && resource.value > 0 && resource.value < 10
+    );
+    
+    if (eligibleResources.length > 0) {
+      // Calculate total expected regeneration based on original formula
+      const totalExpectedRegeneration = eligibleResources.reduce((sum, resource) => {
+        return sum + (generationRate * (1 - resource.value / 10));
+      }, 0);
       
-      // Skip fully regenerated resources
-      if (resource.value >= 10) return;
+      // Assign random weights to each resource
+      const resourcesWithWeights = eligibleResources.map(resource => {
+        // Random weight between 0.5 and 2.5 (significantly varied)
+        const randomWeight = 0.5 + (Math.random() * 2.0);
+        return { resource, randomWeight };
+      });
       
-      // Skip depleted resources - they never regenerate
-      if (resource.value === 0) return;
+      // Calculate total random weights
+      const totalRandomWeight = resourcesWithWeights.reduce((sum, item) => 
+        sum + item.randomWeight, 0
+      );
       
-      // Regenerate based on lushness and current value
-      const regenerationAmount = generationRate * (1 - resource.value / 10);
-      resource.value = Math.min(10, resource.value + regenerationAmount);
-      regeneratedAmount += regenerationAmount;
-    });
+      // Distribute total regeneration based on random weights
+      resourcesWithWeights.forEach(item => {
+        const { resource, randomWeight } = item;
+        
+        // Proportion of total regeneration for this resource
+        const regenerationProportion = randomWeight / totalRandomWeight;
+        
+        // Allocate regeneration amount proportionally
+        const regenerationAmount = totalExpectedRegeneration * regenerationProportion;
+        
+        // Apply regeneration
+        resource.value = Math.min(10, resource.value + regenerationAmount);
+        regeneratedAmount += regenerationAmount;
+      });
+    }
     
     // Apply harvesting based on harvestRate (units per turn)
     let harvestedAmount = 0;
@@ -102,9 +127,6 @@ export class EcosystemModel {
     // Recalculate lushness based on new resource state
     // This reflects both harvesting impact and regeneration benefits
     biome.lushness = this.calculateBiomeLushness(biome);
-    
-    // Ensure lushness stays within bounds
-    biome.lushness = Math.max(0, Math.min(8.0, biome.lushness));
     
     // Track historical data
     biome.history.push({
@@ -216,7 +238,7 @@ export class EcosystemModel {
   }
   
   // Initialize a biome with resources
-  initializeBiome(id, name, resourceCount, lushness = 8.0) {
+  initializeBiome(id, name, resourceCount, lushness = MAX_LUSHNESS) {
     const resources = [];
     
     // Create resources - all resources start with value 10
@@ -266,7 +288,7 @@ export class EcosystemModel {
     // Resource health ratio (how close to initial state)
     const resourceRatio = currentTotal / initialTotal;
     
-    // Direct linear mapping of resource ratio to lushness (max 8.0)
-    return Math.min(8.0, resourceRatio * 8.0);
+    // Direct linear mapping of resource ratio to lushness (max MAX_LUSHNESS)
+    return resourceRatio * MAX_LUSHNESS;
   }
 }

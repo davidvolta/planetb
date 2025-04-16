@@ -1,5 +1,5 @@
 // js/simulator.js
-import { EcosystemModel } from './ecosystem.js';
+import { EcosystemModel, MAX_LUSHNESS } from './ecosystem.js';
 
 class Simulator {
   constructor() {
@@ -32,7 +32,7 @@ class Simulator {
     this.biomes = [];
     
     // Initialize 5 biomes with different resource counts
-    const resourceCounts = [30, 26, 22, 22, 15];
+    const resourceCounts = [30, 30, 30, 30, 30];
     
     for (let i = 0; i < 5; i++) {
       // Create the biome using ecosystem's initialization
@@ -40,7 +40,7 @@ class Simulator {
         `biome-${i}`, 
         `Biome ${i+1}`, 
         resourceCounts[i], 
-        8.0 // All start with lushness 8.0
+        MAX_LUSHNESS // All start with max lushness
       );
       
       // Determine how many tiles should have resources based on resourceCapability
@@ -188,7 +188,7 @@ class Simulator {
         scales: {
           y: {
             min: 0,
-            max: 8.0,
+            max: MAX_LUSHNESS,
             title: {
               display: true,
               text: 'Lushness',
@@ -221,15 +221,15 @@ class Simulator {
       }
     });
     
-    // Resources chart
-    const resourcesCtx = document.getElementById('resources-chart').getContext('2d');
-    this.charts.resources = new Chart(resourcesCtx, {
+    // Harvested resources chart
+    const harvestedCtx = document.getElementById('resources-chart').getContext('2d');
+    this.charts.harvested = new Chart(harvestedCtx, {
       type: 'line',
       data: {
         labels: Array(this.maxHistoryLength).fill().map((_, i) => i),
         datasets: this.biomes.map((biome, i) => ({
           label: biome.name,
-          data: [this.ecosystem.calculateTotalResourceValue(biome)],
+          data: [0], // Start with zero harvested
           borderColor: this.getBiomeColor(i),
           fill: false,
           tension: 0.1
@@ -239,9 +239,10 @@ class Simulator {
         ...chartOptions,
         scales: {
           y: {
+            min: 0,
             title: {
               display: true,
-              text: 'Total Resource Value',
+              text: 'Harvested Resources',
               color: textColor
             },
             ticks: {
@@ -486,22 +487,22 @@ class Simulator {
     // Update with turn and lushness data
     this.biomes.forEach((biome, index) => {
       // Get history data for this biome
-      const historyData = biome.history.map(h => h.lushness);
-      const resourceData = biome.history.map(h => h.resourceTotal);
+      const lushnessHistory = biome.history.map(h => h.lushness);
+      const harvestedHistory = biome.history.map(h => h.harvestedAmount);
       
       // Add most recent data point
-      this.charts.lushness.data.datasets[index].data = historyData;
-      this.charts.resources.data.datasets[index].data = resourceData;
+      this.charts.lushness.data.datasets[index].data = lushnessHistory;
+      this.charts.harvested.data.datasets[index].data = harvestedHistory;
     });
     
     // Update labels for turns
     const turnLabels = Array(this.currentTurn + 1).fill().map((_, i) => i);
     this.charts.lushness.data.labels = turnLabels;
-    this.charts.resources.data.labels = turnLabels;
+    this.charts.harvested.data.labels = turnLabels;
     
     // Update the charts
     this.charts.lushness.update();
-    this.charts.resources.update();
+    this.charts.harvested.update();
   }
   
   step() {
@@ -552,8 +553,8 @@ class Simulator {
     if (this.charts.lushness) {
       this.charts.lushness.destroy();
     }
-    if (this.charts.resources) {
-      this.charts.resources.destroy();
+    if (this.charts.harvested) {
+      this.charts.harvested.destroy();
     }
     
     // Reinitialize biomes and charts
@@ -593,7 +594,7 @@ class Simulator {
     const textColor = isDarkMode ? '#e0e0e0' : '#666';
     
     // Update both charts
-    [this.charts.lushness, this.charts.resources].forEach(chart => {
+    [this.charts.lushness, this.charts.harvested].forEach(chart => {
       if (!chart) return;
       
       // Update grid lines
