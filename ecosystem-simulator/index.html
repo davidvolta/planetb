@@ -174,7 +174,7 @@
       color: transparent;
     }
     
-    .clear-eggs-btn {
+    .spawn-units-btn {
       background-color: #777;
       color: white;
       border: none;
@@ -185,7 +185,7 @@
       margin-left: 5px;
     }
     
-    .clear-eggs-btn:hover {
+    .spawn-units-btn:hover {
       background-color: #666;
     }
     
@@ -356,12 +356,12 @@
       border-color: #333;
     }
     
-    body.dark-mode .clear-eggs-btn {
+    body.dark-mode .spawn-units-btn {
       background-color: #555;
       color: #e0e0e0;
     }
     
-    body.dark-mode .clear-eggs-btn:hover {
+    body.dark-mode .spawn-units-btn:hover {
       background-color: #444;
     }
   </style>
@@ -402,34 +402,32 @@
       <div class="controls">
         <!-- Resource Generation Formula -->
         <div class="param-control">
-          <label for="param-a">Cubic Term (a): <span id="param-a-value">-0.0025</span></label>
-          <input type="range" id="param-a" class="param-range" min="-0.01" max="0.01" step="0.0001" value="-0.0025">
+          <label for="param-a">Cubic Term (a): <span id="param-a-value">-0.001</span></label>
+          <input type="range" id="param-a" class="param-range" min="-0.01" max="0.01" step="0.0001" value="-0.001">
         </div>
         
         <div class="param-control">
-          <label for="param-b">Quadratic Term (b): <span id="param-b-value">0.035</span></label>
-          <input type="range" id="param-b" class="param-range" min="-0.1" max="0.1" step="0.001" value="0.035">
+          <label for="param-b">Quadratic Term (b): <span id="param-b-value">0.05</span></label>
+          <input type="range" id="param-b" class="param-range" min="-0.1" max="0.1" step="0.001" value="0.05">
         </div>
         
         <div class="param-control">
-          <label for="param-c">Linear Term (c): <span id="param-c-value">0.04</span></label>
-          <input type="range" id="param-c" class="param-range" min="-0.5" max="0.5" step="0.01" value="0.04">
+          <label for="param-c">Linear Term (c): <span id="param-c-value">0.06</span></label>
+          <input type="range" id="param-c" class="param-range" min="-0.5" max="0.5" step="0.01" value="0.06">
         </div>
         
         <div class="param-control">
-          <label for="param-d">Constant Term (d): <span id="param-d-value">0.1</span></label>
-          <input type="range" id="param-d" class="param-range" min="0" max="1" step="0.01" value="0.1">
+          <label for="param-d">Constant Term (d): <span id="param-d-value">0.12</span></label>
+          <input type="range" id="param-d" class="param-range" min="0" max="1" step="0.01" value="0.12">
         </div>
       </div>
       
       <div class="control-group">
-        <h4>Resource Settings</h4>
         <div class="control">
           <label for="resource-capability">Resource Capability: <span id="resource-capability-value">50</span>%</label>
           <input type="range" id="resource-capability" min="0" max="100" value="50">
         </div>
         <div class="note" style="font-size: 10px; margin-top: 6px;">
-          Controls what percentage of tiles can generate resources (defines lushness 8).
         </div>
       </div>
     </div>

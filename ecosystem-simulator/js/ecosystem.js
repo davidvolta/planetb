@@ -9,10 +9,10 @@ export class EcosystemModel {
     this.params = {
       // Resource generation formula parameters (polynomial)
       resourceGeneration: {
-        a: -0.0025, // cubic term
-        b: 0.035,   // quadratic term
-        c: 0.04,    // linear term
-        d: 0.1      // constant term
+        a: -0.0015,  // cubic term (reduced negative impact)
+        b: 0.043,    // quadratic term (increased to boost mid-high ranges)
+        c: 0.04,    // linear term (increased for overall boost)
+        d: 0.1     // constant term (slightly increased baseline)
       },
       
       // Egg production parameters

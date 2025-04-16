@@ -43,11 +43,13 @@ class Simulator {
         MAX_LUSHNESS // All start with max lushness
       );
       
+      // Add units created counter
+      biome.unitsCreated = 0;
+      
       // Determine how many tiles should have resources based on resourceCapability
       const resourceTileCount = Math.round(resourceCounts[i] * (this.resourceCapability / 100));
       
       // Clear any existing eggs (since we'll place them after setting active/inactive)
-      biome.eggCount = 0;
       biome.resources.forEach(resource => {
         resource.hasEgg = false;
       });
@@ -84,7 +86,26 @@ class Simulator {
   }
   
   setupControls() {
-    // Formula parameter sliders
+    // Initialize parameter controls with values from the ecosystem model
+    const params = this.ecosystem.params.resourceGeneration;
+    
+    // Update parameter a (cubic term)
+    document.getElementById('param-a-value').textContent = params.a.toFixed(4);
+    document.getElementById('param-a').value = params.a;
+    
+    // Update parameter b (quadratic term)
+    document.getElementById('param-b-value').textContent = params.b.toFixed(3);
+    document.getElementById('param-b').value = params.b;
+    
+    // Update parameter c (linear term)
+    document.getElementById('param-c-value').textContent = params.c.toFixed(2);
+    document.getElementById('param-c').value = params.c;
+    
+    // Update parameter d (constant term)
+    document.getElementById('param-d-value').textContent = params.d.toFixed(2);
+    document.getElementById('param-d').value = params.d;
+    
+    // Parameter change listeners
     document.getElementById('param-a').addEventListener('input', (e) => {
       const value = parseFloat(e.target.value);
       document.getElementById('param-a-value').textContent = value.toFixed(4);
@@ -112,7 +133,6 @@ class Simulator {
     // Sync biomes checkbox
     document.getElementById('sync-biomes').addEventListener('change', (e) => {
       this.syncBiomes = e.target.checked;
-      console.log(`Biome sync ${this.syncBiomes ? 'enabled' : 'disabled'}`);
     });
     
     // Resource capability slider
@@ -123,8 +143,6 @@ class Simulator {
       
       // Reset the simulation to apply the new resource capability
       this.reset();
-      
-      console.log(`Resource capability set to ${value}%`);
     });
     
     // Simulation controls
@@ -329,8 +347,9 @@ class Simulator {
               ${biome.lushnessBoost > 0 ? ' +' + biome.lushnessBoost.toFixed(2) : ''}
             </span>
           </div>
-          <div>Total: <span id="${biome.id}-total">${Math.round(this.ecosystem.calculateTotalResourceValue(biome))}</span>/${Math.round(biome.initialResourceCount * 10)}</div>
+          <div>Resources: <span id="${biome.id}-total">${Math.round(this.ecosystem.calculateTotalResourceValue(biome))}</span></div>
           <div>Harvested: <span id="${biome.id}-harvested">${Math.round(biome.totalHarvested)}</span></div>
+          <div>Units: <span id="${biome.id}-units">${biome.unitsCreated}</span></div>
         </div>
         <div class="harvest-controls">
           <div class="harvest-control">
@@ -348,7 +367,7 @@ class Simulator {
               <option value="abusive">Abusive</option>
             </select>
           </div>
-          <button id="${biome.id}-clear-eggs" class="clear-eggs-btn">Clear Eggs</button>
+          <button id="${biome.id}-spawn-units" class="spawn-units-btn">Spawn Units</button>
         </div>
       `;
       
@@ -394,19 +413,30 @@ class Simulator {
             eggIndicator.addEventListener('click', (e) => {
               e.stopPropagation(); // Prevent event bubbling
               
-              // Remove the egg from the model
+              // Remove the egg from the model and spawn a unit
               resource.hasEgg = false;
               biome.eggCount -= 1;
+              
+              // Track that a unit was spawned
+              let unitsSpawned = 1;
+              biome.unitsCreated += unitsSpawned;
               
               // Clear the egg indicator from the UI
               resourceElement.innerHTML = '';
               
               // Update the latest history entry
               if (biome.history.length > 0) {
-                biome.history[biome.history.length - 1].eggCount = biome.eggCount;
+                const latestEntry = biome.history[biome.history.length - 1];
+                latestEntry.eggCount = biome.eggCount;
               }
               
-              console.log(`Egg removed from ${biome.name}, tile ${i}. Remaining eggs: ${biome.eggCount}`);
+              // Recalculate lushness boost
+              const eggPercentage = this.ecosystem.calculateEggPercentage(biome);
+              biome.lushnessBoost = this.ecosystem.calculateLushnessBoost(eggPercentage);
+              biome.lushness = biome.baseLushness + biome.lushnessBoost;
+              
+              // Make sure the UI is fully updated
+              this.updateBiomeDisplay(biome);
             });
             
             resourceElement.appendChild(eggIndicator);
@@ -432,16 +462,28 @@ class Simulator {
       const percentSlider = document.getElementById(`harvest-percent-${index}`);
       const unitsSlider = document.getElementById(`harvest-units-${index}`);
       const strategySelect = document.getElementById(`harvest-strategy-${index}`);
-      const clearEggsButton = document.getElementById(`${biome.id}-clear-eggs`);
+      const spawnUnitsButton = document.getElementById(`${biome.id}-spawn-units`);
       const maxHarvestUnits = biome.resources.length;
       
-      // Set up Clear Eggs button
-      clearEggsButton.addEventListener('click', () => {
-        // Remove all eggs from the biome
+      // Set up Spawn Units button
+      spawnUnitsButton.addEventListener('click', () => {
+        // Find eggs that can be converted to units
+        let unitsSpawned = 0;
+        
+        // Clear existing eggs and count them
         biome.resources.forEach(resource => {
-          resource.hasEgg = false;
+          if (resource.hasEgg === true) {
+            // Convert egg to a spawned unit
+            resource.hasEgg = false;
+            unitsSpawned++;
+          }
         });
+        
+        // Reset egg count to match what we found
         biome.eggCount = 0;
+        
+        // Update units created counter
+        biome.unitsCreated += unitsSpawned;
         
         // Update the UI
         this.updateBiomeDisplay(biome);
@@ -458,14 +500,11 @@ class Simulator {
           latestEntry.lushnessBoost = biome.lushnessBoost;
           latestEntry.lushness = biome.lushness;
         }
-        
-        console.log(`All eggs cleared from ${biome.name}`);
       });
       
       // Strategy dropdown event listener
       strategySelect.addEventListener('change', (e) => {
         biome.harvestStrategy = e.target.value;
-        console.log(`Biome ${index} harvest strategy set to ${biome.harvestStrategy}`);
       });
       
       // Percentage slider event listener
@@ -508,8 +547,6 @@ class Simulator {
             }
           });
         }
-        
-        console.log(`Biome ${index} harvest set to ${percentValue}% (${unitValue} units)`);
       });
       
       // Units slider event listener
@@ -552,8 +589,6 @@ class Simulator {
             }
           });
         }
-        
-        console.log(`Biome ${index} harvest set to ${unitValue} units (${percentValue}%)`);
       });
     });
   }
@@ -589,6 +624,7 @@ class Simulator {
     
     document.getElementById(`${biome.id}-total`).textContent = Math.round(this.ecosystem.calculateTotalResourceValue(biome));
     document.getElementById(`${biome.id}-harvested`).textContent = Math.round(biome.totalHarvested);
+    document.getElementById(`${biome.id}-units`).textContent = biome.unitsCreated;
     
     // Update lushness indicator color
     const lushnessParentElement = lushnessElement.parentElement;
@@ -636,19 +672,30 @@ class Simulator {
           eggIndicator.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent event bubbling
             
-            // Remove the egg from the model
+            // Remove the egg from the model and spawn a unit
             resource.hasEgg = false;
             biome.eggCount -= 1;
+            
+            // Track that a unit was spawned
+            let unitsSpawned = 1;
+            biome.unitsCreated += unitsSpawned;
             
             // Clear the egg indicator from the UI
             resourceElement.innerHTML = '';
             
             // Update the latest history entry
             if (biome.history.length > 0) {
-              biome.history[biome.history.length - 1].eggCount = biome.eggCount;
+              const latestEntry = biome.history[biome.history.length - 1];
+              latestEntry.eggCount = biome.eggCount;
             }
             
-            console.log(`Egg removed from ${biome.name}, tile ${i}. Remaining eggs: ${biome.eggCount}`);
+            // Recalculate lushness boost
+            const eggPercentage = this.ecosystem.calculateEggPercentage(biome);
+            biome.lushnessBoost = this.ecosystem.calculateLushnessBoost(eggPercentage);
+            biome.lushness = biome.baseLushness + biome.lushnessBoost;
+            
+            // Make sure the UI is fully updated
+            this.updateBiomeDisplay(biome);
           });
           
           resourceElement.appendChild(eggIndicator);
@@ -687,11 +734,6 @@ class Simulator {
     this.biomes.forEach(biome => {
       const result = this.ecosystem.simulateTurn(biome, biome.harvestRate);
       this.updateBiomeDisplay(biome);
-      
-      // Log simplified info for debugging
-      console.log(`${biome.name} - Turn ${this.currentTurn}:`);
-      console.log(`  Base Lushness: ${biome.baseLushness.toFixed(2)} + ${biome.lushnessBoost.toFixed(2)} = ${biome.lushness.toFixed(2)}`);
-      console.log(`  Eggs: ${biome.eggCount}`);
     });
     
     // Update current turn
@@ -747,9 +789,8 @@ class Simulator {
     // Reset all biome turn counters
     this.biomes.forEach(biome => {
       biome.turnsCount = 0;
+      biome.unitsCreated = 0;
     });
-    
-    console.log("Simulation reset");
   }
   
   updateFormulaPreview() {
