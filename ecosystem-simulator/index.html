@@ -69,13 +69,14 @@
     .charts-container {
       display: flex;
       flex-direction: row;
+      flex-wrap: wrap;
       gap: 10px;
       padding: 10px;
     }
     
     .chart-wrapper {
-      width: 50%;
-      height: 200px;
+      width: calc(33.33% - 7px);
+      height: 150px;
     }
     
     .biomes-container {
@@ -86,8 +87,7 @@
     }
     
     .biome {
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      border-radius: 6px;
       overflow: hidden;
     }
     
@@ -276,8 +276,8 @@
     }
     
     body.dark-mode .biome-header {
-      background-color: #2a2a2a;
-      border-color: #444;
+      background-color: transparent;
+      border-color: transparent;
     }
     
     body.dark-mode .habitat {
@@ -332,7 +332,7 @@
       <div class="controls">
         <div class="section-header">
           <h2>Simulation</h2>
-          <div>Turn: <span id="current-turn">0</span></div>
+          <div>Turn: <span id="current-turn">1</span></div>
         </div>
         <div class="btn-group">
           <button id="btn-step">Step</button>
@@ -397,6 +397,9 @@
         </div>
         <div class="chart-wrapper">
           <canvas id="resources-chart" aria-label="Harvested Resources Chart" role="img"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="eggs-chart" aria-label="Eggs Chart" role="img"></canvas>
         </div>
       </div>
       

@@ -26,6 +26,12 @@ export class EcosystemModel {
         lushnessDecrease: 0.01 // per unit harvested
       },
       
+      // Egg production parameters
+      eggProduction: {
+        initialCount: 1,
+        turnInterval: 2 // Produce eggs every 2 turns
+      },
+      
       ...params
     };
   }
@@ -71,6 +77,38 @@ export class EcosystemModel {
   // Calculate impact of harvesting on lushness
   calculateHarvestingImpact(harvestedAmount) {
     return harvestedAmount * this.params.harvestImpact.lushnessDecrease;
+  }
+  
+  // Find the leftmost blank tile in a biome
+  findLeftmostBlankTile(biome) {
+    for (let i = 0; i < biome.resources.length; i++) {
+      if (!biome.resources[i].active && !biome.resources[i].hasEgg) {
+        return i;
+      }
+    }
+    return -1; // No blank tiles available
+  }
+  
+  // Produce eggs for a biome
+  produceEggs(biome, turn) {
+    // Only produce eggs every X turns (default: every 2 turns)
+    if (turn % this.params.eggProduction.turnInterval !== 0) {
+      return 0;
+    }
+    
+    // Find the leftmost blank tile
+    const tileIndex = this.findLeftmostBlankTile(biome);
+    
+    // If no blank tile is available, don't produce an egg
+    if (tileIndex === -1) {
+      return 0;
+    }
+    
+    // Place an egg on this tile
+    biome.resources[tileIndex].hasEgg = true;
+    biome.eggCount += 1;
+    
+    return 1; // Return the number of eggs produced
   }
   
   // Simulate a single turn for a biome with controlled harvest rate
@@ -128,6 +166,9 @@ export class EcosystemModel {
     // This reflects both harvesting impact and regeneration benefits
     biome.lushness = this.calculateBiomeLushness(biome);
     
+    // Produce eggs based on turn number
+    const eggsProduced = this.produceEggs(biome, biome.history.length);
+    
     // Track historical data
     biome.history.push({
       turn: biome.history.length,
@@ -135,7 +176,9 @@ export class EcosystemModel {
       resourceTotal: this.calculateTotalResourceValue(biome),
       harvestedAmount,
       regeneratedAmount,
-      recoveryAmount: 0 // No separate recovery now
+      recoveryAmount: 0, // No separate recovery now
+      eggsProduced: eggsProduced,
+      eggCount: biome.eggCount
     });
     
     return {
@@ -143,7 +186,9 @@ export class EcosystemModel {
       lushness: biome.lushness,
       resourceTotal: this.calculateTotalResourceValue(biome),
       harvestedAmount,
-      regeneratedAmount
+      regeneratedAmount,
+      eggsProduced,
+      eggCount: biome.eggCount
     };
   }
   
@@ -246,11 +291,12 @@ export class EcosystemModel {
       resources.push({
         value: 10, // Start all resources at full value
         initialValue: 10, // Track initial value for each resource
-        active: true // All resources are active by default
+        active: true, // All resources are active by default
+        hasEgg: false // Track if this tile has an egg
       });
     }
     
-    return {
+    const biome = {
       id,
       name,
       lushness,
@@ -258,15 +304,23 @@ export class EcosystemModel {
       initialResourceCount: resourceCount, // Track initial count
       nonDepletedCount: resourceCount, // Track number of non-depleted resources
       totalHarvested: 0,
+      eggCount: 0, // Track total number of eggs
       history: [{
-        turn: 0,
+        turn: 1,
         lushness: lushness,
         resourceTotal: resourceCount * 10,
         harvestedAmount: 0,
         regeneratedAmount: 0,
-        recoveryAmount: 0
+        recoveryAmount: 0,
+        eggsProduced: 0,
+        eggCount: 0
       }]
     };
+    
+    // We no longer place eggs here - this is now handled in the simulator
+    // after resource activity has been properly set up
+    
+    return biome;
   }
   
   // Calculate lushness based on resource state compared to initial state

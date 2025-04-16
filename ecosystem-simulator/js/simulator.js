@@ -7,7 +7,7 @@ class Simulator {
     this.biomes = [];
     this.running = false;
     this.speed = 5;
-    this.currentTurn = 0;
+    this.currentTurn = 1;
     this.maxHistoryLength = 100; // For charts
     this.syncBiomes = false; // Track whether biomes should be synced
     this.resourceCapability = 50; // Percentage of tiles capable of resource generation
@@ -46,6 +46,12 @@ class Simulator {
       // Determine how many tiles should have resources based on resourceCapability
       const resourceTileCount = Math.round(resourceCounts[i] * (this.resourceCapability / 100));
       
+      // Clear any existing eggs (since we'll place them after setting active/inactive)
+      biome.eggCount = 0;
+      biome.resources.forEach(resource => {
+        resource.hasEgg = false;
+      });
+      
       // Arrange resources in order: active resources first (after habitat), then blank tiles
       for (let j = 0; j < resourceCounts[i]; j++) {
         if (j < resourceTileCount) {
@@ -59,8 +65,19 @@ class Simulator {
         }
       }
       
-      // Update the history with the correct initial total
+      // Now place initial egg(s) on blank tiles
+      const initialEggCount = this.ecosystem.params.eggProduction.initialCount;
+      for (let j = 0; j < initialEggCount; j++) {
+        const tileIndex = this.ecosystem.findLeftmostBlankTile(biome);
+        if (tileIndex !== -1) {
+          biome.resources[tileIndex].hasEgg = true;
+          biome.eggCount += 1;
+        }
+      }
+      
+      // Update the history with the correct initial values
       biome.history[0].resourceTotal = this.ecosystem.calculateTotalResourceValue(biome);
+      biome.history[0].eggCount = biome.eggCount;
       
       this.biomes.push(biome);
     }
@@ -159,12 +176,7 @@ class Simulator {
       responsive: true,
       plugins: {
         legend: {
-          position: 'top',
-          labels: {
-            boxWidth: 10, // Smaller legend boxes
-            padding: 6,   // Less padding between items
-            color: textColor
-          }
+          display: false // Hide the legend
         }
       }
     };
@@ -174,7 +186,7 @@ class Simulator {
     this.charts.lushness = new Chart(lushnessCtx, {
       type: 'line',
       data: {
-        labels: Array(this.maxHistoryLength).fill().map((_, i) => i),
+        labels: Array(this.maxHistoryLength).fill().map((_, i) => i + 1),
         datasets: this.biomes.map((biome, i) => ({
           label: biome.name,
           data: [biome.lushness],
@@ -226,7 +238,7 @@ class Simulator {
     this.charts.harvested = new Chart(harvestedCtx, {
       type: 'line',
       data: {
-        labels: Array(this.maxHistoryLength).fill().map((_, i) => i),
+        labels: Array(this.maxHistoryLength).fill().map((_, i) => i + 1),
         datasets: this.biomes.map((biome, i) => ({
           label: biome.name,
           data: [0], // Start with zero harvested
@@ -271,6 +283,58 @@ class Simulator {
         }
       }
     });
+    
+    // Eggs chart
+    const eggsCtx = document.getElementById('eggs-chart').getContext('2d');
+    this.charts.eggs = new Chart(eggsCtx, {
+      type: 'line',
+      data: {
+        labels: Array(this.maxHistoryLength).fill().map((_, i) => i + 1),
+        datasets: this.biomes.map((biome, i) => ({
+          label: biome.name,
+          data: [biome.eggCount], // Start with initial egg count
+          borderColor: this.getBiomeColor(i),
+          fill: false,
+          tension: 0.1
+        }))
+      },
+      options: {
+        ...chartOptions,
+        scales: {
+          y: {
+            min: 0,
+            title: {
+              display: true,
+              text: 'Egg Count',
+              color: textColor
+            },
+            ticks: {
+              color: textColor,
+              stepSize: 1 // Eggs are whole numbers
+            },
+            grid: {
+              color: gridColor
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Turn',
+              color: textColor
+            },
+            ticks: {
+              callback: function(value) {
+                return value % 5 === 0 ? value : '';
+              },
+              color: textColor
+            },
+            grid: {
+              color: gridColor
+            }
+          }
+        }
+      }
+    });
   }
   
   renderBiomes() {
@@ -282,17 +346,25 @@ class Simulator {
       biomeElement.className = 'biome';
       biomeElement.id = biome.id;
       
+      // Add border with biome color
+      const biomeColor = this.getBiomeColor(index);
+      biomeElement.style.border = `2px solid ${biomeColor}`;
+      biomeElement.style.borderRadius = '6px';
+      
       // Calculate max harvest units for this biome
       const maxHarvestUnits = biome.resources.length;
       
       // Biome header
       const header = document.createElement('div');
       header.className = 'biome-header';
+      header.style.backgroundColor = biomeColor + '22'; // Add slight background color with transparency
       header.innerHTML = `
         <div class="biome-stats">
+          <div style="font-weight: bold; color: ${biomeColor}; margin-bottom: 3px;">${biome.name}</div>
           <div>Lushness: <span id="${biome.id}-lushness">${biome.lushness.toFixed(2)}</span></div>
           <div>Total: <span id="${biome.id}-total">${Math.round(this.ecosystem.calculateTotalResourceValue(biome))}</span>/${Math.round(biome.initialResourceCount * 10)}</div>
           <div>Harvested: <span id="${biome.id}-harvested">${Math.round(biome.totalHarvested)}</span></div>
+          <div>Eggs: <span id="${biome.id}-eggs">${biome.eggCount}</span></div>
         </div>
         <div class="harvest-controls">
           <div class="harvest-control">
@@ -338,7 +410,20 @@ class Simulator {
         } else {
           // Inactive/blank resource tile
           resourceElement.className = 'resource inactive';
-          // No content for blank tiles
+          
+          // If the resource has an egg, add a black circle
+          if (resource.hasEgg) {
+            // Create an egg indicator (black circle)
+            const eggIndicator = document.createElement('div');
+            eggIndicator.className = 'egg-indicator';
+            eggIndicator.style.width = '10px';
+            eggIndicator.style.height = '10px';
+            eggIndicator.style.borderRadius = '50%';
+            eggIndicator.style.backgroundColor = '#000';
+            eggIndicator.style.margin = 'auto';
+            
+            resourceElement.appendChild(eggIndicator);
+          }
         }
         
         resourceGrid.appendChild(resourceElement);
@@ -463,6 +548,7 @@ class Simulator {
     document.getElementById(`${biome.id}-lushness`).textContent = biome.lushness.toFixed(2);
     document.getElementById(`${biome.id}-total`).textContent = Math.round(this.ecosystem.calculateTotalResourceValue(biome));
     document.getElementById(`${biome.id}-harvested`).textContent = Math.round(biome.totalHarvested);
+    document.getElementById(`${biome.id}-eggs`).textContent = biome.eggCount;
     
     // Update resource display
     biome.resources.forEach((resource, i) => {
@@ -479,6 +565,26 @@ class Simulator {
         resourceElement.className = 'resource inactive';
         resourceElement.style.backgroundColor = '';
         resourceElement.textContent = '';
+        
+        // Check if this tile has an egg
+        if (resource.hasEgg) {
+          // Clear existing egg indicator if any
+          resourceElement.innerHTML = '';
+          
+          // Create an egg indicator (black circle)
+          const eggIndicator = document.createElement('div');
+          eggIndicator.className = 'egg-indicator';
+          eggIndicator.style.width = '10px';
+          eggIndicator.style.height = '10px';
+          eggIndicator.style.borderRadius = '50%';
+          eggIndicator.style.backgroundColor = '#000';
+          eggIndicator.style.margin = 'auto';
+          
+          resourceElement.appendChild(eggIndicator);
+        } else {
+          // Clear any existing content
+          resourceElement.innerHTML = '';
+        }
       }
     });
   }
@@ -489,20 +595,24 @@ class Simulator {
       // Get history data for this biome
       const lushnessHistory = biome.history.map(h => h.lushness);
       const harvestedHistory = biome.history.map(h => h.harvestedAmount);
+      const eggHistory = biome.history.map(h => h.eggCount);
       
       // Add most recent data point
       this.charts.lushness.data.datasets[index].data = lushnessHistory;
       this.charts.harvested.data.datasets[index].data = harvestedHistory;
+      this.charts.eggs.data.datasets[index].data = eggHistory;
     });
     
     // Update labels for turns
-    const turnLabels = Array(this.currentTurn + 1).fill().map((_, i) => i);
+    const turnLabels = Array(this.currentTurn).fill().map((_, i) => i + 1);
     this.charts.lushness.data.labels = turnLabels;
     this.charts.harvested.data.labels = turnLabels;
+    this.charts.eggs.data.labels = turnLabels;
     
     // Update the charts
     this.charts.lushness.update();
     this.charts.harvested.update();
+    this.charts.eggs.update();
   }
   
   step() {
@@ -545,8 +655,8 @@ class Simulator {
       this.togglePlay();
     }
     
-    // Reset turn counter
-    this.currentTurn = 0;
+    // Reset turn counter to 1 (not 0)
+    this.currentTurn = 1;
     document.getElementById('current-turn').textContent = this.currentTurn;
     
     // Clean up old charts
@@ -555,6 +665,9 @@ class Simulator {
     }
     if (this.charts.harvested) {
       this.charts.harvested.destroy();
+    }
+    if (this.charts.eggs) {
+      this.charts.eggs.destroy();
     }
     
     // Reinitialize biomes and charts
@@ -593,8 +706,8 @@ class Simulator {
     const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
     const textColor = isDarkMode ? '#e0e0e0' : '#666';
     
-    // Update both charts
-    [this.charts.lushness, this.charts.harvested].forEach(chart => {
+    // Update all charts
+    [this.charts.lushness, this.charts.harvested, this.charts.eggs].forEach(chart => {
       if (!chart) return;
       
       // Update grid lines
@@ -604,7 +717,7 @@ class Simulator {
       // Update text color
       chart.options.scales.x.ticks.color = textColor;
       chart.options.scales.y.ticks.color = textColor;
-      chart.options.plugins.legend.labels.color = textColor;
+      // Legend is now hidden, so no need to update its color
       chart.options.scales.x.title.color = textColor;
       chart.options.scales.y.title.color = textColor;
       
