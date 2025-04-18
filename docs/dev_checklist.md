@@ -103,7 +103,7 @@
 
 #### Phase 1: Eliminate Habitat Array Dependency
 - [ ] Refactor EcosystemController.generateResources():
-  - [ ] If no positions provided, extract habitat positions directly from biomes in the store
+  - [ ] Extract habitat positions directly from biomes in the store
   - [ ] Update internal logic to use position set for checking habitat locations
 
 - [ ] Update actions.regenerateResources():
