@@ -141,8 +141,7 @@ export class InputManager {
       
       // Handle improve habitat with 'I' key
       this.scene.input.keyboard.on('keydown-I', () => {
-        // Only handle if a habitat/biome is selected and can be captured
-        const selectedHabitatId = actions.getSelectedHabitatId();
+        // Only handle if a biome is selected and can be captured
         const selectedBiomeId = actions.getSelectedBiomeId();
         
         if (selectedBiomeId && 

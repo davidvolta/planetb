@@ -180,14 +180,6 @@ export function selectHabitat(habitatId: string | null): void {
 }
 
 /**
- * Get the currently selected habitat ID
- */
-export function getSelectedHabitatId(): string | null {
-  const habitatId = useGameStore.getState().selectedHabitatId;
-  return habitatId;
-}
-
-/**
  * Checks if a biome can be captured based on unit position
  * Returns true if there's an active unit on the habitat that hasn't moved yet
  * @param biomeId The ID of the biome to check
@@ -202,9 +194,8 @@ export function canCaptureBiome(biomeId: string): boolean {
     return false;
   }
   
-  // Since biomes and habitats share IDs and are created together,
-  // we're confident that if a biome exists, its habitat must exist too
-  const habitat = state.habitats.find(h => h.id === biomeId)!;
+  // Access the habitat directly from the biome
+  const habitat = biome.habitat;
   
   // Find any active units on this habitat's position
   const unitsOnHabitat = state.animals.filter(animal => 
@@ -234,9 +225,8 @@ export function captureBiome(biomeId: string): void {
   // Get the current player ID
   const currentPlayerId = state.currentPlayerId;
   
-  // Since biomes and habitats share IDs and are created together,
-  // we're confident that if a biome exists, its habitat must exist too
-  const habitat = state.habitats.find(h => h.id === biomeId)!;
+  // Access the habitat directly from the biome
+  const habitat = biome.habitat;
   
   // Create updated biome with ownership properties
   const updatedBiome = {

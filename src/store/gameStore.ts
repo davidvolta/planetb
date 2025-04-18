@@ -217,7 +217,6 @@ export interface GameState {
   selectedUnitIsDormant: boolean; // Flag to track if the selected unit is dormant
   
   // Selection state
-  selectedHabitatId: string | null; // ID of the currently selected habitat
   selectedBiomeId: string | null; // ID of the currently selected biome
   
   // Displacement tracking (for animation and UI feedback)
@@ -282,7 +281,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectedUnitIsDormant: false,
   
   // Initialize selection state
-  selectedHabitatId: null,
   selectedBiomeId: null,
   
   // Initialize displacement event with default values
@@ -857,35 +855,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!id) {
         // Deselecting a habitat
         return { 
-          selectedHabitatId: null,
           selectedBiomeId: null
         };
       }
       
-      // First try to find the biome with this habitat ID
+      // Find the biome with this habitat ID
       const biome = Array.from(state.biomes.values()).find(biome => biome.habitat.id === id);
       
-      if (biome) {
-        // Found the biome containing this habitat
-        return {
-          selectedHabitatId: id,
-          selectedBiomeId: biome.id
-        };
-      }
-      
-      // Fallback: find the habitat by ID (for backward compatibility)
-      const habitat = state.habitats.find(h => h.id === id);
-      if (!habitat) {
-        console.warn(`[gameStore] Cannot select habitat ${id}: not found`);
-        return {
-          selectedHabitatId: null,
-          selectedBiomeId: null
-        };
-      }
-      
+      // Since biomes and habitats share IDs, we should always find a match
       return {
-        selectedHabitatId: id,
-        selectedBiomeId: habitat.id // Using habitat.id as the biome ID
+        selectedBiomeId: biome?.id || null
       };
     }),
 
@@ -986,36 +965,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     return { animals: updatedAnimals };
   }),
 }));
-
-/**
- * Checks if a potential habitat position would result in overlapping biomes with existing habitats
- * A biome zone consists of the habitat and its surrounding territory
- * Zones overlap if habitats are less than Manhattan distance 5 apart
- * 
- * @param position The potential position to check
- * @param existingHabitats Array of existing habitats to check against
- * @returns true if the position would overlap with any existing biome zone, false otherwise
- */
-export function isBiomeOverlapping(
-  position: Coordinate,
-  existingHabitats: Habitat[]
-): boolean {
-  // For each existing habitat, calculate Manhattan distance
-  for (const habitat of existingHabitats) {
-    const distance = calculateManhattanDistance(
-      position.x, position.y,
-      habitat.position.x, habitat.position.y
-    );
-    
-    // If distance is less than 5, zones will overlap
-    if (distance < 5) {
-      return true;
-    }
-  }
-  
-  // No overlaps found
-  return false;
-}
 
 // Helper function to find valid adjacent tiles for displacement
 const getValidDisplacementTiles = (
