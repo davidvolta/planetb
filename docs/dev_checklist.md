@@ -17,13 +17,7 @@
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
-## Habitat to Biome-Centric Refactoring
-
-### Phase 3: Simplify and Rename
-- [x] Rename `isHabitatZoneOverlapping` to `isBiomeOverlapping`
-
 ### Phase 4: Biome-Centric Function Updates
-- [ ] Simplify `getValidEggPlacementTiles`:
 - [ ] Streamline resource generation:
   - [ ] Focus on biome-based generation without complex habitat avoidance
   - [ ] Simplify resource-biome relationship
@@ -34,7 +28,6 @@
 - [ ] Optimize resource adjacency calculations:
   - [ ] Use biomes as the primary unit for resource adjacency
   - [ ] Simplify tile prioritization for egg placement
-
 
 
 ## Ecosystem Integration Plan

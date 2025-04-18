@@ -165,12 +165,9 @@ export class EcosystemController {
       return validTiles;
     }
     
-    // Get the biome's habitat for proximity calculations
+    // Get the biome's habitat position (only to exclude it from valid tiles)
     const habitat = useGameStore.getState().habitats.find(h => h.biomeId === biomeId);
-    if (!habitat) {
-      console.warn(`No habitat found for biome ${biomeId}`);
-      return validTiles;
-    }
+    const habitatPosition = habitat ? { x: habitat.position.x, y: habitat.position.y } : null;
     
     // Get the owner of this biome
     const biomeOwnerId = biome.ownerId;
@@ -208,14 +205,12 @@ export class EcosystemController {
     
     // Track positions with resources for prioritization
     const resourceAdjacencyMap = new Map<string, number>();
-    // Track proximity to habitat
-    const habitatProximityMap = new Map<string, boolean>();
     
     // Scan the entire board for tiles in this biome
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
-        // Skip the habitat's own position
-        if (habitat && x === habitat.position.x && y === habitat.position.y) continue;
+        // Skip the habitat's own position (important for gameplay)
+        if (habitatPosition && x === habitatPosition.x && y === habitatPosition.y) continue;
         
         const tile = board.tiles[y][x];
         
@@ -235,9 +230,6 @@ export class EcosystemController {
         if (!hasEgg) {
           // Calculate resource adjacency score (resources in owned biomes = higher score)
           let adjacencyScore = 0;
-          const isNearHabitat = habitat && 
-            Math.abs(x - habitat.position.x) <= 2 && 
-            Math.abs(y - habitat.position.y) <= 2;
           
           // Check adjacent tiles for resources
           for (let dx = -1; dx <= 1; dx++) {
@@ -267,14 +259,11 @@ export class EcosystemController {
           const posKey = `${x},${y}`;
           validTiles.push({ x, y });
           resourceAdjacencyMap.set(posKey, adjacencyScore);
-          habitatProximityMap.set(posKey, isNearHabitat || false);
         }
       }
     }
     
-    // Sort valid tiles by prioritizing:
-    // 1. Tiles closer to resources in owned biomes
-    // 2. Tiles closer to the habitat (if available)
+    // Sort valid tiles by prioritizing tiles closer to resources in owned biomes
     return validTiles.sort((a, b) => {
       const aKey = `${a.x},${a.y}`;
       const bKey = `${b.x},${b.y}`;
@@ -282,29 +271,8 @@ export class EcosystemController {
       const aAdjacency = resourceAdjacencyMap.get(aKey) || 0;
       const bAdjacency = resourceAdjacencyMap.get(bKey) || 0;
       
-      // First compare adjacency scores
-      if (aAdjacency !== bAdjacency) {
-        return bAdjacency - aAdjacency; // Higher score first
-      }
-      
-      // Then compare proximity to habitat if habitat exists
-      if (habitat) {
-        const aIsNearHabitat = habitatProximityMap.get(aKey) || false;
-        const bIsNearHabitat = habitatProximityMap.get(bKey) || false;
-        
-        if (aIsNearHabitat !== bIsNearHabitat) {
-          return aIsNearHabitat ? -1 : 1; // Near habitat first
-        }
-        
-        // If still tied, use distance from habitat as tiebreaker
-        const aDistance = Math.abs(a.x - habitat.position.x) + Math.abs(a.y - habitat.position.y);
-        const bDistance = Math.abs(b.x - habitat.position.x) + Math.abs(b.y - habitat.position.y);
-        
-        return aDistance - bDistance; // Shorter distance first
-      }
-      
-      // If no habitat, just return a random order
-      return 0;
+      // Compare adjacency scores (higher first)
+      return bAdjacency - aAdjacency;
     });
   }
 
