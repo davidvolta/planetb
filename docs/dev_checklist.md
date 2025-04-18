@@ -1,10 +1,5 @@
 # Development Checklist
 
-## Current Priorities
-- [x] Fix linter errors in EcosystemController.ts:
-  - [x] Add proper type checking for Biome properties
-  - [x] Update the biomeEggProduction function to handle the new Biome interface
-
 ## Upcoming Tasks
 - [ ] Fix bug where unit spawning at valid location shows "invalid location" message
 - [ ] Change tinting mechanism
@@ -24,13 +19,8 @@
 
 ## Habitat to Biome-Centric Refactoring
 
-### Phase 1: Core Interface Changes
-- [x] Fix linter errors:
-  - [x] Add proper type definitions in EcosystemController to recognize Biome properties
-  - [x] Update type definitions in other files where needed
-
 ### Phase 3: Simplify and Rename
-- [ ] Rename `isHabitatZoneOverlapping` to `isBiomeOverlapping`
+- [x] Rename `isHabitatZoneOverlapping` to `isBiomeOverlapping`
 
 ### Phase 4: Biome-Centric Function Updates
 - [ ] Simplify `getValidEggPlacementTiles`:
@@ -45,21 +35,7 @@
   - [ ] Use biomes as the primary unit for resource adjacency
   - [ ] Simplify tile prioritization for egg placement
 
-### Phase 5: Refactor Initialization Logic
-- [ ] Update `generateVoronoiBiomes` function:
-  - [ ] Make it the primary mechanism for territory assignment
-  - [ ] Remove the habitat-centric ID relationship (biomes should have their own IDs)
-  - [ ] Simplify biome generation to be independent of habitats
 
-- [ ] Modify habitat placement logic:
-  - [ ] Place habitats within existing biomes rather than creating biomes from habitats
-  - [ ] Update habitat-biome relationship to be parent-child (biome contains habitats)
-  - [ ] Ensure habitats are properly positioned within their parent biome
-
-### Phase 6: Update EcosystemController
-- [x] Refactor EcosystemController methods:
-  - [x] Update all utility functions to use biome-first approach
-  - [x] Add proper type checking for all methods
 
 ## Ecosystem Integration Plan
 

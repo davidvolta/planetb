@@ -475,7 +475,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             let position: { x: number, y: number } | null = null;
             
             for (const tile of shuffledTiles) {
-              if (!isHabitatZoneOverlapping(tile, habitats)) {
+              if (!isBiomeOverlapping(tile, habitats)) {
                 position = tile;
                 break;
               }
@@ -561,7 +561,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             
             // Try to find a position that doesn't overlap with existing habitat zones
             for (const tile of shuffledTiles) {
-              if (!isHabitatZoneOverlapping(tile, habitats)) {
+              if (!isBiomeOverlapping(tile, habitats)) {
                 // We found a valid position, create a habitat here
                 const newId = `habitat-${habitats.length}`;
                 
@@ -1000,15 +1000,15 @@ export const useGameStore = create<GameState>((set, get) => ({
 }));
 
 /**
- * Checks if a potential habitat position would result in overlapping zones with existing habitats
- * A habitat zone consists of the habitat itself and its 8 adjacent tiles
+ * Checks if a potential habitat position would result in overlapping biomes with existing habitats
+ * A biome zone consists of the habitat and its surrounding territory
  * Zones overlap if habitats are less than Manhattan distance 5 apart
  * 
- * @param position The potential habitat position to check
+ * @param position The potential position to check
  * @param existingHabitats Array of existing habitats to check against
- * @returns true if the position would overlap with any existing habitat zone, false otherwise
+ * @returns true if the position would overlap with any existing biome zone, false otherwise
  */
-export function isHabitatZoneOverlapping(
+export function isBiomeOverlapping(
   position: Coordinate,
   existingHabitats: Habitat[]
 ): boolean {

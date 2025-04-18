@@ -140,15 +140,15 @@ export class EcosystemController {
   }
 
   /**
-   * Gets all valid tiles for egg placement in a habitat's biome
-   * Valid tiles are in the same biome as the habitat, don't have eggs, and don't have resources
+   * Gets all valid tiles for egg placement in a biome
+   * Valid tiles are in the biome, don't have eggs, and don't have resources
    * 
-   * @param habitat The habitat to find valid egg placement tiles for
+   * @param biomeId The ID of the biome to find valid egg placement tiles for
    * @param state Simplified game state containing board and animals
    * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources in owned biomes
    */
   public static getValidEggPlacementTiles(
-    habitat: Habitat,
+    biomeId: string,
     state: ValidEggPlacementState
   ): Coordinate[] {
     const validTiles: Coordinate[] = [];
@@ -158,32 +158,30 @@ export class EcosystemController {
       return validTiles;
     }
     
-    // Get the habitat's biome ID from the tile
-    const habitatTile = board.tiles[habitat.position.y][habitat.position.x];
-    const habitatBiomeId = habitat.biomeId;
-    
-    if (!habitatBiomeId) {
-      console.warn(`Habitat at ${habitat.position.x},${habitat.position.y} has no biome ID`);
+    // Get the biome to check ownership
+    const biome = useGameStore.getState().biomes.get(biomeId);
+    if (!biome) {
+      console.warn(`Biome ${biomeId} not found`);
       return validTiles;
     }
     
-    // Get the biome to check ownership
-    const biome = useGameStore.getState().biomes.get(habitatBiomeId);
-    if (!biome) {
-      console.warn(`Biome ${habitatBiomeId} not found`);
+    // Get the biome's habitat for proximity calculations
+    const habitat = useGameStore.getState().habitats.find(h => h.biomeId === biomeId);
+    if (!habitat) {
+      console.warn(`No habitat found for biome ${biomeId}`);
       return validTiles;
     }
     
     // Get the owner of this biome
     const biomeOwnerId = biome.ownerId;
     if (biomeOwnerId === null) {
-      console.warn(`Biome ${habitatBiomeId} has no owner, cannot place eggs`);
+      console.warn(`Biome ${biomeId} has no owner, cannot place eggs`);
       return validTiles;
     }
     
     // Get all biomes owned by this player
     const playerBiomeIds = new Set<string>();
-    playerBiomeIds.add(habitatBiomeId); // Always include current biome
+    playerBiomeIds.add(biomeId); // Always include current biome
     
     // Find all biomes owned by this player directly using biome ownership
     const allBiomes = useGameStore.getState().biomes;
@@ -217,12 +215,12 @@ export class EcosystemController {
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
         // Skip the habitat's own position
-        if (x === habitat.position.x && y === habitat.position.y) continue;
+        if (habitat && x === habitat.position.x && y === habitat.position.y) continue;
         
         const tile = board.tiles[y][x];
         
         // Skip if not in the same biome
-        if (tile.biomeId !== habitatBiomeId) continue;
+        if (tile.biomeId !== biomeId) continue;
         
         // Skip if there's a resource on this tile
         if (resourcePositions.has(`${x},${y}`)) continue;
@@ -237,7 +235,9 @@ export class EcosystemController {
         if (!hasEgg) {
           // Calculate resource adjacency score (resources in owned biomes = higher score)
           let adjacencyScore = 0;
-          const isNearHabitat = Math.abs(x - habitat.position.x) <= 2 && Math.abs(y - habitat.position.y) <= 2;
+          const isNearHabitat = habitat && 
+            Math.abs(x - habitat.position.x) <= 2 && 
+            Math.abs(y - habitat.position.y) <= 2;
           
           // Check adjacent tiles for resources
           for (let dx = -1; dx <= 1; dx++) {
@@ -267,14 +267,14 @@ export class EcosystemController {
           const posKey = `${x},${y}`;
           validTiles.push({ x, y });
           resourceAdjacencyMap.set(posKey, adjacencyScore);
-          habitatProximityMap.set(posKey, isNearHabitat);
+          habitatProximityMap.set(posKey, isNearHabitat || false);
         }
       }
     }
     
     // Sort valid tiles by prioritizing:
     // 1. Tiles closer to resources in owned biomes
-    // 2. Tiles closer to the habitat
+    // 2. Tiles closer to the habitat (if available)
     return validTiles.sort((a, b) => {
       const aKey = `${a.x},${a.y}`;
       const bKey = `${b.x},${b.y}`;
@@ -287,19 +287,24 @@ export class EcosystemController {
         return bAdjacency - aAdjacency; // Higher score first
       }
       
-      // Then compare proximity to habitat
-      const aIsNearHabitat = habitatProximityMap.get(aKey) || false;
-      const bIsNearHabitat = habitatProximityMap.get(bKey) || false;
-      
-      if (aIsNearHabitat !== bIsNearHabitat) {
-        return aIsNearHabitat ? -1 : 1; // Near habitat first
+      // Then compare proximity to habitat if habitat exists
+      if (habitat) {
+        const aIsNearHabitat = habitatProximityMap.get(aKey) || false;
+        const bIsNearHabitat = habitatProximityMap.get(bKey) || false;
+        
+        if (aIsNearHabitat !== bIsNearHabitat) {
+          return aIsNearHabitat ? -1 : 1; // Near habitat first
+        }
+        
+        // If still tied, use distance from habitat as tiebreaker
+        const aDistance = Math.abs(a.x - habitat.position.x) + Math.abs(a.y - habitat.position.y);
+        const bDistance = Math.abs(b.x - habitat.position.x) + Math.abs(b.y - habitat.position.y);
+        
+        return aDistance - bDistance; // Shorter distance first
       }
       
-      // If still tied, use distance from habitat as tiebreaker
-      const aDistance = Math.abs(a.x - habitat.position.x) + Math.abs(a.y - habitat.position.y);
-      const bDistance = Math.abs(b.x - habitat.position.x) + Math.abs(b.y - habitat.position.y);
-      
-      return aDistance - bDistance; // Shorter distance first
+      // If no habitat, just return a random order
+      return 0;
     });
   }
 
@@ -350,7 +355,7 @@ export class EcosystemController {
       if (eggsToCreate <= 0) return;
 
       // Find valid tiles for egg placement
-      const validTiles = this.getValidEggPlacementTiles(habitat, {
+      const validTiles = this.getValidEggPlacementTiles(biomeId, {
         board: state.board!,
         animals: newAnimals
       });
