@@ -277,10 +277,7 @@ export class EcosystemController {
   }
 
   /**
-   * Process egg production for biomes with improved habitats.
-   * This function evaluates which biomes should create eggs based on ownership, habitat state,
-   * and other ecological factors. The function is called during the next turn
-   * and places new eggs (dormant animals) in appropriate locations.
+   * This function produces eggs based purely on biome ownership and production rate.
    * 
    * @param state Current game state
    * @returns Updates to apply to the game state (new animals and updated biomes)
@@ -293,21 +290,11 @@ export class EcosystemController {
 
     const newAnimals = [...state.animals];
     const updatedBiomes = new Map(state.biomes);
-    const updatedHabitats = [...state.habitats];
     
-    // Process each habitat-biome pair
-    updatedHabitats.forEach((habitat: Habitat) => {
-      // Get the associated biome
-      const biomeId = habitat.biomeId;
-      const biome = updatedBiomes.get(biomeId);
-      
-      if (!biome) return;
-      
-      // Skip if no production
+    // Process each biome directly
+    updatedBiomes.forEach((biome, biomeId) => {
+      // Skip if no production rate
       if (biome.productionRate <= 0) return;
-      
-      // Skip if not improved - only improved habitats with owned biomes can produce eggs
-      if (habitat.state !== HabitatState.IMPROVED) return;
       
       // Skip if biome not owned by a player
       if (biome.ownerId === null) return;
