@@ -40,8 +40,8 @@ export class EcosystemModel {
   
   // Find the leftmost blank tile in a biome
   findLeftmostBlankTile(biome) {
-    for (let i = 0; i < biome.resources.length; i++) {
-      if (!biome.resources[i].active && !biome.resources[i].hasEgg) {
+    for (let i = 0; i < biome.tiles.length; i++) {
+      if (!biome.tiles[i].active && !biome.tiles[i].hasEgg) {
         return i;
       }
     }
@@ -72,7 +72,7 @@ export class EcosystemModel {
     }
     
     // Place an egg on this tile
-    biome.resources[tileIndex].hasEgg = true;
+    biome.tiles[tileIndex].hasEgg = true;
     biome.eggCount += 1;
     
     return 1; // Return the number of eggs produced
@@ -84,40 +84,40 @@ export class EcosystemModel {
     const generationRate = this.calculateResourceGenerationRate(biome.lushness);
     let regeneratedAmount = 0;
     
-    const eligibleResources = biome.resources.filter(resource => 
-      resource.active && resource.value > 0 && resource.value < 10
+    const eligibleTiles = biome.tiles.filter(tile => 
+      tile.active && tile.value > 0 && tile.value < 10
     );
     
-    if (eligibleResources.length > 0) {
+    if (eligibleTiles.length > 0) {
       // Calculate total expected regeneration based on original formula
-      const totalExpectedRegeneration = eligibleResources.reduce((sum, resource) => {
-        return sum + (generationRate * (1 - resource.value / 10));
+      const totalExpectedRegeneration = eligibleTiles.reduce((sum, tile) => {
+        return sum + (generationRate * (1 - tile.value / 10));
       }, 0);
       
-      // Assign random weights to each resource
-      const resourcesWithWeights = eligibleResources.map(resource => {
+      // Assign random weights to each tile with resources
+      const tilesWithWeights = eligibleTiles.map(tile => {
         // Random weight between 0.5 and 2.5 (significantly varied)
         const randomWeight = 0.5 + (Math.random() * 2.0);
-        return { resource, randomWeight };
+        return { tile, randomWeight };
       });
       
       // Calculate total random weights
-      const totalRandomWeight = resourcesWithWeights.reduce((sum, item) => 
+      const totalRandomWeight = tilesWithWeights.reduce((sum, item) => 
         sum + item.randomWeight, 0
       );
       
       // Distribute total regeneration based on random weights
-      resourcesWithWeights.forEach(item => {
-        const { resource, randomWeight } = item;
+      tilesWithWeights.forEach(item => {
+        const { tile, randomWeight } = item;
         
-        // Proportion of total regeneration for this resource
+        // Proportion of total regeneration for this tile's resource
         const regenerationProportion = randomWeight / totalRandomWeight;
         
         // Allocate regeneration amount proportionally
         const regenerationAmount = totalExpectedRegeneration * regenerationProportion;
         
         // Apply regeneration
-        resource.value = Math.min(10, resource.value + regenerationAmount);
+        tile.value = Math.min(10, tile.value + regenerationAmount);
         regeneratedAmount += regenerationAmount;
       });
     }
@@ -129,7 +129,7 @@ export class EcosystemModel {
       biome.totalHarvested += harvestedAmount;
     }
     
-    // Recalculate base lushness based on new resource state
+    // Recalculate base lushness based on new tile state
     biome.baseLushness = this.calculateBiomeLushness(biome);
     
     // Calculate lushness boost from eggs for next turn
@@ -176,39 +176,39 @@ export class EcosystemModel {
     // Track biome's turn count for periodic behaviors
     biome.turnsCount++;
     
-    // Get all active resources with their indices
-    const activeResources = biome.resources
-      .map((resource, index) => ({ resource, index }))
-      .filter(item => item.resource.active);
+    // Get all active tiles with resources and their indices
+    const activeTiles = biome.tiles
+      .map((tile, index) => ({ tile, index }))
+      .filter(item => item.tile.active);
     
     // FIRST PASS: Harvest resources with value > 1 down to 1 from right to left
-    // Create a pool of resources with value > 1
-    let harvestPool = activeResources
-      .filter(item => item.resource.value > 1)
+    // Create a pool of tiles with resource value > 1
+    let harvestPool = activeTiles
+      .filter(item => item.tile.value > 1)
       .sort((a, b) => b.index - a.index); // Sort right to left (highest index first)
     
     // Calculate the maximum amount to harvest from any single resource in one selection
     // Use 20% of the resource's available value (down to 1) or 1 unit, whichever is higher
-    const calculateMaxHarvestPerResource = (resource) => {
-      const availableToHarvest = resource.value - 1; // Can only harvest down to 1
+    const calculateMaxHarvestPerResource = (tile) => {
+      const availableToHarvest = tile.value - 1; // Can only harvest down to 1
       return Math.max(1, Math.ceil(availableToHarvest * 0.2)); // At least 1 unit, at most 20% of available
     };
     
     // Iterate through resources from right to left, taking a limited amount from each
     for (let i = 0; i < harvestPool.length && remainingToHarvest > 0; i++) {
-      const { resource } = harvestPool[i];
+      const { tile } = harvestPool[i];
       
       // Calculate the maximum amount to harvest from this resource in this pass
-      const maxHarvestFromResource = calculateMaxHarvestPerResource(resource);
+      const maxHarvestFromResource = calculateMaxHarvestPerResource(tile);
       
       // Calculate how much we can safely harvest from this resource, limited by our max per-resource amount
       const harvestFromThis = Math.min(
-        resource.value - 1,    // Don't go below 1
+        tile.value - 1,    // Don't go below 1
         maxHarvestFromResource, // Limit per selection
         remainingToHarvest     // Don't harvest more than requested
       );
       
-      resource.value -= harvestFromThis;
+      tile.value -= harvestFromThis;
       amountHarvested += harvestFromThis;
       remainingToHarvest -= harvestFromThis;
     }
@@ -218,170 +218,163 @@ export class EcosystemModel {
     // Strategy: Preservation (default)
     // Only harvest resources with value 1 if all resources are at value 1 or 0
     if (biome.harvestStrategy === "preservation" && remainingToHarvest > 0) {
-      // Check if all active resources are at value 1 or 0
-      const hasHigherValueResources = activeResources.some(item => item.resource.value > 1);
+      // Check if all active tiles with resources are at value 1 or 0
+      const hasHigherValueResources = activeTiles.some(item => item.tile.value > 1);
       
       // If all active resources are at 1 or 0, we can start depleting them
       if (!hasHigherValueResources) {
-        // Get resources at value 1, sorted right to left
-        const resourcesAtValueOne = activeResources
-          .filter(item => item.resource.value === 1)
+        // Get tiles with resource value 1, sorted right to left
+        const tilesAtValueOne = activeTiles
+          .filter(item => item.tile.value === 1)
           .sort((a, b) => b.index - a.index); // Sort right to left
         
         // Calculate how many resources to deplete (limited to what's available)
         // For preservation, we'll deplete up to 25% of value-1 resources per turn
         const maxToDeplete = Math.min(
-          Math.ceil(resourcesAtValueOne.length * 0.25), // 25% of available resources
+          Math.ceil(tilesAtValueOne.length * 0.25), // 25% of available resources
           remainingToHarvest // Can't deplete more than requested
         );
         
         // Deplete resources from right to left
-        for (let i = 0; i < maxToDeplete && i < resourcesAtValueOne.length; i++) {
-          const { resource, index } = resourcesAtValueOne[i];
+        for (let i = 0; i < maxToDeplete && i < tilesAtValueOne.length; i++) {
+          const { tile, index } = tilesAtValueOne[i];
           
           // Deplete this resource
-          resource.value = 0;
+          tile.value = 0;
           amountHarvested += 1;
           remainingToHarvest -= 1;
           
           // Convert depleted resource to blank tile
-          resource.active = false;
+          tile.active = false;
         }
       }
-    } 
+    }
     // Strategy: Realistic
-    // Every 3rd turn, harvest multiple resources with value 1 down to 0
-    else if (biome.harvestStrategy === "realistic" && biome.turnsCount % 3 === 0) {
-      // Find all resources with value 1, sorted right to left
-      const resourcesAtValueOne = activeResources
-        .filter(item => item.resource.value === 1)
-        .sort((a, b) => b.index - a.index); // Sort right to left
+    else if (biome.harvestStrategy === "realistic" && remainingToHarvest > 0) {
+      // With realistic strategy, we deplete tiles with value 1 gradually
+      // but only if we've gone at least 3 turns without depleting any
       
-      if (resourcesAtValueOne.length > 0) {
-        // In realistic strategy, deplete up to 10% of value-1 resources every 3rd turn
+      // We'll use a counter to track turns since last depletion
+      
+      // Every 3 turns, we'll allow some depletion
+      if (biome.turnsCount % 3 === 0) {
+        // Get tiles with resource value 1, sorted right to left
+        const tilesAtValueOne = activeTiles
+          .filter(item => item.tile.value === 1)
+          .sort((a, b) => b.index - a.index); // Sort right to left
+        
+        // For realistic, we'll deplete up to 10% of value-1 resources per eligible turn
         const maxToDeplete = Math.min(
-          Math.ceil(resourcesAtValueOne.length * 0.1), // 10% of available resources
-          remainingToHarvest, // Can't deplete more than requested
-          3 // Hard limit of 3 resources per turn for realism
+          Math.ceil(tilesAtValueOne.length * 0.1), // 10% of available resources
+          remainingToHarvest // Can't deplete more than requested
         );
         
         // Deplete resources from right to left
-        for (let i = 0; i < maxToDeplete && i < resourcesAtValueOne.length; i++) {
-          const { resource, index } = resourcesAtValueOne[i];
+        for (let i = 0; i < maxToDeplete && i < tilesAtValueOne.length; i++) {
+          const { tile, index } = tilesAtValueOne[i];
           
           // Deplete this resource
-          resource.value = 0;
+          tile.value = 0;
           amountHarvested += 1;
           remainingToHarvest -= 1;
           
           // Convert depleted resource to blank tile
-          resource.active = false;
+          tile.active = false;
         }
       }
     }
     // Strategy: Abusive
-    // Every turn, harvest multiple resources with value 1 down to 0
-    else if (biome.harvestStrategy === "abusive") {
-      // Find all resources with value 1, sorted right to left
-      const resourcesAtValueOne = activeResources
-        .filter(item => item.resource.value === 1)
+    else if (biome.harvestStrategy === "abusive" && remainingToHarvest > 0) {
+      // Abusive strategy depletes tiles with value 1 aggressively
+      const tilesAtValueOne = activeTiles
+        .filter(item => item.tile.value === 1)
         .sort((a, b) => b.index - a.index); // Sort right to left
       
-      if (resourcesAtValueOne.length > 0) {
-        // In abusive strategy, deplete up to 15% of value-1 resources every turn
-        const maxToDeplete = Math.min(
-          Math.ceil(resourcesAtValueOne.length * 0.15), // 15% of available resources
-          remainingToHarvest // Can't deplete more than requested
-        );
+      // For abusive, we'll deplete up to 50% of value-1 resources per turn
+      const maxToDeplete = Math.min(
+        Math.ceil(tilesAtValueOne.length * 0.5), // 50% of available resources
+        remainingToHarvest // Can't deplete more than requested
+      );
+      
+      // Deplete resources from right to left
+      for (let i = 0; i < maxToDeplete && i < tilesAtValueOne.length; i++) {
+        const { tile, index } = tilesAtValueOne[i];
         
-        // Deplete resources from right to left
-        for (let i = 0; i < maxToDeplete && i < resourcesAtValueOne.length; i++) {
-          const { resource, index } = resourcesAtValueOne[i];
-          
-          // Deplete this resource
-          resource.value = 0;
-          amountHarvested += 1;
-          remainingToHarvest -= 1;
-          
-          // Convert depleted resource to blank tile
-          resource.active = false;
-        }
+        // Deplete this resource
+        tile.value = 0;
+        amountHarvested += 1;
+        remainingToHarvest -= 1;
+        
+        // Convert depleted resource to blank tile
+        tile.active = false;
       }
     }
     
     return amountHarvested;
   }
   
-  // Calculate the percentage of blank tiles with eggs
+  // Calculate the egg percentage (for lushness boost)
   calculateEggPercentage(biome) {
-    // Count blank tiles (inactive tiles without eggs)
-    const blankTiles = biome.resources.filter(r => !r.active && !r.hasEgg).length;
+    // Calculate percentage of blank tiles that have eggs
+    const blankTiles = biome.tiles.filter(tile => !tile.active);
     
-    // Count eggs
-    const eggsCount = biome.eggCount;
+    // If no blank tiles, return 0 percentage
+    if (blankTiles.length === 0) {
+      return 0;
+    }
     
-    // Calculate total possible egg placement spaces
-    const totalPossibleEggSpaces = blankTiles + eggsCount;
+    // Count eggs in blank tiles
+    const eggsCount = blankTiles.filter(tile => tile.hasEgg).length;
     
-    // If there are no possible egg spaces, return 0
-    if (totalPossibleEggSpaces === 0) return 0;
-    
-    // Calculate percentage
-    return eggsCount / totalPossibleEggSpaces;
+    // Calculate percentage (0-1)
+    return eggsCount / blankTiles.length;
   }
   
-  // Calculate lushness boost based on egg percentage with diminishing returns
+  // Calculate lushness boost based on egg percentage
   calculateLushnessBoost(eggPercentage) {
-    // Use linear function instead of square root
-    // At 100% eggs, boost = 2.0
-    // At 50% eggs, boost = 1.0
-    // At 25% eggs, boost = 0.5
-    return 2.0 * eggPercentage;
+    // Linear boost: 0-50% coverage = 0-2.0 boost
+    // Maximum boost of 2.0 at 50% or more egg coverage
+    return Math.min(2.0, eggPercentage * 4.0);
   }
   
-  // Get detailed egg statistics for a biome
+  // Get statistics about eggs in a biome
   getEggStats(biome) {
-    // Count blank tiles (inactive tiles without eggs)
-    const blankTiles = biome.resources.filter(r => !r.active && !r.hasEgg).length;
+    // Count blank tiles
+    const blankTiles = biome.tiles.filter(tile => !tile.active);
+    const blankTileCount = blankTiles.length;
     
     // Count eggs
     const eggsCount = biome.eggCount;
     
-    // Calculate total possible egg placement spaces
-    const totalPossibleEggSpaces = blankTiles + eggsCount;
+    // Calculate percentage of blank tiles that have eggs
+    const eggPercentage = blankTileCount > 0 ? eggsCount / blankTileCount : 0;
     
-    // Calculate percentage
-    const percentage = totalPossibleEggSpaces > 0 ? eggsCount / totalPossibleEggSpaces : 0;
-    
-    // Calculate boost amount
-    const boostAmount = this.calculateLushnessBoost(percentage);
+    // Calculate available blank tile
+    const availableBlankTiles = blankTiles.filter(tile => !tile.hasEgg).length;
     
     return {
-      blankTiles,
+      blankTileCount,
       eggsCount,
-      totalPossibleEggSpaces,
-      percentage,
-      boostAmount,
-      formattedPercentage: `${Math.round(percentage * 100)}%`,
-      formattedBoost: boostAmount.toFixed(2)
+      eggPercentage,
+      availableBlankTiles
     };
   }
   
   // Calculate total resource value in a biome
   calculateTotalResourceValue(biome) {
-    return biome.resources.reduce((sum, r) => r.active ? sum + r.value : sum, 0);
+    return biome.tiles.reduce((sum, tile) => tile.active ? sum + tile.value : sum, 0);
   }
   
-  // Initialize a biome with resources
-  initializeBiome(id, name, resourceCount, lushness = MAX_LUSHNESS) {
-    const resources = [];
+  // Initialize a biome with tiles
+  initializeBiome(id, name, tileCount, lushness = MAX_LUSHNESS) {
+    const tiles = [];
     
-    // Create resources - all resources start with value 10
-    for (let i = 0; i < resourceCount; i++) {
-      resources.push({
+    // Create tiles - all resources start with value 10
+    for (let i = 0; i < tileCount; i++) {
+      tiles.push({
         value: 10, // Start all resources at full value
         initialValue: 10, // Track initial value for each resource
-        active: true, // All resources are active by default
+        active: true, // All tiles have active resources by default
         hasEgg: false // Track if this tile has an egg
       });
     }
@@ -392,9 +385,9 @@ export class EcosystemModel {
       lushness, // Total lushness (base + boost)
       baseLushness: lushness, // Lushness from resource state
       lushnessBoost: 0, // Additional lushness from eggs
-      resources,
-      initialResourceCount: resourceCount, // Track initial count
-      nonDepletedCount: resourceCount, // Track number of non-depleted resources
+      tiles,
+      initialTileCount: tileCount, // Track initial count
+      nonDepletedCount: tileCount, // Track number of tiles with non-depleted resources
       totalHarvested: 0,
       eggCount: 0, // Track total number of eggs
       history: [{
@@ -402,7 +395,7 @@ export class EcosystemModel {
         lushness: lushness,
         baseLushness: lushness,
         lushnessBoost: 0,
-        resourceTotal: resourceCount * 10,
+        resourceTotal: tileCount * 10,
         harvestedAmount: 0,
         regeneratedAmount: 0,
         eggsProduced: 0,
@@ -418,19 +411,19 @@ export class EcosystemModel {
   
   // Calculate lushness based on resource state compared to initial state
   calculateBiomeLushness(biome) {
-    // Only consider active resources for lushness calculation
-    const activeResources = biome.resources.filter(r => r.active);
+    // Only consider active tiles with resources for lushness calculation
+    const activeTiles = biome.tiles.filter(tile => tile.active);
     
-    // Count non-depleted resources (only from active ones)
-    const nonDepletedResources = activeResources.filter(r => r.value > 0).length;
-    biome.nonDepletedCount = nonDepletedResources;
+    // Count tiles with non-depleted resources (only from active ones)
+    const nonDepletedTiles = activeTiles.filter(tile => tile.value > 0).length;
+    biome.nonDepletedCount = nonDepletedTiles;
     
-    // If all active resources are depleted, lushness is 0
-    if (nonDepletedResources === 0) return 0;
+    // If all active tiles are depleted, lushness is 0
+    if (nonDepletedTiles === 0) return 0;
     
     // Calculate total resource value ratio
-    const currentTotal = activeResources.reduce((sum, r) => sum + r.value, 0);
-    const initialTotal = activeResources.length * 10; // All active resources started at 10
+    const currentTotal = activeTiles.reduce((sum, tile) => sum + tile.value, 0);
+    const initialTotal = activeTiles.length * 10; // All resources started at 10
     
     // Resource health ratio (how close to initial state)
     const resourceRatio = currentTotal / initialTotal;

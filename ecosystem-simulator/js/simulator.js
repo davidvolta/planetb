@@ -50,20 +50,20 @@ class Simulator {
       const resourceTileCount = Math.round(resourceCounts[i] * (this.resourceCapability / 100));
       
       // Clear any existing eggs (since we'll place them after setting active/inactive)
-      biome.resources.forEach(resource => {
-        resource.hasEgg = false;
+      biome.tiles.forEach(tile => {
+        tile.hasEgg = false;
       });
       
-      // Arrange resources in order: active resources first (after habitat), then blank tiles
+      // Arrange tiles in order: active tiles with resources first (after habitat), then blank tiles
       for (let j = 0; j < resourceCounts[i]; j++) {
         if (j < resourceTileCount) {
           // First tiles are active with value 10
-          biome.resources[j].active = true;
-          biome.resources[j].value = 10;
+          biome.tiles[j].active = true;
+          biome.tiles[j].value = 10;
         } else {
           // Remaining tiles are inactive (blank) with value 0
-          biome.resources[j].active = false;
-          biome.resources[j].value = 0;
+          biome.tiles[j].active = false;
+          biome.tiles[j].value = 0;
         }
       }
       
@@ -72,7 +72,7 @@ class Simulator {
       for (let j = 0; j < initialEggCount; j++) {
         const tileIndex = this.ecosystem.findLeftmostBlankTile(biome);
         if (tileIndex !== -1) {
-          biome.resources[tileIndex].hasEgg = true;
+          biome.tiles[tileIndex].hasEgg = true;
           biome.eggCount += 1;
         }
       }
@@ -330,7 +330,7 @@ class Simulator {
       biomeElement.style.borderRadius = '6px';
       
       // Calculate max harvest units for this biome
-      const maxHarvestUnits = biome.resources.length;
+      const maxHarvestUnits = biome.tiles.length;
       
       // Biome header
       const header = document.createElement('div');
@@ -382,23 +382,23 @@ class Simulator {
       resourceGrid.appendChild(habitatElement);
       
       // Create resource squares
-      biome.resources.forEach((resource, i) => {
+      biome.tiles.forEach((tile, i) => {
         const resourceElement = document.createElement('div');
         resourceElement.id = `${biome.id}-resource-${i}`;
         
-        if (resource.active) {
+        if (tile.active) {
           // Active resource tile
           resourceElement.className = 'resource';
           // Set color intensity based on value
-          const intensity = resource.value / 10;
+          const intensity = tile.value / 10;
           resourceElement.style.backgroundColor = `rgba(0, 128, 0, ${intensity})`;
-          resourceElement.textContent = Math.round(resource.value);
+          resourceElement.textContent = Math.round(tile.value);
         } else {
           // Inactive/blank resource tile
           resourceElement.className = 'resource inactive';
           
-          // If the resource has an egg, add a black circle
-          if (resource.hasEgg) {
+          // If the tile has an egg, add a black circle
+          if (tile.hasEgg) {
             // Create an egg indicator (black circle)
             const eggIndicator = document.createElement('div');
             eggIndicator.className = 'egg-indicator';
@@ -414,7 +414,7 @@ class Simulator {
               e.stopPropagation(); // Prevent event bubbling
               
               // Remove the egg from the model and spawn a unit
-              resource.hasEgg = false;
+              tile.hasEgg = false;
               biome.eggCount -= 1;
               
               // Track that a unit was spawned
@@ -463,7 +463,7 @@ class Simulator {
       const unitsSlider = document.getElementById(`harvest-units-${index}`);
       const strategySelect = document.getElementById(`harvest-strategy-${index}`);
       const spawnUnitsButton = document.getElementById(`${biome.id}-spawn-units`);
-      const maxHarvestUnits = biome.resources.length;
+      const maxHarvestUnits = biome.tiles.length;
       
       // Set up Spawn Units button
       spawnUnitsButton.addEventListener('click', () => {
@@ -471,10 +471,10 @@ class Simulator {
         let unitsSpawned = 0;
         
         // Clear existing eggs and count them
-        biome.resources.forEach(resource => {
-          if (resource.hasEgg === true) {
+        biome.tiles.forEach(tile => {
+          if (tile.hasEgg === true) {
             // Convert egg to a spawned unit
-            resource.hasEgg = false;
+            tile.hasEgg = false;
             unitsSpawned++;
           }
         });
@@ -526,7 +526,7 @@ class Simulator {
           this.biomes.forEach((otherBiome, otherIndex) => {
             if (otherIndex !== index) {
               // Update the other biome's percentage and unit values
-              const otherMaxUnits = otherBiome.resources.length;
+              const otherMaxUnits = otherBiome.tiles.length;
               const otherUnitValue = Math.round((percentValue / 100) * otherMaxUnits);
               
               // Update the biome object
@@ -568,7 +568,7 @@ class Simulator {
           this.biomes.forEach((otherBiome, otherIndex) => {
             if (otherIndex !== index) {
               // Update the other biome's percentage and unit values (based on percentage)
-              const otherMaxUnits = otherBiome.resources.length;
+              const otherMaxUnits = otherBiome.tiles.length;
               const otherUnitValue = Math.round((percentValue / 100) * otherMaxUnits);
               
               // Update the biome object
@@ -638,15 +638,15 @@ class Simulator {
     }
     
     // Update resource display
-    biome.resources.forEach((resource, i) => {
+    biome.tiles.forEach((tile, i) => {
       const resourceElement = document.getElementById(`${biome.id}-resource-${i}`);
       
-      if (resource.active) {
+      if (tile.active) {
         // Active resource tile
         resourceElement.className = 'resource';
-        const intensity = resource.value / 10;
+        const intensity = tile.value / 10;
         resourceElement.style.backgroundColor = `rgba(0, 128, 0, ${intensity})`;
-        resourceElement.textContent = Math.round(resource.value);
+        resourceElement.textContent = Math.round(tile.value);
       } else {
         // Inactive/blank resource tile
         resourceElement.className = 'resource inactive';
@@ -654,7 +654,7 @@ class Simulator {
         resourceElement.textContent = '';
         
         // Check if this tile has an egg
-        if (resource.hasEgg) {
+        if (tile.hasEgg) {
           // Clear existing egg indicator if any
           resourceElement.innerHTML = '';
           
@@ -673,7 +673,7 @@ class Simulator {
             e.stopPropagation(); // Prevent event bubbling
             
             // Remove the egg from the model and spawn a unit
-            resource.hasEgg = false;
+            tile.hasEgg = false;
             biome.eggCount -= 1;
             
             // Track that a unit was spawned

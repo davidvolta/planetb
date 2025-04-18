@@ -82,6 +82,7 @@ export class HabitatRenderer extends BaseRenderer {
         .find(b => b.habitat.id === habitat.id);
         
       const isCaptured = biome?.ownerId !== null;
+      const lushness = biome?.lushness || 0;
       
       if (existing) {
         // Mark as used so we don't delete it later
@@ -90,17 +91,21 @@ export class HabitatRenderer extends BaseRenderer {
         // Update position
         existing.graphic.setPosition(worldPosition.x, worldPosition.y);
         
-        // Update state if needed based on biome ownership
-        if (existing.graphic.getData('isCaptured') !== isCaptured) {
+        // Check if state or lushness has changed
+        const currentLushness = existing.graphic.getData('lushness') || 0;
+        
+        if (existing.graphic.getData('isCaptured') !== isCaptured || Math.abs(currentLushness - lushness) >= 0.1) {
           existing.graphic.setData('isCaptured', isCaptured);
+          existing.graphic.setData('lushness', lushness);
           
           // Destroy and recreate the graphic to reflect the new state
           existing.graphic.destroy();
-          const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured);
+          const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
           habitatGraphic.setData('habitatId', habitat.id);
           habitatGraphic.setData('gridX', gridX);
           habitatGraphic.setData('gridY', gridY);
           habitatGraphic.setData('isCaptured', isCaptured);
+          habitatGraphic.setData('lushness', lushness);
           this.layerManager.addToLayer('staticObjects', habitatGraphic);
           
           // Update the reference in the map
@@ -111,11 +116,12 @@ export class HabitatRenderer extends BaseRenderer {
         }
       } else {
         // Create new habitat graphic
-        const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured);
+        const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
         habitatGraphic.setData('habitatId', habitat.id);
         habitatGraphic.setData('gridX', gridX);
         habitatGraphic.setData('gridY', gridY);
         habitatGraphic.setData('isCaptured', isCaptured);
+        habitatGraphic.setData('lushness', lushness);
         this.layerManager.addToLayer('staticObjects', habitatGraphic);
       }
     });
@@ -133,9 +139,10 @@ export class HabitatRenderer extends BaseRenderer {
    * @param x World X coordinate
    * @param y World Y coordinate
    * @param isCaptured Whether the biome is captured (has an owner)
+   * @param lushness The lushness value of the biome (0-10)
    * @returns A container with the habitat graphic
    */
-  private createHabitatGraphic(x: number, y: number, isCaptured: boolean): Phaser.GameObjects.Container {
+  private createHabitatGraphic(x: number, y: number, isCaptured: boolean, lushness: number): Phaser.GameObjects.Container {
     // Create a container for the habitat
     const container = this.scene.add.container(x, y);
     const graphics = this.scene.add.graphics();
@@ -180,6 +187,27 @@ export class HabitatRenderer extends BaseRenderer {
     
     // Add the graphics to the container
     container.add(graphics);
+    
+    // Format the lushness value to show one decimal place
+    const lushnessDisplay = lushness.toFixed(1);
+    
+    // Determine text color based on lushness threshold (green if >= 7.0, red otherwise)
+    const textColor = lushness >= 7.0 ? '#00FF00' : '#FF0000';
+    
+    // Create text to display lushness value
+    const lushnessText = this.scene.add.text(0, 0, lushnessDisplay, {
+      fontSize: '14px',
+      fontFamily: 'Arial',
+      color: textColor,
+      stroke: '#000000',
+      strokeThickness: 2
+    });
+    
+    // Center the text on the habitat
+    lushnessText.setOrigin(0.5, 0.5);
+    
+    // Add the text to the container
+    container.add(lushnessText);
     
     return container;
   }
