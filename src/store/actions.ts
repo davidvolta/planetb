@@ -24,7 +24,6 @@ interface BoardInitOptions {
   width: number;
   height: number;
   mapType?: MapGenerationType;
-  forceHabitatGeneration?: boolean;
 }
 
 /**
@@ -44,8 +43,8 @@ export function getNextTurn(): () => void {
 /**
  * Set up the game board with the specified dimensions and options
  */
-export function setupGameBoard({ width, height, mapType = MapGenerationType.ISLAND, forceHabitatGeneration = false }: BoardInitOptions): void {
-  useGameStore.getState().initializeBoard(width, height, mapType, forceHabitatGeneration);
+export function setupGameBoard({ width, height, mapType = MapGenerationType.ISLAND }: BoardInitOptions): void {
+  useGameStore.getState().initializeBoard(width, height, mapType);
 }
 
 /**

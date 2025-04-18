@@ -247,7 +247,7 @@ export interface GameState {
   resetMovementFlags: () => void; // Reset hasMoved flags for all animals
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
-  initializeBoard: (width: number, height: number, mapType?: MapGenerationType, forceHabitatGeneration?: boolean) => void;
+  initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   evolveAnimal: (id: string) => void;
   selectUnit: (id: string | null) => void;
@@ -370,52 +370,117 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { players: updatedPlayers, currentPlayerId: playerId };
     }),
 
-  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND, forceHabitatGeneration = false) =>
+  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND) =>
     set((state) => {
-      if (!state.board || (state.board.width !== width || state.board.height !== height) || forceHabitatGeneration) {
-        console.log(`Initializing board with dimensions ${width}x${height}`);
-        
-        // Get current player ID for setting up starting locations
-        const playerId = state.currentPlayerId;
-        
-        // Generate terrain data using the specified map type
-        const terrainData = generateIslandTerrain(width, height);
-        
-        // Initialize tiles array
-        const tiles: Tile[][] = [];
-        for (let y = 0; y < height; y++) {
-          const row: Tile[] = [];
-          for (let x = 0; x < width; x++) {
-            row.push({
-              coordinate: { x, y },
-              terrain: terrainData[y][x],
-              explored: false,
-              visible: false,
-              biomeId: null // Will be set after biome generation
-            });
-          }
-          tiles.push(row);
+      console.log(`Initializing board with dimensions ${width}x${height}`);
+      
+      // Get current player ID for setting up starting locations
+      const playerId = state.currentPlayerId;
+      
+      // Generate terrain data using the specified map type
+      const terrainData = generateIslandTerrain(width, height);
+      
+      // Initialize tiles array
+      const tiles: Tile[][] = [];
+      for (let y = 0; y < height; y++) {
+        const row: Tile[] = [];
+        for (let x = 0; x < width; x++) {
+          row.push({
+            coordinate: { x, y },
+            terrain: terrainData[y][x],
+            explored: false,
+            visible: false,
+            biomeId: null // Will be set after biome generation
+          });
+        }
+        tiles.push(row);
+      }
+      
+      // Create arrays to store game entities
+      let animals: Animal[] = [];
+      
+      // Create temporary array for VoronoiNodes (used for biome generation)
+      let voronoiNodes: VoronoiNode[] = [];
+      
+      // Track terrain types that have habitats to ensure variety
+      const terrainTypesWithNodes = new Set<TerrainType>();
+      
+      // First, place one node for each available terrain type
+      // Use HABITAT_TERRAIN_ORDER to prioritize specific terrain types
+      HABITAT_TERRAIN_ORDER.forEach(terrainType => {
+        // Skip if we already placed a node for this terrain type
+        if (terrainTypesWithNodes.has(terrainType)) {
+          return;
         }
         
-        // Create arrays to store game entities
-        let animals: Animal[] = [];
+        // Find all tiles of this terrain type (excluding edge tiles)
+        const tilesOfType: {x: number, y: number}[] = [];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            // Skip tiles on the edges of the board
+            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+              continue;
+            }
+            
+            if (terrainData[y][x] === terrainType) {
+              tilesOfType.push({ x, y });
+            }
+          }
+        }
         
-        // Create temporary array for VoronoiNodes (used for biome generation)
-        let voronoiNodes: VoronoiNode[] = [];
-        
-        // Track terrain types that have habitats to ensure variety
-        const terrainTypesWithNodes = new Set<TerrainType>();
-        
-        // First, place one node for each available terrain type
-        // Use HABITAT_TERRAIN_ORDER to prioritize specific terrain types
-        HABITAT_TERRAIN_ORDER.forEach(terrainType => {
-          // Skip if we already placed a node for this terrain type
-          if (terrainTypesWithNodes.has(terrainType)) {
-            return;
+        // If we found tiles of this type, try to place a node
+        if (tilesOfType.length > 0) {
+          // Shuffle the tiles to try them in random order
+          const shuffledTiles = [...tilesOfType].sort(() => Math.random() - 0.5);
+          
+          // Try to find a position that doesn't overlap with existing node zones
+          let position: { x: number, y: number } | null = null;
+          
+          for (const tile of shuffledTiles) {
+            if (!isNodeOverlapping(tile, voronoiNodes)) {
+              position = tile;
+              break;
+            }
           }
           
-          // Find all tiles of this terrain type (excluding edge tiles)
-          const tilesOfType: {x: number, y: number}[] = [];
+          // If we couldn't find a non-overlapping position, fall back to random selection
+          if (!position) {
+            console.log(`Could not find non-overlapping position for ${terrainType} node, using random placement`);
+            const randomIndex = Math.floor(Math.random() * tilesOfType.length);
+            position = tilesOfType[randomIndex];
+          }
+          
+          // Use sequential indexing for node IDs
+          const nodeId = `biome-${voronoiNodes.length}`;
+          
+          // Create the VoronoiNode
+          const newNode: VoronoiNode = {
+            id: nodeId,
+            position: position,
+          };
+          
+          voronoiNodes.push(newNode);
+          terrainTypesWithNodes.add(terrainType);
+        }
+      });
+   
+      
+      // Use HABITAT_TERRAIN_ORDER for prioritized placement
+      let placedAdditionalNodes = true;
+      let additionalNodesCount = 0;
+      let iterationCount = 0;
+      const MAX_ITERATIONS = 100; // Safety limit to prevent infinite loops
+      
+      // Continue placing nodes until we can't place any more
+      while (placedAdditionalNodes && iterationCount < MAX_ITERATIONS) {
+        placedAdditionalNodes = false;
+        iterationCount++;
+        
+        // Try each terrain type in priority order
+        for (const terrainType of HABITAT_TERRAIN_ORDER) {
+          // Collect all tiles of this terrain type that aren't already used for nodes
+          const availableTiles: {x: number, y: number}[] = [];
+          
           for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
               // Skip tiles on the edges of the board
@@ -424,284 +489,214 @@ export const useGameStore = create<GameState>((set, get) => ({
               }
               
               if (terrainData[y][x] === terrainType) {
-                tilesOfType.push({ x, y });
-              }
-            }
-          }
-          
-          // If we found tiles of this type, try to place a node
-          if (tilesOfType.length > 0) {
-            // Shuffle the tiles to try them in random order
-            const shuffledTiles = [...tilesOfType].sort(() => Math.random() - 0.5);
-            
-            // Try to find a position that doesn't overlap with existing node zones
-            let position: { x: number, y: number } | null = null;
-            
-            for (const tile of shuffledTiles) {
-              if (!isNodeOverlapping(tile, voronoiNodes)) {
-                position = tile;
-                break;
-              }
-            }
-            
-            // If we couldn't find a non-overlapping position, fall back to random selection
-            if (!position) {
-              console.log(`Could not find non-overlapping position for ${terrainType} node, using random placement`);
-              const randomIndex = Math.floor(Math.random() * tilesOfType.length);
-              position = tilesOfType[randomIndex];
-            }
-            
-            // Use sequential indexing for node IDs
-            const nodeId = `biome-${voronoiNodes.length}`;
-            
-            // Create the VoronoiNode
-            const newNode: VoronoiNode = {
-              id: nodeId,
-              position: position,
-            };
-            
-            voronoiNodes.push(newNode);
-            terrainTypesWithNodes.add(terrainType);
-          }
-        });
-     
-        
-        // Use HABITAT_TERRAIN_ORDER for prioritized placement
-        let placedAdditionalNodes = true;
-        let additionalNodesCount = 0;
-        let iterationCount = 0;
-        const MAX_ITERATIONS = 100; // Safety limit to prevent infinite loops
-        
-        // Continue placing nodes until we can't place any more
-        while (placedAdditionalNodes && iterationCount < MAX_ITERATIONS) {
-          placedAdditionalNodes = false;
-          iterationCount++;
-          
-          // Try each terrain type in priority order
-          for (const terrainType of HABITAT_TERRAIN_ORDER) {
-            // Collect all tiles of this terrain type that aren't already used for nodes
-            const availableTiles: {x: number, y: number}[] = [];
-            
-            for (let y = 0; y < height; y++) {
-              for (let x = 0; x < width; x++) {
-                // Skip tiles on the edges of the board
-                if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
-                  continue;
-                }
-                
-                if (terrainData[y][x] === terrainType) {
-                  // Check if this position already has a node
-                  const alreadyHasNode = voronoiNodes.some(n => 
-                    n.position.x === x && n.position.y === y
-                  );
-                  
-                  if (!alreadyHasNode) {
-                    availableTiles.push({ x, y });
-                  }
-                }
-              }
-            }
-            
-            // Shuffle the available tiles
-            const shuffledTiles = [...availableTiles].sort(() => Math.random() - 0.5);
-            
-            // Try to find a position that doesn't overlap with existing node zones
-            for (const tile of shuffledTiles) {
-              if (!isNodeOverlapping(tile, voronoiNodes)) {
-                // We found a valid position, create a node here
-                const nodeId = `biome-${voronoiNodes.length}`;
-                
-                const newNode: VoronoiNode = {
-                  id: nodeId,
-                  position: tile,
-                };
-                
-                voronoiNodes.push(newNode);
-                additionalNodesCount++;
-                placedAdditionalNodes = true;
-                
-                // Place one additional node per terrain type per iteration
-                // to ensure even distribution across terrain types
-                break;
-              }
-            }
-          }
-        }
-        
-        console.log(`Placed ${additionalNodesCount} additional nodes`);
-        console.log(`Total nodes: ${voronoiNodes.length}`);
-        console.log(`Placement completed in ${iterationCount} iterations`);
-        
-        // Log node distribution by terrain type
-        const nodesByTerrain = new Map<TerrainType, number>();
-        for (const terrain of Object.values(TerrainType)) {
-          nodesByTerrain.set(terrain, 0);
-        }
-        
-        voronoiNodes.forEach(node => {
-          const position = node.position;
-          const terrain = terrainData[position.y][position.x];
-          const count = nodesByTerrain.get(terrain) || 0;
-          nodesByTerrain.set(terrain, count + 1);
-        });
-        
-        console.log('Node distribution by terrain type:');
-        nodesByTerrain.forEach((count, terrain) => {
-          console.log(`  ${terrain}: ${count} nodes`);
-        });
-        
-        // Generate biomes using the nodes as centers
-        const biomeResult = generateVoronoiBiomes(width, height, voronoiNodes, terrainData);
-        let biomeMap = biomeResult.biomeMap;
-        
-        // Create biomes map based on the results
-        let biomes = new Map<string, Biome>();
-        
-        // For each node, create a biome
-        let playerBeachBiomeAssigned = false; // Track if we've already assigned a beach biome to player
-        
-        voronoiNodes.forEach(node => {
-          const biomeId = node.id; // Use biome- prefix for biome IDs
-          const color = biomeResult.biomeColors.get(biomeId) || 0x000000; // Default to black if no color
-          
-          // Check if this is the initial player's biome (beach node during initial setup)
-          const nodePosition = node.position;
-          const isBeachNode = terrainData[nodePosition.y][nodePosition.x] === TerrainType.BEACH;
-          // Only set first beach node to the player during initial setup
-          const isInitialPlayerBiome = isBeachNode && !state.isInitialized && !playerBeachBiomeAssigned;
-          
-          if (isInitialPlayerBiome) {
-            playerBeachBiomeAssigned = true;
-            console.log(`Assigned beach biome ${biomeId} to player ${playerId}`);
-          }
-          
-          // Create a habitat ID that's unique but associated with this biome
-          const habitatId = `habitat-${biomeId.substring(6)}`; // Use same numeric part but habitat- prefix
-          
-          // Create the habitat for this biome at the same position as the node
-          const habitat: Habitat = {
-            id: habitatId, // Use a separate habitat ID
-            position: node.position,
-          };
-          
-          // Create the biome with the habitat embedded in it
-          biomes.set(biomeId, {
-            id: biomeId,
-            color,
-            lushness: 8.0, // Initialize lushness to the "stable" value
-            ownerId: isInitialPlayerBiome ? playerId : null,
-            productionRate: 1, // Fixed at 1 for now
-            lastProductionTurn: 0,
-            habitat: habitat // Embed the habitat directly in the biome
-          });
-        });
-        
-        // Update tiles with biome IDs
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            tiles[y][x].biomeId = biomeMap[y][x];
-          }
-        }
-        
-        // Clean up temporary voronoiNodes structure - we don't need it anymore
-        voronoiNodes = [];
-        
-        // Now place eggs for biomes that have owners
-        // Place initial eggs around the habitat, but ONLY for the player's improved biomes
-        Array.from(biomes.values()).forEach(biome => {
-          // Only place eggs for biomes with owners
-          if (biome.productionRate > 0 && biome.ownerId !== null) {
-            const habitat = biome.habitat;
-            
-            // For the initial player unit, use adjacent tiles only
-            // This ensures the player's starting unit is close to their habitat
-            const adjacentTiles: Coordinate[] = [];
-            
-            // Check all 8 adjacent tiles
-            for (let dy = -1; dy <= 1; dy++) {
-              for (let dx = -1; dx <= 1; dx++) {
-                const x = habitat.position.x + dx;
-                const y = habitat.position.y + dy;
-                
-                // Skip the habitat's own position
-                if (dx === 0 && dy === 0) continue;
-                
-                // Skip if out of bounds
-                if (x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                // Check if tile already has an egg
-                const hasEgg = animals.some(animal => 
-                  animal.state === AnimalState.DORMANT &&
-                  animal.position.x === x &&
-                  animal.position.y === y
+                // Check if this position already has a node
+                const alreadyHasNode = voronoiNodes.some(n => 
+                  n.position.x === x && n.position.y === y
                 );
                 
-                // For beach-based biomes, prefer beach tiles
-                if (terrainData[habitat.position.y][habitat.position.x] === TerrainType.BEACH &&
-                    biome.ownerId === playerId) {
-                  // Prefer beach tiles for player's starting unit
-                  if (terrainData[y][x] === TerrainType.BEACH && !hasEgg) {
-                    adjacentTiles.push({ x, y });
-                  }
-                } else if (!hasEgg) {
-                  // For other habitats, add any valid tile
-                  adjacentTiles.push({ x, y });
+                if (!alreadyHasNode) {
+                  availableTiles.push({ x, y });
                 }
               }
             }
-            
-            console.log(`Found ${adjacentTiles.length} valid adjacent tiles for initial player unit`);
-            
-            // Place eggs based on production rate
-            for (let i = 0; i < Math.min(biome.productionRate, adjacentTiles.length); i++) {
-              const randomTileIndex = Math.floor(Math.random() * adjacentTiles.length);
-              const tile = adjacentTiles[randomTileIndex];
-              adjacentTiles.splice(randomTileIndex, 1);
-
-              // Create new egg
-              const newAnimal = {
-                id: `animal-${animals.length}`,
-                // For beach biomes owned by player, use turtle
-                species: (terrainData[habitat.position.y][habitat.position.x] === TerrainType.BEACH && 
-                        biome.ownerId === playerId) ? 
-                       'turtle' : TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
-                state: AnimalState.DORMANT,
+          }
+          
+          // Shuffle the available tiles
+          const shuffledTiles = [...availableTiles].sort(() => Math.random() - 0.5);
+          
+          // Try to find a position that doesn't overlap with existing node zones
+          for (const tile of shuffledTiles) {
+            if (!isNodeOverlapping(tile, voronoiNodes)) {
+              // We found a valid position, create a node here
+              const nodeId = `biome-${voronoiNodes.length}`;
+              
+              const newNode: VoronoiNode = {
+                id: nodeId,
                 position: tile,
-                previousPosition: null,
-                hasMoved: false,
-                ownerId: null,
               };
-              console.log(`Created new animal during init:`, { 
-                id: newAnimal.id, 
-                type: newAnimal.species, 
-                terrain: terrainData[tile.y][tile.x] 
-              });
               
-              // If this biome is owned by a player, make the animal active and owned
-              if (biome.ownerId !== null) {
-                // Make this the active player unit
-                newAnimal.state = AnimalState.ACTIVE;
-                // Type assertion to handle the number assignment to the ownerId property
-                (newAnimal as Animal).ownerId = biome.ownerId;
-                console.log(`Set animal ${newAnimal.id} as active player unit for player ${newAnimal.ownerId}`);
-              }
+              voronoiNodes.push(newNode);
+              additionalNodesCount++;
+              placedAdditionalNodes = true;
               
-              animals.push(newAnimal);
+              // Place one additional node per terrain type per iteration
+              // to ensure even distribution across terrain types
+              break;
             }
           }
-        });
-        
-        return { 
-          board: { width, height, tiles },
-          isInitialized: true,
-          animals: animals,
-          resources: [], // Start with empty resources array
-          biomes: biomes
-        };
+        }
       }
       
-      // If we're not initializing or regenerating, return unchanged state
-      return state;
+      console.log(`Placed ${additionalNodesCount} additional nodes`);
+      console.log(`Total nodes: ${voronoiNodes.length}`);
+      console.log(`Placement completed in ${iterationCount} iterations`);
+      
+      // Log node distribution by terrain type
+      const nodesByTerrain = new Map<TerrainType, number>();
+      for (const terrain of Object.values(TerrainType)) {
+        nodesByTerrain.set(terrain, 0);
+      }
+      
+      voronoiNodes.forEach(node => {
+        const position = node.position;
+        const terrain = terrainData[position.y][position.x];
+        const count = nodesByTerrain.get(terrain) || 0;
+        nodesByTerrain.set(terrain, count + 1);
+      });
+      
+      console.log('Node distribution by terrain type:');
+      nodesByTerrain.forEach((count, terrain) => {
+        console.log(`  ${terrain}: ${count} nodes`);
+      });
+      
+      // Generate biomes using the nodes as centers
+      const biomeResult = generateVoronoiBiomes(width, height, voronoiNodes, terrainData);
+      let biomeMap = biomeResult.biomeMap;
+      
+      // Create biomes map based on the results
+      let biomes = new Map<string, Biome>();
+      
+      // For each node, create a biome
+      let playerBeachBiomeAssigned = false; // Track if we've already assigned a beach biome to player
+      
+      voronoiNodes.forEach(node => {
+        const biomeId = node.id; // Use biome- prefix for biome IDs
+        const color = biomeResult.biomeColors.get(biomeId) || 0x000000; // Default to black if no color
+        
+        // Check if this is the initial player's biome (beach node during initial setup)
+        const nodePosition = node.position;
+        const isBeachNode = terrainData[nodePosition.y][nodePosition.x] === TerrainType.BEACH;
+        // Only set first beach node to the player during initial setup
+        const isInitialPlayerBiome = isBeachNode && !state.isInitialized && !playerBeachBiomeAssigned;
+        
+        if (isInitialPlayerBiome) {
+          playerBeachBiomeAssigned = true;
+          console.log(`Assigned beach biome ${biomeId} to player ${playerId}`);
+        }
+        
+        // Create a habitat ID that's unique but associated with this biome
+        const habitatId = `habitat-${biomeId.substring(6)}`; // Use same numeric part but habitat- prefix
+        
+        // Create the habitat for this biome at the same position as the node
+        const habitat: Habitat = {
+          id: habitatId, // Use a separate habitat ID
+          position: node.position,
+        };
+        
+        // Create the biome with the habitat embedded in it
+        biomes.set(biomeId, {
+          id: biomeId,
+          color,
+          lushness: 8.0, // Initialize lushness to the "stable" value
+          ownerId: isInitialPlayerBiome ? playerId : null,
+          productionRate: 1, // Fixed at 1 for now
+          lastProductionTurn: 0,
+          habitat: habitat // Embed the habitat directly in the biome
+        });
+      });
+      
+      // Update tiles with biome IDs
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          tiles[y][x].biomeId = biomeMap[y][x];
+        }
+      }
+      
+      // Clean up temporary voronoiNodes structure - we don't need it anymore
+      voronoiNodes = [];
+      
+      // Now place eggs for biomes that have owners
+      // Place initial eggs around the habitat, but ONLY for the player's improved biomes
+      Array.from(biomes.values()).forEach(biome => {
+        // Only place eggs for biomes with owners
+        if (biome.productionRate > 0 && biome.ownerId !== null) {
+          const habitat = biome.habitat;
+          
+          // For the initial player unit, use adjacent tiles only
+          // This ensures the player's starting unit is close to their habitat
+          const adjacentTiles: Coordinate[] = [];
+          
+          // Check all 8 adjacent tiles
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const x = habitat.position.x + dx;
+              const y = habitat.position.y + dy;
+              
+              // Skip the habitat's own position
+              if (dx === 0 && dy === 0) continue;
+              
+              // Skip if out of bounds
+              if (x < 0 || x >= width || y < 0 || y >= height) continue;
+              
+              // Check if tile already has an egg
+              const hasEgg = animals.some(animal => 
+                animal.state === AnimalState.DORMANT &&
+                animal.position.x === x &&
+                animal.position.y === y
+              );
+              
+              // For beach-based biomes, prefer beach tiles
+              if (terrainData[habitat.position.y][habitat.position.x] === TerrainType.BEACH &&
+                  biome.ownerId === playerId) {
+                // Prefer beach tiles for player's starting unit
+                if (terrainData[y][x] === TerrainType.BEACH && !hasEgg) {
+                  adjacentTiles.push({ x, y });
+                }
+              } else if (!hasEgg) {
+                // For other habitats, add any valid tile
+                adjacentTiles.push({ x, y });
+              }
+            }
+          }
+          
+          console.log(`Found ${adjacentTiles.length} valid adjacent tiles for initial player unit`);
+          
+          // Place eggs based on production rate
+          for (let i = 0; i < Math.min(biome.productionRate, adjacentTiles.length); i++) {
+            const randomTileIndex = Math.floor(Math.random() * adjacentTiles.length);
+            const tile = adjacentTiles[randomTileIndex];
+            adjacentTiles.splice(randomTileIndex, 1);
+
+            // Create new egg
+            const newAnimal = {
+              id: `animal-${animals.length}`,
+              // For beach biomes owned by player, use turtle
+              species: (terrainData[habitat.position.y][habitat.position.x] === TerrainType.BEACH && 
+                      biome.ownerId === playerId) ? 
+                     'turtle' : TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
+              state: AnimalState.DORMANT,
+              position: tile,
+              previousPosition: null,
+              hasMoved: false,
+              ownerId: null,
+            };
+            console.log(`Created new animal during init:`, { 
+              id: newAnimal.id, 
+              type: newAnimal.species, 
+              terrain: terrainData[tile.y][tile.x] 
+            });
+            
+            // If this biome is owned by a player, make the animal active and owned
+            if (biome.ownerId !== null) {
+              // Make this the active player unit
+              newAnimal.state = AnimalState.ACTIVE;
+              // Type assertion to handle the number assignment to the ownerId property
+              (newAnimal as Animal).ownerId = biome.ownerId;
+              console.log(`Set animal ${newAnimal.id} as active player unit for player ${newAnimal.ownerId}`);
+            }
+            
+            animals.push(newAnimal);
+          }
+        }
+      });
+      
+      return { 
+        board: { width, height, tiles },
+        isInitialized: true,
+        animals: animals,
+        resources: [], // Start with empty resources array
+        biomes: biomes
+      };
     }),
 
   getTile: (x, y) => {

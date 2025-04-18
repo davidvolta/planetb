@@ -18,17 +18,6 @@
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
 
-## True Biome-Centric Architecture
-
-### Remaining Function Conversions
-- [ ] Revisit any remaining habitat-focused functions in gameStore.ts
-- [x] Remove habitats array from GameState interface
-- [ ] Change habitat ID prefix ("habitat-") to biome ID prefix in object creation
-
-### Documentation and Testing
-- [ ] Update comments throughout the code to reflect biome-centric terminology
-- [ ] Document the new biome-centric architecture
-
 
 ## Ecosystem Integration Plan
 
