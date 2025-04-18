@@ -18,9 +18,12 @@
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
 ### Phase 4: Biome-Centric Function Updates
-- [ ] Streamline resource generation:
-  - [ ] Focus on biome-based generation without complex habitat avoidance
-  - [ ] Simplify resource-biome relationship
+- [x] Simplify `getValidEggPlacementTiles`:
+  - [x] Refactor to use biomes directly instead of habitats
+  - [x] Further optimize by removing habitat-based proximity calculations
+- [x] Streamline resource generation:
+  - [x] Focus on biome-based generation without complex habitat avoidance
+  - [x] Simplify resource-biome relationship
 - [ ] Simplify player territory recognition:
 - [ ] Reduce data duplication:
   - [ ] Make biomes contain habitats as features

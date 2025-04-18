@@ -26,12 +26,12 @@ interface BiomeProductionResult {
  */
 export class EcosystemController {
   /**
-   * Generates resources based on terrain type and biome distribution
+   * Generates resources based on biome distribution and terrain types
    * 
    * @param width Board width
    * @param height Board height
    * @param terrainData 2D array of terrain types
-   * @param habitats Array of habitats to exclude from resource placement
+   * @param habitats Array of habitats (used only to avoid placing resources on habitat tiles)
    * @returns Array of generated resources
    */
   public static generateResources(
@@ -42,7 +42,7 @@ export class EcosystemController {
   ): Resource[] {
     const resources: Resource[] = [];
     
-    // Track positions where habitats exist
+    // Track positions where habitats exist (ONLY critical habitat dependency)
     const habitatPositions = new Set<string>();
     habitats.forEach(habitat => {
       habitatPositions.add(`${habitat.position.x},${habitat.position.y}`);
@@ -51,55 +51,51 @@ export class EcosystemController {
     // Define resource chance (percentage of eligible tiles that should have resources)
     const resourceChance = GameConfig.resourceGenerationPercentage;
     
-    // Group tiles by biome (needs to be extracted from state.board.tiles)
+    // Get the state to access biome data
     const state = useGameStore.getState();
-    const biomeToTiles = new Map<string | null, {x: number, y: number, terrain: TerrainType}[]>();
-    
-    // First, we group all tiles by their biome ID
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        // Skip if this position has a habitat
-        if (habitatPositions.has(`${x},${y}`)) {
-          continue;
-        }
-        
-        // Get the biome ID from the corresponding tile
-        const biomeId = state.board?.tiles[y][x].biomeId || null;
-        
-        // If this biome isn't in our map yet, add it
-        if (!biomeToTiles.has(biomeId)) {
-          biomeToTiles.set(biomeId, []);
-        }
-        
-        // Add this tile to its biome group
-        biomeToTiles.get(biomeId)?.push({
-          x, 
-          y, 
-          terrain: terrainData[y][x]
-        });
-      }
+    if (!state.board) {
+      console.warn("Board not initialized, cannot generate resources");
+      return resources;
     }
     
-    // Now process each biome separately
-    biomeToTiles.forEach((tiles, biomeId) => {
-      // Count resources by type for this biome
-      const biomeResourceCounts = {
-        [ResourceType.FOREST]: 0,
-        [ResourceType.KELP]: 0,
-        [ResourceType.INSECTS]: 0,
-        [ResourceType.PLANKTON]: 0
-      };
+    // Get list of all biomes
+    const biomes = state.biomes;
+    
+    // Process each biome
+    biomes.forEach((biome, biomeId) => {
+      // Collect all tiles belonging to this biome
+      const biomeTiles: {x: number, y: number, terrain: TerrainType}[] = [];
       
-      // First, filter for tiles that can have resources
-      const eligibleTiles = tiles.filter(tile => {
-        // Only grass, water, mountain, and underwater can have resources
+      // Scan board to find tiles in this biome
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          // Skip if this position has a habitat
+          if (habitatPositions.has(`${x},${y}`)) {
+            continue;
+          }
+          
+          // Check if tile belongs to this biome
+          const tile = state.board!.tiles[y][x];
+          if (tile.biomeId === biomeId) {
+            biomeTiles.push({
+              x, 
+              y, 
+              terrain: terrainData[y][x]
+            });
+          }
+        }
+      }
+      
+      // Filter for tiles that can have resources
+      const eligibleTiles = biomeTiles.filter(tile => {
+        // Only certain terrain types can have resources
         return tile.terrain === TerrainType.GRASS ||
                tile.terrain === TerrainType.WATER ||
                tile.terrain === TerrainType.MOUNTAIN ||
                tile.terrain === TerrainType.UNDERWATER;
       });
       
-      // Calculate exactly how many tiles should have resources
+      // Calculate how many tiles should have resources
       const resourceCount = Math.round(eligibleTiles.length * resourceChance);
       
       // Randomly shuffle eligible tiles and select the first resourceCount tiles
@@ -129,9 +125,6 @@ export class EcosystemController {
             position: { x: tile.x, y: tile.y },
             biomeId: biomeId
           });
-          
-          // Increment count for this resource type in this biome
-          biomeResourceCounts[resourceType]++;
         }
       });
     });
