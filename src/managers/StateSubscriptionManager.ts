@@ -96,7 +96,7 @@ export class StateSubscriptionManager {
     VALID_MOVES: 'StateSubscriptionManager.validMoves',
     DISPLACEMENT: 'StateSubscriptionManager.displacement',
     SPAWN: 'StateSubscriptionManager.spawn',
-    HABITAT_IMPROVE: 'StateSubscriptionManager.habitatImprove',
+    BIOME_CAPTURE: 'StateSubscriptionManager.biomeCapture',
     
     // UI state subscriptions
     SELECTED_UNIT: 'StateSubscriptionManager.selectedUnit',
@@ -330,7 +330,7 @@ export class StateSubscriptionManager {
     
     // Subscribe to biome capture events
     StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.HABITAT_IMPROVE,
+      StateSubscriptionManager.SUBSCRIPTIONS.BIOME_CAPTURE,
       (state) => state.biomeCaptureEvent,
       (biomeCaptureEvent) => {
         // Handle biome capture events
