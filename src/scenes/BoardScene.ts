@@ -731,12 +731,18 @@ export default class BoardScene extends Phaser.Scene {
     
     // Reveal player's starting biome
     const habitats = actions.getHabitats();
+    const biomes = actions.getBiomes();
+    
     habitats.forEach(habitat => {
-      if (habitat.ownerId === currentPlayerId && habitat.state === HabitatState.IMPROVED) {
+      // Get the biome associated with this habitat
+      const biome = biomes.get(habitat.biomeId);
+      
+      // Check if the biome is owned by the current player and the habitat is improved
+      if (biome && biome.ownerId === currentPlayerId && habitat.state === HabitatState.IMPROVED) {
         // This is the player's starting improved habitat
         // Find all tiles in this habitat's biome and reveal them
         this.revealBiomeTiles(habitat.id, revealedTiles);
-      } else if (habitat.ownerId === currentPlayerId) {
+      } else if (biome && biome.ownerId === currentPlayerId) {
         // For other owned habitats that aren't improved, just reveal adjacent tiles
         CoordinateUtils.getAdjacentTiles(habitat.position.x, habitat.position.y, board.width, board.height)
           .forEach(tile => {
@@ -764,8 +770,8 @@ export default class BoardScene extends Phaser.Scene {
     const board = actions.getBoard();
     if (!board) return;
     
-    // Get the habitat's biome ID (which is the same as the habitat ID)
-    const biomeId = habitat.id;
+    // Get the habitat's biome ID from the habitat object
+    const biomeId = habitat.biomeId;
     
     // Track tiles we reveal
     const tilesToReveal: { x: number, y: number }[] = [];

@@ -150,32 +150,42 @@ export class EcosystemController {
       return validTiles;
     }
     
-    // Get the habitat's owner and biome ID
-    const habitatOwnerId = habitat.ownerId;
+    // Get the habitat's biome ID from the tile
     const habitatTile = board.tiles[habitat.position.y][habitat.position.x];
-    const habitatBiomeId = habitatTile.biomeId;
+    const habitatBiomeId = habitat.biomeId;
     
     if (!habitatBiomeId) {
       console.warn(`Habitat at ${habitat.position.x},${habitat.position.y} has no biome ID`);
-      return validTiles; 
+      return validTiles;
+    }
+    
+    // Get the biome to check ownership
+    const biome = useGameStore.getState().biomes.get(habitatBiomeId);
+    if (!biome) {
+      console.warn(`Biome ${habitatBiomeId} not found`);
+      return validTiles;
+    }
+    
+    // Get the owner of this biome
+    const biomeOwnerId = biome.ownerId;
+    if (biomeOwnerId === null) {
+      console.warn(`Biome ${habitatBiomeId} has no owner, cannot place eggs`);
+      return validTiles;
     }
     
     // Get all biomes owned by this player
     const playerBiomeIds = new Set<string>();
     playerBiomeIds.add(habitatBiomeId); // Always include current biome
     
-    // Find all biomes owned by this player by checking habitats
-    const habitats = useGameStore.getState().habitats;
-    habitats.forEach(h => {
-      if (h.ownerId === habitatOwnerId && h.ownerId !== null) {
-        const biomeTile = board.tiles[h.position.y][h.position.x];
-        if (biomeTile.biomeId) {
-          playerBiomeIds.add(biomeTile.biomeId);
-        }
+    // Find all biomes owned by this player directly using biome ownership
+    const allBiomes = useGameStore.getState().biomes;
+    allBiomes.forEach((b, id) => {
+      if (b.ownerId === biomeOwnerId) {
+        playerBiomeIds.add(id);
       }
     });
     
-    console.log(`Player ${habitatOwnerId} owns ${playerBiomeIds.size} biomes`);
+    console.log(`Player ${biomeOwnerId} owns ${playerBiomeIds.size} biomes`);
     
     // Create a set of resource positions for quick lookup
     const resourcePositions = new Set<string>();
@@ -217,72 +227,72 @@ export class EcosystemController {
         );
         
         if (!hasEgg) {
-          // Calculate adjacency score for prioritization (count adjacent resources)
+          // Calculate resource adjacency score (resources in owned biomes = higher score)
           let adjacencyScore = 0;
+          const isNearHabitat = Math.abs(x - habitat.position.x) <= 2 && Math.abs(y - habitat.position.y) <= 2;
           
-          // Check all 8 adjacent positions for resources
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const adjX = x + dx;
-              const adjY = y + dy;
-              
-              // Skip if out of bounds or the tile itself
+          // Check adjacent tiles for resources
+          for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
               if (dx === 0 && dy === 0) continue;
-              if (adjX < 0 || adjX >= board.width || adjY < 0 || adjY >= board.height) continue;
               
-              const resourcePos = `${adjX},${adjY}`;
+              const nx = x + dx;
+              const ny = y + dy;
               
-              // Check if there's a resource at this position
-              if (resourcePositions.has(resourcePos)) {
-                // Get the biome ID of this resource
-                const resourceBiomeId = resourceBiomeMap.get(resourcePos);
+              // Skip if out of bounds
+              if (nx < 0 || ny < 0 || nx >= board.width || ny >= board.height) continue;
+              
+              const resourceKey = `${nx},${ny}`;
+              if (resourcePositions.has(resourceKey)) {
+                const resourceBiomeId = resourceBiomeMap.get(resourceKey);
                 
-                // Only count if the resource is in a biome owned by the player
+                // Resources in owned biomes are worth more when considering placement
                 if (resourceBiomeId && playerBiomeIds.has(resourceBiomeId)) {
+                  adjacencyScore += 3;
+                } else {
                   adjacencyScore += 1;
                 }
               }
             }
           }
           
-          // Store the score for later sorting
-          resourceAdjacencyMap.set(`${x},${y}`, adjacencyScore);
-          
-          // Check if tile is adjacent to the habitat (for tie-breaking)
-          const isAdjacentToHabitat = Math.abs(x - habitat.position.x) <= 1 && 
-                                     Math.abs(y - habitat.position.y) <= 1;
-          habitatProximityMap.set(`${x},${y}`, isAdjacentToHabitat);
-          
-          // Add to valid tiles
+          const posKey = `${x},${y}`;
           validTiles.push({ x, y });
+          resourceAdjacencyMap.set(posKey, adjacencyScore);
+          habitatProximityMap.set(posKey, isNearHabitat);
         }
       }
     }
     
-    // Sort valid tiles by resource adjacency score (higher is better)
-    // Use habitat proximity as a tie-breaker
-    validTiles.sort((a, b) => {
-      const scoreA = resourceAdjacencyMap.get(`${a.x},${a.y}`) || 0;
-      const scoreB = resourceAdjacencyMap.get(`${b.x},${b.y}`) || 0;
+    // Sort valid tiles by prioritizing:
+    // 1. Tiles closer to resources in owned biomes
+    // 2. Tiles closer to the habitat
+    return validTiles.sort((a, b) => {
+      const aKey = `${a.x},${a.y}`;
+      const bKey = `${b.x},${b.y}`;
       
-      // First compare by resource adjacency
-      if (scoreB !== scoreA) {
-        return scoreB - scoreA;
+      const aAdjacency = resourceAdjacencyMap.get(aKey) || 0;
+      const bAdjacency = resourceAdjacencyMap.get(bKey) || 0;
+      
+      // First compare adjacency scores
+      if (aAdjacency !== bAdjacency) {
+        return bAdjacency - aAdjacency; // Higher score first
       }
       
-      // If resource adjacency is equal, use habitat proximity as tie-breaker
-      const isATouchingHabitat = habitatProximityMap.get(`${a.x},${a.y}`) || false;
-      const isBTouchingHabitat = habitatProximityMap.get(`${b.x},${b.y}`) || false;
+      // Then compare proximity to habitat
+      const aIsNearHabitat = habitatProximityMap.get(aKey) || false;
+      const bIsNearHabitat = habitatProximityMap.get(bKey) || false;
       
-      // If A is touching habitat and B is not, A should come first
-      if (isATouchingHabitat && !isBTouchingHabitat) return -1;
-      // If B is touching habitat and A is not, B should come first
-      if (!isATouchingHabitat && isBTouchingHabitat) return 1;
-      // Otherwise, keep original order
-      return 0;
+      if (aIsNearHabitat !== bIsNearHabitat) {
+        return aIsNearHabitat ? -1 : 1; // Near habitat first
+      }
+      
+      // If still tied, use distance from habitat as tiebreaker
+      const aDistance = Math.abs(a.x - habitat.position.x) + Math.abs(a.y - habitat.position.y);
+      const bDistance = Math.abs(b.x - habitat.position.x) + Math.abs(b.y - habitat.position.y);
+      
+      return aDistance - bDistance; // Shorter distance first
     });
-    
-    return validTiles;
   }
 
   /**
@@ -291,7 +301,7 @@ export class EcosystemController {
    * and places new eggs (dormant animals) in appropriate locations.
    * 
    * @param state Current game state
-   * @returns Updates to apply to the game state (new animals and updated habitats)
+   * @returns Updates to apply to the game state (new animals and updated biomes)
    */
   public static biomeEggProduction(state: any): Partial<any> {
     // Only produce eggs on even-numbered turns
@@ -300,25 +310,35 @@ export class EcosystemController {
     }
 
     const newAnimals = [...state.animals];
-    const updatedHabitats = state.habitats.map((habitat: Habitat) => {
+    const updatedBiomes = new Map(state.biomes);
+    const updatedHabitats = [...state.habitats];
+    
+    // Process each habitat-biome pair
+    updatedHabitats.forEach((habitat: Habitat) => {
+      // Get the associated biome
+      const biomeId = habitat.biomeId;
+      const biome = updatedBiomes.get(biomeId);
+      
+      if (!biome) return;
+      
       // Skip if no production
-      if (habitat.productionRate <= 0) return habitat;
+      if (biome.productionRate <= 0) return;
       
-      // Skip if not improved - only improved habitats owned by a player can produce eggs
-      if (habitat.state !== HabitatState.IMPROVED) return habitat;
+      // Skip if not improved - only improved habitats with owned biomes can produce eggs
+      if (habitat.state !== HabitatState.IMPROVED) return;
       
-      // Skip if not owned by a player
-      if (habitat.ownerId === null) return habitat;
+      // Skip if biome not owned by a player
+      if (biome.ownerId === null) return;
 
       // Calculate turns since last production
-      const turnsSinceProduction = state.turn - habitat.lastProductionTurn;
-      if (turnsSinceProduction <= 0) return habitat;
+      const turnsSinceProduction = state.turn - biome.lastProductionTurn;
+      if (turnsSinceProduction <= 0) return;
 
       // Calculate how many eggs to create
-      const eggsToCreate = habitat.productionRate * Math.floor(turnsSinceProduction / 2);
+      const eggsToCreate = biome.productionRate * Math.floor(turnsSinceProduction / 2);
       
       // Skip if no eggs to create this turn
-      if (eggsToCreate <= 0) return habitat;
+      if (eggsToCreate <= 0) return;
 
       // Find valid tiles for egg placement
       const validTiles = this.getValidEggPlacementTiles(habitat, {
@@ -335,7 +355,7 @@ export class EcosystemController {
         const terrain = state.board!.tiles[tile.y][tile.x].terrain;
         const species = this.getSpeciesForTerrain(terrain);
 
-        // Create new egg
+        // Create new egg (owned by the biome owner)
         const newAnimal = {
           id: `animal-${newAnimals.length}`,
           species,
@@ -343,7 +363,7 @@ export class EcosystemController {
           position: tile,
           previousPosition: null,
           hasMoved: false,
-          ownerId: habitat.ownerId,
+          ownerId: biome.ownerId,
         };
         
         console.log(`Created new animal during production:`, { 
@@ -355,16 +375,14 @@ export class EcosystemController {
         newAnimals.push(newAnimal);
       }
 
-      // Update habitat's last production turn
-      return {
-        ...habitat,
-        lastProductionTurn: state.turn
-      };
+      // Update biome's last production turn
+      biome.lastProductionTurn = state.turn;
+      updatedBiomes.set(biomeId, biome);
     });
 
     return {
       animals: newAnimals,
-      habitats: updatedHabitats
+      biomes: updatedBiomes
     };
   }
 

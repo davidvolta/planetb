@@ -136,15 +136,25 @@ export enum ShelterType {
   REEF = 'reef'          // water
 }
 
+// Biome structure
+export interface Biome {
+  id: string;
+  habitatId: string; // Each biome is associated with a habitat
+  color: number; // Store a color for visualization
+  lushness: number; // Lushness value from 0-10, where 8.0 is "stable"
+  ownerId: number | null; // Player ID that owns this biome
+  productionRate: number; // Number of eggs produced per turn
+  lastProductionTurn: number; // Track when we last produced eggs
+}
+
 // Habitat structure
 export interface Habitat {
   id: string;
+  biomeId: string; // Each habitat is associated with a biome
   position: Coordinate;
   state: HabitatState;
   shelterType: ShelterType | null;
-  ownerId: number | null;  // Player ID that owns this habitat
-  productionRate: number;  // Number of eggs produced per turn
-  lastProductionTurn: number; // Track when we last produced eggs
+  // Ownership is now in the Biome, not here
 }
 
 // Tile structure
@@ -199,14 +209,6 @@ export interface Resource {
   type: ResourceType;
   position: Coordinate;
   biomeId: string | null; // Add biome ID to track which biome each resource belongs to
-}
-
-// Biome structure
-export interface Biome {
-  id: string;
-  habitatId: string; // Each biome is associated with a habitat
-  color: number; // Store a color for visualization
-  lushness: number; // Lushness value from 0-10, where 8.0 is "stable"
 }
 
 // Game configuration and settings
@@ -493,17 +495,18 @@ export const useGameStore = create<GameState>((set, get) => ({
             const isBeachHabitat = terrainType === TerrainType.BEACH;
             const shouldImproveForPlayer = isBeachHabitat && !state.isInitialized && state.players.length > 0;
             
+            // Generate a consistent ID for both the habitat and its biome
+            const newId = `habitat-${habitats.length}`;
+            
             const newHabitat: Habitat = {
-              id: `habitat-${habitatId}`,
+              id: newId,
+              biomeId: newId, // Same ID will be used for the biome
               position: position,
               // If this is a beach habitat during initial setup and we have a player, set to IMPROVED
               state: shouldImproveForPlayer ? HabitatState.IMPROVED : HabitatState.POTENTIAL,
               // Set shelterType to TIDEPOOL for beach if improved for player
               shelterType: shouldImproveForPlayer ? ShelterType.TIDEPOOL : null,
-              // Set ownerId to player's ID if improved for player
-              ownerId: shouldImproveForPlayer ? playerId : null,
-              productionRate: 1, // Fixed at 1
-              lastProductionTurn: 0,
+              // Ownership now belongs to the biome
             };
             
             habitats.push(newHabitat);
@@ -560,14 +563,14 @@ export const useGameStore = create<GameState>((set, get) => ({
             for (const tile of shuffledTiles) {
               if (!isHabitatZoneOverlapping(tile, habitats)) {
                 // We found a valid position, create a habitat here
+                const newId = `habitat-${habitats.length}`;
+                
                 const newHabitat: Habitat = {
-                  id: `habitat-${habitats.length}`,
+                  id: newId,
+                  biomeId: newId,
                   position: tile,
                   state: HabitatState.POTENTIAL,
                   shelterType: null,
-                  ownerId: null,
-                  productionRate: 1, // Same as primary habitats
-                  lastProductionTurn: 0,
                 };
                 
                 habitats.push(newHabitat);
@@ -618,11 +621,20 @@ export const useGameStore = create<GameState>((set, get) => ({
           const biomeId = habitat.id;
           const color = biomeResult.biomeColors.get(biomeId) || 0x000000; // Default to black if no color
           
+          // Check if this is the initial player's habitat (beach with TIDEPOOL shelter)
+          const isInitialPlayerHabitat = habitat.state === HabitatState.IMPROVED && 
+                                        habitat.shelterType === ShelterType.TIDEPOOL &&
+                                        !state.isInitialized;
+          
           biomes.set(biomeId, {
             id: biomeId,
             habitatId: habitat.id,
             color,
-            lushness: 8.0 // Initialize lushness to the "stable" value
+            lushness: 8.0, // Initialize lushness to the "stable" value
+            // Set ownership for the player's starting biome
+            ownerId: isInitialPlayerHabitat ? playerId : null,
+            productionRate: 1, // Fixed at 1 for now
+            lastProductionTurn: 0
           });
         });
         
@@ -636,10 +648,14 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Now place eggs after biomes are generated
         // Place initial eggs around the habitat, but ONLY for the player's improved beach habitat
         habitats.forEach(habitat => {
-          // Only place eggs for improved habitats with owners
-          if (habitat.productionRate > 0 && 
+          // Get the associated biome
+          const biome = biomes.get(habitat.id);
+          if (!biome) return;
+          
+          // Only place eggs for biomes with owners and improved habitats
+          if (biome.productionRate > 0 && 
               habitat.state === HabitatState.IMPROVED && 
-              habitat.ownerId !== null) {
+              biome.ownerId !== null) {
             
             // For the initial player unit, use adjacent tiles only
             // This ensures the player's starting unit is close to their habitat
@@ -666,7 +682,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 
                 // For player 1's starting unit, only allow beach terrain
                 if (habitat.shelterType === ShelterType.TIDEPOOL && 
-                    habitat.ownerId === playerId) {
+                    biome.ownerId === playerId) {
                   // Only add beach tiles
                   if (terrainData[y][x] === TerrainType.BEACH && !hasEgg) {
                     adjacentTiles.push({ x, y });
@@ -681,7 +697,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             console.log(`Found ${adjacentTiles.length} valid adjacent tiles for initial player unit`);
             
             // Place eggs based on production rate
-            for (let i = 0; i < Math.min(habitat.productionRate, adjacentTiles.length); i++) {
+            for (let i = 0; i < Math.min(biome.productionRate, adjacentTiles.length); i++) {
               const randomTileIndex = Math.floor(Math.random() * adjacentTiles.length);
               const tile = adjacentTiles[randomTileIndex];
               adjacentTiles.splice(randomTileIndex, 1);
@@ -691,7 +707,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 id: `animal-${animals.length}`,
                 // For the player 1's starting unit, always use turtle
                 species: (habitat.shelterType === ShelterType.TIDEPOOL && 
-                          habitat.ownerId === playerId) ? 
+                          biome.ownerId === playerId) ? 
                          'turtle' : TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
                 state: AnimalState.DORMANT,
                 position: tile,
@@ -707,12 +723,12 @@ export const useGameStore = create<GameState>((set, get) => ({
               
               // If this animal is from an improved player-owned beach habitat, make it active and owned
               if (habitat.state === HabitatState.IMPROVED && 
-                  habitat.ownerId !== null && 
+                  biome.ownerId !== null && 
                   habitat.shelterType === ShelterType.TIDEPOOL) {
                 // Make this the active player unit
                 newAnimal.state = AnimalState.ACTIVE;
                 // Type assertion to handle the number assignment to the ownerId property
-                (newAnimal as Animal).ownerId = habitat.ownerId;
+                (newAnimal as Animal).ownerId = biome.ownerId;
                 console.log(`Set animal ${newAnimal.id} as active player unit for player ${newAnimal.ownerId}`);
               }
               
