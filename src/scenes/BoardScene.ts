@@ -388,12 +388,14 @@ export default class BoardScene extends Phaser.Scene {
       // Log the habitat click
       console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}`);
       
-      // Only select and show red indicator if the biome is not owned
-      const biome = actions.getBiomes().get(clickedHabitat.id);
+      // Find the biome associated with this habitat
+      const biome = Array.from(actions.getBiomes().values())
+        .find(b => b.habitat.id === clickedHabitat.id);
+        
       const isOwned = biome && biome.ownerId !== null;
       
       if (!isOwned) {
-        // Select habitat in store
+        // Select habitat in store - pass the habitat ID
         actions.selectHabitat(clickedHabitat.id);
         
         // Show RED selection indicator for habitat

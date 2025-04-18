@@ -461,7 +461,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             }
             
             // Use sequential indexing for node IDs
-            const nodeId = `habitat-${voronoiNodes.length}`;
+            const nodeId = `biome-${voronoiNodes.length}`;
             
             // Create the VoronoiNode
             const newNode: VoronoiNode = {
@@ -518,7 +518,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             for (const tile of shuffledTiles) {
               if (!isNodeOverlapping(tile, voronoiNodes)) {
                 // We found a valid position, create a node here
-                const nodeId = `habitat-${voronoiNodes.length}`;
+                const nodeId = `biome-${voronoiNodes.length}`;
                 
                 const newNode: VoronoiNode = {
                   id: nodeId,
@@ -570,7 +570,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         let playerBeachBiomeAssigned = false; // Track if we've already assigned a beach biome to player
         
         voronoiNodes.forEach(node => {
-          const biomeId = node.id; // Use node ID as biome ID for now (keeping "habitat-" prefix for compatibility)
+          const biomeId = node.id; // Use biome- prefix for biome IDs
           const color = biomeResult.biomeColors.get(biomeId) || 0x000000; // Default to black if no color
           
           // Check if this is the initial player's biome (beach node during initial setup)
@@ -584,9 +584,12 @@ export const useGameStore = create<GameState>((set, get) => ({
             console.log(`Assigned beach biome ${biomeId} to player ${playerId}`);
           }
           
+          // Create a habitat ID that's unique but associated with this biome
+          const habitatId = `habitat-${biomeId.substring(6)}`; // Use same numeric part but habitat- prefix
+          
           // Create the habitat for this biome at the same position as the node
           const habitat: Habitat = {
-            id: biomeId, // Use the same ID as the node/biome for compatibility
+            id: habitatId, // Use a separate habitat ID
             position: node.position,
           };
           
@@ -619,8 +622,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Now place eggs after biomes and habitats are generated
         // Place initial eggs around the habitat, but ONLY for the player's improved beach habitat
         habitats.forEach(habitat => {
-          // Get the associated biome
-          const biome = biomes.get(habitat.id);
+          // Get the associated biome - find by matching habitat
+          const biome = Array.from(biomes.values()).find(b => b.habitat.id === habitat.id);
           if (!biome) return;
           
           // Only place eggs for biomes with owners
@@ -830,42 +833,47 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     }),
 
-  getHabitatAt: (x: number, y: number) => {
+  getHabitatAt: (x, y) => {
     const state = get();
     const biomes = state.biomes;
     
-    // First try to find the habitat through biomes (primary source)
+    // Find the biome that has a habitat at this position
     for (const biome of biomes.values()) {
       if (biome.habitat.position.x === x && biome.habitat.position.y === y) {
         return biome.habitat;
       }
     }
     
-    // Fallback to direct habitat search (for backward compatibility)
-    const habitats = state.habitats;
-    if (!habitats) return undefined;
-    return habitats.find(habitat =>
-      habitat.position.x === x && habitat.position.y === y
-    );
+    // For backward compatibility, search the habitats array
+    return state.habitats.find(h => h.position.x === x && h.position.y === y);
   },
 
   // Habitat selection method
-  selectHabitat: (id: string | null) => 
-    set((state) => {
-      if (!id) {
-        // Deselecting a habitat
-        return { 
-          selectedBiomeId: null
-        };
+  selectHabitat: (id) => 
+    set(state => {
+      // Handle null case to deselect
+      if (id === null) {
+        return { selectedBiomeId: null };
       }
       
-      // Find the biome with this habitat ID
-      const biome = Array.from(state.biomes.values()).find(biome => biome.habitat.id === id);
+      // First try to find a habitat with this ID directly
+      const habitat = state.habitats.find(h => h.id === id);
       
-      // Since biomes and habitats share IDs, we should always find a match
-      return {
-        selectedBiomeId: biome?.id || null
-      };
+      if (habitat) {
+        // Find the associated biome by matching the habitat ID
+        const biome = Array.from(state.biomes.values()).find(b => b.habitat.id === id);
+        // Update selectedBiomeId if we found a matching biome
+        return { selectedBiomeId: biome ? biome.id : null };
+      }
+      
+      // If ID isn't a habitat ID, check if it's a biome ID and select it directly
+      const biome = state.biomes.get(id);
+      if (biome) {
+        return { selectedBiomeId: id };
+      }
+      
+      // If we couldn't find a matching habitat or biome, clear selection
+      return { selectedBiomeId: null };
     }),
 
   // Movement-related methods

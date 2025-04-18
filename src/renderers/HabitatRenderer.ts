@@ -75,8 +75,11 @@ export class HabitatRenderer extends BaseRenderer {
       
       // Get biome ownership state (captured or available)
       const state = useGameStore.getState();
-      const biomeId = habitat.id; // Use habitat.id as the biome ID
-      const biome = state.biomes.get(biomeId);
+      
+      // Find the corresponding biome by matching habitat ID
+      const biome = Array.from(state.biomes.values())
+        .find(b => b.habitat.id === habitat.id);
+        
       const isCaptured = biome?.ownerId !== null;
       
       if (existing) {
