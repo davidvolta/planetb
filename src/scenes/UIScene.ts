@@ -11,7 +11,6 @@ export default class UIScene extends Phaser.Scene {
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private selectedUnitId: string | null = null;
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
-  private regenerateResourcesButton: Phaser.GameObjects.Container | null = null;
   
 
   constructor() {
@@ -94,9 +93,6 @@ export default class UIScene extends Phaser.Scene {
     
     // Create capture biome button (initially hidden)
     this.createCaptureBiomeButton();
-    
-    // Create regenerate resources button
-    this.createRegenerateResourcesButton();
     
     // Update background size and position buttons correctly
     this.updateBackgroundSize();
@@ -194,36 +190,6 @@ export default class UIScene extends Phaser.Scene {
     this.container?.add(this.captureBiomeButton);
   }
 
-  createRegenerateResourcesButton() {
-    // Create a container for the regenerate resources button
-    this.regenerateResourcesButton = this.add.container(0, 0);
-    
-    // Create button background - use a green color for the regenerate button
-    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x2E8B57, 1);
-    buttonBg.setOrigin(0);
-    buttonBg.setInteractive({ useHandCursor: true })
-      .on('pointerdown', this.handleRegenerateResources, this)
-      .on('pointerover', () => buttonBg.setFillStyle(0x3CB371))
-      .on('pointerout', () => buttonBg.setFillStyle(0x2E8B57));
-    
-    // Create button text
-    const buttonText = this.add.text(75, 20, 'Regenerate Resources', {
-      fontFamily: 'Raleway',
-      fontSize: '14px',
-      color: '#FFFFFF'
-    });
-    buttonText.setOrigin(0.5);
-    
-    // Add to container
-    this.regenerateResourcesButton.add(buttonBg);
-    this.regenerateResourcesButton.add(buttonText);
-    
-    // Position will be set in updateBackgroundSize
-    
-    // Add to main container
-    this.container?.add(this.regenerateResourcesButton);
-  }
-
   handleNextTurn() {
     const nextTurn = actions.getNextTurn();
     nextTurn();
@@ -250,18 +216,6 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
-  handleRegenerateResources() {
-    // Get the BoardScene instance
-    const boardScene = this.scene.get('BoardScene');
-    
-    // Call regenerateResources on BoardScene if it exists
-    if (boardScene && typeof (boardScene as any).regenerateResources === 'function') {
-      (boardScene as any).regenerateResources();
-    } else {
-      console.warn("BoardScene or regenerateResources method not found");
-    }
-  }
-
   updateBackgroundSize() {
     if (this.background) {
       // Start with a base height
@@ -279,12 +233,6 @@ export default class UIScene extends Phaser.Scene {
       // Add height for one button if either is visible
       if ((this.spawnButton && this.spawnButton.visible) || 
           (this.captureBiomeButton && this.captureBiomeButton.visible)) {
-        height += 50;
-      }
-      
-      // Position and add height for the regenerate resources button
-      if (this.regenerateResourcesButton) {
-        this.regenerateResourcesButton.setPosition(25, height);
         height += 50;
       }
       
@@ -336,11 +284,6 @@ export default class UIScene extends Phaser.Scene {
     if (this.captureBiomeButton) {
       this.captureBiomeButton.destroy();
       this.captureBiomeButton = null;
-    }
-    
-    if (this.regenerateResourcesButton) {
-      this.regenerateResourcesButton.destroy();
-      this.regenerateResourcesButton = null;
     }
     
     this.turnText = null;

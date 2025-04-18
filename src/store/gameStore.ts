@@ -194,6 +194,14 @@ export interface Resource {
 // Game configuration and settings
 export const GameConfig = {
   resourceGenerationPercentage: 0.5, // 50% chance fixed value
+  
+  // Setter for resource generation percentage (0.0 to 1.0)
+  setResourcePercentage: (percentage: number) => {
+    // Ensure the percentage is between 0 and 1
+    const clampedValue = Math.max(0, Math.min(1, percentage));
+    GameConfig.resourceGenerationPercentage = clampedValue;
+    return clampedValue;
+  }
 };
 
 // Game state interface

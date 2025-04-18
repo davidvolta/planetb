@@ -17,26 +17,6 @@
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
-
-## Architecture Cleanup
-
-### Further Biome-Centric Alignment
-- [ ] Audit and update terminology in codebase:
-  - [ ] Rename any remaining habitat-focused variables to emphasize biomes
-  - [ ] Update comments and documentation to reflect biome-centric design
-  - [ ] Ensure habitat properties are always accessed through parent biomes
-  
-- [ ] Update EcosystemController methods for biome-centric approach:
-  - [ ] Refine `getValidEggPlacementTiles()` to emphasize biome ownership
-  - [ ] Update resource generation to more directly associate resources with biomes
-  - [ ] Ensure egg production is fully biome-driven (not habitat-driven)
-
-- [ ] Correct any data modeling inconsistencies:
-  - [ ] Ensure `Biome` interface properly encapsulates all habitat functionality
-  - [ ] Verify habitat references are only accessed through biomes
-  - [ ] Remove any lingering habitat-centric domain concepts
-
-
 ## Ecosystem Integration Plan
 
 ### Phase 1: Enhance Biome Structure & Setup Ecosystem Utilities
