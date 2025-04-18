@@ -205,7 +205,6 @@ export interface GameState {
   currentPlayerId: number;
   board: Board | null;
   animals: Animal[];
-  habitats: Habitat[];
   resources: Resource[]; // Added resources array
   biomes: Map<string, Biome>; // Track biomes by ID
   isInitialized: boolean;  // Flag to track if the game has been initialized
@@ -250,15 +249,10 @@ export interface GameState {
   setActivePlayer: (playerId: number) => void;
   initializeBoard: (width: number, height: number, mapType?: MapGenerationType, forceHabitatGeneration?: boolean) => void;
   getTile: (x: number, y: number) => Tile | undefined;
-  
   evolveAnimal: (id: string) => void;
-  
-  // Movement-related methods
   selectUnit: (id: string | null) => void;
   moveUnit: (id: string, x: number, y: number) => void;
   getValidMoves: (id: string) => ValidMove[];
-  
-  // Biome-related methods
   selectBiome: (id: string | null) => void;
 }
 
@@ -268,7 +262,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentPlayerId: 0,
   board: null,
   animals: [],
-  habitats: [],
   resources: [],
   biomes: new Map(),
   isInitialized: false,
@@ -406,7 +399,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         
         // Create arrays to store game entities
         let animals: Animal[] = [];
-        let habitats: Habitat[] = [];
         
         // Create temporary array for VoronoiNodes (used for biome generation)
         let voronoiNodes: VoronoiNode[] = [];
@@ -611,22 +603,15 @@ export const useGameStore = create<GameState>((set, get) => ({
           }
         }
         
-        // After biomes are generated, create habitats array for backward compatibility
-        // The actual habitats are already stored in each biome
-        habitats = Array.from(biomes.values()).map(biome => biome.habitat);
-        
         // Clean up temporary voronoiNodes structure - we don't need it anymore
         voronoiNodes = [];
         
-        // Now place eggs after biomes and habitats are generated
-        // Place initial eggs around the habitat, but ONLY for the player's improved beach habitat
-        habitats.forEach(habitat => {
-          // Get the associated biome - find by matching habitat
-          const biome = Array.from(biomes.values()).find(b => b.habitat.id === habitat.id);
-          if (!biome) return;
-          
+        // Now place eggs for biomes that have owners
+        // Place initial eggs around the habitat, but ONLY for the player's improved biomes
+        Array.from(biomes.values()).forEach(biome => {
           // Only place eggs for biomes with owners
           if (biome.productionRate > 0 && biome.ownerId !== null) {
+            const habitat = biome.habitat;
             
             // For the initial player unit, use adjacent tiles only
             // This ensures the player's starting unit is close to their habitat
@@ -709,7 +694,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { 
           board: { width, height, tiles },
           isInitialized: true,
-          habitats: habitats,
           animals: animals,
           resources: [], // Start with empty resources array
           biomes: biomes

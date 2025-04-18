@@ -21,20 +21,13 @@
 ## True Biome-Centric Architecture
 
 ### Remaining Function Conversions
-- [x] Rename `selectHabitat()` to `selectBiome()` in gameStore.ts
 - [ ] Revisit any remaining habitat-focused functions in gameStore.ts
-- [ ] Consider removing habitats array entirely when all systems are updated
-- [ ] Update checkTileContents() and similar functions to focus on biomes first
+- [x] Remove habitats array from GameState interface
+- [ ] Change habitat ID prefix ("habitat-") to biome ID prefix in object creation
 
 ### Documentation and Testing
-- [ ] Add unit tests for the biome-centric architecture
 - [ ] Update comments throughout the code to reflect biome-centric terminology
-- [ ] Create flow diagrams showing the new biome-centric architecture
-- [ ] Update BIOME CENTRIC DESIGN.md to reflect completed changes
 - [ ] Document the new biome-centric architecture
-- [ ] Document the new resource generation approach
-- [ ] Explain the elimination of habitat array dependency
-- [ ] Update any diagrams or code examples
 
 
 ## Ecosystem Integration Plan

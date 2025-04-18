@@ -188,7 +188,7 @@ export class StateSubscriptionManager {
       { immediate: true, debug: false } // Set immediate: true to render on subscription
     );
     
-    // Subscribe to habitat changes
+    // Subscribe to habitat changes (via biomes)
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.HABITATS,
       (state) => Array.from(state.biomes.values()).map((biome: Biome) => biome.habitat),
