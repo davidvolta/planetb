@@ -99,6 +99,42 @@
   - [ ] Document the new biome-centric architecture
 
 
+### Resource Generation Refactoring Plan
+
+#### Phase 1: Eliminate Habitat Array Dependency
+- [ ] Refactor EcosystemController.generateResources():
+  - [ ] If no positions provided, extract habitat positions directly from biomes in the store
+  - [ ] Update internal logic to use position set for checking habitat locations
+
+- [ ] Update actions.regenerateResources():
+  - [ ] Remove habitats parameter
+  - [ ] Let EcosystemController access biomes directly from the store
+  - [ ] Preserve terrain data and board dimension parameters
+
+- [ ] Update BoardScene.regenerateResources():
+  - [ ] Remove calls to actions.getHabitats()
+  - [ ] Only pass board dimensions and terrain data to regenerateResources action
+
+#### Phase 2: Update Other Habitat Array References
+- [ ] Refactor BoardScene.checkTileContents():
+  - [ ] Replace habitat array lookup with biome-based approach
+  - [ ] Extract habitat positions from biomes instead of using getHabitats()
+
+- [ ] Update Other EcosystemController Methods:
+  - [ ] Review and update methods like getValidEggPlacementTiles to use biome.habitat
+  - [ ] Remove any remaining direct references to the habitats array
+
+#### Phase 3: Testing and Documentation
+- [ ] Verify all resource generation still works correctly:
+  - [ ] Test resource regeneration with new biome-centric approach
+  - [ ] Check that resources don't appear on habitat tiles
+  - [ ] Validate resource distribution across different biomes
+
+- [ ] Update BIOME CENTRIC DESIGN.md:
+  - [ ] Document the new resource generation approach
+  - [ ] Explain the elimination of habitat array dependency
+  - [ ] Update any diagrams or code examples
+
 
 ## Ecosystem Integration Plan
 

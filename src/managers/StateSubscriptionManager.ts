@@ -344,9 +344,12 @@ export class StateSubscriptionManager {
             if (biomeCaptureEvent.biomeId) {
               this.scene.revealBiomeTiles(biomeCaptureEvent.biomeId);
               
-              // Update all habitat graphics to reflect new ownership state
-              const habitats = actions.getHabitats();
-              this.habitatRenderer.renderHabitats(habitats);
+              // Update only the captured habitat's graphics
+              const capturedBiome = actions.getBiomeById(biomeCaptureEvent.biomeId);
+              if (capturedBiome) {
+                // Just render the single affected habitat
+                this.habitatRenderer.renderHabitats([capturedBiome.habitat]);
+              }
             }
           }
           
