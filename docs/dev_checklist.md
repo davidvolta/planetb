@@ -21,61 +21,61 @@
 ### True Biome-Centric Architecture
 
 #### Phase 1: Create VoronoiNode Interface and Update Related Functions
-- [ ] Create VoronoiNode Interface in BiomeGenerator.ts:
-  - [ ] Define a simple interface with position information
-  - [ ] Include an ID field for temporary generation purposes
-  - [ ] Import necessary dependencies (Coordinate)
+- [x] Create VoronoiNode Interface in BiomeGenerator.ts:
+  - [x] Define a simple interface with position information
+  - [x] Include an ID field for temporary generation purposes
+  - [x] Import necessary dependencies (Coordinate)
 
-- [ ] Update the generateVoronoiBiomes function:
-  - [ ] Change signature to accept VoronoiNodes instead of habitats
-  - [ ] Modify internal references to use node.id instead of habitat.id
-  - [ ] Ensure color generation and biome mapping are still working correctly
+- [x] Update the generateVoronoiBiomes function:
+  - [x] Change signature to accept VoronoiNodes instead of habitats
+  - [x] Modify internal references to use node.id instead of habitat.id
+  - [x] Ensure color generation and biome mapping are still working correctly
 
-- [ ] Create a node-compatible version of isBiomeOverlapping:
-  - [ ] Implement isNodeOverlapping with same logic as existing function
-  - [ ] Review distance calculations to ensure biome separation is maintained
+- [x] Create a node-compatible version of isBiomeOverlapping:
+  - [x] Implement isNodeOverlapping with same logic as existing function
+  - [x] Review distance calculations to ensure biome separation is maintained
 
 #### Phase 2: Modify Board Initialization Process
-- [ ] Update initializeBoard in gameStore.ts:
-  - [ ] Create an array to hold temporary VoronoiNodes
-  - [ ] Replace habitat generation with VoronoiNode generation
-  - [ ] Use same positioning and terrain-type logic currently used for habitats
-  - [ ] Maintain player starting position identification logic
+- [x] Update initializeBoard in gameStore.ts:
+  - [x] Create an array to hold temporary VoronoiNodes
+  - [x] Replace habitat generation with VoronoiNode generation
+  - [x] Use same positioning and terrain-type logic currently used for habitats
+  - [x] Maintain player starting position identification logic
 
-- [ ] Modify biome generation to work with nodes:
-  - [ ] Pass nodes (not habitats) to generateVoronoiBiomes
-  - [ ] Generate proper biome IDs with "habitat-" prefix (for compatibility)
-  - [ ] Create biomes directly from VoronoiNodes
-  - [ ] Assign player ownership based on node terrain (e.g., beach terrain)
+- [x] Modify biome generation to work with nodes:
+  - [x] Pass nodes (not habitats) to generateVoronoiBiomes
+  - [x] Generate proper biome IDs with "habitat-" prefix (for compatibility)
+  - [x] Create biomes directly from VoronoiNodes
+  - [x] Assign player ownership based on node terrain (e.g., beach terrain)
 
 #### Phase 3: Create Habitats as Properties of Biomes
-- [ ] Add habitat field to Biome interface:
-  - [ ] Update the interface in gameStore.ts
-  - [ ] Ensure backward compatibility with existing code
+- [x] Add habitat field to Biome interface:
+  - [x] Update the interface in gameStore.ts
+  - [x] Ensure backward compatibility with existing code
 
-- [ ] Create habitats from biomes:
-  - [ ] After biome generation, create habitats positioned at VoronoiNode locations
-  - [ ] Assign habitat IDs using same format as before
-  - [ ] Store each habitat in its parent biome
-  - [ ] Also add habitats to the habitats array for compatibility
+- [x] Create habitats from biomes:
+  - [x] After biome generation, create habitats positioned at VoronoiNode locations
+  - [x] Assign habitat IDs using same format as before
+  - [x] Store each habitat in its parent biome
+  - [x] Also add habitats to the habitats array for compatibility
 
-- [ ] Clean up temporary structures:
-  - [ ] Discard VoronoiNodes after habitats are created
-  - [ ] Ensure no lingering references to temporary generation structures
+- [x] Clean up temporary structures:
+  - [x] Discard VoronoiNodes after habitats are created
+  - [x] Ensure no lingering references to temporary generation structures
 
 #### Phase 4: Update References and Dependencies
-- [ ] Update State Access Methods
-  - [ ] Modify methods that retrieve habitats to go through biomes first
-  - [ ] Update `getHabitatAt()` to search through biomes first
-  - [ ] Rework `selectHabitat()` to select the biome containing the habitat
+- [x] Update State Access Methods
+  - [x] Modify methods that retrieve habitats to go through biomes first
+  - [x] Update `getHabitatAt()` to search through biomes first
+  - [x] Rework `selectHabitat()` to select the biome containing the habitat
 
-- [ ] Refactor Animal Spawning
-  - [ ] Rework animal spawning to iterate through biomes instead of habitats
-  - [ ] Use biome ownership and properties to determine spawning locations
+- [x] Refactor Animal Spawning
+  - [x] Rework animal spawning to iterate through biomes instead of habitats
+  - [x] Use biome ownership and properties to determine spawning locations
 
-- [ ] Update Player Starting Position Logic
-  - [ ] Find player starting biomes by checking terrain at biome.habitat.position
-  - [ ] Assign ownership directly to biomes
+- [x] Update Player Starting Position Logic
+  - [x] Find player starting biomes by checking terrain at biome.habitat.position
+  - [x] Assign ownership directly to biomes
 
 #### Phase 5: UI and Rendering Updates
 - [ ] Update BoardScene and Renderers

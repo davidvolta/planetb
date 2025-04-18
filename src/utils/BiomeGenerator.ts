@@ -2,6 +2,18 @@ import { Habitat, TerrainType } from "../store/gameStore";
 import { calculateManhattanDistance } from "./CoordinateUtils";
 
 /**
+ * Represents a node used for Voronoi diagram generation
+ * This is a temporary structure used only during map generation
+ */
+export interface VoronoiNode {
+  id: string;  // Temporary ID for generation purposes
+  position: {  // Same position structure as habitats
+    x: number;
+    y: number;
+  };
+}
+
+/**
  * Results from biome generation, including a map of which tiles belong to which biomes,
  * and a color mapping for visualization
  */
@@ -11,21 +23,20 @@ export interface BiomeGenerationResult {
 }
 
 /**
- * Generate biomes using Voronoi partitioning around habitats
- * 
- * Each tile is assigned to the closest habitat using Manhattan distance,
+ * Generate biomes using Voronoi partitioning around nodes
+ * Each tile is assigned to the closest node using Manhattan distance,
  * creating natural biome boundaries
  * 
  * @param width Board width
  * @param height Board height
- * @param habitats List of habitats to use as biome centers
+ * @param nodes List of VoronoiNodes to use as biome centers
  * @param terrainData Current terrain map (for future terrain-based adjustments)
  * @returns BiomeGenerationResult with biomeMap and biomeColors
  */
 export function generateVoronoiBiomes(
   width: number, 
   height: number, 
-  habitats: Habitat[],
+  nodes: VoronoiNode[],  // Changed from habitats to nodes
   terrainData: TerrainType[][] // For future refinements/validation
 ): BiomeGenerationResult {
   // Initialize empty biome map
@@ -35,34 +46,34 @@ export function generateVoronoiBiomes(
   
   // Generate consistent colors for each biome
   const biomeColors = new Map<string, number>();
-  habitats.forEach((habitat, index) => {
+  nodes.forEach((node, index) => {
     // Generate color based on golden ratio to distribute colors well
     // This creates visually distinct colors that are evenly spaced in hue
     const hue = (index * 0.618033988749895) % 1;
     const color = hslToHex(hue, 0.7, 0.5);
-    biomeColors.set(habitat.id, color);
+    biomeColors.set(node.id, color);
   });
   
-  // For each tile, find the closest habitat and assign to that biome
+  // For each tile, find the closest node and assign to that biome
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       let minDistance = Infinity;
-      let closestHabitatId = null;
+      let closestNodeId = null;
       
-      // Find closest habitat
-      for (const habitat of habitats) {
+      // Find closest node
+      for (const node of nodes) {
         const distance = calculateManhattanDistance(
-          x, y, habitat.position.x, habitat.position.y
+          x, y, node.position.x, node.position.y
         );
         
         if (distance < minDistance) {
           minDistance = distance;
-          closestHabitatId = habitat.id;
+          closestNodeId = node.id;
         }
       }
       
-      // Assign this tile to the closest habitat's biome
-      biomeMap[y][x] = closestHabitatId;
+      // Assign this tile to the closest node's biome
+      biomeMap[y][x] = closestNodeId;
     }
   }
   
@@ -70,6 +81,35 @@ export function generateVoronoiBiomes(
     biomeMap,
     biomeColors
   };
+}
+
+/**
+ * Check if a potential node would overlap with existing nodes
+ * This ensures that biomes are properly separated during generation
+ * 
+ * @param position The potential position to check
+ * @param existingNodes Array of existing nodes to check against
+ * @returns true if the position would overlap with any existing node zone, false otherwise
+ */
+export function isNodeOverlapping(
+  position: { x: number, y: number },
+  existingNodes: VoronoiNode[]
+): boolean {
+  // For each existing node, calculate Manhattan distance
+  for (const node of existingNodes) {
+    const distance = calculateManhattanDistance(
+      position.x, position.y,
+      node.position.x, node.position.y
+    );
+    
+    // If distance is less than 5, zones will overlap
+    if (distance < 5) {
+      return true;
+    }
+  }
+  
+  // No overlaps found
+  return false;
 }
 
 /**
