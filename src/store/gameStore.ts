@@ -342,7 +342,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     } as GameState['spawnEvent']; // Force type alignment
     
     // Reset biome capture event
-    console.log(`[gameStore] Resetting biome capture event during nextTurn`);
     const resetBiomeCaptureEvent = {
       occurred: false,
       biomeId: null,
@@ -849,10 +848,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Habitat selection method
   selectHabitat: (id: string | null) => 
     set((state) => {
-      console.log(`[gameStore] selectHabitat called with habitat ID: ${id}`);
       if (!id) {
         // Deselecting a habitat
-        console.log(`[gameStore] Deselecting habitat and biome`);
         return { 
           selectedHabitatId: null,
           selectedBiomeId: null
@@ -868,9 +865,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           selectedBiomeId: null
         };
       }
-      
-      console.log(`[gameStore] Selected habitat ${id} at (${habitat.position.x}, ${habitat.position.y})`);
-      console.log(`[gameStore] Associated biome ID: ${habitat.id}`);
       
       return {
         selectedHabitatId: id,

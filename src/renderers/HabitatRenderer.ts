@@ -61,8 +61,6 @@ export class HabitatRenderer extends BaseRenderer {
       }
     });
     
-    console.log(`[HabitatRenderer] Rendering ${habitats.length} habitats`);
-    
     // Process each habitat - create new or update existing
     habitats.forEach(habitat => {
       // Calculate position using coordinate utility
@@ -81,8 +79,6 @@ export class HabitatRenderer extends BaseRenderer {
       const biome = state.biomes.get(biomeId);
       const isCaptured = biome?.ownerId !== null;
       
-      console.log(`[HabitatRenderer] Habitat ${habitat.id}, biome ${biomeId}, captured: ${isCaptured}, owner: ${biome?.ownerId || 'none'}`);
-      
       if (existing) {
         // Mark as used so we don't delete it later
         existing.used = true;
@@ -92,7 +88,6 @@ export class HabitatRenderer extends BaseRenderer {
         
         // Update state if needed based on biome ownership
         if (existing.graphic.getData('isCaptured') !== isCaptured) {
-          console.log(`[HabitatRenderer] Updating habitat ${habitat.id} graphic to reflect capture state: ${isCaptured}`);
           existing.graphic.setData('isCaptured', isCaptured);
           
           // Destroy and recreate the graphic to reflect the new state
@@ -112,7 +107,6 @@ export class HabitatRenderer extends BaseRenderer {
         }
       } else {
         // Create new habitat graphic
-        console.log(`[HabitatRenderer] Creating new habitat graphic for ${habitat.id} at (${gridX}, ${gridY})`);
         const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured);
         habitatGraphic.setData('habitatId', habitat.id);
         habitatGraphic.setData('gridX', gridX);
@@ -125,7 +119,6 @@ export class HabitatRenderer extends BaseRenderer {
     // Remove any unused habitat graphics
     existingHabitats.forEach((value, key) => {
       if (!value.used) {
-        console.log(`[HabitatRenderer] Removing unused habitat graphic for ${key}`);
         value.graphic.destroy();
       }
     });
@@ -139,8 +132,6 @@ export class HabitatRenderer extends BaseRenderer {
    * @returns A container with the habitat graphic
    */
   private createHabitatGraphic(x: number, y: number, isCaptured: boolean): Phaser.GameObjects.Container {
-    console.log(`[HabitatRenderer] Creating habitat graphic at (${x}, ${y}), captured: ${isCaptured}`);
-    
     // Create a container for the habitat
     const container = this.scene.add.container(x, y);
     const graphics = this.scene.add.graphics();
@@ -158,11 +149,9 @@ export class HabitatRenderer extends BaseRenderer {
     // Choose color based on biome ownership
     if (isCaptured) {
       // Black for captured habitats (owned biomes)
-      console.log(`[HabitatRenderer] Setting captured habitat style: solid (0.7 alpha)`);
       graphics.fillStyle(0x000000, 0.7);
     } else {
       // Black for uncaptured habitats (unowned biomes)
-      console.log(`[HabitatRenderer] Setting uncaptured habitat style: pulsing (0.5-0.2 alpha)`);
       graphics.fillStyle(0x000000, 0.5);
       
       // Add pulsing effect for uncaptured habitats

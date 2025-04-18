@@ -335,8 +335,6 @@ export class StateSubscriptionManager {
       (biomeCaptureEvent) => {
         // Handle biome capture events
         if (biomeCaptureEvent && biomeCaptureEvent.occurred) {
-          console.log("Biome capture event detected in StateSubscriptionManager");
-          
           // Clear the selection indicator - cast scene to BoardScene to access the method
           if (this.scene instanceof BoardScene) {
             // Hide selection indicator

@@ -50,16 +50,9 @@ export default class UIScene extends Phaser.Scene {
         // Show/hide biome capture button based on biome selection and unit presence
         if (this.captureBiomeButton) {
           const selectedBiomeId = data.selectedBiomeId;
-          console.log(`[UIScene] Checking capture button visibility - Selected biome: ${selectedBiomeId}`);
-          
           const isAvailable = selectedBiomeId !== null && actions.isSelectedBiomeAvailableForCapture();
-          console.log(`[UIScene] Biome available for capture: ${isAvailable}`);
-          
           const canCapture = isAvailable && actions.canCaptureBiome(selectedBiomeId);
-          console.log(`[UIScene] Can capture biome: ${canCapture}`);
-          
           this.captureBiomeButton.setVisible(canCapture);
-          console.log(`[UIScene] Capture biome button visible: ${canCapture}`);
           
           // Update background size when button visibility changes
           this.updateBackgroundSize();
@@ -172,7 +165,6 @@ export default class UIScene extends Phaser.Scene {
   }
 
   createCaptureBiomeButton() {
-    console.log(`[UIScene] Creating capture biome button`);
     // Create a container for the capture biome button
     this.captureBiomeButton = this.add.container(0, 0);
     this.captureBiomeButton.setVisible(false);
@@ -201,7 +193,6 @@ export default class UIScene extends Phaser.Scene {
     
     // Add to main container
     this.container?.add(this.captureBiomeButton);
-    console.log(`[UIScene] Capture biome button created and added to container`);
   }
 
   createRegenerateResourcesButton() {
@@ -250,22 +241,13 @@ export default class UIScene extends Phaser.Scene {
   }
 
   handleCaptureBiome() {
-    console.log(`[UIScene] handleCaptureBiome called`);
     const selectedBiomeId = actions.getSelectedBiomeId();
-    console.log(`[UIScene] Selected biome ID: ${selectedBiomeId}`);
     
     if (selectedBiomeId && actions.canCaptureBiome(selectedBiomeId)) {
-      console.log(`[UIScene] Calling actions.captureBiome for biome: ${selectedBiomeId}`);
       // Call the capture biome action
       actions.captureBiome(selectedBiomeId);
       
-      console.log(`[UIScene] Deselecting habitat after capture`);
       actions.selectHabitat(null); // Deselect the habitat after capturing
-      
-      // Let the player decide when to end their turn
-      console.log(`[UIScene] Biome capture completed`);
-    } else {
-      console.log(`[UIScene] Cannot capture biome - requirements not met`);
     }
   }
 
@@ -275,7 +257,6 @@ export default class UIScene extends Phaser.Scene {
     
     // Call regenerateResources on BoardScene if it exists
     if (boardScene && typeof (boardScene as any).regenerateResources === 'function') {
-      console.log("Regenerating resources via UI button");
       (boardScene as any).regenerateResources();
     } else {
       console.warn("BoardScene or regenerateResources method not found");
