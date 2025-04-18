@@ -35,7 +35,8 @@ export class HabitatRenderer extends BaseRenderer {
   
   /**
    * Render all habitats based on the provided habitat data
-   * @param habitats Array of habitat objects from the game state
+   * Note: With the biome-centric architecture, these habitats come from biomes
+   * @param habitats Array of habitat objects from the biomes
    */
   renderHabitats(habitats: any[]): void {
     // Check if staticObjectsLayer exists before proceeding

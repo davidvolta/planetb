@@ -348,12 +348,12 @@ export class StateSubscriptionManager {
               // Get the captured biome (for logging purposes)
               const capturedBiome = actions.getBiomeById(biomeCaptureEvent.biomeId);
               if (capturedBiome) {
-                // Extract all habitats from all biomes
+                // Use biomes directly instead of extracting habitats
                 const state = useGameStore.getState();
-                const allHabitats = Array.from(state.biomes.values()).map((biome: Biome) => biome.habitat);
+                const biomes = Array.from(state.biomes.values());
                 
-                // Render all habitats to ensure none disappear
-                this.habitatRenderer.renderHabitats(allHabitats);
+                // Render biomes by passing their habitat property
+                this.habitatRenderer.renderHabitats(biomes.map(biome => biome.habitat));
               }
             }
           }

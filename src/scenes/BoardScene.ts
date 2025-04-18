@@ -316,10 +316,7 @@ export default class BoardScene extends Phaser.Scene {
     const hasMovedUnit = contents.activeUnits.some(unit => unit.hasMoved);
     
     // Check if there's an improved habitat at this location
-    const hasImprovedHabitat = contents.habitats.some(habitat => {
-      const biome = actions.getBiomes().get(habitat.id);
-      return biome && biome.ownerId !== null;
-    });
+    const hasImprovedHabitat = contents.biomes.some(biome => biome.ownerId !== null);
     
     // First, check if this tile is a valid move target - this gets priority over other interactions
     const isValidMoveTarget = this.moveRangeRenderer.isValidMoveTarget(gridX, gridY);
@@ -354,7 +351,7 @@ export default class BoardScene extends Phaser.Scene {
     // Check if the tile contains both active and dormant units
     const hasActiveUnit = contents.activeUnits.length > 0;
     const hasDormantUnit = contents.dormantUnits.length > 0;
-    const hasHabitat = contents.habitats.length > 0;
+    const hasHabitat = contents.biomes.length > 0;
     
     // Get currently selected unit (if any)
     const selectedUnitId = actions.getSelectedUnitId();
@@ -383,25 +380,16 @@ export default class BoardScene extends Phaser.Scene {
     
     // Then check if there's a habitat we can interact with
     if (hasHabitat) {
-      const clickedHabitat = contents.habitats[0]; // Just use the first one for now
+      const clickedBiome = contents.biomes[0]; // Just use the first one for now
       
       // Log the habitat click
-      console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}`);
+      console.log(`Biome clicked: ${clickedBiome.id} at position (${gridX},${gridY})`);
       
-      // Find the biome associated with this habitat
-      const biome = Array.from(actions.getBiomes().values())
-        .find(b => b.habitat.id === clickedHabitat.id);
-        
-      const isOwned = biome && biome.ownerId !== null;
+      const isOwned = clickedBiome.ownerId !== null;
       
       if (!isOwned) {
-        // Select biome in store - pass the biome ID instead of habitat ID
-        if (biome) {
-          actions.selectBiome(biome.id);
-        } else {
-          console.warn(`Could not find biome for habitat ${clickedHabitat.id}`);
-          actions.selectBiome(null);
-        }
+        // Select biome in store
+        actions.selectBiome(clickedBiome.id);
         
         // Show RED selection indicator for habitat
         this.selectionRenderer.showRedSelectionAt(gridX, gridY);
@@ -544,18 +532,21 @@ export default class BoardScene extends Phaser.Scene {
       animal.state === AnimalState.DORMANT
     );
     
-    // Extract habitats from biomes and filter by location
-    const habitatsAtLocation = Array.from(biomes.values())
-      .map(biome => biome.habitat)
-      .filter(habitat => 
-        habitat.position.x === x && 
-        habitat.position.y === y
+    // Find biomes at this location by checking habitat positions
+    const biomesAtLocation = Array.from(biomes.values())
+      .filter(biome => 
+        biome.habitat.position.x === x && 
+        biome.habitat.position.y === y
       );
+    
+    // Extract habitats from biomes for backward compatibility
+    const habitatsAtLocation = biomesAtLocation.map(biome => biome.habitat);
     
     return {
       activeUnits,
       dormantUnits,
-      habitats: habitatsAtLocation
+      habitats: habitatsAtLocation,
+      biomes: biomesAtLocation
     };
   }
 
