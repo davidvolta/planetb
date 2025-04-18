@@ -40,6 +40,47 @@ The GameController interacts with the state management system to:
 - Validate actions against current state
 - Trigger state updates when game rules are applied
 
+## EcosystemController
+
+Manages the biome-centric ecosystem including resource generation, biome mechanics, and egg production.
+
+### Responsibilities
+
+- Generating and distributing resources across biomes based on terrain types
+- Managing biome egg production for player-owned territories
+- Selecting appropriate species based on terrain compatibility
+- Determining valid egg placement locations within biomes
+- Handling resource harvesting and lushness calculations
+- Supporting the biome-centric architecture throughout game progression
+
+### API
+
+```typescript
+// Resource generation and management
+generateResources(width: number, height: number, terrainData: TerrainType[][]): Resource[];
+regenerateAllResources(): void;
+selectResourceTile(x: number, y: number): boolean;
+harvestResource(resourceId: string, amount: number): boolean;
+
+// Biome mechanics
+biomeEggProduction(state: GameState): Partial<BiomeProductionResult>;
+getValidEggPlacementTiles(biomeId: string, state: ValidEggPlacementState): Coordinate[];
+calculateBiomeLushness(biomeId: string): number;
+updateAllBiomeLushness(): void;
+
+// Utility methods
+private getSpeciesForTerrain(terrain: TerrainType): string;
+```
+
+### Biome-Centric Integration
+
+The EcosystemController is central to the biome-centric architecture:
+- It accesses habitats through their parent biomes rather than as separate entities
+- It generates resources in the context of biomes, linking them to their parent biome's ID
+- It produces eggs for biomes based on ownership and production rates
+- It calculates lushness values for biomes based on their resource distribution
+- It supports the parent-child relationship between biomes and habitats
+
 ## AnimationController
 
 Manages animations for game entities and visual effects.

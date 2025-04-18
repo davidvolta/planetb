@@ -178,8 +178,6 @@ export class EcosystemController {
       }
     });
     
-    console.log(`Player ${biomeOwnerId} owns ${playerBiomeIds.size} biomes`);
-    
     // Create a set of resource positions for quick lookup
     const resourcePositions = new Set<string>();
     const resourceBiomeMap = new Map<string, string | undefined>();

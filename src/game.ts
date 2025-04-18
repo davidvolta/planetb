@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import BoardScene, { EVENTS } from './scenes/BoardScene';
 import DebugScene from './scenes/DebugScene';
 import UIScene from './scenes/UIScene';
-import { MapGenerationType, useGameStore } from './store/gameStore';
+import { useGameStore } from './store/gameStore';
 import * as actions from './store/actions';
 import { GAME_WIDTH, GAME_HEIGHT, BOARD_WIDTH_TILES, BOARD_HEIGHT_TILES } from './constants/gameConfig';
 import { StateObserver } from './utils/stateObserver';
@@ -40,8 +40,7 @@ function setupGameState() {
   // Set up the game board
   actions.setupGameBoard({
     width: BOARD_WIDTH_TILES,
-    height: BOARD_HEIGHT_TILES,
-    mapType: MapGenerationType.ISLAND
+    height: BOARD_HEIGHT_TILES
   });
 }
 

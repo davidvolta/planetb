@@ -143,4 +143,60 @@ The generator creates a varied terrain with these types:
 - **Beach**: Shoreline tiles between water and land
 - **Grass**: The main land area
 - **Mountain**: Elevated areas on the island
-- **Underwater**: Deep water tiles away from the shore 
+- **Underwater**: Deep water tiles away from the shore
+
+## BiomeGenerator
+
+Generates biomes using Voronoi partitioning around specified nodes, implementing the biome-centric architecture.
+
+### API
+
+```typescript
+// Core interfaces
+interface VoronoiNode {
+  id: string;  // Temporary ID for generation purposes
+  position: {  // Position structure (x,y)
+    x: number;
+    y: number;
+  };
+}
+
+interface BiomeGenerationResult {
+  biomeMap: (string | null)[][]; // 2D array of biomeIds, can be null
+  biomeColors: Map<string, number>; // Maps biomeId to color for visualization
+}
+
+// Main generation function
+function generateVoronoiBiomes(
+  width: number, 
+  height: number, 
+  nodes: VoronoiNode[],
+  terrainData: TerrainType[][]
+): BiomeGenerationResult;
+
+// Helper functions
+function isNodeOverlapping(
+  position: { x: number, y: number },
+  existingNodes: VoronoiNode[]
+): boolean;
+
+// Color utility
+function hslToHex(h: number, s: number, l: number): number;
+```
+
+### Key Features
+
+- **Voronoi Partitioning**: Divides the game board into natural-looking biome regions
+- **Biome-Centric Design**: Creates the foundation for the biome-centric architecture
+- **Habitat Integration**: Each biome contains a habitat at its center (node)
+- **Visual Distinction**: Generates unique colors for each biome using the golden ratio
+- **Coordinate-Based Assignment**: Uses Manhattan distance to determine biome boundaries
+- **Overlap Prevention**: Ensures biomes are properly spaced during generation
+
+### Biome Generation Process
+
+1. **Node Placement**: Strategic placement of VoronoiNodes across different terrain types
+2. **Color Assignment**: Each biome receives a visually distinct color
+3. **Territory Mapping**: Tiles are assigned to the closest biome based on Manhattan distance
+4. **Board Integration**: The biome map is integrated with the game board structure
+5. **Resource Generation**: After biome creation, resources are distributed within biomes by the EcosystemController 

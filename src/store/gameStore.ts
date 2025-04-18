@@ -117,11 +117,6 @@ export const HABITAT_TERRAIN_ORDER: TerrainType[] = [
   TerrainType.UNDERWATER // Finally to underwater
 ];
 
-// Only island map generation is available now
-export enum MapGenerationType {
-  ISLAND = 'island'
-}
-
 // Biome structure
 export interface Biome {
   id: string;
@@ -247,7 +242,7 @@ export interface GameState {
   resetMovementFlags: () => void; // Reset hasMoved flags for all animals
   addPlayer: (name: string, color: string) => void;
   setActivePlayer: (playerId: number) => void;
-  initializeBoard: (width: number, height: number, mapType?: MapGenerationType) => void;
+  initializeBoard: (width: number, height: number) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   evolveAnimal: (id: string) => void;
   selectUnit: (id: string | null) => void;
@@ -370,7 +365,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { players: updatedPlayers, currentPlayerId: playerId };
     }),
 
-  initializeBoard: (width, height, mapType = MapGenerationType.ISLAND) =>
+  initializeBoard: (width, height) =>
     set((state) => {
       console.log(`Initializing board with dimensions ${width}x${height}`);
       

@@ -22,9 +22,21 @@
    - The game listens for this event and calls `initializeGameBoard()`
    - This triggers the Zustand store update via `actions.initializeBoard()`
 
-5. **State Management and Subscriptions**:
+5. **Biome Generation and Resource Initialization**:
+   - During board initialization, the game creates a biome-centric structure:
+     - Terrain is generated first using the specified map type
+     - Voronoi nodes are placed to define biome centers
+     - Biomes are generated with embedded habitat structures
+     - Each biome tracks its own lushness, production rate, and owner
+   - After biome initialization, `EcosystemController.generateResources()` is called to:
+     - Generate resources appropriate to each biome's terrain
+     - Link resources to their parent biomes
+     - Distribute resources based on terrain compatibility
+
+6. **State Management and Subscriptions**:
    - BoardScene delegates subscription setup to `StateSubscriptionManager` from `src/managers/`
    - `StateSubscriptionManager.setupSubscriptions()` organizes all state subscriptions
    - Renderers receive state updates through callbacks registered with the StateObserver
    - When state updates happen (like from `actions.initializeBoard()`), they trigger the subscriptions
+
 

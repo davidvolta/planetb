@@ -1,6 +1,5 @@
 import { 
   useGameStore, 
-  MapGenerationType, 
   Animal, 
   GameState, 
   AnimalState,
@@ -23,7 +22,6 @@ import { EcosystemController } from "../controllers/EcosystemController";
 interface BoardInitOptions {
   width: number;
   height: number;
-  mapType?: MapGenerationType;
 }
 
 /**
@@ -43,8 +41,8 @@ export function getNextTurn(): () => void {
 /**
  * Set up the game board with the specified dimensions and options
  */
-export function setupGameBoard({ width, height, mapType = MapGenerationType.ISLAND }: BoardInitOptions): void {
-  useGameStore.getState().initializeBoard(width, height, mapType);
+export function setupGameBoard({ width, height }: BoardInitOptions): void {
+  useGameStore.getState().initializeBoard(width, height);
 }
 
 /**

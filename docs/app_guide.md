@@ -52,6 +52,12 @@ Managers handle system-level concerns:
 #### Controllers
 Controllers implement game logic:
 - **AnimationController**: Coordinates complex animation sequences
+- **EcosystemController**: Manages biome-centric ecosystem functionality including:
+  - Resource generation and distribution across biomes
+  - Biome egg production based on ownership and production rates
+  - Habitat functionality and placement
+  - Resource harvesting and lushness calculations
+  - Species selection based on terrain compatibility
 
 ### State Management
 
@@ -61,7 +67,6 @@ The game uses a custom state management system:
 
 - **Game State**: Central state store with typed data structures
 - **Actions**: Typed actions for state modifications
-- **Reducers**: Pure functions that transform state based on actions
 - **Selectors**: Functions to query and filter state data
 - **Subscriptions**: Component-specific state subscriptions with diffing
 
@@ -101,19 +106,36 @@ All components follow a consistent lifecycle:
 - **Board**: Grid of tiles with terrain types (water, grass, beach, mountain, underwater)
 - **Tiles**: Individual grid cells with coordinates, terrain type, and visibility properties
 - **Units**: Player-controlled entities that can move and interact
-- **Habitats**: Structures on the board
+- **Biomes**: Primary territorial units that have:
+  - A unique ID and visual color
+  - Lushness value determining resource regeneration rates
+  - Ownership by players
+  - Production rates for eggs
+  - An embedded habitat structure
+- **Habitats**: Structures embedded within biomes, defining:
+  - A specific location on the map
+  - A focal point for biome activities
+  - Spawn points for new units
 
 ## Architecture Principles and Patterns
 Our core architectural pattern follows: **"Components trigger actions, actions modify state"**
 
 This creates a unidirectional data flow where Phaser scenes never directly mutate the state. Instead, they trigger actions, which encapsulate state mutation logic in a centralized location.
 
-1. **Rendering Responsibility**
+1. **Biome-Centric Design**
+   - ✅ DO: Treat biomes as the primary data structure
+   - ✅ DO: Access habitats through their parent biome
+   - ✅ DO: Generate resources within the context of biomes
+   - ✅ DO: Use biomes for territorial ownership and egg production
+   - ❌ DON'T: Access habitats directly from a separate collection
+   - ❌ DON'T: Treat habitats as independent from biomes
+
+2. **Rendering Responsibility**
    - ✅ DO: Use Phaser for game rendering and UI
    - ✅ DO: Keep rendering logic in appropriate components
    - ❌ DON'T: Mix rendering responsibilities across systems
 
-2. **Subscription Model**
+3. **Subscription Model**
    - ✅ DO: Implement a proper Observer pattern for Phaser to subscribe to state changes
    - ✅ DO: Use StateObserver for efficient callbacks when state changes
    - ✅ DO: Ensure Phaser updates tiles only when needed, not every frame
@@ -123,7 +145,7 @@ This creates a unidirectional data flow where Phaser scenes never directly mutat
    - ❌ DON'T: Re-render everything when only small parts of state change
    - ❌ DON'T: Create duplicate subscriptions for the same state data
 
-3. **Unidirectional Data Flow**
+4. **Unidirectional Data Flow**
    - ✅ DO: Phaser UI → triggers state changes through action functions
    - ✅ DO: Action functions → interact with Zustand using getState()/setState()
    - ✅ DO: Zustand → notifies subscribers of changes 
@@ -131,20 +153,20 @@ This creates a unidirectional data flow where Phaser scenes never directly mutat
    - ❌ DON'T: Allow Phaser to directly modify state
    - ❌ DON'T: Create circular data flows or bidirectional dependencies
 
-4. **Event Delegation**
+5. **Event Delegation**
    - ✅ DO: Emit events from Phaser when user interacts with game objects
    - ✅ DO: Handle game input events in appropriate handler functions
    - ✅ DO: Update state through action functions
    - ❌ DON'T: Handle input events directly in Phaser scenes that modify state
    - ❌ DON'T: Mix event handling with rendering logic
 
-5. **State Access Pattern**
+6. **State Access Pattern**
    - ✅ DO: Use action functions for ALL state mutations
    - ✅ DO: Create action functions in a central location (actions.ts)
    - ❌ DON'T: Call getState() directly in Phaser scenes
    - ❌ DON'T: Perform state mutations directly in components
 
-6. **Clear Separation of Concerns**
+7. **Clear Separation of Concerns**
    - ✅ DO: Phaser: Rendering and input handling
    - ✅ DO: Zustand: State management only
    - ✅ DO: Actions: Centralized state access and modification
