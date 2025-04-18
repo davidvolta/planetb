@@ -8,17 +8,8 @@
 - [ ] Fix linter errors in EcosystemController.ts:
   - [ ] Add proper type checking for Biome properties
   - [ ] Update the biomeEggProduction function to handle the new Biome interface
-- [ ] Complete the improveHabitat function refactoring:
-  - [ ] Update to set ownership on the biome instead of the habitat
-  - [ ] Maintain habitat state changes (POTENTIAL → IMPROVED)
-- [ ] Test biome-first ownership logic:
-  - [ ] Verify egg production works with biome ownership
-  - [ ] Check that new units inherit biome ownership correctly
-  - [ ] Ensure UI properly reflects biome ownership
 
 ## Upcoming Tasks
-- [x] Fix visibility bug in BoardScene.initializeVisibility method where it's using habitat.ownerId instead of biome.ownerId
-- [x] Fix visibility bug in BoardScene.revealBiomeTiles where it's using habitat.id as biomeId instead of habitat.biomeId
 - [ ] Fix viewport tinting (change to WebGL shader or use a different approach)
 - [ ] Fix animal click not functioning
 - [ ] Fix animal sprite not showing animation
@@ -48,56 +39,19 @@
 ## Habitat to Biome-Centric Refactoring
 
 ### Phase 1: Core Interface Changes
-- [x] Update `Biome` interface:
-  - [x] Add properties from Habitat (ownerId, productionRate, lastProductionTurn)
-  - [x] Make it the primary entity for ownership and production
-
-- [x] Update `Habitat` interface:
-  - [x] Add biomeId property
-  - [x] Remove ownerId property
-  - [x] Keep only position, state, and shelterType
-  - [x] Simplify to be just a UI/selection element
-
 - [ ] Fix linter errors:
   - [ ] Add proper type definitions in EcosystemController to recognize Biome properties
   - [ ] Update type definitions in other files where needed
 
-### Phase 2: Update References & Functionality
-- [ ] Update initialization code:
-  - [x] Set ownership on biomes, not habitats
-  - [x] Ensure proper linking between habitats and their parent biomes
-  - [x] Set initial player ownership on starting biome
-
-- [ ] Update habitat improvement logic:
-  - [ ] Change to set ownership on the parent biome
-  - [ ] Keep habitat state transitions (POTENTIAL → IMPROVED)
-  - [ ] Remove all habitat ownership code
-
-- [ ] Update animal creation/spawning:
-  - [x] Set animal ownership based on biome ownership
-  - [x] Ensure eggs inherit ownership from biomes
-
 ### Phase 3: Simplify and Rename
 - [ ] Rename `isHabitatZoneOverlapping` to `isBiomeOverlapping`
-- [ ] Update ownership checks throughout codebase:
-  - [ ] Replace `habitat.ownerId` with biome ownership lookups
-  - [ ] Keep UI and selection interfaces the same
-  - [ ] Keep function signatures where possible to minimize changes
 
 ### Phase 4: Biome-Centric Function Updates
 - [ ] Simplify `getValidEggPlacementTiles`:
-  - [x] Start directly with biomes instead of finding habitats first
-  - [x] Remove habitat ownership checks
-  - [x] Filter tiles based on biome ownership directly
 - [ ] Streamline resource generation:
   - [ ] Focus on biome-based generation without complex habitat avoidance
   - [ ] Simplify resource-biome relationship
-- [ ] Update egg production logic:
-  - [x] Iterate through biomes directly instead of habitats
-  - [x] Set ownership based on biome ownership
 - [ ] Simplify player territory recognition:
-  - [x] Filter biomes by player ID directly
-  - [x] Remove habitat-biome lookup steps
 - [ ] Reduce data duplication:
   - [ ] Make biomes contain habitats as features
   - [ ] Remove redundant ownership data
@@ -106,8 +60,6 @@
   - [ ] Simplify tile prioritization for egg placement
 
 ### Phase 5: Refactor Initialization Logic
-**Note**: Early progress made with current implementation. Biomes now store ownership and habitats reference biomes.
-
 - [ ] Update `generateVoronoiBiomes` function:
   - [ ] Make it the primary mechanism for territory assignment
   - [ ] Remove the habitat-centric ID relationship (biomes should have their own IDs)
@@ -119,17 +71,8 @@
   - [ ] Ensure habitats are properly positioned within their parent biome
 
 ### Phase 6: Update EcosystemController
-**Note**: Progress made with initial functionality, but needs type definition fixes and testing.
-
 - [ ] Refactor EcosystemController methods:
-  - [x] Update `generateResources` to work directly with biomes
-  - [x] Modify `biomeEggProduction` to iterate through biomes instead of habitats
-  - [x] Remove any functions that rely on habitat ownership
   - [ ] Update all utility functions to use biome-first approach
-
-
-
-
 
 ## Ecosystem Integration Plan
 

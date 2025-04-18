@@ -1,4 +1,18 @@
-import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState, Board, Biome, TerrainType, Habitat, GameConfig } from "./gameStore";
+import { 
+  useGameStore, 
+  MapGenerationType, 
+  Animal, 
+  GameState, 
+  AnimalState, 
+  HabitatState, 
+  Board, 
+  Biome, 
+  TerrainType, 
+  Habitat, 
+  GameConfig,
+  ShelterType,
+  Coordinate
+} from "./gameStore";
 import { EcosystemController } from "../controllers/EcosystemController";
 
 /**
@@ -340,17 +354,36 @@ export function improveHabitat(habitatId: string): void {
     // Get the current player ID
     const currentPlayerId = state.currentPlayerId;
     
-    // Create a new array with the updated habitat
+    // Get the biome associated with this habitat
+    const biomeId = habitat.biomeId;
+    const biome = state.biomes.get(biomeId);
+    
+    if (!biome) {
+      console.error(`Could not find biome with ID ${biomeId} for habitat ${habitatId}`);
+      return;
+    }
+    
+    // Create a new array with the updated habitat (no ownership on habitat)
     const updatedHabitats = state.habitats.map(h => 
       h.id === habitatId 
         ? { 
             ...h, 
             state: HabitatState.IMPROVED,
-            ownerId: currentPlayerId, // Set the owner to current player
-            lastProductionTurn: state.turn - 1 // Set lastProductionTurn to previous turn to maintain correct egg production timing
+            shelterType: getShelterTypeForTerrain(state.board, habitat.position)
           }
         : h
     );
+    
+    // Create updated biome with ownership properties
+    const updatedBiome = {
+      ...biome,
+      ownerId: currentPlayerId,
+      lastProductionTurn: state.turn - 1 // Set lastProductionTurn to previous turn for correct egg production timing
+    };
+    
+    // Create a new Map with the updated biome
+    const updatedBiomes = new Map(state.biomes);
+    updatedBiomes.set(biomeId, updatedBiome);
     
     // Find the unit that is on the habitat and mark it as having moved
     const unitsOnHabitat = state.animals.filter(animal => 
@@ -370,20 +403,55 @@ export function improveHabitat(habitatId: string): void {
           : animal
       );
       
-      // Update both habitats and animals
+      // Update habitats, biomes, and animals
       useGameStore.setState({ 
         habitats: updatedHabitats,
+        biomes: updatedBiomes,
         animals: updatedAnimals
       });
       
       console.log(`Unit ${unitId} marked as moved after improving habitat ${habitatId}`);
     } else {
-      // Just update habitats if no unit found (shouldn't happen due to canImproveHabitat check)
-      useGameStore.setState({ habitats: updatedHabitats });
+      // Just update habitats and biomes if no unit found
+      useGameStore.setState({ 
+        habitats: updatedHabitats,
+        biomes: updatedBiomes
+      });
     }
     
     // Record the habitat improvement event
     recordHabitatImproveEvent(habitatId);
+  }
+}
+
+/**
+ * Helper function to determine the appropriate shelter type based on terrain
+ */
+function getShelterTypeForTerrain(board: Board | null, position: Coordinate): ShelterType | null {
+  if (!board) return null;
+  
+  // Check if position is within bounds
+  if (position.x < 0 || position.x >= board.width || 
+      position.y < 0 || position.y >= board.height) {
+    return null;
+  }
+  
+  const terrain = board.tiles[position.y][position.x].terrain;
+  
+  // Map terrain types to shelter types
+  switch (terrain) {
+    case TerrainType.BEACH:
+      return ShelterType.TIDEPOOL;
+    case TerrainType.MOUNTAIN:
+      return ShelterType.NEST;
+    case TerrainType.GRASS:
+      return ShelterType.DEN;
+    case TerrainType.UNDERWATER:
+      return ShelterType.CAVE;
+    case TerrainType.WATER:
+      return ShelterType.REEF;
+    default:
+      return null;
   }
 }
 
