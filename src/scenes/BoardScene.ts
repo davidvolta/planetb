@@ -395,8 +395,13 @@ export default class BoardScene extends Phaser.Scene {
       const isOwned = biome && biome.ownerId !== null;
       
       if (!isOwned) {
-        // Select biome in store - pass the habitat ID
-        actions.selectBiome(clickedHabitat.id);
+        // Select biome in store - pass the biome ID instead of habitat ID
+        if (biome) {
+          actions.selectBiome(biome.id);
+        } else {
+          console.warn(`Could not find biome for habitat ${clickedHabitat.id}`);
+          actions.selectBiome(null);
+        }
         
         // Show RED selection indicator for habitat
         this.selectionRenderer.showRedSelectionAt(gridX, gridY);

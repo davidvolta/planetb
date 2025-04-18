@@ -840,22 +840,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { selectedBiomeId: null };
       }
       
-      // First check if it's a biome ID
+      // Check if it's a biome ID
       const biome = state.biomes.get(id);
       if (biome) {
         return { selectedBiomeId: id };
       }
       
-      // For backward compatibility - check if it's a habitat ID
-      const habitat = state.habitats.find(h => h.id === id);
-      if (habitat) {
-        // Find the associated biome by matching the habitat ID
-        const biomeFromHabitat = Array.from(state.biomes.values()).find(b => b.habitat.id === id);
-        // Update selectedBiomeId if we found a matching biome
-        return { selectedBiomeId: biomeFromHabitat ? biomeFromHabitat.id : null };
-      }
-      
-      // If we couldn't find a matching biome or habitat, clear selection
+      // If we couldn't find a matching biome, clear selection
       return { selectedBiomeId: null };
     }),
 
