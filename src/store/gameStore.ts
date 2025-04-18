@@ -259,7 +259,6 @@ export interface GameState {
   getValidMoves: (id: string) => ValidMove[];
   
   // Habitat-related methods
-  getHabitatAt: (x: number, y: number) => Habitat | undefined;
   selectHabitat: (id: string | null) => void;
 }
 
@@ -832,21 +831,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         displacementEvent
       };
     }),
-
-  getHabitatAt: (x, y) => {
-    const state = get();
-    const biomes = state.biomes;
-    
-    // Find the biome that has a habitat at this position
-    for (const biome of biomes.values()) {
-      if (biome.habitat.position.x === x && biome.habitat.position.y === y) {
-        return biome.habitat;
-      }
-    }
-    
-    // For backward compatibility, search the habitats array
-    return state.habitats.find(h => h.position.x === x && h.position.y === y);
-  },
 
   // Habitat selection method
   selectHabitat: (id) => 

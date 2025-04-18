@@ -24,8 +24,6 @@
 - [ ] Rename `selectHabitat()` to `selectBiome()` in actions.ts
 - [ ] Update parameter names from habitatId to biomeId where appropriate
 - [ ] Update references to `selectedHabitatId` in UIScene.ts to use `selectedBiomeId`
-- [ ] Rename HabitatRenderer to BiomeRenderer for consistency
-
 
 ### UI Optimization
 - [ ] Update UI components to directly reference biome properties
@@ -100,29 +98,5 @@
 - [ ] Update simulator.js to use the shared EcosystemUtils functions
 - [ ] Keep the simulator UI largely the same
 - [ ] Ensure both the game and simulator use exactly the same calculation methods
-
-
-## ID and Structure Improvements
-- [x] Update ID generation to use "biome-" prefix instead of "habitat-" prefix
-- [x] Make biome IDs independent of habitat IDs (not sharing IDs)
-- [x] Fully implement parent-child relationship between biomes and habitats
-- [ ] Consider making habitats a collection within biomes (one-to-many)
-
-### Habitats Array Removal Plan
-- [ ] Create focused utility functions needed to replace array access:
-  - [ ] `getHabitatById(id)`: Finds a habitat by its ID using biomes lookup
-- [ ] Audit and update all direct references to state.habitats:
-  - [ ] In BoardScene.checkTileContents(): Continue using Array.from(biomes.values()).map()
-  - [ ] In StateSubscriptionManager: Replace with direct biomes iteration
-  - [ ] Identify and update any other places in the codebase
-- [ ] Modify `getHabitatAt()` to only search through biome.habitat properties (remove fallback to habitats array)
-- [ ] Update `selectHabitat()` to only find habitats through biomes
-- [ ] Add deprecation warnings to all remaining functions that reference the habitats array directly
-- [ ] Add console warnings when the habitats array is accessed directly
-- [ ] Remove the habitats array from the GameState interface
-- [ ] Remove habitats array population during board initialization
-- [ ] Update tests to reflect the removal of the habitats array
-- [ ] Final pass: verify no references to habitats array remain in the codebase
-
 
 
