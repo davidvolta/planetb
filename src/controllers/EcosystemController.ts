@@ -1,4 +1,4 @@
-import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, HabitatState, Biome, GameState } from "../store/gameStore";
+import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
 import { useGameStore } from "../store/gameStore";
 
 /**

@@ -328,28 +328,32 @@ export class StateSubscriptionManager {
       }
     );
     
-    // Subscribe to habitat improvement events
+    // Subscribe to biome capture events
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.HABITAT_IMPROVE,
-      (state) => state.habitatImproveEvent,
-      (habitatImproveEvent) => {
-        // Handle habitat improvement events
-        if (habitatImproveEvent && habitatImproveEvent.occurred) {
-          console.log("Habitat improvement event detected in StateSubscriptionManager");
+      (state) => state.biomeCaptureEvent,
+      (biomeCaptureEvent) => {
+        // Handle biome capture events
+        if (biomeCaptureEvent && biomeCaptureEvent.occurred) {
+          console.log("Biome capture event detected in StateSubscriptionManager");
           
           // Clear the selection indicator - cast scene to BoardScene to access the method
           if (this.scene instanceof BoardScene) {
             // Hide selection indicator
             this.scene.getSelectionRenderer().hideSelection();
             
-            // Reveal the biome tiles for the improved habitat
-            if (habitatImproveEvent.habitatId) {
-              this.scene.revealBiomeTiles(habitatImproveEvent.habitatId);
+            // Reveal the biome tiles for the captured biome
+            if (biomeCaptureEvent.biomeId) {
+              this.scene.revealBiomeTiles(biomeCaptureEvent.biomeId);
+              
+              // Update all habitat graphics to reflect new ownership state
+              const habitats = actions.getHabitats();
+              this.habitatRenderer.renderHabitats(habitats);
             }
           }
           
-          // Clear the habitat improvement event after handling it
-          actions.clearHabitatImproveEvent();
+          // Clear the biome capture event after handling it
+          actions.clearBiomeCaptureEvent();
         }
       }
     );

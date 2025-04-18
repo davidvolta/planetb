@@ -141,16 +141,16 @@ export class InputManager {
       
       // Handle improve habitat with 'I' key
       this.scene.input.keyboard.on('keydown-I', () => {
-        // Only handle if a potential habitat is selected and can be improved
+        // Only handle if a habitat/biome is selected and can be captured
         const selectedHabitatId = actions.getSelectedHabitatId();
-        const selectedHabitatIsPotential = actions.isSelectedHabitatPotential();
+        const selectedBiomeId = actions.getSelectedBiomeId();
         
-        if (selectedHabitatId && 
-            selectedHabitatIsPotential && 
-            actions.canImproveHabitat(selectedHabitatId)) {
-          // Call the improve habitat action
-          actions.improveHabitat(selectedHabitatId);
-          actions.selectHabitat(null); // Deselect the habitat after improving
+        if (selectedBiomeId && 
+            actions.isSelectedBiomeAvailableForCapture() && 
+            actions.canCaptureBiome(selectedBiomeId)) {
+          // Call the capture biome action
+          actions.captureBiome(selectedBiomeId);
+          actions.selectHabitat(null); // Deselect the habitat after capturing
           
           // Let the player decide when to end their turn
         }

@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { TerrainType } from "../store/gameStore";
 import { StateObserver } from "../utils/stateObserver";
-import { AnimalState, Habitat, HabitatState, Animal } from "../store/gameStore";
+import { AnimalState, Habitat, Animal } from "../store/gameStore";
 import * as actions from "../store/actions";
 import { ValidMove } from "../store/gameStore";
 import * as CoordinateUtils from "../utils/CoordinateUtils";
@@ -316,7 +316,10 @@ export default class BoardScene extends Phaser.Scene {
     const hasMovedUnit = contents.activeUnits.some(unit => unit.hasMoved);
     
     // Check if there's an improved habitat at this location
-    const hasImprovedHabitat = contents.habitats.some(habitat => habitat.state === HabitatState.IMPROVED);
+    const hasImprovedHabitat = contents.habitats.some(habitat => {
+      const biome = actions.getBiomes().get(habitat.biomeId);
+      return biome && biome.ownerId !== null;
+    });
     
     // First, check if this tile is a valid move target - this gets priority over other interactions
     const isValidMoveTarget = this.moveRangeRenderer.isValidMoveTarget(gridX, gridY);
@@ -383,10 +386,13 @@ export default class BoardScene extends Phaser.Scene {
       const clickedHabitat = contents.habitats[0]; // Just use the first one for now
       
       // Log the habitat click
-      console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}, state: ${clickedHabitat.state}`);
+      console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}`);
       
-      // Only select and show red indicator if habitat is NOT already improved
-      if (clickedHabitat.state !== HabitatState.IMPROVED) {
+      // Only select and show red indicator if the biome is not owned
+      const biome = actions.getBiomes().get(clickedHabitat.biomeId);
+      const isOwned = biome && biome.ownerId !== null;
+      
+      if (!isOwned) {
         // Select habitat in store
         actions.selectHabitat(clickedHabitat.id);
         
@@ -394,13 +400,6 @@ export default class BoardScene extends Phaser.Scene {
         this.selectionRenderer.showRedSelectionAt(gridX, gridY);
         
         return; // Only return early if we actually select the habitat
-      } else {
-        console.log(`Habitat ${clickedHabitat.id} is already improved and cannot be selected`);
-        
-        // Deselect any currently selected habitat
-        actions.selectHabitat(null);
-        
-        // Continue execution to check for units on the same tile
       }
     }
     
@@ -737,20 +736,11 @@ export default class BoardScene extends Phaser.Scene {
       // Get the biome associated with this habitat
       const biome = biomes.get(habitat.biomeId);
       
-      // Check if the biome is owned by the current player and the habitat is improved
-      if (biome && biome.ownerId === currentPlayerId && habitat.state === HabitatState.IMPROVED) {
-        // This is the player's starting improved habitat
+      // Check if the biome is owned by the current player
+      if (biome && biome.ownerId === currentPlayerId) {
+        // This is the player's owned biome
         // Find all tiles in this habitat's biome and reveal them
         this.revealBiomeTiles(habitat.id, revealedTiles);
-      } else if (biome && biome.ownerId === currentPlayerId) {
-        // For other owned habitats that aren't improved, just reveal adjacent tiles
-        CoordinateUtils.getAdjacentTiles(habitat.position.x, habitat.position.y, board.width, board.height)
-          .forEach(tile => {
-            // Mark as explored and visible in the game state
-            this.updateTileVisibility(tile.x, tile.y, true);
-            // Add to the list of tiles to reveal visually
-            revealedTiles.push(tile);
-          });
       }
     });
     

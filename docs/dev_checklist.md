@@ -4,52 +4,52 @@
 
 ### Phase 1: Data Model Changes
 1. **Revise Core Interfaces**
-   - Remove `HabitatState` enum completely
-   - Update `Habitat` interface to remove state and shelterType
-   - Ensure Biome ownership is the central data concept
+   - [x] Remove `HabitatState` enum completely
+   - [x] Update `Habitat` interface to remove state and shelterType
+   - [x] Ensure Biome ownership is the central data concept
 
 2. **Event System Updates**
-   - Replace `habitatImproveEvent` with `biomeCaptureEvent`
-   - Update event structure to reference biomeId instead of habitatId
-   - Update event handlers and subscriptions
+   - [x] Replace `habitatImproveEvent` with `biomeCaptureEvent`
+   - [x] Update event structure to reference biomeId instead of habitatId
+   - [x] Update event handlers and subscriptions
 
 3. **Selection System Revision**
-   - Consolidate habitat/biome selection into a single concept
-   - Ensure selecting a habitat correctly sets the selected biome
+   - [x] Consolidate habitat/biome selection into a single concept
+   - [x] Ensure selecting a habitat correctly sets the selected biome
 
 ### Phase 2: Method & Function Refactoring
 1. **Action Method Renaming**
-   - Rename `improveHabitat()` to `captureBiome()`
-   - Rename `canImproveHabitat()` to `canCaptureBiome()`
-   - Update parameters to use biomeId where possible
+   - [x] Rename `improveHabitat()` to `captureBiome()`
+   - [x] Rename `canImproveHabitat()` to `canCaptureBiome()`
+   - [x] Update parameters to use biomeId where possible
 
 2. **State Logic Updates**
-   - Modify state tracking to focus on biome ownership
-   - Remove all habitat-state-related conditionals
-   - Update egg production logic to depend solely on biome ownership
+   - [x] Modify state tracking to focus on biome ownership
+   - [x] Remove all habitat-state-related conditionals
+   - [x] Update egg production logic to depend solely on biome ownership
 
 3. **UI Text Updates**
-   - Change button text from "Improve Habitat" to "Capture Biome"
-   - Update any tooltips or help text
+   - [x] Change button text from "Improve Habitat" to "Capture Biome"
+   - [x] Update any tooltips or help text
 
 ### Phase 3: Testing & Gameplay Verification
 1. **Core Mechanics Testing**
-   - Test biome capturing process
-   - Verify egg production in owned biomes
-   - Ensure resource generation still works correctly
+   - [x] Test biome capturing process
+   - [x] Verify egg production in owned biomes
+   - [x] Ensure resource generation still works correctly
 
 2. **UI/UX Testing**
-   - Verify all UI elements work with the new model
-   - Ensure proper feedback for player actions
+   - [x] Verify all UI elements work with the new model
+   - [x] Ensure proper feedback for player actions
 
 ### Phase 4: Code Cleanup
 1. **Remove Obsolete Code**
-   - Delete unnecessary habitat state references
-   - Remove redundant code paths
+   - [x] Delete unnecessary habitat state references
+   - [ ] Remove redundant code paths
 
 2. **Documentation Update**
-   - Update comments to reflect biome-centric design
-   - Update development checklist
+   - [x] Update comments to reflect biome-centric design
+   - [x] Update development checklist
 
 ## Upcoming Tasks
 - [ ] Fix bug where unit spawning at valid location shows "invalid location" message

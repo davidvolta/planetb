@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import { GameState } from '../store/gameStore';
-import { HabitatState } from '../store/gameStore';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -11,7 +10,7 @@ export default class UIScene extends Phaser.Scene {
   private spawnButton: Phaser.GameObjects.Container | null = null;
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private selectedUnitId: string | null = null;
-  private improveHabitatButton: Phaser.GameObjects.Container | null = null;
+  private captureBiomeButton: Phaser.GameObjects.Container | null = null;
   private regenerateResourcesButton: Phaser.GameObjects.Container | null = null;
   
 
@@ -29,7 +28,7 @@ export default class UIScene extends Phaser.Scene {
           selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
           selectedIsDormant: state.selectedUnitIsDormant,
           selectedHabitatId: state.selectedHabitatId,
-          selectedHabitatIsPotential: state.selectedHabitatIsPotential
+          selectedBiomeId: state.selectedBiomeId
         };
       },
       (data) => {
@@ -48,13 +47,13 @@ export default class UIScene extends Phaser.Scene {
           this.updateBackgroundSize();
         }
         
-        // Show/hide improve habitat button based on habitat selection and unit presence
-        if (this.improveHabitatButton) {
-          const canImprove = data.selectedHabitatId !== null && 
-                           data.selectedHabitatIsPotential && 
-                           actions.canImproveHabitat(data.selectedHabitatId);
+        // Show/hide biome capture button based on biome selection and unit presence
+        if (this.captureBiomeButton) {
+          const canCapture = data.selectedBiomeId !== null && 
+                           actions.isSelectedBiomeAvailableForCapture() && 
+                           actions.canCaptureBiome(data.selectedBiomeId);
           
-          this.improveHabitatButton.setVisible(canImprove);
+          this.captureBiomeButton.setVisible(canCapture);
           // Update background size when button visibility changes
           this.updateBackgroundSize();
         }
@@ -94,8 +93,8 @@ export default class UIScene extends Phaser.Scene {
     // Create spawn button (initially hidden)
     this.createSpawnButton();
     
-    // Create improve habitat button (initially hidden)
-    this.createImproveHabitatButton();
+    // Create capture biome button (initially hidden)
+    this.createCaptureBiomeButton();
     
     // Create regenerate resources button
     this.createRegenerateResourcesButton();
@@ -165,21 +164,21 @@ export default class UIScene extends Phaser.Scene {
     this.container?.add(this.spawnButton);
   }
 
-  createImproveHabitatButton() {
-    // Create a container for the improve habitat button
-    this.improveHabitatButton = this.add.container(0, 0);
-    this.improveHabitatButton.setVisible(false);
+  createCaptureBiomeButton() {
+    // Create a container for the capture biome button
+    this.captureBiomeButton = this.add.container(0, 0);
+    this.captureBiomeButton.setVisible(false);
     
     // Create button background - medium gray
     const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
     buttonBg.setOrigin(0);
     buttonBg.setInteractive({ useHandCursor: true })
-      .on('pointerdown', this.handleImproveHabitat, this)
+      .on('pointerdown', this.handleCaptureBiome, this)
       .on('pointerover', () => buttonBg.setFillStyle(0xA0A0A0))
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
     // Create button text
-    const buttonText = this.add.text(75, 20, 'Improve Habitat', {
+    const buttonText = this.add.text(75, 20, 'Capture Biome', {
       fontFamily: 'Raleway',
       fontSize: '16px',
       color: '#FFFFFF'
@@ -187,13 +186,13 @@ export default class UIScene extends Phaser.Scene {
     buttonText.setOrigin(0.5);
     
     // Add to container
-    this.improveHabitatButton.add(buttonBg);
-    this.improveHabitatButton.add(buttonText);
+    this.captureBiomeButton.add(buttonBg);
+    this.captureBiomeButton.add(buttonText);
     
     // Position will be set dynamically in updateBackgroundSize
     
     // Add to main container
-    this.container?.add(this.improveHabitatButton);
+    this.container?.add(this.captureBiomeButton);
   }
 
   createRegenerateResourcesButton() {
@@ -241,12 +240,12 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
-  handleImproveHabitat() {
-    const selectedHabitatId = actions.getSelectedHabitatId();
-    if (selectedHabitatId && actions.canImproveHabitat(selectedHabitatId)) {
-      // Call the improve habitat action
-      actions.improveHabitat(selectedHabitatId);
-      actions.selectHabitat(null); // Deselect the habitat after improving
+  handleCaptureBiome() {
+    const selectedBiomeId = actions.getSelectedBiomeId();
+    if (selectedBiomeId && actions.canCaptureBiome(selectedBiomeId)) {
+      // Call the capture biome action
+      actions.captureBiome(selectedBiomeId);
+      actions.selectHabitat(null); // Deselect the habitat after capturing
       
       // Let the player decide when to end their turn
     }
@@ -267,12 +266,12 @@ export default class UIScene extends Phaser.Scene {
 
   updateBackgroundSize() {
     if (this.background) {
-      // Base height includes Turn indicator and Next Turn button
+      // Start with a base height
       let height = 110;
       
-      // Position both buttons in the same spot (only one will be visible at a time)
-      if (this.improveHabitatButton) {
-        this.improveHabitatButton.setPosition(25, 110);
+      // Position buttons - these positions may need to be adjusted
+      if (this.captureBiomeButton) {
+        this.captureBiomeButton.setPosition(25, 110);
       }
       
       if (this.spawnButton) {
@@ -281,7 +280,7 @@ export default class UIScene extends Phaser.Scene {
       
       // Add height for one button if either is visible
       if ((this.spawnButton && this.spawnButton.visible) || 
-          (this.improveHabitatButton && this.improveHabitatButton.visible)) {
+          (this.captureBiomeButton && this.captureBiomeButton.visible)) {
         height += 50;
       }
       
@@ -291,12 +290,13 @@ export default class UIScene extends Phaser.Scene {
         height += 50;
       }
       
-      // Add a small padding at the bottom
+      // Add some padding
       height += 10;
       
+      // Update background height
       this.background.height = height;
       
-      // Update UI position to account for size change
+      // Reposition UI after height change
       this.resizeUI();
     }
   }
@@ -315,10 +315,19 @@ export default class UIScene extends Phaser.Scene {
 
   // Clean up when scene is shut down
   shutdown() {
-    // Clean up any resources
-    if (this.container) {
-      this.container.destroy();
-      this.container = null;
+    // Clean up subscriptions
+    StateObserver.unsubscribe('ui-turn');
+    
+    // Clean up resize listener
+    this.scale.off('resize', this.resizeUI, this);
+    
+    // Clean up references to UI components
+    this.container = null;
+    this.background = null;
+    
+    if (this.nextTurnButton) {
+      this.nextTurnButton.destroy();
+      this.nextTurnButton = null;
     }
     
     if (this.spawnButton) {
@@ -326,14 +335,9 @@ export default class UIScene extends Phaser.Scene {
       this.spawnButton = null;
     }
     
-    if (this.nextTurnButton) {
-      this.nextTurnButton.destroy();
-      this.nextTurnButton = null;
-    }
-    
-    if (this.improveHabitatButton) {
-      this.improveHabitatButton.destroy();
-      this.improveHabitatButton = null;
+    if (this.captureBiomeButton) {
+      this.captureBiomeButton.destroy();
+      this.captureBiomeButton = null;
     }
     
     if (this.regenerateResourcesButton) {
@@ -341,7 +345,6 @@ export default class UIScene extends Phaser.Scene {
       this.regenerateResourcesButton = null;
     }
     
-    // Clean up references
     this.turnText = null;
     this.selectedUnitId = null;
   }

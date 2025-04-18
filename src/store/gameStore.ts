@@ -120,22 +120,6 @@ export enum MapGenerationType {
   ISLAND = 'island'
 }
 
-// Habitat state enum
-export enum HabitatState {
-  POTENTIAL = 'potential',
-  SHELTER = 'shelter',
-  IMPROVED = 'improved'
-}
-
-// Shelter types based on terrain
-export enum ShelterType {
-  TIDEPOOL = 'tidepool',  // beach
-  NEST = 'nest',         // mountain
-  DEN = 'den',           // grass  
-  CAVE = 'cave',         // underwater
-  REEF = 'reef'          // water
-}
-
 // Biome structure
 export interface Biome {
   id: string;
@@ -152,9 +136,7 @@ export interface Habitat {
   id: string;
   biomeId: string; // Each habitat is associated with a biome
   position: Coordinate;
-  state: HabitatState;
-  shelterType: ShelterType | null;
-  // Ownership is now in the Biome, not here
+  // No state or shelter type - these concepts are now in the biome
 }
 
 // Tile structure
@@ -234,9 +216,9 @@ export interface GameState {
   moveMode: boolean;
   selectedUnitIsDormant: boolean; // Flag to track if the selected unit is dormant
   
-  // Habitat selection state
+  // Selection state
   selectedHabitatId: string | null; // ID of the currently selected habitat
-  selectedHabitatIsPotential: boolean; // Flag to track if the selected habitat is in "potential" state
+  selectedBiomeId: string | null; // ID of the currently selected biome
   
   // Displacement tracking (for animation and UI feedback)
   displacementEvent: {
@@ -256,11 +238,11 @@ export interface GameState {
     timestamp: number | null; // When the spawn occurred
   };
   
-  // Habitat improvement event tracking
-  habitatImproveEvent: {
-    occurred: boolean;        // Whether a habitat was just improved
-    habitatId: string | null; // ID of the habitat that was improved
-    timestamp: number | null; // When the improvement occurred
+  // Biome capture event tracking
+  biomeCaptureEvent: {
+    occurred: boolean;        // Whether a biome was just captured
+    biomeId: string | null;   // ID of the biome that was captured
+    timestamp: number | null; // When the capture occurred
   };
   
   nextTurn: () => void;
@@ -299,9 +281,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   moveMode: false,
   selectedUnitIsDormant: false,
   
-  // Initialize habitat selection state
+  // Initialize selection state
   selectedHabitatId: null,
-  selectedHabitatIsPotential: false,
+  selectedBiomeId: null,
   
   // Initialize displacement event with default values
   displacementEvent: {
@@ -321,12 +303,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     timestamp: null
   } as GameState['spawnEvent'], // Force type alignment
   
-  // Initialize habitat improvement event with default values
-  habitatImproveEvent: {
+  // Initialize biome capture event with default values
+  biomeCaptureEvent: {
     occurred: false,
-    habitatId: null,
+    biomeId: null,
     timestamp: null
-  } as GameState['habitatImproveEvent'], // Force type alignment
+  } as GameState['biomeCaptureEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
     // Process habitat production
@@ -361,12 +343,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       timestamp: null
     } as GameState['spawnEvent']; // Force type alignment
     
-    // Reset habitat improvement event
-    const resetHabitatImproveEvent = {
+    // Reset biome capture event
+    const resetBiomeCaptureEvent = {
       occurred: false,
-      habitatId: null,
+      biomeId: null,
       timestamp: null
-    } as GameState['habitatImproveEvent']; // Force type alignment
+    } as GameState['biomeCaptureEvent']; // Force type alignment
     
     return { 
       ...updatedState,
@@ -374,7 +356,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       turn: state.turn + 1,
       displacementEvent: resetDisplacementEvent,
       spawnEvent: resetSpawnEvent,
-      habitatImproveEvent: resetHabitatImproveEvent
+      biomeCaptureEvent: resetBiomeCaptureEvent
     };
   }),
 
@@ -502,11 +484,6 @@ export const useGameStore = create<GameState>((set, get) => ({
               id: newId,
               biomeId: newId, // Same ID will be used for the biome
               position: position,
-              // If this is a beach habitat during initial setup and we have a player, set to IMPROVED
-              state: shouldImproveForPlayer ? HabitatState.IMPROVED : HabitatState.POTENTIAL,
-              // Set shelterType to TIDEPOOL for beach if improved for player
-              shelterType: shouldImproveForPlayer ? ShelterType.TIDEPOOL : null,
-              // Ownership now belongs to the biome
             };
             
             habitats.push(newHabitat);
@@ -569,8 +546,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                   id: newId,
                   biomeId: newId,
                   position: tile,
-                  state: HabitatState.POTENTIAL,
-                  shelterType: null,
                 };
                 
                 habitats.push(newHabitat);
@@ -617,21 +592,28 @@ export const useGameStore = create<GameState>((set, get) => ({
         let biomes = new Map<string, Biome>();
         
         // For each habitat, create a biome
+        let playerBeachBiomeAssigned = false; // Track if we've already assigned a beach biome to player
+        
         habitats.forEach(habitat => {
           const biomeId = habitat.id;
           const color = biomeResult.biomeColors.get(biomeId) || 0x000000; // Default to black if no color
           
-          // Check if this is the initial player's habitat (beach with TIDEPOOL shelter)
-          const isInitialPlayerHabitat = habitat.state === HabitatState.IMPROVED && 
-                                        habitat.shelterType === ShelterType.TIDEPOOL &&
-                                        !state.isInitialized;
+          // Check if this is the initial player's habitat (beach habitat during initial setup)
+          const isBeachHabitat = terrainData[habitat.position.y][habitat.position.x] === TerrainType.BEACH;
+          // Only set first beach habitat to the player during initial setup
+          const isInitialPlayerHabitat = isBeachHabitat && !state.isInitialized && !playerBeachBiomeAssigned;
+          
+          if (isInitialPlayerHabitat) {
+            playerBeachBiomeAssigned = true;
+            console.log(`Assigned beach biome ${biomeId} to player ${playerId}`);
+          }
           
           biomes.set(biomeId, {
             id: biomeId,
             habitatId: habitat.id,
             color,
             lushness: 8.0, // Initialize lushness to the "stable" value
-            // Set ownership for the player's starting biome
+            // Set ownership for the player's starting beach biome
             ownerId: isInitialPlayerHabitat ? playerId : null,
             productionRate: 1, // Fixed at 1 for now
             lastProductionTurn: 0
@@ -652,10 +634,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           const biome = biomes.get(habitat.id);
           if (!biome) return;
           
-          // Only place eggs for biomes with owners and improved habitats
-          if (biome.productionRate > 0 && 
-              habitat.state === HabitatState.IMPROVED && 
-              biome.ownerId !== null) {
+          // Only place eggs for biomes with owners
+          if (biome.productionRate > 0 && biome.ownerId !== null) {
             
             // For the initial player unit, use adjacent tiles only
             // This ensures the player's starting unit is close to their habitat
@@ -680,10 +660,10 @@ export const useGameStore = create<GameState>((set, get) => ({
                   animal.position.y === y
                 );
                 
-                // For player 1's starting unit, only allow beach terrain
-                if (habitat.shelterType === ShelterType.TIDEPOOL && 
+                // For beach-based biomes, prefer beach tiles
+                if (terrainData[habitat.position.y][habitat.position.x] === TerrainType.BEACH &&
                     biome.ownerId === playerId) {
-                  // Only add beach tiles
+                  // Prefer beach tiles for player's starting unit
                   if (terrainData[y][x] === TerrainType.BEACH && !hasEgg) {
                     adjacentTiles.push({ x, y });
                   }
@@ -705,10 +685,10 @@ export const useGameStore = create<GameState>((set, get) => ({
               // Create new egg
               const newAnimal = {
                 id: `animal-${animals.length}`,
-                // For the player 1's starting unit, always use turtle
-                species: (habitat.shelterType === ShelterType.TIDEPOOL && 
-                          biome.ownerId === playerId) ? 
-                         'turtle' : TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
+                // For beach biomes owned by player, use turtle
+                species: (terrainData[habitat.position.y][habitat.position.x] === TerrainType.BEACH && 
+                        biome.ownerId === playerId) ? 
+                       'turtle' : TERRAIN_ANIMAL_MAP[terrainData[tile.y][tile.x]],
                 state: AnimalState.DORMANT,
                 position: tile,
                 previousPosition: null,
@@ -721,10 +701,8 @@ export const useGameStore = create<GameState>((set, get) => ({
                 terrain: terrainData[tile.y][tile.x] 
               });
               
-              // If this animal is from an improved player-owned beach habitat, make it active and owned
-              if (habitat.state === HabitatState.IMPROVED && 
-                  biome.ownerId !== null && 
-                  habitat.shelterType === ShelterType.TIDEPOOL) {
+              // If this biome is owned by a player, make the animal active and owned
+              if (biome.ownerId !== null) {
                 // Make this the active player unit
                 newAnimal.state = AnimalState.ACTIVE;
                 // Type assertion to handle the number assignment to the ownerId property
@@ -878,7 +856,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Deselecting a habitat
         return { 
           selectedHabitatId: null,
-          selectedHabitatIsPotential: false
+          selectedBiomeId: null
         };
       }
       
@@ -888,16 +866,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         console.warn(`Cannot select habitat ${id}: not found`);
         return {
           selectedHabitatId: null,
-          selectedHabitatIsPotential: false
+          selectedBiomeId: null
         };
       }
       
-      // Check if habitat is in potential state using only the enum value
-      const isPotential = habitat.state === HabitatState.POTENTIAL;
-      
       return {
         selectedHabitatId: id,
-        selectedHabitatIsPotential: isPotential
+        selectedBiomeId: habitat.biomeId
       };
     }),
 

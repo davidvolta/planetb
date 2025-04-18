@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
-import { HabitatState } from '../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
+import { useGameStore } from '../store/gameStore';
 
 /**
  * Responsible for rendering and managing habitat graphics
@@ -71,6 +71,12 @@ export class HabitatRenderer extends BaseRenderer {
       // Check if we have an existing graphic
       const existing = existingHabitats.get(habitat.id);
       
+      // Get biome ownership state (captured or available)
+      const state = useGameStore.getState();
+      const biomeId = habitat.biomeId;
+      const biome = state.biomes.get(biomeId);
+      const isCaptured = biome?.ownerId !== null;
+      
       if (existing) {
         // Mark as used so we don't delete it later
         existing.used = true;
@@ -78,16 +84,17 @@ export class HabitatRenderer extends BaseRenderer {
         // Update position
         existing.graphic.setPosition(worldPosition.x, worldPosition.y);
         
-        // Update state if needed
-        if (existing.graphic.getData('habitatState') !== habitat.state) {
-          existing.graphic.setData('habitatState', habitat.state);
+        // Update state if needed based on biome ownership
+        if (existing.graphic.getData('isCaptured') !== isCaptured) {
+          existing.graphic.setData('isCaptured', isCaptured);
           
           // Destroy and recreate the graphic to reflect the new state
           existing.graphic.destroy();
-          const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, habitat.state);
+          const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured);
           habitatGraphic.setData('habitatId', habitat.id);
           habitatGraphic.setData('gridX', gridX);
           habitatGraphic.setData('gridY', gridY);
+          habitatGraphic.setData('isCaptured', isCaptured);
           this.layerManager.addToLayer('staticObjects', habitatGraphic);
           
           // Update the reference in the map
@@ -98,7 +105,7 @@ export class HabitatRenderer extends BaseRenderer {
         }
       } else {
         // Create a new habitat graphic
-        const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, habitat.state);
+        const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured);
         
         // Store the habitat ID for reference
         habitatGraphic.setData('habitatId', habitat.id);
@@ -106,6 +113,7 @@ export class HabitatRenderer extends BaseRenderer {
         // Store grid coordinates for reference in click handling
         habitatGraphic.setData('gridX', gridX);
         habitatGraphic.setData('gridY', gridY);
+        habitatGraphic.setData('isCaptured', isCaptured);
         
         // Add the new graphic to the layer using layer manager
         this.layerManager.addToLayer('staticObjects', habitatGraphic);
@@ -121,13 +129,13 @@ export class HabitatRenderer extends BaseRenderer {
   }
   
   /**
-   * Create a habitat graphic based on its state
+   * Create a habitat graphic based on its biome ownership
    * @param x World X coordinate
    * @param y World Y coordinate
-   * @param state State of the habitat (potential, improved, etc)
+   * @param isCaptured Whether the biome is captured (has an owner)
    * @returns A container with the habitat graphic
    */
-  private createHabitatGraphic(x: number, y: number, state: HabitatState): Phaser.GameObjects.Container {
+  private createHabitatGraphic(x: number, y: number, isCaptured: boolean): Phaser.GameObjects.Container {
     // Create a container for the habitat
     const container = this.scene.add.container(x, y);
     const graphics = this.scene.add.graphics();
@@ -142,15 +150,15 @@ export class HabitatRenderer extends BaseRenderer {
       scaleFactor
     );
     
-    // Choose color based on state
-    if (state === HabitatState.IMPROVED) {
-      // Black for improved habitats
+    // Choose color based on biome ownership
+    if (isCaptured) {
+      // Black for captured habitats (owned biomes)
       graphics.fillStyle(0x000000, 0.7);
     } else {
-      // Black for potential and shelter habitats
+      // Black for uncaptured habitats (unowned biomes)
       graphics.fillStyle(0x000000, 0.5);
       
-      // Add pulsing effect for unimproved habitats
+      // Add pulsing effect for uncaptured habitats
       this.scene.tweens.add({
         targets: graphics,
         alpha: { from: 0.5, to: 0.2 },

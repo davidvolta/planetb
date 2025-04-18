@@ -118,7 +118,7 @@ class HabitatRenderer extends BaseRenderer {
   
   initialize(anchorX: number, anchorY: number): void;
   renderHabitats(habitats: any[]): void;
-  createHabitatGraphic(x: number, y: number, state: HabitatState): Phaser.GameObjects.Container;
+  createHabitatGraphic(x: number, y: number, isCaptured: boolean): Phaser.GameObjects.Container;
   clearHabitats(): void;
   
   override destroy(): void;
@@ -126,10 +126,10 @@ class HabitatRenderer extends BaseRenderer {
 ```
 
 **Responsibilities:**
-- Creating visual representations of different habitat types
-- Rendering habitats based on their state (potential, improved, etc.)
+- Creating visual representations of habitats
+- Rendering habitats based on their biome ownership status
 - Efficiently adding, updating, and removing habitats
-- Supporting state-specific visual effects (pulsing for unimproved habitats)
+- Supporting visual effects (pulsing for uncaptured biomes)
 - Managing proper depth in the isometric view
 - Cleaning up habitat graphics when no longer needed
 
