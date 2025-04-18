@@ -1,4 +1,4 @@
-import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, HabitatState } from "../store/gameStore";
+import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, HabitatState, Biome, GameState } from "../store/gameStore";
 import { useGameStore } from "../store/gameStore";
 
 /**
@@ -7,6 +7,14 @@ import { useGameStore } from "../store/gameStore";
 interface ValidEggPlacementState {
   board: Board;
   animals: Animal[];
+}
+
+/**
+ * Interface for the return type of biomeEggProduction
+ */
+interface BiomeProductionResult {
+  animals: Animal[];
+  biomes: Map<string, Biome>;
 }
 
 /**
@@ -296,17 +304,18 @@ export class EcosystemController {
   }
 
   /**
-   * Processes egg production for all biomes and habitats based on their lushness
+   * Process egg production for biomes with improved habitats.
+   * This function evaluates which biomes should create eggs based on ownership, habitat state,
    * and other ecological factors. The function is called during the next turn
    * and places new eggs (dormant animals) in appropriate locations.
    * 
    * @param state Current game state
    * @returns Updates to apply to the game state (new animals and updated biomes)
    */
-  public static biomeEggProduction(state: any): Partial<any> {
+  public static biomeEggProduction(state: GameState): Partial<BiomeProductionResult> {
     // Only produce eggs on even-numbered turns
     if (state.turn % 2 !== 0) {
-      return state; // Skip production on odd-numbered turns
+      return state as Partial<BiomeProductionResult>; // Skip production on odd-numbered turns
     }
 
     const newAnimals = [...state.animals];
@@ -356,7 +365,7 @@ export class EcosystemController {
         const species = this.getSpeciesForTerrain(terrain);
 
         // Create new egg (owned by the biome owner)
-        const newAnimal = {
+        const newAnimal: Animal = {
           id: `animal-${newAnimals.length}`,
           species,
           state: AnimalState.DORMANT,
@@ -376,8 +385,11 @@ export class EcosystemController {
       }
 
       // Update biome's last production turn
-      biome.lastProductionTurn = state.turn;
-      updatedBiomes.set(biomeId, biome);
+      const updatedBiome: Biome = {
+        ...biome,
+        lastProductionTurn: state.turn
+      };
+      updatedBiomes.set(biomeId, updatedBiome);
     });
 
     return {
@@ -443,10 +455,26 @@ export class EcosystemController {
       return false;
     }
 
-    // TODO: Find the resource, update its value, and handle depletion
+    // Find the resource in the state
+    const state = useGameStore.getState();
+    const resource = state.resources.find(r => r.id === resourceId);
+    
+    if (!resource) {
+      console.error(`Resource ${resourceId} not found`);
+      return false;
+    }
+
+    // TODO: Update the resource value
     console.log(`Harvesting ${amount} from resource ${resourceId}`);
     
-    // TODO: Update the biome's lushness based on the new resource state
+    // Get the biome associated with this resource
+    const biomeId = resource.biomeId;
+    if (biomeId) {
+      const biome = state.biomes.get(biomeId);
+      if (biome) {
+        // TODO: Update the biome's lushness based on the harvested resource
+      }
+    }
     
     // TODO: Add harvested resources to player's energy counter
     
@@ -460,6 +488,14 @@ export class EcosystemController {
    * @returns Lushness value (0-10 scale)
    */
   public static calculateBiomeLushness(biomeId: string): number {
+    const state = useGameStore.getState();
+    const biome = state.biomes.get(biomeId);
+    
+    if (!biome) {
+      console.warn(`Biome ${biomeId} not found`);
+      return 0;
+    }
+    
     // TODO: Calculate lushness based on resource count and values
     const defaultLushness = 8.0; // Default "stable" value
     
@@ -472,7 +508,20 @@ export class EcosystemController {
    * Updates all biomes' lushness values based on their current resources.
    */
   public static updateAllBiomeLushness(): void {
-    // TODO: Iterate through all biomes and update their lushness values
+    const state = useGameStore.getState();
+    const updatedBiomes = new Map<string, Biome>();
+    
+    // Iterate through all biomes
+    state.biomes.forEach((biome, biomeId) => {
+      const lushness = this.calculateBiomeLushness(biomeId);
+      const updatedBiome: Biome = {
+        ...biome,
+        lushness
+      };
+      updatedBiomes.set(biomeId, updatedBiome);
+    });
+    
+    // TODO: Update biomes in the state
     console.log("Updating all biome lushness values");
   }
 
@@ -481,7 +530,10 @@ export class EcosystemController {
    * Higher lushness = faster regeneration.
    */
   public static regenerateAllResources(): void {
-    // TODO: Implement resource regeneration based on lushness
+    const state = useGameStore.getState();
+    const biomes = state.biomes;
+    
+    // TODO: Iterate through biomes and regenerate resources based on lushness
     console.log("Regenerating resources based on biome lushness");
   }
 } 

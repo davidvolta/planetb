@@ -1,25 +1,11 @@
 # Development Checklist
 
 ## Current Priorities
-- [ ] Fix initial biome fog of war issue:
-  - [ ] Trigger `revealBiomeTiles` for the player's starting biome during initialization
-  - [ ] Ensure the initial biome is fully revealed, not just 8 adjacent tiles around habitat
-  - [ ] Fix the issue in `initializeVisibility` method in BoardScene.ts (line ~730)
-- [ ] Fix linter errors in EcosystemController.ts:
-  - [ ] Add proper type checking for Biome properties
-  - [ ] Update the biomeEggProduction function to handle the new Biome interface
+- [x] Fix linter errors in EcosystemController.ts:
+  - [x] Add proper type checking for Biome properties
+  - [x] Update the biomeEggProduction function to handle the new Biome interface
 
 ## Upcoming Tasks
-- [ ] Fix viewport tinting (change to WebGL shader or use a different approach)
-- [ ] Fix animal click not functioning
-- [ ] Fix animal sprite not showing animation
-- [ ] Fix unit rendering over habitats 
-- [ ] Enable harvest mechanic, add energy counter (see ecosystem mechanic implementation)
-- [ ] Fix empty space beside world map
-- [ ] Refactor GameController to follow ECS pattern
-- [ ] Implement biome highlighting for valid territory selection
-- [ ] Implement egg placement highlighting
-- [ ] Highlight adjacency bonuses during placement
 - [ ] Fix bug where unit spawning at valid location shows "invalid location" message
 - [ ] Change tinting mechanism
 - [ ] Fix double clicking bug on spawn units
@@ -39,9 +25,9 @@
 ## Habitat to Biome-Centric Refactoring
 
 ### Phase 1: Core Interface Changes
-- [ ] Fix linter errors:
-  - [ ] Add proper type definitions in EcosystemController to recognize Biome properties
-  - [ ] Update type definitions in other files where needed
+- [x] Fix linter errors:
+  - [x] Add proper type definitions in EcosystemController to recognize Biome properties
+  - [x] Update type definitions in other files where needed
 
 ### Phase 3: Simplify and Rename
 - [ ] Rename `isHabitatZoneOverlapping` to `isBiomeOverlapping`
@@ -71,8 +57,9 @@
   - [ ] Ensure habitats are properly positioned within their parent biome
 
 ### Phase 6: Update EcosystemController
-- [ ] Refactor EcosystemController methods:
-  - [ ] Update all utility functions to use biome-first approach
+- [x] Refactor EcosystemController methods:
+  - [x] Update all utility functions to use biome-first approach
+  - [x] Add proper type checking for all methods
 
 ## Ecosystem Integration Plan
 
