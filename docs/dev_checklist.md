@@ -1,5 +1,56 @@
 # Development Checklist
 
+## Biome-Centric Refactoring Plan
+
+### Phase 1: Data Model Changes
+1. **Revise Core Interfaces**
+   - Remove `HabitatState` enum completely
+   - Update `Habitat` interface to remove state and shelterType
+   - Ensure Biome ownership is the central data concept
+
+2. **Event System Updates**
+   - Replace `habitatImproveEvent` with `biomeCaptureEvent`
+   - Update event structure to reference biomeId instead of habitatId
+   - Update event handlers and subscriptions
+
+3. **Selection System Revision**
+   - Consolidate habitat/biome selection into a single concept
+   - Ensure selecting a habitat correctly sets the selected biome
+
+### Phase 2: Method & Function Refactoring
+1. **Action Method Renaming**
+   - Rename `improveHabitat()` to `captureBiome()`
+   - Rename `canImproveHabitat()` to `canCaptureBiome()`
+   - Update parameters to use biomeId where possible
+
+2. **State Logic Updates**
+   - Modify state tracking to focus on biome ownership
+   - Remove all habitat-state-related conditionals
+   - Update egg production logic to depend solely on biome ownership
+
+3. **UI Text Updates**
+   - Change button text from "Improve Habitat" to "Capture Biome"
+   - Update any tooltips or help text
+
+### Phase 3: Testing & Gameplay Verification
+1. **Core Mechanics Testing**
+   - Test biome capturing process
+   - Verify egg production in owned biomes
+   - Ensure resource generation still works correctly
+
+2. **UI/UX Testing**
+   - Verify all UI elements work with the new model
+   - Ensure proper feedback for player actions
+
+### Phase 4: Code Cleanup
+1. **Remove Obsolete Code**
+   - Delete unnecessary habitat state references
+   - Remove redundant code paths
+
+2. **Documentation Update**
+   - Update comments to reflect biome-centric design
+   - Update development checklist
+
 ## Upcoming Tasks
 - [ ] Fix bug where unit spawning at valid location shows "invalid location" message
 - [ ] Change tinting mechanism
@@ -29,7 +80,7 @@
   - [ ] Make biomes contain habitats as features
   - [ ] Remove redundant ownership data
 - [ ] Optimize resource adjacency calculations:
-  - [ ] Use biomes as the primary unit for resource adjacency
+  - [x] Use biomes as the primary unit for resource adjacency
   - [ ] Simplify tile prioritization for egg placement
 
 
