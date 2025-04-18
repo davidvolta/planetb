@@ -395,8 +395,8 @@ export default class BoardScene extends Phaser.Scene {
       const isOwned = biome && biome.ownerId !== null;
       
       if (!isOwned) {
-        // Select habitat in store - pass the habitat ID
-        actions.selectHabitat(clickedHabitat.id);
+        // Select biome in store - pass the habitat ID
+        actions.selectBiome(clickedHabitat.id);
         
         // Show RED selection indicator for habitat
         this.selectionRenderer.showRedSelectionAt(gridX, gridY);
@@ -424,8 +424,8 @@ export default class BoardScene extends Phaser.Scene {
     // If we clicked on an empty tile, deselect any selected unit
     this.handleUnitSelection(null);
     
-    // Deselect any selected habitat
-    actions.selectHabitat(null);
+    // Deselect any selected biome
+    actions.selectBiome(null);
     
     // Hide valid moves - clear the move highlights
     this.moveRangeRenderer.clearMoveHighlights();

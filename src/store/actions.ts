@@ -153,11 +153,11 @@ export function isSelectedBiomeAvailableForCapture(): boolean {
 }
 
 /**
- * Select a habitat and its associated biome
- * @param habitatId ID of the habitat to select, or null to deselect
+ * Select a biome by ID
+ * @param biomeId ID of the biome to select, or null to deselect
  */
-export function selectHabitat(habitatId: string | null): void {
-  useGameStore.getState().selectHabitat(habitatId);
+export function selectBiome(biomeId: string | null): void {
+  useGameStore.getState().selectBiome(biomeId);
 }
 
 /**

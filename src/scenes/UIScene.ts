@@ -27,7 +27,6 @@ export default class UIScene extends Phaser.Scene {
           turn: state.turn,
           selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
           selectedIsDormant: state.selectedUnitIsDormant,
-          selectedHabitatId: state.selectedHabitatId,
           selectedBiomeId: state.selectedBiomeId
         };
       },
@@ -247,7 +246,7 @@ export default class UIScene extends Phaser.Scene {
       // Call the capture biome action
       actions.captureBiome(selectedBiomeId);
       
-      actions.selectHabitat(null); // Deselect the habitat after capturing
+      actions.selectBiome(null); // Deselect the biome after capturing
     }
   }
 

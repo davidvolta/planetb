@@ -258,8 +258,8 @@ export interface GameState {
   moveUnit: (id: string, x: number, y: number) => void;
   getValidMoves: (id: string) => ValidMove[];
   
-  // Habitat-related methods
-  selectHabitat: (id: string | null) => void;
+  // Biome-related methods
+  selectBiome: (id: string | null) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -832,31 +832,30 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     }),
 
-  // Habitat selection method
-  selectHabitat: (id) => 
+  // Biome selection method
+  selectBiome: (id: string | null) => 
     set(state => {
       // Handle null case to deselect
       if (id === null) {
         return { selectedBiomeId: null };
       }
       
-      // First try to find a habitat with this ID directly
-      const habitat = state.habitats.find(h => h.id === id);
-      
-      if (habitat) {
-        // Find the associated biome by matching the habitat ID
-        const biome = Array.from(state.biomes.values()).find(b => b.habitat.id === id);
-        // Update selectedBiomeId if we found a matching biome
-        return { selectedBiomeId: biome ? biome.id : null };
-      }
-      
-      // If ID isn't a habitat ID, check if it's a biome ID and select it directly
+      // First check if it's a biome ID
       const biome = state.biomes.get(id);
       if (biome) {
         return { selectedBiomeId: id };
       }
       
-      // If we couldn't find a matching habitat or biome, clear selection
+      // For backward compatibility - check if it's a habitat ID
+      const habitat = state.habitats.find(h => h.id === id);
+      if (habitat) {
+        // Find the associated biome by matching the habitat ID
+        const biomeFromHabitat = Array.from(state.biomes.values()).find(b => b.habitat.id === id);
+        // Update selectedBiomeId if we found a matching biome
+        return { selectedBiomeId: biomeFromHabitat ? biomeFromHabitat.id : null };
+      }
+      
+      // If we couldn't find a matching biome or habitat, clear selection
       return { selectedBiomeId: null };
     }),
 

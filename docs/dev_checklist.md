@@ -20,17 +20,8 @@
 
 ## True Biome-Centric Architecture
 
-### API and Naming Updates
-- [ ] Rename `selectHabitat()` to `selectBiome()` in actions.ts
-- [ ] Update parameter names from habitatId to biomeId where appropriate
-- [ ] Update references to `selectedHabitatId` in UIScene.ts to use `selectedBiomeId`
-
-### UI Optimization
-- [ ] Update UI components to directly reference biome properties
-- [ ] Check and update any remaining references to habitat properties in UI
-- [ ] Consider Habitat visualization as a feature of BiomeRenderer
-
 ### Remaining Function Conversions
+- [x] Rename `selectHabitat()` to `selectBiome()` in gameStore.ts
 - [ ] Revisit any remaining habitat-focused functions in gameStore.ts
 - [ ] Consider removing habitats array entirely when all systems are updated
 - [ ] Update checkTileContents() and similar functions to focus on biomes first

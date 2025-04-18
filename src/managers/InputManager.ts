@@ -149,7 +149,7 @@ export class InputManager {
             actions.canCaptureBiome(selectedBiomeId)) {
           // Call the capture biome action
           actions.captureBiome(selectedBiomeId);
-          actions.selectHabitat(null); // Deselect the habitat after capturing
+          actions.selectBiome(null); // Deselect the biome after capturing
           
           // Let the player decide when to end their turn
         }
