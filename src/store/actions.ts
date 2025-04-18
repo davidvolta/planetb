@@ -448,11 +448,10 @@ export function addPlayer(name: string, color: string): void {
 export function regenerateResources(
   width: number, 
   height: number, 
-  terrainData: TerrainType[][], 
-  habitats: Habitat[]
+  terrainData: TerrainType[][]
 ): void {
   // Generate new resources with current settings
-  const newResources = EcosystemController.generateResources(width, height, terrainData, habitats);
+  const newResources = EcosystemController.generateResources(width, height, terrainData);
   
   // Update the resources in the store
   useGameStore.setState({

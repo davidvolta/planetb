@@ -1,5 +1,6 @@
 import { StateObserver } from '../utils/stateObserver';
-import { Animal, GameState, ValidMove, Habitat } from '../store/gameStore';
+import { Animal, GameState, ValidMove, Habitat, Biome } from '../store/gameStore';
+import { useGameStore } from '../store/gameStore';
 import * as actions from '../store/actions';
 import { SelectionRenderer } from '../renderers/SelectionRenderer';
 import BoardScene from '../scenes/BoardScene';
@@ -344,11 +345,15 @@ export class StateSubscriptionManager {
             if (biomeCaptureEvent.biomeId) {
               this.scene.revealBiomeTiles(biomeCaptureEvent.biomeId);
               
-              // Update only the captured habitat's graphics
+              // Get the captured biome (for logging purposes)
               const capturedBiome = actions.getBiomeById(biomeCaptureEvent.biomeId);
               if (capturedBiome) {
-                // Just render the single affected habitat
-                this.habitatRenderer.renderHabitats([capturedBiome.habitat]);
+                // Extract all habitats from all biomes
+                const state = useGameStore.getState();
+                const allHabitats = Array.from(state.biomes.values()).map((biome: Biome) => biome.habitat);
+                
+                // Render all habitats to ensure none disappear
+                this.habitatRenderer.renderHabitats(allHabitats);
               }
             }
           }

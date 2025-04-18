@@ -929,13 +929,6 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Get the current habitats
-    const habitats = actions.getHabitats();
-    if (!habitats || habitats.length === 0) {
-      console.warn("Cannot regenerate resources: No habitats available");
-      return;
-    }
-    
     // Create terrain data array from board tiles
     const terrainData: TerrainType[][] = Array(board.height)
       .fill(null)
@@ -946,6 +939,6 @@ export default class BoardScene extends Phaser.Scene {
       );
     
     // Call the regenerate action to create new resources
-    actions.regenerateResources(board.width, board.height, terrainData, habitats);
+    actions.regenerateResources(board.width, board.height, terrainData);
   }
 }

@@ -31,25 +31,14 @@ export class EcosystemController {
    * @param width Board width
    * @param height Board height
    * @param terrainData 2D array of terrain types
-   * @param habitats Array of habitats (used only to avoid placing resources on habitat tiles)
    * @returns Array of generated resources
    */
   public static generateResources(
     width: number, 
     height: number, 
-    terrainData: TerrainType[][], 
-    habitats: Habitat[]
+    terrainData: TerrainType[][]
   ): Resource[] {
     const resources: Resource[] = [];
-    
-    // Track positions where habitats exist (ONLY critical habitat dependency)
-    const habitatPositions = new Set<string>();
-    habitats.forEach(habitat => {
-      habitatPositions.add(`${habitat.position.x},${habitat.position.y}`);
-    });
-    
-    // Define resource chance (percentage of eligible tiles that should have resources)
-    const resourceChance = GameConfig.resourceGenerationPercentage;
     
     // Get the state to access biome data
     const state = useGameStore.getState();
@@ -57,6 +46,15 @@ export class EcosystemController {
       console.warn("Board not initialized, cannot generate resources");
       return resources;
     }
+    
+    // Extract habitat positions directly from biomes
+    const habitatPositions = new Set<string>();
+    state.biomes.forEach(biome => {
+      habitatPositions.add(`${biome.habitat.position.x},${biome.habitat.position.y}`);
+    });
+    
+    // Define resource chance (percentage of eligible tiles that should have resources)
+    const resourceChance = GameConfig.resourceGenerationPercentage;
     
     // Get list of all biomes
     const biomes = state.biomes;
