@@ -134,9 +134,7 @@ export interface Biome {
 // Habitat structure
 export interface Habitat {
   id: string;
-  biomeId: string; // Each habitat is associated with a biome
   position: Coordinate;
-  // No state or shelter type - these concepts are now in the biome
 }
 
 // Tile structure
@@ -344,6 +342,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     } as GameState['spawnEvent']; // Force type alignment
     
     // Reset biome capture event
+    console.log(`[gameStore] Resetting biome capture event during nextTurn`);
     const resetBiomeCaptureEvent = {
       occurred: false,
       biomeId: null,
@@ -482,7 +481,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             
             const newHabitat: Habitat = {
               id: newId,
-              biomeId: newId, // Same ID will be used for the biome
               position: position,
             };
             
@@ -544,7 +542,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                 
                 const newHabitat: Habitat = {
                   id: newId,
-                  biomeId: newId,
                   position: tile,
                 };
                 
@@ -852,8 +849,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Habitat selection method
   selectHabitat: (id: string | null) => 
     set((state) => {
+      console.log(`[gameStore] selectHabitat called with habitat ID: ${id}`);
       if (!id) {
         // Deselecting a habitat
+        console.log(`[gameStore] Deselecting habitat and biome`);
         return { 
           selectedHabitatId: null,
           selectedBiomeId: null
@@ -863,16 +862,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Find the habitat by ID
       const habitat = state.habitats.find(h => h.id === id);
       if (!habitat) {
-        console.warn(`Cannot select habitat ${id}: not found`);
+        console.warn(`[gameStore] Cannot select habitat ${id}: not found`);
         return {
           selectedHabitatId: null,
           selectedBiomeId: null
         };
       }
       
+      console.log(`[gameStore] Selected habitat ${id} at (${habitat.position.x}, ${habitat.position.y})`);
+      console.log(`[gameStore] Associated biome ID: ${habitat.id}`);
+      
       return {
         selectedHabitatId: id,
-        selectedBiomeId: habitat.biomeId
+        selectedBiomeId: habitat.id // Using habitat.id as the biome ID
       };
     }),
 

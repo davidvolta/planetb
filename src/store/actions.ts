@@ -135,10 +135,12 @@ export function clearSpawnEvent(): void {
 }
 
 /**
- * Get the currently selected biome ID (from the selected habitat)
+ * Get the currently selected biome ID
  */
 export function getSelectedBiomeId(): string | null {
-  return useGameStore.getState().selectedBiomeId;
+  const biomeId = useGameStore.getState().selectedBiomeId;
+  console.log(`[getSelectedBiomeId] Current selected biome ID: ${biomeId}`);
+  return biomeId;
 }
 
 /**
@@ -149,18 +151,25 @@ export function isSelectedBiomeAvailableForCapture(): boolean {
   const state = useGameStore.getState();
   const biomeId = state.selectedBiomeId;
   
+  console.log(`[isSelectedBiomeAvailableForCapture] Checking biome ID: ${biomeId}`);
+  
   if (!biomeId) {
+    console.log(`[isSelectedBiomeAvailableForCapture] No biome selected, returning false`);
     return false;
   }
   
   const biome = state.biomes.get(biomeId);
   if (!biome) {
+    console.log(`[isSelectedBiomeAvailableForCapture] Biome not found in state, returning false`);
     return false;
   }
   
   // Biome is available for capture if it doesn't have an owner
-  return biome.ownerId === null;
+  const isAvailable = biome.ownerId === null;
+  console.log(`[isSelectedBiomeAvailableForCapture] Biome ${biomeId} is ${isAvailable ? 'available' : 'not available'} for capture (ownerId: ${biome.ownerId})`);
+  return isAvailable;
 }
+
 /**
  * Get all habitats in the game
  */
@@ -173,6 +182,7 @@ export function getHabitats(): any[] {
  * @param habitatId ID of the habitat to select, or null to deselect
  */
 export function selectHabitat(habitatId: string | null): void {
+  console.log(`[selectHabitat] Selecting habitat ID: ${habitatId}`);
   useGameStore.getState().selectHabitat(habitatId);
 }
 
@@ -180,7 +190,9 @@ export function selectHabitat(habitatId: string | null): void {
  * Get the currently selected habitat ID
  */
 export function getSelectedHabitatId(): string | null {
-  return useGameStore.getState().selectedHabitatId;
+  const habitatId = useGameStore.getState().selectedHabitatId;
+  console.log(`[getSelectedHabitatId] Current selected habitat ID: ${habitatId}`);
+  return habitatId;
 }
 
 /**
@@ -190,23 +202,29 @@ export function getSelectedHabitatId(): string | null {
  * @returns boolean indicating if biome can be captured
  */
 export function canCaptureBiome(biomeId: string): boolean {
+  console.log(`[canCaptureBiome] Checking if biome ${biomeId} can be captured`);
   const state = useGameStore.getState();
   const biome = state.biomes.get(biomeId);
   
   if (!biome) {
+    console.log(`[canCaptureBiome] Biome ${biomeId} not found in state, returning false`);
     return false;
   }
   
   // Can only capture biomes that don't already have an owner
   if (biome.ownerId !== null) {
+    console.log(`[canCaptureBiome] Biome ${biomeId} already has owner (${biome.ownerId}), returning false`);
     return false;
   }
   
-  // Find the habitat associated with this biome
-  const habitat = state.habitats.find(h => h.biomeId === biomeId);
+  // Find the habitat associated with this biome - using habitat.id now instead of habitat.biomeId
+  const habitat = state.habitats.find(h => h.id === biomeId);
   if (!habitat) {
+    console.log(`[canCaptureBiome] No habitat found for biome ${biomeId}, returning false`);
     return false;
   }
+  
+  console.log(`[canCaptureBiome] Found habitat (${habitat.id}) at position (${habitat.position.x}, ${habitat.position.y})`);
   
   // Find any active units on this habitat's position
   const unitsOnHabitat = state.animals.filter(animal => 
@@ -217,6 +235,13 @@ export function canCaptureBiome(biomeId: string): boolean {
     animal.ownerId === state.currentPlayerId // Must be current player's unit
   );
 
+  console.log(`[canCaptureBiome] Found ${unitsOnHabitat.length} eligible units on habitat for capture`);
+  if (unitsOnHabitat.length > 0) {
+    unitsOnHabitat.forEach(unit => {
+      console.log(`[canCaptureBiome] - Unit ${unit.id}, species: ${unit.species}, hasMoved: ${unit.hasMoved}, ownerId: ${unit.ownerId}`);
+    });
+  }
+
   return unitsOnHabitat.length > 0;
 }
 
@@ -225,66 +250,85 @@ export function canCaptureBiome(biomeId: string): boolean {
  * @param biomeId ID of the biome to capture
  */
 export function captureBiome(biomeId: string): void {
+  console.log(`[captureBiome] Attempting to capture biome ${biomeId}`);
   const state = useGameStore.getState();
   const biome = state.biomes.get(biomeId);
   
-  if (biome && biome.ownerId === null) {
-    // Get the current player ID
-    const currentPlayerId = state.currentPlayerId;
+  if (!biome) {
+    console.log(`[captureBiome] Biome ${biomeId} not found, capture aborted`);
+    return;
+  }
+  
+  if (biome.ownerId !== null) {
+    console.log(`[captureBiome] Biome ${biomeId} already owned by player ${biome.ownerId}, capture aborted`);
+    return;
+  }
+  
+  console.log(`[captureBiome] Capturing biome ${biomeId} for player ${state.currentPlayerId}`);
+  
+  // Get the current player ID
+  const currentPlayerId = state.currentPlayerId;
+  
+  // Find the habitat associated with this biome - using habitat.id now instead of habitat.biomeId
+  const habitat = state.habitats.find(h => h.id === biomeId);
+  if (!habitat) {
+    console.error(`[captureBiome] Could not find habitat for biome ${biomeId}`);
+    return;
+  }
+  
+  console.log(`[captureBiome] Associated habitat: ${habitat.id} at (${habitat.position.x}, ${habitat.position.y})`);
+  
+  // Create updated biome with ownership properties
+  const updatedBiome = {
+    ...biome,
+    ownerId: currentPlayerId,
+    lastProductionTurn: state.turn - 1 // Set lastProductionTurn to previous turn for correct egg production timing
+  };
+  
+  // Create a new Map with the updated biome
+  const updatedBiomes = new Map(state.biomes);
+  updatedBiomes.set(biomeId, updatedBiome);
+  
+  // Find the unit that is on the habitat and mark it as having moved
+  const unitsOnHabitat = state.animals.filter(animal => 
+    animal.position.x === habitat.position.x && 
+    animal.position.y === habitat.position.y &&
+    animal.state === AnimalState.ACTIVE &&
+    !animal.hasMoved &&
+    animal.ownerId === currentPlayerId
+  );
+  
+  console.log(`[captureBiome] Found ${unitsOnHabitat.length} units on habitat`);
+  
+  // Update the unit's hasMoved flag
+  if (unitsOnHabitat.length > 0) {
+    const unitId = unitsOnHabitat[0].id; // Use the first unit if multiple
+    console.log(`[captureBiome] Marking unit ${unitId} as moved after capturing biome`);
     
-    // Find the habitat associated with this biome
-    const habitat = state.habitats.find(h => h.biomeId === biomeId);
-    if (!habitat) {
-      console.error(`Could not find habitat for biome ${biomeId}`);
-      return;
-    }
-    
-    // Create updated biome with ownership properties
-    const updatedBiome = {
-      ...biome,
-      ownerId: currentPlayerId,
-      lastProductionTurn: state.turn - 1 // Set lastProductionTurn to previous turn for correct egg production timing
-    };
-    
-    // Create a new Map with the updated biome
-    const updatedBiomes = new Map(state.biomes);
-    updatedBiomes.set(biomeId, updatedBiome);
-    
-    // Find the unit that is on the habitat and mark it as having moved
-    const unitsOnHabitat = state.animals.filter(animal => 
-      animal.position.x === habitat.position.x && 
-      animal.position.y === habitat.position.y &&
-      animal.state === AnimalState.ACTIVE &&
-      !animal.hasMoved &&
-      animal.ownerId === currentPlayerId
+    const updatedAnimals = state.animals.map(animal => 
+      animal.id === unitId 
+        ? { ...animal, hasMoved: true } 
+        : animal
     );
     
-    // Update the unit's hasMoved flag
-    if (unitsOnHabitat.length > 0) {
-      const unitId = unitsOnHabitat[0].id; // Use the first unit if multiple
-      const updatedAnimals = state.animals.map(animal => 
-        animal.id === unitId 
-          ? { ...animal, hasMoved: true } 
-          : animal
-      );
-      
-      // Update biomes and animals
-      useGameStore.setState({ 
-        biomes: updatedBiomes,
-        animals: updatedAnimals
-      });
-      
-      console.log(`Unit ${unitId} marked as moved after capturing biome ${biomeId}`);
-    } else {
-      // Just update biomes if no unit found
-      useGameStore.setState({ 
-        biomes: updatedBiomes
-      });
-    }
+    // Update biomes and animals
+    useGameStore.setState({ 
+      biomes: updatedBiomes,
+      animals: updatedAnimals
+    });
     
-    // Record the biome capture event
-    recordBiomeCaptureEvent(biomeId);
+    console.log(`[captureBiome] Unit ${unitId} marked as moved after capturing biome ${biomeId}`);
+  } else {
+    // Just update biomes if no unit found
+    console.log(`[captureBiome] No eligible units found, only updating biome ownership`);
+    useGameStore.setState({ 
+      biomes: updatedBiomes
+    });
   }
+  
+  // Record the biome capture event
+  recordBiomeCaptureEvent(biomeId);
+  console.log(`[captureBiome] Biome capture event recorded for biome ${biomeId}`);
 }
 
 //
@@ -532,6 +576,7 @@ export function regenerateAllResourcesByLushness(): void {
  * @param biomeId ID of the biome that was captured
  */
 export function recordBiomeCaptureEvent(biomeId: string): void {
+  console.log(`[recordBiomeCaptureEvent] Recording capture event for biome ${biomeId}`);
   useGameStore.setState({
     biomeCaptureEvent: {
       occurred: true,
@@ -539,12 +584,14 @@ export function recordBiomeCaptureEvent(biomeId: string): void {
       timestamp: Date.now()
     }
   });
+  console.log(`[recordBiomeCaptureEvent] Capture event recorded at ${new Date().toLocaleTimeString()}`);
 }
 
 /**
  * Clear the current biome capture event
  */
 export function clearBiomeCaptureEvent(): void {
+  console.log(`[clearBiomeCaptureEvent] Clearing capture event`);
   useGameStore.setState({
     biomeCaptureEvent: {
       occurred: false,
@@ -552,4 +599,5 @@ export function clearBiomeCaptureEvent(): void {
       timestamp: null
     }
   });
+  console.log(`[clearBiomeCaptureEvent] Capture event cleared`);
 } 

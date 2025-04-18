@@ -317,7 +317,7 @@ export default class BoardScene extends Phaser.Scene {
     
     // Check if there's an improved habitat at this location
     const hasImprovedHabitat = contents.habitats.some(habitat => {
-      const biome = actions.getBiomes().get(habitat.biomeId);
+      const biome = actions.getBiomes().get(habitat.id);
       return biome && biome.ownerId !== null;
     });
     
@@ -389,7 +389,7 @@ export default class BoardScene extends Phaser.Scene {
       console.log(`Habitat clicked: ${clickedHabitat.id} at ${gridX},${gridY}`);
       
       // Only select and show red indicator if the biome is not owned
-      const biome = actions.getBiomes().get(clickedHabitat.biomeId);
+      const biome = actions.getBiomes().get(clickedHabitat.id);
       const isOwned = biome && biome.ownerId !== null;
       
       if (!isOwned) {
@@ -734,7 +734,7 @@ export default class BoardScene extends Phaser.Scene {
     
     habitats.forEach(habitat => {
       // Get the biome associated with this habitat
-      const biome = biomes.get(habitat.biomeId);
+      const biome = biomes.get(habitat.id);
       
       // Check if the biome is owned by the current player
       if (biome && biome.ownerId === currentPlayerId) {
@@ -761,7 +761,7 @@ export default class BoardScene extends Phaser.Scene {
     if (!board) return;
     
     // Get the habitat's biome ID from the habitat object
-    const biomeId = habitat.biomeId;
+    const biomeId = habitat.id;
     
     // Track tiles we reveal
     const tilesToReveal: { x: number, y: number }[] = [];

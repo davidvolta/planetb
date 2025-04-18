@@ -38,3 +38,9 @@
 4. Resource allocation - Initially based around habitat positions
 5. Ownership mechanics - While ownership is now stored in biomes, the UI still interacts through habitats
 
+
+Simplify Data Model: Remove the circular reference. Since biomes are your primary entity now, you could keep habitatId in Biome for transition purposes, but eliminate biomeId from Habitat.
+Single Selection Tracking: Track only selectedBiomeId in your state, and derive the habitat information when needed.
+Unified Selection Method: Replace selectHabitat with selectBiome that only updates the biome ID.
+Simplify UI Logic: Update UI components to work directly with biomes rather than checking both entities.
+ID Generation: Generate IDs with biome- prefix instead of habitat- to reflect your biome-centric architecture.

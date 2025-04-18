@@ -159,7 +159,7 @@ export class EcosystemController {
     }
     
     // Get the biome's habitat position (only to exclude it from valid tiles)
-    const habitat = useGameStore.getState().habitats.find(h => h.biomeId === biomeId);
+    const habitat = useGameStore.getState().habitats.find(h => h.id === biomeId);
     const habitatPosition = habitat ? { x: habitat.position.x, y: habitat.position.y } : null;
     
     // Get the owner of this biome
