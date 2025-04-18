@@ -729,18 +729,15 @@ export default class BoardScene extends Phaser.Scene {
     });
     
     // Reveal player's starting biome
-    const habitats = actions.getHabitats();
     const biomes = actions.getBiomes();
     
-    habitats.forEach(habitat => {
-      // Get the biome associated with this habitat
-      const biome = biomes.get(habitat.id);
-      
+    // Iterate directly through biomes instead of going through habitats first
+    biomes.forEach((biome, biomeId) => {
       // Check if the biome is owned by the current player
-      if (biome && biome.ownerId === currentPlayerId) {
+      if (biome.ownerId === currentPlayerId) {
         // This is the player's owned biome
-        // Find all tiles in this habitat's biome and reveal them
-        this.revealBiomeTiles(habitat.id, revealedTiles);
+        // Reveal all tiles in this biome
+        this.revealBiomeTiles(biomeId, revealedTiles);
       }
     });
     
@@ -752,16 +749,17 @@ export default class BoardScene extends Phaser.Scene {
     this.fogOfWarRenderer.revealTiles(uniqueTiles);
   }
   
-  // Reveal all tiles in a habitat's biome
-  public revealBiomeTiles(habitatId: string, revealedTiles?: { x: number, y: number }[]): void {
-    const habitat = actions.getHabitats().find(h => h.id === habitatId);
-    if (!habitat) return;
+  // Reveal all tiles in a biome
+  public revealBiomeTiles(biomeId: string, revealedTiles?: { x: number, y: number }[]): void {
+    // Check if the biome exists
+    const biome = actions.getBiomeById(biomeId);
+    if (!biome) {
+      console.warn(`[revealBiomeTiles] Biome ${biomeId} not found`);
+      return;
+    }
     
     const board = actions.getBoard();
     if (!board) return;
-    
-    // Get the habitat's biome ID from the habitat object
-    const biomeId = habitat.id;
     
     // Track tiles we reveal
     const tilesToReveal: { x: number, y: number }[] = [];

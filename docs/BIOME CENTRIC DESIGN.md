@@ -1,3 +1,8 @@
+- Single Selection Tracking: Track only selectedBiomeId in your state, and derive the habitat information when needed.
+- Unified Selection Method: Replace selectHabitat with selectBiome that only updates the biome ID.
+- Simplify UI Logic: Update UI components to work directly with biomes rather than checking both entities.
+- ID Generation: Generate IDs with biome- prefix instead of habitat- to reflect your biome-centric architecture.
+
 
 ### Core State Functions
 1. `getHabitatAt(x, y)` - Finds a habitat at specific coordinates
@@ -12,7 +17,7 @@
 3. `generateVoronoiBiomes(width, height, habitats, terrainData)` - Takes habitats as input for biome generation
 
 ### UI/Rendering Functions
-1. `revealBiomeTiles(habitatId)` - Takes a habitat ID to reveal biome tiles
+1. `revealBiomeTiles(biomeId)` - Takes a biome ID directly to reveal biome tiles
 2. `getHabitatRenderer()` - Returns the habitat rendering system
 3. `createHabitatGraphic()` - Creates graphical representation of habitats
 
@@ -29,10 +34,12 @@
 5. Ownership mechanics - While ownership is now stored in biomes, the UI still interacts through habitats
 
 
-Single Selection Tracking: Track only selectedBiomeId in your state, and derive the habitat information when needed.
-Unified Selection Method: Replace selectHabitat with selectBiome that only updates the biome ID.
-Simplify UI Logic: Update UI components to work directly with biomes rather than checking both entities.
-ID Generation: Generate IDs with biome- prefix instead of habitat- to reflect your biome-centric architecture.
+
+1. **Habitat Selection**: When a habitat is clicked, `selectedHabitatId` is updated and used to identify the selected habitat
+3. **UI Elements**: The UIScene uses `selectedHabitatId` in state tracking to determine when to show the capture button
+4. **Rendering**: The HabitatRenderer uses habitat IDs to manage graphics and identify habitats in the scene
+6. **Event Handling**: Input handling in InputManager checks the `selectedHabitatId` when processing clicks
+
 
 
 ### Phase 5: Refactor Initialization Logic
