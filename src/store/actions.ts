@@ -197,20 +197,14 @@ export function canCaptureBiome(biomeId: string): boolean {
   const state = useGameStore.getState();
   const biome = state.biomes.get(biomeId);
   
-  if (!biome) {
+  // Exit if biome doesn't exist or already has an owner
+  if (!biome || biome.ownerId !== null) {
     return false;
   }
   
-  // Can only capture biomes that don't already have an owner
-  if (biome.ownerId !== null) {
-    return false;
-  }
-  
-  // Find the habitat associated with this biome - using habitat.id now instead of habitat.biomeId
-  const habitat = state.habitats.find(h => h.id === biomeId);
-  if (!habitat) {
-    return false;
-  }
+  // Since biomes and habitats share IDs and are created together,
+  // we're confident that if a biome exists, its habitat must exist too
+  const habitat = state.habitats.find(h => h.id === biomeId)!;
   
   // Find any active units on this habitat's position
   const unitsOnHabitat = state.animals.filter(animal => 
@@ -232,23 +226,17 @@ export function captureBiome(biomeId: string): void {
   const state = useGameStore.getState();
   const biome = state.biomes.get(biomeId);
   
-  if (!biome) {
-    return;
-  }
-  
-  if (biome.ownerId !== null) {
+  // Exit if biome doesn't exist or already has an owner
+  if (!biome || biome.ownerId !== null) {
     return;
   }
   
   // Get the current player ID
   const currentPlayerId = state.currentPlayerId;
   
-  // Find the habitat associated with this biome - using habitat.id now instead of habitat.biomeId
-  const habitat = state.habitats.find(h => h.id === biomeId);
-  if (!habitat) {
-    console.error(`[captureBiome] Could not find habitat for biome ${biomeId}`);
-    return;
-  }
+  // Since biomes and habitats share IDs and are created together,
+  // we're confident that if a biome exists, its habitat must exist too
+  const habitat = state.habitats.find(h => h.id === biomeId)!;
   
   // Create updated biome with ownership properties
   const updatedBiome = {
