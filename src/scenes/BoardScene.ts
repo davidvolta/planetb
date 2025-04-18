@@ -519,9 +519,9 @@ export default class BoardScene extends Phaser.Scene {
 
   // Check what entities exist at specific coordinates
   private checkTileContents(x: number, y: number) {
-    // Get all animals and habitats
+
     const animals = actions.getAnimals();
-    const habitats = actions.getHabitats();
+    const biomes = actions.getBiomes();
     
     // Find active units at this location
     const activeUnits = animals.filter(animal => 
@@ -537,11 +537,13 @@ export default class BoardScene extends Phaser.Scene {
       animal.state === AnimalState.DORMANT
     );
     
-    // Find habitats at this location
-    const habitatsAtLocation = habitats.filter(habitat => 
-      habitat.position.x === x && 
-      habitat.position.y === y
-    );
+    // Extract habitats from biomes and filter by location
+    const habitatsAtLocation = Array.from(biomes.values())
+      .map(biome => biome.habitat)
+      .filter(habitat => 
+        habitat.position.x === x && 
+        habitat.position.y === y
+      );
     
     return {
       activeUnits,

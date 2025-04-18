@@ -153,13 +153,6 @@ export function isSelectedBiomeAvailableForCapture(): boolean {
 }
 
 /**
- * Get all habitats in the game
- */
-export function getHabitats(): any[] {
-  return useGameStore.getState().habitats;
-}
-
-/**
  * Select a habitat and its associated biome
  * @param habitatId ID of the habitat to select, or null to deselect
  */

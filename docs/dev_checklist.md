@@ -112,13 +112,13 @@
   - [ ] Preserve terrain data and board dimension parameters
 
 - [ ] Update BoardScene.regenerateResources():
-  - [ ] Remove calls to actions.getHabitats()
+  - [x] Remove calls to actions.getHabitats()
   - [ ] Only pass board dimensions and terrain data to regenerateResources action
 
 #### Phase 2: Update Other Habitat Array References
-- [ ] Refactor BoardScene.checkTileContents():
-  - [ ] Replace habitat array lookup with biome-based approach
-  - [ ] Extract habitat positions from biomes instead of using getHabitats()
+- [x] Refactor BoardScene.checkTileContents():
+  - [x] Replace habitat array lookup with biome-based approach
+  - [x] Extract habitat positions from biomes instead of using getHabitats()
 
 - [ ] Update Other EcosystemController Methods:
   - [ ] Review and update methods like getValidEggPlacementTiles to use biome.habitat
