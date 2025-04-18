@@ -1,13 +1,3 @@
-### Phase 5: Refactor Initialization Logic
-- [ ] Update `generateVoronoiBiomes` function:
-  - [ ] Make it the primary mechanism for territory assignment
-  - [ ] Remove the habitat-centric ID relationship (biomes should have their own IDs)
-  - [ ] Simplify biome generation to be independent of habitats
-- [ ] Modify habitat placement logic:
-  - [ ] Place habitats within existing biomes rather than creating biomes from habitats
-  - [ ] Update habitat-biome relationship to be parent-child (biome contains habitats)
-  - [ ] Ensure habitats are properly positioned within their parent biome
-
 
 ### Core State Functions
 1. `getHabitatAt(x, y)` - Finds a habitat at specific coordinates
@@ -39,8 +29,19 @@
 5. Ownership mechanics - While ownership is now stored in biomes, the UI still interacts through habitats
 
 
-Simplify Data Model: Remove the circular reference. Since biomes are your primary entity now, you could keep habitatId in Biome for transition purposes, but eliminate biomeId from Habitat.
 Single Selection Tracking: Track only selectedBiomeId in your state, and derive the habitat information when needed.
 Unified Selection Method: Replace selectHabitat with selectBiome that only updates the biome ID.
 Simplify UI Logic: Update UI components to work directly with biomes rather than checking both entities.
 ID Generation: Generate IDs with biome- prefix instead of habitat- to reflect your biome-centric architecture.
+
+
+### Phase 5: Refactor Initialization Logic
+- [ ] Update `generateVoronoiBiomes` function:
+  - [ ] Make it the primary mechanism for territory assignment
+  - [ ] Remove the habitat-centric ID relationship (biomes should have their own IDs)
+  - [ ] Simplify biome generation to be independent of habitats
+- [ ] Modify habitat placement logic:
+  - [ ] Place habitats within existing biomes rather than creating biomes from habitats
+  - [ ] Update habitat-biome relationship to be parent-child (biome contains habitats)
+  - [ ] Ensure habitats are properly positioned within their parent biome
+

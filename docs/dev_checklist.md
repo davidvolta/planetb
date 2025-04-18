@@ -1,58 +1,7 @@
 # Development Checklist
 
-## Biome-Centric Refactoring Plan
-
-### Phase 1: Data Model Changes
-1. **Revise Core Interfaces**
-   - [x] Remove `HabitatState` enum completely
-   - [x] Update `Habitat` interface to remove state and shelterType
-   - [x] Ensure Biome ownership is the central data concept
-
-2. **Event System Updates**
-   - [x] Replace `habitatImproveEvent` with `biomeCaptureEvent`
-   - [x] Update event structure to reference biomeId instead of habitatId
-   - [x] Update event handlers and subscriptions
-
-3. **Selection System Revision**
-   - [x] Consolidate habitat/biome selection into a single concept
-   - [x] Ensure selecting a habitat correctly sets the selected biome
-
-### Phase 2: Method & Function Refactoring
-1. **Action Method Renaming**
-   - [x] Rename `improveHabitat()` to `captureBiome()`
-   - [x] Rename `canImproveHabitat()` to `canCaptureBiome()`
-   - [x] Update parameters to use biomeId where possible
-
-2. **State Logic Updates**
-   - [x] Modify state tracking to focus on biome ownership
-   - [x] Remove all habitat-state-related conditionals
-   - [x] Update egg production logic to depend solely on biome ownership
-
-3. **UI Text Updates**
-   - [x] Change button text from "Improve Habitat" to "Capture Biome"
-   - [x] Update any tooltips or help text
-
-### Phase 3: Testing & Gameplay Verification
-1. **Core Mechanics Testing**
-   - [x] Test biome capturing process
-   - [x] Verify egg production in owned biomes
-   - [x] Ensure resource generation still works correctly
-
-2. **UI/UX Testing**
-   - [x] Verify all UI elements work with the new model
-   - [x] Ensure proper feedback for player actions
-
-### Phase 4: Code Cleanup
-1. **Remove Obsolete Code**
-   - [x] Delete unnecessary habitat state references
-   - [ ] Remove redundant code paths
-
-2. **Documentation Update**
-   - [x] Update comments to reflect biome-centric design
-   - [x] Update development checklist
 
 ## Upcoming Tasks
-- [ ] Fix bug where unit spawning at valid location shows "invalid location" message
 - [ ] Change tinting mechanism
 - [ ] Fix double clicking bug on spawn units
 - [ ] Fix ineligble spawning moves on terrain
@@ -67,8 +16,6 @@
 - [ ] Implement energy counter (UI and gamestore)
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
-
-
 
 
 ## Ecosystem Integration Plan
