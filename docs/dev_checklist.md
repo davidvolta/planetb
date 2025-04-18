@@ -18,47 +18,39 @@
 
 ## Habitat to Biome-Centric Refactoring
 
-### Phase 1: Redesign Ownership Model
-- [ ] Modify `Biome` interface to include direct player ownership:
-  - [ ] Add `ownerId` property to biomes
-  - [ ] Change habitats to be features within biomes rather than the reverse
-  - [ ] Update UI and selection logic to focus on biomes as the primary entity
+### Phase 1: Core Interface Changes
+- [ ] Update `Biome` interface:
+  - [ ] Add properties from Habitat (ownerId, productionRate, lastProductionTurn)
+  - [ ] Make it the primary entity for ownership and production
 
-### Phase 2: Simplify Egg Production Logic
-- [ ] Redesign egg production to be biome-driven rather than habitat-driven:
-  - [ ] Base egg production rates on biome lushness directly
-  - [ ] Simplify egg placement by working directly with biome tiles
-  - [ ] Remove the indirect habitat → biome → tile chain
+- [ ] Update `Habitat` interface:
+  - [ ] Add biomeId property
+  - [ ] Remove ownerId property
+  - [ ] Keep only position, state, and shelterType
+  - [ ] Simplify to be just a UI/selection element
 
-### Phase 3: Restructure Resource Generation
-- [ ] Refactor `generateResources` to use biomes as the primary organizational unit:
-  - [ ] Generate resources directly within biomes rather than avoiding habitats
-  - [ ] Base resource types and density on biome characteristics
-  - [ ] Simplify biome-resource relationship tracking
+### Phase 2: Update References & Functionality
+- [ ] Update initialization code:
+  - [ ] Set ownership on biomes, not habitats
+  - [ ] Ensure proper linking between habitats and their parent biomes
+  - [ ] Set initial player ownership on starting biome
 
-### Phase 4: Streamline Player Territory Management
-- [ ] Create direct methods for tracking and managing player-owned territory:
-  - [ ] Add function to get all biomes owned by a player
-  - [ ] Simplify territory border calculations with biome-first approach
-  - [ ] Update UI to show territory based on biome ownership, not habitat ownership
+- [ ] Update habitat improvement logic:
+  - [ ] Change to set ownership on the parent biome
+  - [ ] Keep habitat state transitions (POTENTIAL → IMPROVED)
+  - [ ] Remove all habitat ownership code
 
-### Phase 5: Reduce Data Duplication
-- [ ] Remove redundancy between habitats and biomes:
-  - [ ] Move relevant properties from habitats to biomes
-  - [ ] Create a cleaner habitat model as a feature within biomes
-  - [ ] Update all references to habitat properties that should be biome properties
+- [ ] Update animal creation/spawning:
+  - [ ] Set animal ownership based on biome ownership
+  - [ ] Ensure eggs inherit ownership from biomes
 
-### Phase 6: Simplify Resource Adjacency Calculations
-- [ ] Rewrite prioritization logic for egg placement and other territory operations:
-  - [ ] Base calculations on biome as the primary unit
-  - [ ] Simplify tracking of resources within biomes
-  - [ ] Reduce complexity of cross-biome calculations
+### Phase 3: Simplify and Rename
+- [ ] Rename `isHabitatZoneOverlapping` to `isBiomeOverlapping`
+- [ ] Update ownership checks throughout codebase:
+  - [ ] Replace `habitat.ownerId` with biome ownership lookups
+  - [ ] Keep UI and selection interfaces the same
+  - [ ] Keep function signatures where possible to minimize changes
 
-### Phase 7: Update EcosystemController
-- [ ] Refactor `EcosystemController` to fully embrace biome-centric design:
-  - [ ] Move `isHabitatZoneOverlapping` to EcosystemController
-  - [ ] Rename and redesign to work with biome zones instead of habitat zones
-  - [ ] Implement new methods for biome-territory calculations
 
 ## Ecosystem Integration Plan
 
