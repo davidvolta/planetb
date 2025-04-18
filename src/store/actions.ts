@@ -144,24 +144,12 @@ export function getSelectedBiomeId(): string | null {
 
 /**
  * Check if the selected biome is available for capture
- * Returns true if the biome doesn't have an owner yet
+ * Returns true if the biome can be captured
  */
 export function isSelectedBiomeAvailableForCapture(): boolean {
-  const state = useGameStore.getState();
-  const biomeId = state.selectedBiomeId;
-  
-  if (!biomeId) {
-    return false;
-  }
-  
-  const biome = state.biomes.get(biomeId);
-  if (!biome) {
-    return false;
-  }
-  
-  // Biome is available for capture if it doesn't have an owner
-  const isAvailable = biome.ownerId === null;
-  return isAvailable;
+  const biomeId = getSelectedBiomeId();
+  if (!biomeId) return false;
+  return canCaptureBiome(biomeId);
 }
 
 /**
