@@ -18,6 +18,72 @@
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
 
+### True Biome-Centric Architecture
+
+#### Phase 1: Temporary VoronoiNode Implementation
+- [ ] Create VoronoiNode Interface
+  - [ ] Define a simple interface with just position information
+  - [ ] Keep it separate from game entities - purely for generation
+
+- [ ] Modify Map Generation Logic
+  - [ ] Update map initialization to generate voronoiNodes instead of habitats
+
+#### Phase 2: Biome-First Generation
+- [ ] Update Biome Generation
+  - [ ] Use voronoiNodes as centers for Voronoi diagram generation
+  - [ ] Store necessary metadata like colors, lushness in biomes
+
+- [ ] Update Biome Interface
+  - [ ] Add `habitat` property directly to the Biome interface
+  - [ ] Remove habitat-related ID references
+
+#### Phase 3: Habitat Derivation
+- [ ] Generate Habitats From Biomes
+  - [ ] After biome generation, create habitats for each biome
+  - [ ] Place habitats at the same positions as the voronoiNodes
+  - [ ] Set habitat IDs independent of biome IDs
+  - [ ] Store each habitat directly in its parent biome
+
+- [ ] Remove Temporary VoronoiNodes
+  - [ ] Discard voronoiNodes after habitats are placed
+
+#### Phase 4: Update References and Dependencies
+- [ ] Update State Access Methods
+  - [ ] Modify methods that retrieve habitats to go through biomes
+  - [ ] Update `getHabitatAt()` to search through biomes first
+  - [ ] Rework `selectHabitat()` to select the biome containing the habitat
+
+- [ ] Refactor Animal Spawning
+  - [ ] Rework animal spawning to iterate through biomes instead of habitats
+  - [ ] Use biome ownership and properties to determine spawning locations
+
+- [ ] Update Player Starting Position Logic
+  - [ ] Find player starting biomes by checking terrain at biome.habitat.position
+  - [ ] Assign ownership directly to biomes
+
+#### Phase 5: UI and Rendering Updates
+- [ ] Update BoardScene and Renderers
+  - [ ] Modify HabitatRenderer to get habitat data from biomes
+  - [ ] Update initialization visibility to work with biome-centric structure
+  - [ ] Ensure fog of war reveals work with biome-centric structure
+
+- [ ] Update Selection and Capture Mechanics
+  - [ ] Ensure `canCaptureBiome` and `captureBiome` use the new structure
+  - [ ] Update UI components to work with biome selection directly
+
+#### Phase 6: Testing and Validation
+- [ ] Create Test Cases
+  - [ ] Verify map generation produces expected structures
+  - [ ] Test biome ownership and capturing work correctly
+  - [ ] Validate animal spawning and player starting positions
+
+- [ ] Documentation Update
+  - [ ] Update BIOME CENTRIC DESIGN.md to reflect completed changes
+  - [ ] Mark Phase 5 tasks as completed
+  - [ ] Document the new biome-centric architecture
+
+
+
 ## Ecosystem Integration Plan
 
 ### Phase 1: Enhance Biome Structure & Setup Ecosystem Utilities
@@ -70,5 +136,6 @@
 - [ ] Update simulator.js to use the shared EcosystemUtils functions
 - [ ] Keep the simulator UI largely the same
 - [ ] Ensure both the game and simulator use exactly the same calculation methods
+
 
 
