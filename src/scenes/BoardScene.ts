@@ -315,8 +315,8 @@ export default class BoardScene extends Phaser.Scene {
     // Check if there's an active unit that has already moved
     const hasMovedUnit = contents.activeUnits.some(unit => unit.hasMoved);
     
-    // Check if there's an improved habitat at this location
-    const hasImprovedHabitat = contents.biomes.some(biome => biome.ownerId !== null);
+    // Check if there's an owned biome at this location
+    const hasOwnedBiome = contents.biomes.some(biome => biome.ownerId !== null);
     
     // First, check if this tile is a valid move target - this gets priority over other interactions
     const isValidMoveTarget = this.moveRangeRenderer.isValidMoveTarget(gridX, gridY);
@@ -343,8 +343,8 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     // Show selection indicator at the clicked tile using SelectionRenderer
-    // Do NOT show white selection if the tile has a unit that has already moved or an improved habitat
-    if (!hasMovedUnit && !hasImprovedHabitat) {
+    // Do NOT show white selection if the tile has a unit that has already moved or an owned biome
+    if (!hasMovedUnit && !hasOwnedBiome) {
       this.selectionRenderer.showSelectionAt(gridX, gridY);
     }
     

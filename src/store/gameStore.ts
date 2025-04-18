@@ -2,9 +2,9 @@ import { create } from "zustand";
 import { generateIslandTerrain } from "../utils/TerrainGenerator";
 import { calculateManhattanDistance } from "../utils/CoordinateUtils";
 import { generateVoronoiBiomes } from "../utils/BiomeGenerator";
-import { EcosystemController } from "../controllers/EcosystemController";
 import { VoronoiNode, isNodeOverlapping } from "../utils/BiomeGenerator";
 import { devtools } from 'zustand/middleware';
+import { EcosystemController } from "../controllers/EcosystemController";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -109,13 +109,16 @@ export function getRandomCompatibleSpecies(terrain: TerrainType): string {
 
 // Order of terrain types for habitat placement
 // Start with beaches, then move inward (grass, mountain), then outward (water, underwater)
-export const HABITAT_TERRAIN_ORDER: TerrainType[] = [
+export const BIOME_TERRAIN_ORDER: TerrainType[] = [
   TerrainType.BEACH,    // Start with beaches as the foundation
   TerrainType.GRASS,    // Move inward to grass
   TerrainType.MOUNTAIN, // Continue inward to mountains
   TerrainType.WATER,    // Move outward to water
   TerrainType.UNDERWATER // Finally to underwater
 ];
+
+// Distance threshold for Voronoi node placement
+const NODE_DISTANCE_THRESHOLD = 3;
 
 // Biome structure
 export interface Biome {
@@ -296,15 +299,28 @@ export const useGameStore = create<GameState>((set, get) => ({
   } as GameState['biomeCaptureEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
-    // Process habitat production
-    const updatedState = EcosystemController.biomeEggProduction(state);
+    // NOTE: We could use the action function from actions.ts, but that would create
+    // a circular dependency. Instead, we use the controller directly with specific state pieces,
+    // which follows the same architectural pattern without creating import cycles:
+    // 
+    // produceEggs action would do exactly this internally, except it would also provide
+    // the option to apply changes to state or just return results.
+    
+    // Extract specific state pieces needed by biomeEggProduction
+    const result = EcosystemController.biomeEggProduction(
+      state.turn,
+      state.animals,
+      state.biomes,
+      state.board!,
+      state.resources
+    );
+    
+    // Extract updated animals and biomes from the result
+    const updatedAnimals = result.animals;
+    const updatedBiomes = result.biomes;
     
     // Reset the hasMoved flags for all animals but preserve previousPosition
-    const resetAnimals = updatedState.animals?.map((animal: Animal) => ({
-      ...animal,
-      hasMoved: false
-      // previousPosition is preserved here
-    })) || state.animals?.map((animal: Animal) => ({
+    const resetAnimals = updatedAnimals.map((animal: Animal) => ({
       ...animal,
       hasMoved: false
       // previousPosition is preserved here
@@ -336,8 +352,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     } as GameState['biomeCaptureEvent']; // Force type alignment
     
     return { 
-      ...updatedState,
       animals: resetAnimals,
+      biomes: updatedBiomes,
       turn: state.turn + 1,
       displacementEvent: resetDisplacementEvent,
       spawnEvent: resetSpawnEvent,
@@ -401,8 +417,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       const terrainTypesWithNodes = new Set<TerrainType>();
       
       // First, place one node for each available terrain type
-      // Use HABITAT_TERRAIN_ORDER to prioritize specific terrain types
-      HABITAT_TERRAIN_ORDER.forEach(terrainType => {
+      // Use BIOME_TERRAIN_ORDER to prioritize specific terrain types
+      BIOME_TERRAIN_ORDER.forEach(terrainType => {
         // Skip if we already placed a node for this terrain type
         if (terrainTypesWithNodes.has(terrainType)) {
           return;
@@ -460,7 +476,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
    
       
-      // Use HABITAT_TERRAIN_ORDER for prioritized placement
+      // Use BIOME_TERRAIN_ORDER for prioritized placement
       let placedAdditionalNodes = true;
       let additionalNodesCount = 0;
       let iterationCount = 0;
@@ -472,7 +488,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         iterationCount++;
         
         // Try each terrain type in priority order
-        for (const terrainType of HABITAT_TERRAIN_ORDER) {
+        for (const terrainType of BIOME_TERRAIN_ORDER) {
           // Collect all tiles of this terrain type that aren't already used for nodes
           const availableTiles: {x: number, y: number}[] = [];
           

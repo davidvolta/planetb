@@ -620,4 +620,34 @@ export function updateBiomesMap(biomes: Map<string, Biome>): void {
   useGameStore.setState({
     biomes
   });
+}
+
+/**
+ * Process egg production for all biomes
+ * Produces eggs in biomes based on their production rate
+ * 
+ * @param applyToState Whether to apply the changes to state (default: true)
+ * @returns The production result containing new animals and updated biomes
+ */
+export function produceEggs(applyToState: boolean = true) {
+  const state = useGameStore.getState();
+  
+  // Extract only the specific pieces of state needed by biomeEggProduction
+  const result = EcosystemController.biomeEggProduction(
+    state.turn,
+    state.animals,
+    state.biomes,
+    state.board!,
+    state.resources
+  );
+  
+  // Apply the changes to the state if requested
+  if (applyToState) {
+    useGameStore.setState({
+      animals: result.animals,
+      biomes: result.biomes
+    });
+  }
+  
+  return result;
 } 

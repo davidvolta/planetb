@@ -1,5 +1,4 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
-import { useGameStore } from "../store/gameStore";
 
 /**
  * Interface for egg placement validation
@@ -268,17 +267,30 @@ export class EcosystemController {
   /**
    * This function produces eggs based purely on biome ownership and production rate.
    * 
-   * @param state Current game state
+   * @param turn Current turn number
+   * @param animals Current animals array
+   * @param biomes Current biomes map
+   * @param board Game board
+   * @param resources Current resources array
    * @returns Updates to apply to the game state (new animals and updated biomes)
    */
-  public static biomeEggProduction(state: GameState): Partial<BiomeProductionResult> {
+  public static biomeEggProduction(
+    turn: number,
+    animals: Animal[],
+    biomes: Map<string, Biome>,
+    board: Board,
+    resources: Resource[]
+  ): BiomeProductionResult {
     // Only produce eggs on even-numbered turns
-    if (state.turn % 2 !== 0) {
-      return state as Partial<BiomeProductionResult>; // Skip production on odd-numbered turns
+    if (turn % 2 !== 0) {
+      return { 
+        animals: animals,
+        biomes: biomes
+      }; // Skip production on odd-numbered turns
     }
 
-    const newAnimals = [...state.animals];
-    const updatedBiomes = new Map(state.biomes);
+    const newAnimals = [...animals];
+    const updatedBiomes = new Map(biomes);
     
     // Process each biome directly
     updatedBiomes.forEach((biome, biomeId) => {
@@ -289,7 +301,7 @@ export class EcosystemController {
       if (biome.ownerId === null) return;
 
       // Calculate turns since last production
-      const turnsSinceProduction = state.turn - biome.lastProductionTurn;
+      const turnsSinceProduction = turn - biome.lastProductionTurn;
       if (turnsSinceProduction <= 0) return;
 
       // Calculate how many eggs to create
@@ -302,11 +314,11 @@ export class EcosystemController {
       const validTiles = this.getValidEggPlacementTiles(
         biomeId, 
         {
-          board: state.board!,
+          board: board,
           animals: newAnimals
         },
-        state.biomes,
-        state.resources
+        biomes,
+        resources
       );
 
       // Place eggs on valid tiles - use best tiles first (highest resource adjacency)
@@ -315,7 +327,7 @@ export class EcosystemController {
         const tile = validTiles[i];
 
         // Get appropriate species based on terrain
-        const terrain = state.board!.tiles[tile.y][tile.x].terrain;
+        const terrain = board.tiles[tile.y][tile.x].terrain;
         const species = this.getSpeciesForTerrain(terrain);
 
         // Create new egg (owned by the biome owner)
@@ -341,7 +353,7 @@ export class EcosystemController {
       // Update biome's last production turn
       const updatedBiome: Biome = {
         ...biome,
-        lastProductionTurn: state.turn
+        lastProductionTurn: turn
       };
       updatedBiomes.set(biomeId, updatedBiome);
     });

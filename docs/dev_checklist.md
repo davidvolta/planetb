@@ -17,28 +17,8 @@
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
-## Architecture Cleanup
 
-### Refactor EcosystemController
-- [x] Create missing action functions in actions.ts:
-  - [x] `getBiomes()`: To replace direct calls to `useGameStore.getState().biomes`
-  - [x] `getBiomeById(id)`: To get a specific biome (already exists but needs review)
-  - [x] `getResourcesForBiome(biomeId)`: To get resources belonging to a biome
-  - [x] `updateBiomeLushness(biomeId, value)`: To update a biome's lushness value
-  - [x] `addAnimal(animal)`: To add new animals to the state
-  - [x] `updateBiomesMap(biomes)`: To update multiple biomes at once
-  
-- [x] Refactor EcosystemController methods to use action functions:
-  - [x] Update `generateResources()` to use actions instead of direct state access
-  - [x] Update `getValidEggPlacementTiles()` to use actions
-  - [x] Update `biomeEggProduction()` to use actions for state mutations
-  - [x] Refactor `selectResourceTile()` and `harvestResource()` to follow architecture
-  - [x] Update `calculateBiomeLushness()` and other methods
-  
-- [x] Add proper state update patterns:
-  - [x] Replace any direct state mutations with action function calls
-  - [x] Ensure EcosystemController remains stateless (controller only)
-  - [x] Update return types to be consistent with action functions
+## Architecture Cleanup
 
 ### Further Biome-Centric Alignment
 - [ ] Audit and update terminology in codebase:
