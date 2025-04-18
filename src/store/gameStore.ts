@@ -123,7 +123,6 @@ export enum MapGenerationType {
 // Biome structure
 export interface Biome {
   id: string;
-  habitatId: string; // Each biome is associated with a habitat
   color: number; // Store a color for visualization
   lushness: number; // Lushness value from 0-10, where 8.0 is "stable"
   ownerId: number | null; // Player ID that owns this biome
@@ -606,7 +605,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           biomes.set(biomeId, {
             id: biomeId,
-            habitatId: habitat.id,
             color,
             lushness: 8.0, // Initialize lushness to the "stable" value
             // Set ownership for the player's starting beach biome
