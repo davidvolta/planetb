@@ -17,6 +17,44 @@
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
+## Architecture Cleanup
+
+### Refactor EcosystemController
+- [x] Create missing action functions in actions.ts:
+  - [x] `getBiomes()`: To replace direct calls to `useGameStore.getState().biomes`
+  - [x] `getBiomeById(id)`: To get a specific biome (already exists but needs review)
+  - [x] `getResourcesForBiome(biomeId)`: To get resources belonging to a biome
+  - [x] `updateBiomeLushness(biomeId, value)`: To update a biome's lushness value
+  - [x] `addAnimal(animal)`: To add new animals to the state
+  - [x] `updateBiomesMap(biomes)`: To update multiple biomes at once
+  
+- [x] Refactor EcosystemController methods to use action functions:
+  - [x] Update `generateResources()` to use actions instead of direct state access
+  - [x] Update `getValidEggPlacementTiles()` to use actions
+  - [x] Update `biomeEggProduction()` to use actions for state mutations
+  - [x] Refactor `selectResourceTile()` and `harvestResource()` to follow architecture
+  - [x] Update `calculateBiomeLushness()` and other methods
+  
+- [x] Add proper state update patterns:
+  - [x] Replace any direct state mutations with action function calls
+  - [x] Ensure EcosystemController remains stateless (controller only)
+  - [x] Update return types to be consistent with action functions
+
+### Further Biome-Centric Alignment
+- [ ] Audit and update terminology in codebase:
+  - [ ] Rename any remaining habitat-focused variables to emphasize biomes
+  - [ ] Update comments and documentation to reflect biome-centric design
+  - [ ] Ensure habitat properties are always accessed through parent biomes
+  
+- [ ] Update EcosystemController methods for biome-centric approach:
+  - [ ] Refine `getValidEggPlacementTiles()` to emphasize biome ownership
+  - [ ] Update resource generation to more directly associate resources with biomes
+  - [ ] Ensure egg production is fully biome-driven (not habitat-driven)
+
+- [ ] Correct any data modeling inconsistencies:
+  - [ ] Ensure `Biome` interface properly encapsulates all habitat functionality
+  - [ ] Verify habitat references are only accessed through biomes
+  - [ ] Remove any lingering habitat-centric domain concepts
 
 
 ## Ecosystem Integration Plan

@@ -31,33 +31,32 @@ export class EcosystemController {
    * @param width Board width
    * @param height Board height
    * @param terrainData 2D array of terrain types
+   * @param board The game board
+   * @param biomes The map of biomes
    * @returns Array of generated resources
    */
   public static generateResources(
     width: number, 
     height: number, 
-    terrainData: TerrainType[][]
+    terrainData: TerrainType[][],
+    board: Board,
+    biomes: Map<string, Biome>
   ): Resource[] {
     const resources: Resource[] = [];
     
-    // Get the state to access biome data
-    const state = useGameStore.getState();
-    if (!state.board) {
+    if (!board) {
       console.warn("Board not initialized, cannot generate resources");
       return resources;
     }
     
     // Extract habitat positions directly from biomes
     const habitatPositions = new Set<string>();
-    state.biomes.forEach(biome => {
+    biomes.forEach(biome => {
       habitatPositions.add(`${biome.habitat.position.x},${biome.habitat.position.y}`);
     });
     
     // Define resource chance (percentage of eligible tiles that should have resources)
     const resourceChance = GameConfig.resourceGenerationPercentage;
-    
-    // Get list of all biomes
-    const biomes = state.biomes;
     
     // Process each biome
     biomes.forEach((biome, biomeId) => {
@@ -73,7 +72,7 @@ export class EcosystemController {
           }
           
           // Check if tile belongs to this biome
-          const tile = state.board!.tiles[y][x];
+          const tile = board.tiles[y][x];
           if (tile.biomeId === biomeId) {
             biomeTiles.push({
               x, 
@@ -136,11 +135,15 @@ export class EcosystemController {
    * 
    * @param biomeId The ID of the biome to find valid egg placement tiles for
    * @param state Simplified game state containing board and animals
+   * @param allBiomes Map of all biomes
+   * @param resources Array of all resources in the game
    * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources in owned biomes
    */
   public static getValidEggPlacementTiles(
     biomeId: string,
-    state: ValidEggPlacementState
+    state: ValidEggPlacementState,
+    allBiomes: Map<string, Biome>,
+    resources: Resource[]
   ): Coordinate[] {
     const validTiles: Coordinate[] = [];
     const board = state.board;
@@ -150,7 +153,7 @@ export class EcosystemController {
     }
     
     // Get the biome to check ownership
-    const biome = useGameStore.getState().biomes.get(biomeId);
+    const biome = allBiomes.get(biomeId);
     if (!biome) {
       console.warn(`Biome ${biomeId} not found`);
       return validTiles;
@@ -171,7 +174,6 @@ export class EcosystemController {
     playerBiomeIds.add(biomeId); // Always include current biome
     
     // Find all biomes owned by this player directly using biome ownership
-    const allBiomes = useGameStore.getState().biomes;
     allBiomes.forEach((b, id) => {
       if (b.ownerId === biomeOwnerId) {
         playerBiomeIds.add(id);
@@ -181,7 +183,6 @@ export class EcosystemController {
     // Create a set of resource positions for quick lookup
     const resourcePositions = new Set<string>();
     const resourceBiomeMap = new Map<string, string | undefined>();
-    const resources = useGameStore.getState().resources;
     
     resources.forEach(resource => {
       const key = `${resource.position.x},${resource.position.y}`;
@@ -298,10 +299,15 @@ export class EcosystemController {
       if (eggsToCreate <= 0) return;
 
       // Find valid tiles for egg placement
-      const validTiles = this.getValidEggPlacementTiles(biomeId, {
-        board: state.board!,
-        animals: newAnimals
-      });
+      const validTiles = this.getValidEggPlacementTiles(
+        biomeId, 
+        {
+          board: state.board!,
+          animals: newAnimals
+        },
+        state.biomes,
+        state.resources
+      );
 
       // Place eggs on valid tiles - use best tiles first (highest resource adjacency)
       for (let i = 0; i < Math.min(eggsToCreate, validTiles.length); i++) {
@@ -370,12 +376,12 @@ export class EcosystemController {
    * 
    * @param x X coordinate of the resource tile
    * @param y Y coordinate of the resource tile
+   * @param resources Array of all resources in the game
    * @returns True if a resource was successfully selected
    */
-  public static selectResourceTile(x: number, y: number): boolean {
+  public static selectResourceTile(x: number, y: number, resources: Resource[]): boolean {
     // Check if there's a resource at this position
-    const state = useGameStore.getState();
-    const resource = state.resources.find(r => 
+    const resource = resources.find(r => 
       r.position.x === x && r.position.y === y
     );
 
@@ -394,9 +400,16 @@ export class EcosystemController {
    * 
    * @param resourceId ID of the resource to harvest
    * @param amount Amount to harvest (0-10 scale)
+   * @param resources Array of all resources in the game
+   * @param biomes Map of all biomes
    * @returns True if harvesting was successful
    */
-  public static harvestResource(resourceId: string, amount: number): boolean {
+  public static harvestResource(
+    resourceId: string, 
+    amount: number, 
+    resources: Resource[], 
+    biomes: Map<string, Biome>
+  ): boolean {
     // Validate amount
     if (amount < 0 || amount > 10) {
       console.error(`Invalid harvest amount: ${amount}, must be between 0-10`);
@@ -404,8 +417,7 @@ export class EcosystemController {
     }
 
     // Find the resource in the state
-    const state = useGameStore.getState();
-    const resource = state.resources.find(r => r.id === resourceId);
+    const resource = resources.find(r => r.id === resourceId);
     
     if (!resource) {
       console.error(`Resource ${resourceId} not found`);
@@ -418,7 +430,7 @@ export class EcosystemController {
     // Get the biome associated with this resource
     const biomeId = resource.biomeId;
     if (biomeId) {
-      const biome = state.biomes.get(biomeId);
+      const biome = biomes.get(biomeId);
       if (biome) {
         // TODO: Update the biome's lushness based on the harvested resource
       }
@@ -433,11 +445,11 @@ export class EcosystemController {
    * Calculates the lushness value for a biome based on its resources.
    * 
    * @param biomeId ID of the biome to calculate lushness for
+   * @param biomes Map of all biomes
    * @returns Lushness value (0-10 scale)
    */
-  public static calculateBiomeLushness(biomeId: string): number {
-    const state = useGameStore.getState();
-    const biome = state.biomes.get(biomeId);
+  public static calculateBiomeLushness(biomeId: string, biomes: Map<string, Biome>): number {
+    const biome = biomes.get(biomeId);
     
     if (!biome) {
       console.warn(`Biome ${biomeId} not found`);
@@ -454,14 +466,16 @@ export class EcosystemController {
 
   /**
    * Updates all biomes' lushness values based on their current resources.
+   * 
+   * @param biomes Map of all biomes
+   * @returns Updated map of biomes with new lushness values
    */
-  public static updateAllBiomeLushness(): void {
-    const state = useGameStore.getState();
+  public static updateAllBiomeLushness(biomes: Map<string, Biome>): Map<string, Biome> {
     const updatedBiomes = new Map<string, Biome>();
     
     // Iterate through all biomes
-    state.biomes.forEach((biome, biomeId) => {
-      const lushness = this.calculateBiomeLushness(biomeId);
+    biomes.forEach((biome, biomeId) => {
+      const lushness = this.calculateBiomeLushness(biomeId, biomes);
       const updatedBiome: Biome = {
         ...biome,
         lushness
@@ -469,19 +483,27 @@ export class EcosystemController {
       updatedBiomes.set(biomeId, updatedBiome);
     });
     
-    // TODO: Update biomes in the state
-    console.log("Updating all biome lushness values");
+    return updatedBiomes;
   }
 
   /**
    * Regenerates resources in all biomes based on their lushness.
    * Higher lushness = faster regeneration.
+   * 
+   * @param biomes Map of all biomes
+   * @param resources Current resources
+   * @param board The game board
+   * @returns Updated resources array
    */
-  public static regenerateAllResources(): void {
-    const state = useGameStore.getState();
-    const biomes = state.biomes;
-    
+  public static regenerateAllResources(
+    biomes: Map<string, Biome>, 
+    resources: Resource[], 
+    board: Board
+  ): Resource[] {
     // TODO: Iterate through biomes and regenerate resources based on lushness
     console.log("Regenerating resources based on biome lushness");
+    
+    // For now, return the same resources
+    return [...resources];
   }
 } 

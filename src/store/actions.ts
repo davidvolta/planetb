@@ -8,7 +8,8 @@ import {
   TerrainType, 
   Habitat, 
   GameConfig,
-  Coordinate
+  Coordinate,
+  Resource
 } from "./gameStore";
 import { EcosystemController } from "../controllers/EcosystemController";
 
@@ -440,8 +441,21 @@ export function regenerateResources(
   height: number, 
   terrainData: TerrainType[][]
 ): void {
+  const state = useGameStore.getState();
+  
+  if (!state.board) {
+    console.warn("Board not initialized, cannot regenerate resources");
+    return;
+  }
+  
   // Generate new resources with current settings
-  const newResources = EcosystemController.generateResources(width, height, terrainData);
+  const newResources = EcosystemController.generateResources(
+    width, 
+    height, 
+    terrainData,
+    state.board,
+    state.biomes
+  );
   
   // Update the resources in the store
   useGameStore.setState({
@@ -460,35 +474,65 @@ export function getResources(): any[] {
  * Select a resource tile at the given coordinates
  */
 export function selectResourceTile(x: number, y: number): boolean {
-  return EcosystemController.selectResourceTile(x, y);
+  const resources = useGameStore.getState().resources;
+  return EcosystemController.selectResourceTile(x, y, resources);
 }
 
 /**
  * Harvest a specific amount from a resource
  */
 export function harvestResource(resourceId: string, amount: number): boolean {
-  return EcosystemController.harvestResource(resourceId, amount);
+  const state = useGameStore.getState();
+  return EcosystemController.harvestResource(
+    resourceId, 
+    amount, 
+    state.resources, 
+    state.biomes
+  );
 }
 
 /**
  * Calculate the lushness value for a biome
  */
 export function calculateBiomeLushness(biomeId: string): number {
-  return EcosystemController.calculateBiomeLushness(biomeId);
+  const biomes = useGameStore.getState().biomes;
+  return EcosystemController.calculateBiomeLushness(biomeId, biomes);
 }
 
 /**
  * Update lushness values for all biomes
  */
 export function updateAllBiomeLushness(): void {
-  EcosystemController.updateAllBiomeLushness();
+  const state = useGameStore.getState();
+  const updatedBiomes = EcosystemController.updateAllBiomeLushness(state.biomes);
+  
+  // Update the biomes in the store
+  useGameStore.setState({
+    biomes: updatedBiomes
+  });
 }
 
 /**
  * Regenerate resources based on biome lushness
  */
 export function regenerateAllResourcesByLushness(): void {
-  EcosystemController.regenerateAllResources();
+  const state = useGameStore.getState();
+  
+  if (!state.board) {
+    console.warn("Board not initialized, cannot regenerate resources");
+    return;
+  }
+  
+  const updatedResources = EcosystemController.regenerateAllResources(
+    state.biomes,
+    state.resources,
+    state.board
+  );
+  
+  // Update the resources in the store
+  useGameStore.setState({
+    resources: updatedResources
+  });
 }
 
 /**
@@ -516,5 +560,64 @@ export function clearBiomeCaptureEvent(): void {
       biomeId: null,
       timestamp: null
     }
+  });
+}
+
+/**
+ * Get resources belonging to a specific biome
+ * @param biomeId The ID of the biome to retrieve resources for
+ */
+export function getResourcesForBiome(biomeId: string): Resource[] {
+  return useGameStore.getState().resources.filter(resource => 
+    resource.biomeId === biomeId
+  );
+}
+
+/**
+ * Update a biome's lushness value
+ * @param biomeId The ID of the biome to update
+ * @param value The new lushness value
+ */
+export function updateBiomeLushness(biomeId: string, value: number): void {
+  const state = useGameStore.getState();
+  const biome = state.biomes.get(biomeId);
+  
+  if (!biome) {
+    console.warn(`Biome ${biomeId} not found, cannot update lushness`);
+    return;
+  }
+  
+  const updatedBiome = {
+    ...biome,
+    lushness: value
+  };
+  
+  const updatedBiomes = new Map(state.biomes);
+  updatedBiomes.set(biomeId, updatedBiome);
+  
+  useGameStore.setState({
+    biomes: updatedBiomes
+  });
+}
+
+/**
+ * Add a new animal to the game state
+ * @param animal The animal to add
+ */
+export function addAnimal(animal: Animal): void {
+  const animals = [...useGameStore.getState().animals, animal];
+  
+  useGameStore.setState({
+    animals
+  });
+}
+
+/**
+ * Update multiple biomes at once
+ * @param biomes The map of biomes to update
+ */
+export function updateBiomesMap(biomes: Map<string, Biome>): void {
+  useGameStore.setState({
+    biomes
   });
 } 
