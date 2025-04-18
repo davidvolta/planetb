@@ -18,119 +18,38 @@
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
 
-### True Biome-Centric Architecture
+## True Biome-Centric Architecture
 
-#### Phase 1: Create VoronoiNode Interface and Update Related Functions
-- [x] Create VoronoiNode Interface in BiomeGenerator.ts:
-  - [x] Define a simple interface with position information
-  - [x] Include an ID field for temporary generation purposes
-  - [x] Import necessary dependencies (Coordinate)
+### API and Naming Updates
+- [ ] Rename `selectHabitat()` to `selectBiome()` in actions.ts
+- [ ] Update parameter names from habitatId to biomeId where appropriate
+- [ ] Update references to `selectedHabitatId` in UIScene.ts to use `selectedBiomeId`
+- [ ] Rename HabitatRenderer to BiomeRenderer for consistency
 
-- [x] Update the generateVoronoiBiomes function:
-  - [x] Change signature to accept VoronoiNodes instead of habitats
-  - [x] Modify internal references to use node.id instead of habitat.id
-  - [x] Ensure color generation and biome mapping are still working correctly
+### ID and Structure Improvements
+- [ ] Update ID generation to use "biome-" prefix instead of "habitat-" prefix
+- [ ] Make biome IDs independent of habitat IDs (not sharing IDs)
+- [ ] Fully implement parent-child relationship between biomes and habitats
+- [ ] Consider making habitats a collection within biomes (one-to-many)
 
-- [x] Create a node-compatible version of isBiomeOverlapping:
-  - [x] Implement isNodeOverlapping with same logic as existing function
-  - [x] Review distance calculations to ensure biome separation is maintained
+### UI Optimization
+- [ ] Update UI components to directly reference biome properties
+- [ ] Check and update any remaining references to habitat properties in UI
+- [ ] Consider Habitat visualization as a feature of BiomeRenderer
 
-#### Phase 2: Modify Board Initialization Process
-- [x] Update initializeBoard in gameStore.ts:
-  - [x] Create an array to hold temporary VoronoiNodes
-  - [x] Replace habitat generation with VoronoiNode generation
-  - [x] Use same positioning and terrain-type logic currently used for habitats
-  - [x] Maintain player starting position identification logic
+### Remaining Function Conversions
+- [ ] Revisit any remaining habitat-focused functions in gameStore.ts
+- [ ] Consider removing habitats array entirely when all systems are updated
+- [ ] Update checkTileContents() and similar functions to focus on biomes first
 
-- [x] Modify biome generation to work with nodes:
-  - [x] Pass nodes (not habitats) to generateVoronoiBiomes
-  - [x] Generate proper biome IDs with "habitat-" prefix (for compatibility)
-  - [x] Create biomes directly from VoronoiNodes
-  - [x] Assign player ownership based on node terrain (e.g., beach terrain)
-
-#### Phase 3: Create Habitats as Properties of Biomes
-- [x] Add habitat field to Biome interface:
-  - [x] Update the interface in gameStore.ts
-  - [x] Ensure backward compatibility with existing code
-
-- [x] Create habitats from biomes:
-  - [x] After biome generation, create habitats positioned at VoronoiNode locations
-  - [x] Assign habitat IDs using same format as before
-  - [x] Store each habitat in its parent biome
-  - [x] Also add habitats to the habitats array for compatibility
-
-- [x] Clean up temporary structures:
-  - [x] Discard VoronoiNodes after habitats are created
-  - [x] Ensure no lingering references to temporary generation structures
-
-#### Phase 4: Update References and Dependencies
-- [x] Update State Access Methods
-  - [x] Modify methods that retrieve habitats to go through biomes first
-  - [x] Update `getHabitatAt()` to search through biomes first
-  - [x] Rework `selectHabitat()` to select the biome containing the habitat
-
-- [x] Refactor Animal Spawning
-  - [x] Rework animal spawning to iterate through biomes instead of habitats
-  - [x] Use biome ownership and properties to determine spawning locations
-
-- [x] Update Player Starting Position Logic
-  - [x] Find player starting biomes by checking terrain at biome.habitat.position
-  - [x] Assign ownership directly to biomes
-
-#### Phase 5: UI and Rendering Updates
-- [ ] Update BoardScene and Renderers
-  - [ ] Modify HabitatRenderer to get habitat data from biomes
-  - [ ] Update initialization visibility to work with biome-centric structure
-  - [ ] Ensure fog of war reveals work with biome-centric structure
-
-- [ ] Update Selection and Capture Mechanics
-  - [ ] Ensure `canCaptureBiome` and `captureBiome` use the new structure
-  - [ ] Update UI components to work with biome selection directly
-
-#### Phase 6: Testing and Validation
-- [ ] Create Test Cases
-  - [ ] Verify map generation produces expected structures
-  - [ ] Test biome ownership and capturing work correctly
-  - [ ] Validate animal spawning and player starting positions
-
-- [ ] Documentation Update
-  - [ ] Update BIOME CENTRIC DESIGN.md to reflect completed changes
-  - [ ] Mark Phase 5 tasks as completed
-  - [ ] Document the new biome-centric architecture
-
-
-### Resource Generation Refactoring Plan
-
-#### Phase 1: Eliminate Habitat Array Dependency
-- [ ] Refactor EcosystemController.generateResources():
-  - [ ] Extract habitat positions directly from biomes in the store
-  - [ ] Update internal logic to use position set for checking habitat locations
-
-- [ ] Update actions.regenerateResources():
-  - [ ] Remove habitats parameter
-  - [ ] Let EcosystemController access biomes directly from the store
-  - [ ] Preserve terrain data and board dimension parameters
-
-- [ ] Update BoardScene.regenerateResources():
-  - [x] Remove calls to actions.getHabitats()
-  - [ ] Only pass board dimensions and terrain data to regenerateResources action
-
-#### Phase 2: Update Other Habitat Array References
-- [x] Refactor BoardScene.checkTileContents():
-  - [x] Replace habitat array lookup with biome-based approach
-  - [x] Extract habitat positions from biomes instead of using getHabitats()
-
-- [ ] Update Other EcosystemController Methods:
-  - [ ] Review and update methods like getValidEggPlacementTiles to use biome.habitat
-  - [ ] Remove any remaining direct references to the habitats array
-
-#### Phase 3: Testing and Documentation
-- [ ] Verify all resource generation still works correctly:
-  - [ ] Test resource regeneration with new biome-centric approach
-  - [ ] Check that resources don't appear on habitat tiles
-  - [ ] Validate resource distribution across different biomes
+### Documentation and Testing
+- [ ] Add unit tests for the biome-centric architecture
+- [ ] Update comments throughout the code to reflect biome-centric terminology
+- [ ] Create flow diagrams showing the new biome-centric architecture
 
 - [ ] Update BIOME CENTRIC DESIGN.md:
+  - [ ] Update BIOME CENTRIC DESIGN.md to reflect completed changes
+  - [ ] Document the new biome-centric architecture
   - [ ] Document the new resource generation approach
   - [ ] Explain the elimination of habitat array dependency
   - [ ] Update any diagrams or code examples
