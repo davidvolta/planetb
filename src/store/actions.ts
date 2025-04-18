@@ -1,4 +1,5 @@
-import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState, Board, Biome, TerrainType, Habitat, generateResources, GameConfig } from "./gameStore";
+import { useGameStore, MapGenerationType, Animal, GameState, AnimalState, HabitatState, Board, Biome, TerrainType, Habitat, GameConfig } from "./gameStore";
+import { EcosystemController } from "../controllers/EcosystemController";
 
 /**
  * Action dispatchers for React components
@@ -472,7 +473,7 @@ export function regenerateResources(
   habitats: Habitat[]
 ): void {
   // Generate new resources with current settings
-  const newResources = generateResources(width, height, terrainData, habitats);
+  const newResources = EcosystemController.generateResources(width, height, terrainData, habitats);
   
   // Update the resources in the store
   useGameStore.setState({
@@ -485,4 +486,39 @@ export function regenerateResources(
  */
 export function getResources(): any[] {
   return useGameStore.getState().resources;
+}
+
+/**
+ * Select a resource tile at the given coordinates
+ */
+export function selectResourceTile(x: number, y: number): boolean {
+  return EcosystemController.selectResourceTile(x, y);
+}
+
+/**
+ * Harvest a specific amount from a resource
+ */
+export function harvestResource(resourceId: string, amount: number): boolean {
+  return EcosystemController.harvestResource(resourceId, amount);
+}
+
+/**
+ * Calculate the lushness value for a biome
+ */
+export function calculateBiomeLushness(biomeId: string): number {
+  return EcosystemController.calculateBiomeLushness(biomeId);
+}
+
+/**
+ * Update lushness values for all biomes
+ */
+export function updateAllBiomeLushness(): void {
+  EcosystemController.updateAllBiomeLushness();
+}
+
+/**
+ * Regenerate resources based on biome lushness
+ */
+export function regenerateAllResourcesByLushness(): void {
+  EcosystemController.regenerateAllResources();
 } 
