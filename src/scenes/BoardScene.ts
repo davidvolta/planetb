@@ -97,6 +97,7 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("kelp", "assets/resources/kelp.png");
     this.load.image("insects", "assets/resources/insects.png");
     this.load.image("plankton", "assets/resources/plankton.png");
+    this.load.image("blank", "assets/blank.png");
 
     this.load.on('complete', () => {
       this.events.emit(EVENTS.ASSETS_LOADED);
@@ -208,8 +209,7 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-  // Update the board without restarting the scene
-  updateBoard() {
+updateBoard() {
     const needsSetup = !this.layerManager.isLayersSetup();     // Check if we need to setup the layers
     
     // Set up layers if needed
@@ -219,6 +219,7 @@ export default class BoardScene extends Phaser.Scene {
   
     this.createTiles();     // Create new tiles using TileRenderer
   }
+  
   
   // Scene shutdown handler
   shutdown() {
@@ -300,6 +301,9 @@ export default class BoardScene extends Phaser.Scene {
       console.log("Initial resource generation");
       this.regenerateResources();
     }
+    
+    // Visualize blank tiles by default
+    this.resourceRenderer.visualizeBlankTiles();
     
     // Set up input handlers if they're not already set up
     if (!this.controlsSetup) {

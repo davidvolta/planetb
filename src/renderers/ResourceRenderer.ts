@@ -3,6 +3,8 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { Resource, ResourceType } from '../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
+import * as actions from '../store/actions';
+import { TileResult } from '../store/actions';
 
 /**
  * Responsible for rendering and managing resource graphics
@@ -58,7 +60,7 @@ export class ResourceRenderer extends BaseRenderer {
     // Get a map of current resource sprites by position (since we don't have resource IDs anymore)
     const existingResourceSprites = new Map();
     staticObjectsLayer.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Sprite) {
+      if (child instanceof Phaser.GameObjects.Sprite && child.getData('resourceType')) {
         const gridX = child.getData('gridX');
         const gridY = child.getData('gridY');
         if (gridX !== undefined && gridY !== undefined) {
@@ -127,30 +129,90 @@ export class ResourceRenderer extends BaseRenderer {
         // Add the sprite to the static objects layer
         this.layerManager.addToLayer('staticObjects', resourceSprite);
       }
-      
-      // Add visual indicator for inactive resources
-      if (!tile.active) {
-        // Create a small circle to indicate inactive resource
-        const circle = this.scene.add.graphics();
-        circle.setData('inactiveResourceMarker', true);
-        circle.setData('gridX', x);
-        circle.setData('gridY', y);
-        
-        // Style the circle - small red circle with white border
-        circle.lineStyle(2, 0xFFFFFF);
-        circle.fillStyle(0xFF0000, 0.7);
-        circle.fillCircle(worldX, worldY, 8);
-        circle.strokeCircle(worldX, worldY, 8);
-        
-        // Add to static objects layer
-        this.layerManager.addToLayer('staticObjects', circle);
-      }
     });
     
     // Remove sprites for resources that no longer exist
     existingResourceSprites.forEach((data, key) => {
       if (!data.used) {
         data.sprite.destroy();
+      }
+    });
+    
+    // Always refresh blank tiles after updating resources
+    this.visualizeBlankTiles();
+  }
+  
+  /**
+   * Clear all blank tile visualization markers
+   */
+  clearBlankTileMarkers(): void {
+    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
+    if (!staticObjectsLayer) return;
+    
+    // Find and destroy all sprites with the blankTileMarker data
+    staticObjectsLayer.getAll().forEach(child => {
+      if (child.getData && child.getData('blankTileMarker')) {
+        child.destroy();
+      }
+    });
+    
+    console.log("Cleared all blank tile markers");
+  }
+  
+  /**
+   * Visualize blank tiles (tiles with hasEgg=false and no resources or habitats)
+   */
+  visualizeBlankTiles(): void {
+    // Clear any existing blank tile markers
+    this.clearBlankTileMarkers();
+    
+    // Get all blank tiles using the filtering system
+    const blankTiles = actions.getBlankTiles();
+    console.log(`Found ${blankTiles.length} blank tiles to visualize`);
+    
+    if (blankTiles.length === 0) {
+      return; // Nothing to visualize
+    }
+    
+    // Create a marker for each blank tile after a short delay to ensure rendering works
+    this.scene.time.delayedCall(50, () => {
+      blankTiles.forEach(({ x, y, tile }: TileResult) => {
+        // Calculate world position
+        const worldPosition = CoordinateUtils.gridToWorld(
+          x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+        );
+        
+        const worldX = worldPosition.x;
+        const worldY = worldPosition.y;
+        
+        // Create a sprite to indicate blank tile
+        const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
+        blankSprite.setScale(0.25);
+        blankSprite.setDepth(5); // Make sure it renders on top of terrain
+        blankSprite.setData('blankTileMarker', true);
+        blankSprite.setData('gridX', x);
+        blankSprite.setData('gridY', y);
+        
+        // Add to static objects layer
+        this.layerManager.addToLayer('staticObjects', blankSprite);
+      });
+      
+      console.log(`Visualized ${blankTiles.length} blank tiles`);
+    });
+  }
+  
+  /**
+   * Clear any inactive resource markers
+   * @deprecated This method is kept for backward compatibility
+   */
+  clearInactiveResourceMarkers(): void {
+    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
+    if (!staticObjectsLayer) return;
+    
+    staticObjectsLayer.getAll().forEach(child => {
+      if (child instanceof Phaser.GameObjects.Graphics && 
+          child.getData('inactiveResourceMarker')) {
+        child.destroy();
       }
     });
   }
@@ -196,6 +258,7 @@ export class ResourceRenderer extends BaseRenderer {
   override destroy(): void {
     super.destroy();
     this.clearResources();
+    this.clearBlankTileMarkers();
   }
   
   /**
