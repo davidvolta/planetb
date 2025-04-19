@@ -21,14 +21,26 @@
 
 ### Phase 1: Refactor to Tile-Centric Resource Model
 - [ ] Extend the `Tile` interface in gameStore.ts to include:
-  - [ ] Resource properties (resourceType, resourceValue, active)
-  - [ ] Future egg placement property (hasEgg)
-  
-- [ ] Refactor Resources:
-  - [ ] Convert Resources from separate entities to tile properties
-  - [ ] Update resource creation/initialization logic
-  - [ ] Update rendering code to use tile resource properties
-  - [ ] Remove separate Resource entities after conversion is complete
+  - [ ] Required resource properties (resourceType: ResourceType | null, resourceValue: number, active: boolean)
+  - [ ] Default all tiles to {resourceType: null, resourceValue: 0, active: false}
+  - [ ] Ensure habitats are excluded or properly marked
+
+- [ ] Refactor Resource Generation:
+  - [ ] Modify resource generation to set tile properties directly instead of creating Resource entities
+  - [ ] Maintain 50% resource distribution on eligible terrain
+  - [ ] Set initial values: {resourceType: FOREST/KELP/etc, resourceValue: 10, active: true}
+  - [ ] Keep terrain-resource type mapping (GRASS→FOREST, WATER→KELP, etc.)
+  - [ ] Update exploration system to reveal resources as tiles are explored
+
+- [ ] Update Egg Placement Logic:
+  - [ ] Ensure eggs can ONLY be placed on tiles with active=false
+  - [ ] Modify egg production to use blank tile (active=false) detection
+
+- [ ] Refactor UI/Rendering:
+  - [ ] Modify resource rendering to read from tile properties 
+  - [ ] Use opacity based on resourceValue/10 for resource health visualization
+  - [ ] Keep using same visual assets for resources
+  - [ ] Add temporary visual indicators to distinguish active/inactive resources during development
 
 - [ ] Extend the `Biome` interface in gameStore.ts to include:
   - [ ] Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value
@@ -63,7 +75,7 @@
 
 - [ ] Implement the harvest logic in gameStore:
   - [ ] Update tile resource values based on the harvested amount
-  - [ ] Convert depleted tiles (value 0) to blank tiles
+  - [ ] When resourceValue reaches 0, immediately set active=false (permanent conversion)
   - [ ] Update the biome's lushness based on the new tile state
 
 ### Phase 5: Replace Habitat Production with Biome-Based Ecosystem
