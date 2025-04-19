@@ -8,12 +8,7 @@
 - [ ] Now its kind of boring that eggs appear in the same place always
 - [ ] Fix Raley Font (lost during architecture update)
 - [ ] Style edges of owned biomes (flood fill with stroke)
-
-- [ ] Implement harvesting
-    - Selecting a tile with resources (double click behavior for units/eggs)
-     - Allow partial harvesting (0-10 scale per tile's resource value)
-    
-- [ ] Implement energy counter (UI and gamestore)
+  
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
@@ -31,21 +26,32 @@
   - [x] Maintain 50% resource distribution on eligible terrain
   - [x] Set initial values: {resourceType: FOREST/KELP/etc, resourceValue: 10, active: true}
   - [x] Keep terrain-resource type mapping (GRASS→FOREST, WATER→KELP, etc.)
-  - [ ] Update exploration system to reveal resources as tiles are explored
+  - [x] Update exploration system to reveal resources as tiles are explored (already working via fog of war)
 
-- [ ] Update Egg Placement Logic:
+- [X] Update Egg Placement Logic:
   - [x] Ensure eggs can ONLY be placed on tiles with active=false AND isHabitat=false
   - [x] Modify egg production to use blank tile (active=false) detection that excludes habitats
 
-- [ ] Refactor UI/Rendering:
-  - [ ] Modify resource rendering to read from tile properties 
-  - [ ] Use opacity based on resourceValue/10 for resource health visualization
-  - [ ] Keep using same visual assets for resources
-  - [ ] Add temporary visual indicators to distinguish active/inactive resources during development
+- [x] Refactor UI/Rendering:
+  - [x] Modify resource rendering to read from tile properties 
+  - [x] Use opacity based on resourceValue/10 for resource health visualization
+  - [x] Keep using same visual assets for resources
+  - [x] Add implementation for StateSubscriptionManager initialize method
+  - [x] Improve renderer initialization with proper dependency injection
+  - [x] Add visual indicators to distinguish active/inactive resources (small red circle for inactive)
 
 - [ ] Extend the `Biome` interface in gameStore.ts to include:
   - [ ] Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value
   - [ ] Resource tracking (initialResourceCount, nonDepletedCount, totalHarvested, eggCount)
+
+- [ ] Enhance Tile System for Ecosystem Integration:
+  - [ ] Add hasEgg boolean property to Tile interface with default value of false
+  - [ ] Update state management to keep tile.hasEgg and Animal entities in sync
+  - [ ] Create comprehensive getTiles() function similar to getResourceTiles()
+  - [ ] Implement hybrid filtering system:
+    - [ ] Generic getTilesByFilter(filterFn) core mechanism
+    - [ ] Specific helper functions (getBlankTiles(), getEggTiles(), etc.)
+  - [ ] Ensure proper rendering of all tile states (resources, eggs, habitats)
 
 ### Phase 2: Create Ecosystem Utilities
 - [ ] Create a new utils file `EcosystemUtils.ts` containing:
@@ -64,14 +70,18 @@
   - [ ] Display resource values numerically on tiles
   - [ ] Use opacity to visualize resource health (value/10)
   - [ ] Keep the existing resource assets, just modify their display
+  
 ### Phase 4: Implement Harvesting System
 - [ ] Create new action functions in actions.ts:
   - [ ] selectTile(x, y)
+      - Selecting a tile with resources (double click behavior for units/eggs)
   - [ ] harvestTileResource(tileId, amount)
-
+      - Allow partial harvesting (0-10 scale per tile's resource value)
+  
 - [ ] Add UI components for harvesting:
   - [ ] Harvest button that appears when a tile with resources is selected
   - [ ] Amount slider for selecting harvest amount (0-10 scale)
+  - [ ] Implement energy counter (UI and gamestore)
 
 - [ ] Implement the harvest logic in gameStore:
   - [ ] Update tile resource values based on the harvested amount

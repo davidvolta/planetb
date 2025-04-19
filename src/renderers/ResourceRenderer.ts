@@ -47,6 +47,14 @@ export class ResourceRenderer extends BaseRenderer {
       return;
     }
     
+    // Clear any existing inactive resource indicators
+    staticObjectsLayer.getAll().forEach(child => {
+      if (child instanceof Phaser.GameObjects.Graphics && 
+          child.getData('inactiveResourceMarker')) {
+        child.destroy();
+      }
+    });
+    
     // Get a map of current resource sprites by position (since we don't have resource IDs anymore)
     const existingResourceSprites = new Map();
     staticObjectsLayer.getAll().forEach(child => {
@@ -99,6 +107,9 @@ export class ResourceRenderer extends BaseRenderer {
         if (existing.sprite.texture.key !== textureKey) {
           existing.sprite.setTexture(textureKey);
         }
+        
+        // Store active state in the sprite data
+        existing.sprite.setData('active', tile.active);
       } else {
         // Create a new sprite for this resource
         const resourceSprite = this.scene.add.sprite(worldX, worldY, textureKey);
@@ -111,9 +122,28 @@ export class ResourceRenderer extends BaseRenderer {
         resourceSprite.setData('gridX', x);
         resourceSprite.setData('gridY', y);
         resourceSprite.setData('resourceType', tile.resourceType);
+        resourceSprite.setData('active', tile.active);
         
         // Add the sprite to the static objects layer
         this.layerManager.addToLayer('staticObjects', resourceSprite);
+      }
+      
+      // Add visual indicator for inactive resources
+      if (!tile.active) {
+        // Create a small circle to indicate inactive resource
+        const circle = this.scene.add.graphics();
+        circle.setData('inactiveResourceMarker', true);
+        circle.setData('gridX', x);
+        circle.setData('gridY', y);
+        
+        // Style the circle - small red circle with white border
+        circle.lineStyle(2, 0xFFFFFF);
+        circle.fillStyle(0xFF0000, 0.7);
+        circle.fillCircle(worldX, worldY, 8);
+        circle.strokeCircle(worldX, worldY, 8);
+        
+        // Add to static objects layer
+        this.layerManager.addToLayer('staticObjects', circle);
       }
     });
     
