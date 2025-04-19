@@ -75,14 +75,15 @@ export class StateSubscriptionManager {
   private scene: Phaser.Scene;
   
   // Renderers and controllers
-  private animalRenderer: AnimalRenderer;
-  private habitatRenderer: HabitatRenderer;
-  private resourceRenderer?: ResourceRenderer;
-  private moveRangeRenderer: MoveRangeRenderer;
-  private animationController: AnimationController;
-  private tileRenderer: TileRenderer;
+  private animalRenderer!: AnimalRenderer;
+  private habitatRenderer!: HabitatRenderer;
+  private resourceRenderer!: ResourceRenderer;
+  private moveRangeRenderer!: MoveRangeRenderer;
+  private animationController!: AnimationController;
+  private tileRenderer!: TileRenderer;
   
-  // Track if subscriptions are set up
+  // Track initialization and subscription state
+  private initialized: boolean = false;
   private subscriptionsSetup: boolean = false;
   
   // Define subscription keys to ensure consistency
@@ -108,28 +109,39 @@ export class StateSubscriptionManager {
   };
   
   // Create a new StateSubscriptionManager
-  constructor(
-    scene: Phaser.Scene,
-    renderers: {
-      animalRenderer: AnimalRenderer;
-      habitatRenderer: HabitatRenderer;
-      moveRangeRenderer: MoveRangeRenderer;
-      animationController: AnimationController;
-      tileRenderer: TileRenderer;
-      resourceRenderer?: ResourceRenderer;
-    }
-  ) {
+  constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+  
+  // Initialize all renderers and controllers
+  public initialize(renderers: {
+    animalRenderer: AnimalRenderer;
+    habitatRenderer: HabitatRenderer;
+    moveRangeRenderer: MoveRangeRenderer;
+    animationController: AnimationController;
+    tileRenderer: TileRenderer;
+    resourceRenderer: ResourceRenderer;
+  }): void {
     this.animalRenderer = renderers.animalRenderer;
     this.habitatRenderer = renderers.habitatRenderer;
     this.moveRangeRenderer = renderers.moveRangeRenderer;
     this.animationController = renderers.animationController;
-    this.tileRenderer = renderers.tileRenderer;
+    this.tileRenderer = renderers.tileRenderer; 
     this.resourceRenderer = renderers.resourceRenderer;
+    
+    // Mark as initialized
+    this.initialized = true;
+    console.log("StateSubscriptionManager initialized with all renderers");
   }
   
   // Set up all state subscriptions
   setupSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
+    // Check if properly initialized
+    if (!this.initialized) {
+      console.error("Cannot set up subscriptions: renderers not initialized");
+      return;
+    }
+    
     // Check if subscriptions are already set up
     if (this.subscriptionsSetup) {
       console.log("Subscriptions already set up, skipping setupSubscriptions()");
@@ -141,6 +153,7 @@ export class StateSubscriptionManager {
     this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
     this.subscriptionsSetup = true;  // Mark subscriptions as set up
+    console.log("StateSubscriptionManager subscriptions set up successfully");
   }
   
   // Set up subscriptions related to the game board
@@ -393,6 +406,11 @@ export class StateSubscriptionManager {
     console.log("All StateSubscriptionManager subscriptions unsubscribed");
   }
   
+  // Check if manager is properly initialized
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+  
   // Check if subscriptions are currently set up
   isSubscribed(): boolean {
     return this.subscriptionsSetup;
@@ -406,6 +424,7 @@ export class StateSubscriptionManager {
   // Clean up resources and unsubscribe from all state subscriptions
   destroy(): void {
     this.unsubscribeAll();
+    this.initialized = false;
   }
   
   // Get the 8 adjacent tiles around a central position
@@ -447,16 +466,5 @@ export class StateSubscriptionManager {
     });
     
     return uniqueTiles;
-  }
-
-  // Initialize renderers after construction (used by BoardScene)
-  public initialize(renderers: {
-    habitatRenderer: HabitatRenderer;
-    animalRenderer: AnimalRenderer;
-    resourceRenderer: ResourceRenderer;
-  }): void {
-    this.habitatRenderer = renderers.habitatRenderer;
-    this.animalRenderer = renderers.animalRenderer;
-    this.resourceRenderer = renderers.resourceRenderer;
   }
 } 

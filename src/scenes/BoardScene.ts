@@ -80,18 +80,8 @@ export default class BoardScene extends Phaser.Scene {
     this.animationController = new AnimationController(this, this.tileSize, this.tileHeight);
     this.cameraManager = new CameraManager(this);
     
-    // Initialize the state subscription manager
-    this.subscriptionManager = new StateSubscriptionManager(
-      this,
-      {
-        animalRenderer: this.animalRenderer,
-        habitatRenderer: this.habitatRenderer,
-        moveRangeRenderer: this.moveRangeRenderer,
-        animationController: this.animationController,
-        tileRenderer: this.tileRenderer,
-        resourceRenderer: this.resourceRenderer
-      }
-    );
+    // Initialize the state subscription manager (now with simplified constructor)
+    this.subscriptionManager = new StateSubscriptionManager(this);
   }
 
   // Preload assets needed for the scene
@@ -180,10 +170,13 @@ export default class BoardScene extends Phaser.Scene {
   private setupSubscriptions() {
     if (this.subscriptionsSetup) return;
     
-    // Initialize the subscription manager with the renderers
+    // Initialize the subscription manager with all renderers
     this.subscriptionManager.initialize({
-      habitatRenderer: this.habitatRenderer,
       animalRenderer: this.animalRenderer,
+      habitatRenderer: this.habitatRenderer,
+      moveRangeRenderer: this.moveRangeRenderer,
+      animationController: this.animationController,
+      tileRenderer: this.tileRenderer,
       resourceRenderer: this.resourceRenderer
     });
     
