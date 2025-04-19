@@ -22,7 +22,7 @@ interface IAnimalRenderer {
 interface IHabitatRenderer {
   renderHabitats(habitats: Habitat[]): void;
   updateHabitatOwnership(biomeId: string): void;
-  updateHabitatLushness(biomeId: string, newValue: number): void;
+  updateHabitatTotalLushness(biomeId: string, newValue: number): void;
 }
 
 // Interface for a component that can render move ranges
@@ -222,8 +222,8 @@ export class StateSubscriptionManager {
           const previousBiome = previousBiomes.get(biomeId);
           
           // If lushness changed, update just that habitat's lushness display
-          if (previousBiome && biome.lushness !== previousBiome.lushness) {
-            this.habitatRenderer.updateHabitatLushness(biomeId, biome.lushness);
+          if (previousBiome && biome.totalLushness !== previousBiome.totalLushness) {
+            this.habitatRenderer.updateHabitatTotalLushness(biomeId, biome.totalLushness);
           }
         });
       },

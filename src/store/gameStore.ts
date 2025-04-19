@@ -124,7 +124,13 @@ const NODE_DISTANCE_THRESHOLD = 3;
 export interface Biome {
   id: string;
   color: number; // Store a color for visualization
-  lushness: number; // Lushness value from 0-10, where 8.0 is "stable"
+  baseLushness: number; // Base lushness calculated from resources
+  lushnessBoost: number; // Additional lushness from eggs
+  totalLushness: number; // Combined lushness value (baseLushness + lushnessBoost)
+  initialResourceCount: number; // Initial count of resources when the biome was created
+  nonDepletedCount: number; // Count of non-depleted resources
+  totalHarvested: number; // Total resources harvested from this biome
+  eggCount: number; // Current number of eggs in this biome
   ownerId: number | null; // Player ID that owns this biome
   productionRate: number; // Number of eggs produced per turn
   lastProductionTurn: number; // Track when we last produced eggs
@@ -617,7 +623,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         biomes.set(biomeId, {
           id: biomeId,
           color,
-          lushness: 8.0, // Initialize lushness to the "stable" value
+          baseLushness: 8.0, // Initialize baseLushness to the "stable" value
+          lushnessBoost: 0.0, // Initialize lushnessBoost to 0.0
+          totalLushness: 8.0, // Initialize totalLushness to the "stable" value
+          initialResourceCount: 0, // Initialize initialResourceCount to 0
+          nonDepletedCount: 0, // Initialize nonDepletedCount to 0
+          totalHarvested: 0, // Initialize totalHarvested to 0
+          eggCount: 0, // Initialize eggCount to 0
           ownerId: isInitialPlayerBiome ? playerId : null,
           productionRate: 1, // Fixed at 1 for now
           lastProductionTurn: 0,

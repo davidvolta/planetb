@@ -377,7 +377,7 @@ export function getBiomeById(id: string): Biome | undefined {
 }
 
 /**
- * Calculate the lushness value for a biome
+ * Calculate the base lushness value for a biome
  */
 export function calculateBiomeLushness(biomeId: string): number {
   const biomes = useGameStore.getState().biomes;
@@ -398,11 +398,16 @@ export function updateAllBiomeLushness(): void {
 }
 
 /**
- * Update a biome's lushness value
+ * Update a biome's lushness values
  * @param biomeId The ID of the biome to update
- * @param value The new lushness value
+ * @param baseLushness The new base lushness value
+ * @param lushnessBoost The new lushness boost value (optional)
  */
-export function updateBiomeLushness(biomeId: string, value: number): void {
+export function updateBiomeLushness(
+  biomeId: string, 
+  baseLushness: number, 
+  lushnessBoost?: number
+): void {
   const state = useGameStore.getState();
   const biome = state.biomes.get(biomeId);
   
@@ -411,9 +416,14 @@ export function updateBiomeLushness(biomeId: string, value: number): void {
     return;
   }
   
+  // Use provided lushnessBoost or keep existing value
+  const newLushnessBoost = lushnessBoost !== undefined ? lushnessBoost : biome.lushnessBoost;
+  
   const updatedBiome = {
     ...biome,
-    lushness: value
+    baseLushness,
+    lushnessBoost: newLushnessBoost,
+    totalLushness: baseLushness + newLushnessBoost
   };
   
   const updatedBiomes = new Map(state.biomes);

@@ -419,11 +419,11 @@ export class EcosystemController {
   }
 
   /**
-   * Calculates the lushness value for a biome based on its resources.
+   * Calculates the base lushness value for a biome based on its resources.
    * 
-   * @param biomeId ID of the biome to calculate lushness for
+   * @param biomeId ID of the biome to calculate base lushness for
    * @param biomes Map of all biomes
-   * @returns Lushness value (0-10 scale)
+   * @returns Base lushness value (0-10 scale)
    */
   public static calculateBiomeLushness(biomeId: string, biomes: Map<string, Biome>): number {
     const biome = biomes.get(biomeId);
@@ -433,7 +433,7 @@ export class EcosystemController {
       return 0;
     }
     
-    // TODO: Calculate lushness based on resource count and values
+    // TODO: Calculate baseLushness based on resource count and values
     const defaultLushness = 8.0; // Default "stable" value
     
     // TODO: Implement the polynomial resource generation formula
@@ -452,10 +452,11 @@ export class EcosystemController {
     
     // Iterate through all biomes
     biomes.forEach((biome, biomeId) => {
-      const lushness = this.calculateBiomeLushness(biomeId, biomes);
+      const baseLushness = this.calculateBiomeLushness(biomeId, biomes);
       const updatedBiome: Biome = {
         ...biome,
-        lushness
+        baseLushness,
+        totalLushness: baseLushness + biome.lushnessBoost
       };
       updatedBiomes.set(biomeId, updatedBiome);
     });

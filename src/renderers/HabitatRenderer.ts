@@ -79,7 +79,7 @@ export class HabitatRenderer extends BaseRenderer {
             
             // Determine biome state
             const isCaptured = biome.ownerId !== null;
-            const lushness = biome.lushness || 0;
+            const lushness = biome.totalLushness || 0;
             
             // Create the habitat graphic for this tile
             const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
@@ -228,7 +228,7 @@ export class HabitatRenderer extends BaseRenderer {
       
       // Get updated ownership state
       const isCaptured = biome.ownerId !== null;
-      const lushness = biome.lushness || 0;
+      const lushness = biome.totalLushness || 0;
       
       // Destroy the old graphic and create a new one with updated state
       habitatGraphic.destroy();
@@ -246,9 +246,9 @@ export class HabitatRenderer extends BaseRenderer {
    * Updates only the lushness value of a specific habitat
    * More efficient than re-rendering all habitats when only one value changes
    * @param biomeId ID of the biome whose habitat lushness changed
-   * @param newValue The new lushness value
+   * @param newValue The new totalLushness value
    */
-  updateHabitatLushness(biomeId: string, newValue: number): void {
+  updateHabitatTotalLushness(biomeId: string, newValue: number): void {
     // Get the staticObjectsLayer and game state
     const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
     if (!staticObjectsLayer) {

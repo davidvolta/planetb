@@ -14,19 +14,18 @@
 ## Ecosystem Integration Plan
 
 ### Phase 1: Interface Extension
-- [ ] Update the Biome Interface in gameStore.ts
-  - [ ] Rename current `lushness` to `baseLushness`
-  - [ ] Add `lushnessBoost` property
-  - [ ] Add `totalLushness` property
-  - [ ] Add `initialResourceCount` property
-  - [ ] Add `nonDepletedCount` property
-  - [ ] Add `totalHarvested` property
-  - [ ] Add `eggCount` property
-  - [ ] Add JSDoc comments
+- [x] Update the Biome Interface in gameStore.ts
+  - [x] Rename current `lushness` to `baseLushness`
+  - [x] Add `lushnessBoost` property
+  - [x] Add `totalLushness` property
+  - [x] Add `initialResourceCount` property
+  - [x] Add `nonDepletedCount` property
+  - [x] Add `totalHarvested` property
+  - [x] Add `eggCount` property
 
-- [ ] Update Biome Creation
-  - [ ] Set default values for all new properties
-  - [ ] Ensure compatibility with existing code
+- [x] Update Biome Creation
+  - [x] Set default values for all new properties
+  - [x] Ensure compatibility with existing code
 
 ### Phase 2: Resource Initialization
 - [ ] Update EcosystemController.generateResources
