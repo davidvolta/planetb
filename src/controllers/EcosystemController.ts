@@ -1,4 +1,5 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
+import { getEggPlacementTiles, TileResult } from "../store/actions";
 
 /**
  * Interface for egg placement validation
@@ -144,25 +145,18 @@ export class EcosystemController {
     state: ValidEggPlacementState,
     allBiomes: Map<string, Biome>
   ): Coordinate[] {
-    const validTiles: Coordinate[] = [];
-    const board = state.board;
-    
-    if (!board) {
-      return validTiles;
-    }
-    
     // Get the biome to check ownership
     const biome = allBiomes.get(biomeId);
     if (!biome) {
       console.warn(`Biome ${biomeId} not found`);
-      return validTiles;
+      return [];
     }
     
     // Get the owner of this biome
     const biomeOwnerId = biome.ownerId;
     if (biomeOwnerId === null) {
       console.warn(`Biome ${biomeId} has no owner, cannot place eggs`);
-      return validTiles;
+      return [];
     }
     
     // Get all biomes owned by this player
@@ -175,66 +169,49 @@ export class EcosystemController {
         playerBiomeIds.add(id);
       }
     });
+
+    // Use the actions function to get the base tiles
+    const eligibleTiles = getEggPlacementTiles(biomeId);
     
-    // Track positions with resources for prioritization
+    // Create Coordinate[] array from TileResult[] and track adjacency scores
+    const validTiles: Coordinate[] = [];
     const resourceAdjacencyMap = new Map<string, number>();
+    const board = state.board;
     
-    // Scan the entire board for tiles in this biome
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        // Skip habitat tiles
-        if (board.tiles[y][x].isHabitat) continue;
-        
-        const tile = board.tiles[y][x];
-        
-        // Skip if not in the same biome
-        if (tile.biomeId !== biomeId) continue;
-        
-        // Skip if there's an active resource on this tile
-        if (tile.active) continue;
-        
-        // Check if tile already has an egg
-        const hasEgg = state.animals.some(animal => 
-          animal.state === AnimalState.DORMANT &&
-          animal.position.x === x &&
-          animal.position.y === y
-        );
-        
-        if (!hasEgg) {
-          // Calculate resource adjacency score (resources in owned biomes = higher score)
-          let adjacencyScore = 0;
+    // Process each eligible tile to calculate resource adjacency
+    eligibleTiles.forEach(({ x, y, tile }: TileResult) => {
+      // Calculate resource adjacency score (resources in owned biomes = higher score)
+      let adjacencyScore = 0;
+      
+      // Check adjacent tiles for resources
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
           
-          // Check adjacent tiles for resources
-          for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-              if (dx === 0 && dy === 0) continue;
-              
-              const nx = x + dx;
-              const ny = y + dy;
-              
-              // Skip if out of bounds
-              if (nx < 0 || ny < 0 || nx >= board.width || ny >= board.height) continue;
-              
-              const neighborTile = board.tiles[ny][nx];
-              
-              // Check if neighbor has an active resource
-              if (neighborTile.active && neighborTile.resourceType) {
-                // Resources in owned biomes are worth more when considering placement
-                if (neighborTile.biomeId && playerBiomeIds.has(neighborTile.biomeId)) {
-                  adjacencyScore += 3;
-                } else {
-                  adjacencyScore += 1;
-                }
-              }
+          const nx = x + dx;
+          const ny = y + dy;
+          
+          // Skip if out of bounds
+          if (nx < 0 || ny < 0 || nx >= board.width || ny >= board.height) continue;
+          
+          const neighborTile = board.tiles[ny][nx];
+          
+          // Check if neighbor has an active resource
+          if (neighborTile.active && neighborTile.resourceType) {
+            // Resources in owned biomes are worth more when considering placement
+            if (neighborTile.biomeId && playerBiomeIds.has(neighborTile.biomeId)) {
+              adjacencyScore += 3;
+            } else {
+              adjacencyScore += 1;
             }
           }
-          
-          const posKey = `${x},${y}`;
-          validTiles.push({ x, y });
-          resourceAdjacencyMap.set(posKey, adjacencyScore);
         }
       }
-    }
+      
+      const posKey = `${x},${y}`;
+      validTiles.push({ x, y });
+      resourceAdjacencyMap.set(posKey, adjacencyScore);
+    });
     
     // Sort valid tiles by prioritizing tiles closer to resources in owned biomes
     return validTiles.sort((a, b) => {
