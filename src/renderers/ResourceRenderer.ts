@@ -149,56 +149,66 @@ export class ResourceRenderer extends BaseRenderer {
     const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
     if (!staticObjectsLayer) return;
     
-    // Find and destroy all sprites with the blankTileMarker data
+    let removedCount = 0;
+    
+    // Find all sprites with the blankTileMarker data tag
     staticObjectsLayer.getAll().forEach(child => {
-      if (child.getData && child.getData('blankTileMarker')) {
-        child.destroy();
+      if (child instanceof Phaser.GameObjects.Sprite && child.getData('blankTileMarker')) {
+        child.destroy(); // Remove from scene immediately
+        removedCount++;
       }
     });
     
-    console.log("Cleared all blank tile markers");
+    if (removedCount > 0) {
+      console.log(`Removed ${removedCount} blank tile markers`);
+    }
   }
   
   /**
    * Visualize blank tiles (tiles with hasEgg=false and no resources or habitats)
    */
   visualizeBlankTiles(): void {
-    // Clear any existing blank tile markers
+    // Clear any existing blank tile markers first to prevent duplication
     this.clearBlankTileMarkers();
     
     // Get all blank tiles using the filtering system
     const blankTiles = actions.getBlankTiles();
-    console.log(`Found ${blankTiles.length} blank tiles to visualize`);
     
     if (blankTiles.length === 0) {
       return; // Nothing to visualize
     }
     
-    // Create a marker for each blank tile after a short delay to ensure rendering works
-    this.scene.time.delayedCall(50, () => {
-      blankTiles.forEach(({ x, y, tile }: TileResult) => {
-        // Calculate world position
-        const worldPosition = CoordinateUtils.gridToWorld(
-          x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-        );
-        
-        const worldX = worldPosition.x;
-        const worldY = worldPosition.y;
-        
-        // Create a sprite to indicate blank tile
-        const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
-        blankSprite.setScale(0.25);
-        blankSprite.setDepth(5); // Make sure it renders on top of terrain
-        blankSprite.setData('blankTileMarker', true);
-        blankSprite.setData('gridX', x);
-        blankSprite.setData('gridY', y);
-        
-        // Add to static objects layer
-        this.layerManager.addToLayer('staticObjects', blankSprite);
-      });
+    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
+    if (!staticObjectsLayer) return;
+    
+    // Create all blank tile markers at once
+    let markersAdded = 0;
+    
+    blankTiles.forEach(({ x, y, tile }: TileResult) => {
+      // Calculate world position
+      const worldPosition = CoordinateUtils.gridToWorld(
+        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+      );
       
-      console.log(`Visualized ${blankTiles.length} blank tiles`);
+      const worldX = worldPosition.x;
+      const worldY = worldPosition.y;
+      
+      // Create a sprite to indicate blank tile with consistent properties
+      const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
+      
+      // Apply consistent scaling and visual properties
+      blankSprite.setScale(0.25);
+      blankSprite.setDepth(5); // Make sure it renders on top of terrain
+      blankSprite.setData('blankTileMarker', true);
+      blankSprite.setData('gridX', x);
+      blankSprite.setData('gridY', y);
+      
+      // Add to static objects layer
+      this.layerManager.addToLayer('staticObjects', blankSprite);
+      markersAdded++;
     });
+    
+    console.log(`Visualized ${markersAdded} blank tiles`);
   }
   
   /**

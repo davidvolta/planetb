@@ -942,6 +942,13 @@ updateBoard() {
       return;
     }
     
+    // Get all biomes for per-biome resource distribution
+    const biomes = actions.getBiomes();
+    if (!biomes || biomes.size === 0) {
+      console.warn("Cannot regenerate resources: No biomes available");
+      return;
+    }
+    
     // Create terrain data array from board tiles
     const terrainData: TerrainType[][] = Array(board.height)
       .fill(null)
@@ -951,16 +958,26 @@ updateBoard() {
           .map((_, x) => board.tiles[y][x].terrain)
       );
     
-    // Call the regenerate action to create new resources
+    // First, clear all visualizations to prevent any visual overlap
+    this.resourceRenderer.clearResources();
+    this.resourceRenderer.clearBlankTileMarkers();
+    
+    // Call the regenerate action to update the game state
     actions.regenerateResources(board.width, board.height, terrainData);
     
-    // Fetch the updated resource tiles
-    const resourceTiles = actions.getResourceTiles();
-    
-    // Refresh resource visualization using the new tile interface
-    this.resourceRenderer.renderResourceTiles(resourceTiles.map(({ tile, x, y }) => ({ tile, x, y })));
-    
-    // Explicitly refresh blank tile indicators after resource generation
-    this.resourceRenderer.visualizeBlankTiles();
+    // Allow a small delay before rendering to ensure state is fully updated
+    this.time.delayedCall(10, () => {
+      // Fetch the updated resource tiles using the tile interface
+      const resourceTiles = actions.getResourceTiles();
+      console.log(`Regenerated ${resourceTiles.length} resource tiles`);
+      
+      // Render the updated resource tiles
+      this.resourceRenderer.renderResourceTiles(resourceTiles.map(({ tile, x, y }) => ({ tile, x, y })));
+      
+      // Visualize blank tiles after all resource tiles are rendered
+      this.time.delayedCall(10, () => {
+        this.resourceRenderer.visualizeBlankTiles();
+      });
+    });
   }
 }

@@ -47,8 +47,13 @@ export class EcosystemController {
     
     // Define resource chance (percentage of eligible tiles that should have resources)
     const resourceChance = GameConfig.resourceGenerationPercentage;
+    console.log(`Generating resources with ${resourceChance * 100}% density per biome`);
     
-    // Process each biome
+    // Track total resources generated
+    let totalResourcesGenerated = 0;
+    let totalEligibleTiles = 0;
+    
+    // Process each biome separately for better distribution
     biomes.forEach((biome, biomeId) => {
       // Collect all tiles belonging to this biome
       const biomeTiles: {x: number, y: number, terrain: TerrainType}[] = [];
@@ -82,12 +87,19 @@ export class EcosystemController {
                tile.terrain === TerrainType.UNDERWATER;
       });
       
-      // Calculate how many tiles should have resources
+      totalEligibleTiles += eligibleTiles.length;
+      
+      // Calculate how many tiles should have resources in this biome
       const resourceCount = Math.round(eligibleTiles.length * resourceChance);
       
       // Randomly shuffle eligible tiles and select the first resourceCount tiles
       const shuffledTiles = [...eligibleTiles].sort(() => Math.random() - 0.5);
       const selectedTiles = shuffledTiles.slice(0, resourceCount);
+      
+      totalResourcesGenerated += selectedTiles.length;
+      
+      // Log biome resource generation
+      console.log(`Biome ${biomeId}: ${selectedTiles.length}/${eligibleTiles.length} resources (${(selectedTiles.length / Math.max(1, eligibleTiles.length) * 100).toFixed(1)}%)`);
       
       // Set resource properties on the selected tiles
       selectedTiles.forEach(tile => {
@@ -113,6 +125,9 @@ export class EcosystemController {
         }
       });
     });
+    
+    // Log summary of resource generation
+    console.log(`Total resources generated: ${totalResourcesGenerated}/${totalEligibleTiles} (${(totalResourcesGenerated / Math.max(1, totalEligibleTiles) * 100).toFixed(1)}%)`);
   }
 
   /**

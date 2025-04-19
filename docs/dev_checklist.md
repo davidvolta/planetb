@@ -12,27 +12,6 @@
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
-## Tile Interface Resource Generation Plan
-- [ ] Update BoardScene.regenerateResources() to:
-  - [ ] Get current board state and all biomes
-  - [ ] Delegate to actions.regenerateResources with proper params
-  - [ ] Explicitly render resource tiles and blank tiles after regeneration
-
-- [ ] Enhance actions.regenerateResources() to:
-  - [ ] Apply resource percentage on a per-biome basis
-  - [ ] Work directly with the tile interface rather than resources array
-  - [ ] Balance resource and blank tiles appropriately
-  - [ ] Update EcosystemController.generateResources to be fully tile-centric
-
-- [ ] Optimize ResourceRenderer:
-  - [ ] Ensure renderResourceTiles works with regenerated resources
-  - [ ] Validate visualizeBlankTiles properly identifies blank tiles
-  - [ ] Properly clean up previous visualizations
-
-- [ ] Cleanup and Optimization:
-  - [ ] Remove deprecated Resource-based code
-  - [ ] Add proper debugging logs
-  - [ ] Ensure debug slider changes are immediately visible
 
 ## Ecosystem Integration Plan
 

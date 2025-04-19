@@ -452,19 +452,48 @@ export function regenerateResources(
     return;
   }
   
+  // First, clear all existing resources
+  // Reset all resource properties on tiles
+  const updatedBoard = { ...state.board };
+  
+  // Reset resource properties across the board first
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const tile = updatedBoard.tiles[y][x];
+      
+      // Skip habitat tiles
+      if (tile.isHabitat) continue;
+      
+      // Reset resource properties
+      updatedBoard.tiles[y][x] = {
+        ...tile,
+        active: false,
+        resourceType: null,
+        resourceValue: 0
+      };
+    }
+  }
+  
+  // Update state with cleared resources
+  useGameStore.setState({
+    board: updatedBoard
+  });
+  
   // Generate resources by setting tile properties directly
   EcosystemController.generateResources(
     width, 
     height, 
     terrainData,
-    state.board,
+    updatedBoard, // Use the updated board we just cleared
     state.biomes
   );
   
   // Update the board in the store since tile properties have changed
   useGameStore.setState({
-    board: { ...state.board }
+    board: { ...updatedBoard }
   });
+  
+  console.log(`Resources regenerated with ${GameConfig.resourceGenerationPercentage * 100}% density`);
 }
 
 /**
