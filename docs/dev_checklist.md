@@ -18,10 +18,10 @@
 - [ ] Enhance Tile System for Ecosystem Integration:
   - [x] Add hasEgg boolean property to Tile interface with default value of false
   - [x] Update state management to keep tile.hasEgg and Animal entities in sync
-  - [ ] Create comprehensive getTiles() function similar to getResourceTiles()
-  - [ ] Implement hybrid filtering system:
-    - [ ] Generic getTilesByFilter(filterFn) core mechanism
-    - [ ] Specific helper functions (getBlankTiles(), getEggTiles(), etc.)
+  - [x] Create comprehensive getTiles() function similar to getResourceTiles()
+  - [x] Implement hybrid filtering system:
+    - [x] Generic getTilesByFilter(filterFn) core mechanism
+    - [x] Specific helper functions (getBlankTiles(), getEggTiles(), etc.)
   - [ ] Ensure proper rendering of all tile states (resources, eggs, habitats)
 
 - [ ] Extend the `Biome` interface in gameStore.ts to include:

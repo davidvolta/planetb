@@ -468,30 +468,12 @@ export function regenerateResources(
 }
 
 /**
- * Get all tiles with active resources in the game
- * @returns Array of tiles that have active resources 
+ * Get all resource tiles from the game board
  */
-export function getResourceTiles(): { tile: any, x: number, y: number }[] {
-  const state = useGameStore.getState();
-  if (!state.board) return [];
-  
-  const resourceTiles = [];
-  
-  // Scan all tiles for active resources
-  for (let y = 0; y < state.board.height; y++) {
-    for (let x = 0; x < state.board.width; x++) {
-      const tile = state.board.tiles[y][x];
-      if (tile.active && tile.resourceType) {
-        resourceTiles.push({
-          tile,
-          x,
-          y
-        });
-      }
-    }
-  }
-  
-  return resourceTiles;
+export function getResourceTiles(): TileResult[] {
+  return getTilesByFilter((tile) => 
+    tile.active && tile.resourceType !== null
+  );
 }
 
 /**
@@ -517,27 +499,12 @@ export function selectResourceTile(x: number, y: number): boolean {
  * Get resource tiles belonging to a specific biome
  * @param biomeId The ID of the biome to retrieve resources for
  */
-export function getResourceTilesForBiome(biomeId: string): { tile: any, x: number, y: number }[] {
-  const state = useGameStore.getState();
-  if (!state.board) return [];
-  
-  const resourceTiles = [];
-  
-  // Scan all tiles for active resources in this biome
-  for (let y = 0; y < state.board.height; y++) {
-    for (let x = 0; x < state.board.width; x++) {
-      const tile = state.board.tiles[y][x];
-      if (tile.biomeId === biomeId && tile.active && tile.resourceType) {
-        resourceTiles.push({
-          tile,
-          x,
-          y
-        });
-      }
-    }
-  }
-  
-  return resourceTiles;
+export function getResourceTilesForBiome(biomeId: string): TileResult[] {
+  return getTilesByFilter((tile) => 
+    tile.biomeId === biomeId && 
+    tile.active && 
+    tile.resourceType !== null
+  );
 }
 
 /**
@@ -742,4 +709,129 @@ export function produceEggs(applyToState: boolean = true): void {
       biomes: result.biomes
     });
   }
+}
+
+/**
+ * Interface for tile result with position information
+ */
+export interface TileResult {
+  tile: any;
+  x: number;
+  y: number;
+}
+
+/**
+ * Generic tile filter function type
+ */
+export type TileFilterFn = (tile: any, x: number, y: number) => boolean;
+
+/**
+ * Get all tiles from the game board
+ * @returns Array of tiles with their positions
+ */
+export function getTiles(): TileResult[] {
+  const state = useGameStore.getState();
+  if (!state.board) return [];
+  
+  const tiles: TileResult[] = [];
+  
+  // Scan all tiles
+  for (let y = 0; y < state.board.height; y++) {
+    for (let x = 0; x < state.board.width; x++) {
+      const tile = state.board.tiles[y][x];
+      tiles.push({
+        tile,
+        x,
+        y
+      });
+    }
+  }
+  
+  return tiles;
+}
+
+/**
+ * Get tiles that match a specified filter condition
+ * @param filterFn Function that returns true for tiles to include
+ * @returns Array of filtered tiles with their positions
+ */
+export function getTilesByFilter(filterFn: TileFilterFn): TileResult[] {
+  const state = useGameStore.getState();
+  if (!state.board) return [];
+  
+  const filteredTiles: TileResult[] = [];
+  
+  // Apply filter to all tiles
+  for (let y = 0; y < state.board.height; y++) {
+    for (let x = 0; x < state.board.width; x++) {
+      const tile = state.board.tiles[y][x];
+      if (filterFn(tile, x, y)) {
+        filteredTiles.push({
+          tile,
+          x,
+          y
+        });
+      }
+    }
+  }
+  
+  return filteredTiles;
+}
+
+/**
+ * Get all blank tiles (no resources, not habitats, no eggs)
+ * @returns Array of blank tiles with their positions
+ */
+export function getBlankTiles(): TileResult[] {
+  return getTilesByFilter((tile) => 
+    !tile.active && !tile.isHabitat && !tile.hasEgg
+  );
+}
+
+/**
+ * Get all tiles containing eggs
+ * @returns Array of egg tiles with their positions
+ */
+export function getEggTiles(): TileResult[] {
+  return getTilesByFilter((tile) => tile.hasEgg);
+}
+
+/**
+ * Get all habitat tiles
+ * @returns Array of habitat tiles with their positions
+ */
+export function getHabitatTiles(): TileResult[] {
+  return getTilesByFilter((tile) => tile.isHabitat);
+}
+
+/**
+ * Get all tiles for a specific biome
+ * @param biomeId The ID of the biome
+ * @returns Array of tiles belonging to the biome with their positions
+ */
+export function getTilesForBiome(biomeId: string): TileResult[] {
+  return getTilesByFilter((tile) => tile.biomeId === biomeId);
+}
+
+/**
+ * Get all tiles with a specific terrain type
+ * @param terrainType The terrain type to filter by
+ * @returns Array of tiles with the specified terrain type
+ */
+export function getTilesByTerrain(terrainType: TerrainType): TileResult[] {
+  return getTilesByFilter((tile) => tile.terrain === terrainType);
+}
+
+/**
+ * Get blank tiles suitable for egg placement in a specific biome
+ * @param biomeId The ID of the biome
+ * @returns Array of blank tiles in the biome suitable for egg placement
+ */
+export function getEggPlacementTiles(biomeId: string): TileResult[] {
+  return getTilesByFilter((tile) => 
+    tile.biomeId === biomeId && 
+    !tile.active && 
+    !tile.isHabitat && 
+    !tile.hasEgg
+  );
 } 
