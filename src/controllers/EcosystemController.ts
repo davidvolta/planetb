@@ -48,12 +48,6 @@ export class EcosystemController {
       return resources;
     }
     
-    // Extract habitat positions directly from biomes
-    const habitatPositions = new Set<string>();
-    biomes.forEach(biome => {
-      habitatPositions.add(`${biome.habitat.position.x},${biome.habitat.position.y}`);
-    });
-    
     // Define resource chance (percentage of eligible tiles that should have resources)
     const resourceChance = GameConfig.resourceGenerationPercentage;
     
@@ -66,7 +60,7 @@ export class EcosystemController {
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           // Skip if this position has a habitat
-          if (habitatPositions.has(`${x},${y}`)) {
+          if (board.tiles[y][x].isHabitat) {
             continue;
           }
           
@@ -158,9 +152,6 @@ export class EcosystemController {
       return validTiles;
     }
     
-    // Get the biome's habitat position directly from the biome (only to exclude it from valid tiles)
-    const habitatPosition = biome.habitat ? { x: biome.habitat.position.x, y: biome.habitat.position.y } : null;
-    
     // Get the owner of this biome
     const biomeOwnerId = biome.ownerId;
     if (biomeOwnerId === null) {
@@ -197,8 +188,8 @@ export class EcosystemController {
     // Scan the entire board for tiles in this biome
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
-        // Skip the habitat's own position (important for gameplay)
-        if (habitatPosition && x === habitatPosition.x && y === habitatPosition.y) continue;
+        // Skip habitat tiles
+        if (board.tiles[y][x].isHabitat) continue;
         
         const tile = board.tiles[y][x];
         

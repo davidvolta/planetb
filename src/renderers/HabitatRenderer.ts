@@ -46,92 +46,53 @@ export class HabitatRenderer extends BaseRenderer {
       return;
     }
     
-    // Create a map to store existing habitat graphics
-    const existingHabitats = new Map();
-    
-    // Collect all existing habitat graphics first
+    // Remove only habitat graphics, leaving other static objects untouched
     staticObjectsLayer.getAll().forEach(gameObject => {
       if (gameObject && 'getData' in gameObject && typeof gameObject.getData === 'function') {
         const habitatId = gameObject.getData('habitatId');
         if (habitatId) {
-          existingHabitats.set(habitatId, {
-            graphic: gameObject,
-            used: false // We'll mark as used when updating
-          });
+          gameObject.destroy();
         }
       }
     });
     
-    // Process each habitat - create new or update existing
-    habitats.forEach(habitat => {
-      // Calculate position using coordinate utility
-      const gridX = habitat.position.x;
-      const gridY = habitat.position.y;
-      const worldPosition = CoordinateUtils.gridToWorld(
-        gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
-      
-      // Check if we have an existing graphic
-      const existing = existingHabitats.get(habitat.id);
-      
-      // Get biome ownership state (captured or available)
-      const state = useGameStore.getState();
-      
-      // Find the corresponding biome by matching habitat ID
-      const biome = Array.from(state.biomes.values())
-        .find(b => b.habitat.id === habitat.id);
-        
-      const isCaptured = biome?.ownerId !== null;
-      const lushness = biome?.lushness || 0;
-      
-      if (existing) {
-        // Mark as used so we don't delete it later
-        existing.used = true;
-        
-        // Update position
-        existing.graphic.setPosition(worldPosition.x, worldPosition.y);
-        
-        // Check if state or lushness has changed
-        const currentLushness = existing.graphic.getData('lushness') || 0;
-        
-        if (existing.graphic.getData('isCaptured') !== isCaptured || Math.abs(currentLushness - lushness) >= 0.1) {
-          existing.graphic.setData('isCaptured', isCaptured);
-          existing.graphic.setData('lushness', lushness);
-          
-          // Destroy and recreate the graphic to reflect the new state
-          existing.graphic.destroy();
-          const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
-          habitatGraphic.setData('habitatId', habitat.id);
-          habitatGraphic.setData('gridX', gridX);
-          habitatGraphic.setData('gridY', gridY);
-          habitatGraphic.setData('isCaptured', isCaptured);
-          habitatGraphic.setData('lushness', lushness);
-          this.layerManager.addToLayer('staticObjects', habitatGraphic);
-          
-          // Update the reference in the map
-          existingHabitats.set(habitat.id, {
-            graphic: habitatGraphic,
-            used: true
-          });
-        }
-      } else {
-        // Create new habitat graphic
-        const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
-        habitatGraphic.setData('habitatId', habitat.id);
-        habitatGraphic.setData('gridX', gridX);
-        habitatGraphic.setData('gridY', gridY);
-        habitatGraphic.setData('isCaptured', isCaptured);
-        habitatGraphic.setData('lushness', lushness);
-        this.layerManager.addToLayer('staticObjects', habitatGraphic);
-      }
-    });
+    // Get the game state and board
+    const state = useGameStore.getState();
+    const board = state.board;
     
-    // Remove any unused habitat graphics
-    existingHabitats.forEach((value, key) => {
-      if (!value.used) {
-        value.graphic.destroy();
+    if (!board) {
+      return;
+    }
+    
+    // Find and render all habitat tiles on the board
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        if (tile.isHabitat && tile.biomeId) {
+          // Find the corresponding biome
+          const biome = state.biomes.get(tile.biomeId);
+          if (biome) {
+            // Calculate position using coordinate utility
+            const worldPosition = CoordinateUtils.gridToWorld(
+              x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+            );
+            
+            // Determine biome state
+            const isCaptured = biome.ownerId !== null;
+            const lushness = biome.lushness || 0;
+            
+            // Create the habitat graphic for this tile
+            const habitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
+            habitatGraphic.setData('habitatId', biome.habitat.id);
+            habitatGraphic.setData('gridX', x);
+            habitatGraphic.setData('gridY', y);
+            habitatGraphic.setData('isCaptured', isCaptured);
+            habitatGraphic.setData('lushness', lushness);
+            this.layerManager.addToLayer('staticObjects', habitatGraphic);
+          }
+        }
       }
-    });
+    }
   }
   
   /**
@@ -226,5 +187,107 @@ export class HabitatRenderer extends BaseRenderer {
   override destroy(): void {
     super.destroy();
     this.clearHabitats();
+  }
+
+  /**
+   * Updates only the ownership state of a specific habitat
+   * More efficient than re-rendering all habitats when only one changes
+   * @param biomeId ID of the biome whose habitat ownership changed
+   */
+  updateHabitatOwnership(biomeId: string): void {
+    // Get the staticObjectsLayer and game state
+    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
+    if (!staticObjectsLayer) {
+      return;
+    }
+    
+    const state = useGameStore.getState();
+    const biome = state.biomes.get(biomeId);
+    if (!biome) {
+      return;
+    }
+    
+    // Find the habitat graphic for this biome
+    let habitatGraphic: Phaser.GameObjects.GameObject | undefined;
+    staticObjectsLayer.getAll().forEach(gameObject => {
+      if (gameObject && 'getData' in gameObject && typeof gameObject.getData === 'function') {
+        const habitatId = gameObject.getData('habitatId');
+        if (habitatId === biome.habitat.id) {
+          habitatGraphic = gameObject;
+        }
+      }
+    });
+    
+    if (habitatGraphic) {
+      // Get the position data
+      const gridX = habitatGraphic.getData('gridX');
+      const gridY = habitatGraphic.getData('gridY');
+      const worldPosition = CoordinateUtils.gridToWorld(
+        gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+      );
+      
+      // Get updated ownership state
+      const isCaptured = biome.ownerId !== null;
+      const lushness = biome.lushness || 0;
+      
+      // Destroy the old graphic and create a new one with updated state
+      habitatGraphic.destroy();
+      const newHabitatGraphic = this.createHabitatGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
+      newHabitatGraphic.setData('habitatId', biome.habitat.id);
+      newHabitatGraphic.setData('gridX', gridX);
+      newHabitatGraphic.setData('gridY', gridY);
+      newHabitatGraphic.setData('isCaptured', isCaptured);
+      newHabitatGraphic.setData('lushness', lushness);
+      this.layerManager.addToLayer('staticObjects', newHabitatGraphic);
+    }
+  }
+
+  /**
+   * Updates only the lushness value of a specific habitat
+   * More efficient than re-rendering all habitats when only one value changes
+   * @param biomeId ID of the biome whose habitat lushness changed
+   * @param newValue The new lushness value
+   */
+  updateHabitatLushness(biomeId: string, newValue: number): void {
+    // Get the staticObjectsLayer and game state
+    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
+    if (!staticObjectsLayer) {
+      return;
+    }
+    
+    const state = useGameStore.getState();
+    const biome = state.biomes.get(biomeId);
+    if (!biome) {
+      return;
+    }
+    
+    // Find the habitat graphic for this biome
+    staticObjectsLayer.getAll().forEach(gameObject => {
+      if (gameObject && 'getData' in gameObject && typeof gameObject.getData === 'function') {
+        const habitatId = gameObject.getData('habitatId');
+        if (habitatId === biome.habitat.id) {
+          // If this is a container with a text object for lushness, update it
+          if ('getAll' in gameObject) {
+            const container = gameObject as Phaser.GameObjects.Container;
+            container.getAll().forEach(child => {
+              if (child instanceof Phaser.GameObjects.Text) {
+                // Format the new lushness value
+                const lushnessDisplay = newValue.toFixed(1);
+                
+                // Determine text color based on lushness threshold
+                const textColor = newValue >= 7.0 ? '#00FF00' : '#FF0000';
+                
+                // Update the text and its color
+                child.setText(lushnessDisplay);
+                child.setColor(textColor);
+                
+                // Update the stored data
+                gameObject.setData('lushness', newValue);
+              }
+            });
+          }
+        }
+      }
+    });
   }
 } 

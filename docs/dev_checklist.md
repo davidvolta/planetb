@@ -22,9 +22,9 @@
 ### Phase 1: Refactor to Tile-Centric Resource Model
 - [ ] Extend the `Tile` interface in gameStore.ts to include:
   - [ ] Required resource properties (resourceType: ResourceType | null, resourceValue: number, active: boolean)
-  - [ ] Add isHabitat: boolean property to identify habitat tiles
+  - [x] Add isHabitat: boolean property to identify habitat tiles
   - [ ] Default all tiles to {resourceType: null, resourceValue: 0, active: false, isHabitat: false}
-  - [ ] Ensure habitat tiles are marked with isHabitat=true
+  - [x] Ensure habitat tiles are marked with isHabitat=true
 
 - [ ] Refactor Resource Generation:
   - [ ] Modify resource generation to set tile properties directly instead of creating Resource entities
@@ -34,8 +34,8 @@
   - [ ] Update exploration system to reveal resources as tiles are explored
 
 - [ ] Update Egg Placement Logic:
-  - [ ] Ensure eggs can ONLY be placed on tiles with active=false AND isHabitat=false
-  - [ ] Modify egg production to use blank tile (active=false) detection that excludes habitats
+  - [x] Ensure eggs can ONLY be placed on tiles with active=false AND isHabitat=false
+  - [x] Modify egg production to use blank tile (active=false) detection that excludes habitats
 
 - [ ] Refactor UI/Rendering:
   - [ ] Modify resource rendering to read from tile properties 

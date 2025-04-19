@@ -173,17 +173,19 @@ export function canCaptureBiome(biomeId: string): boolean {
     return false;
   }
   
-  // Access the habitat directly from the biome
-  const habitat = biome.habitat;
-  
-  // Find any active units on this habitat's position
-  const unitsOnHabitat = state.animals.filter(animal => 
-    animal.position.x === habitat.position.x && 
-    animal.position.y === habitat.position.y &&
-    animal.state === AnimalState.ACTIVE &&
-    !animal.hasMoved &&
-    animal.ownerId === state.currentPlayerId // Must be current player's unit
-  );
+  // Find any active units on this biome's habitat tile
+  const unitsOnHabitat = state.animals.filter(animal => {
+    // Get the tile at the animal's position
+    const tile = state.board?.tiles[animal.position.y][animal.position.x];
+    
+    // Check if the tile is a habitat in this biome
+    return tile && 
+           tile.isHabitat && 
+           tile.biomeId === biomeId &&
+           animal.state === AnimalState.ACTIVE &&
+           !animal.hasMoved &&
+           animal.ownerId === state.currentPlayerId; // Must be current player's unit
+  });
 
   return unitsOnHabitat.length > 0;
 }
@@ -204,9 +206,6 @@ export function captureBiome(biomeId: string): void {
   // Get the current player ID
   const currentPlayerId = state.currentPlayerId;
   
-  // Access the habitat directly from the biome
-  const habitat = biome.habitat;
-  
   // Create updated biome with ownership properties
   const updatedBiome = {
     ...biome,
@@ -218,14 +217,19 @@ export function captureBiome(biomeId: string): void {
   const updatedBiomes = new Map(state.biomes);
   updatedBiomes.set(biomeId, updatedBiome);
   
-  // Find the unit that is on the habitat and mark it as having moved
-  const unitsOnHabitat = state.animals.filter(animal => 
-    animal.position.x === habitat.position.x && 
-    animal.position.y === habitat.position.y &&
-    animal.state === AnimalState.ACTIVE &&
-    !animal.hasMoved &&
-    animal.ownerId === currentPlayerId
-  );
+  // Find the unit that is on the habitat tile
+  const unitsOnHabitat = state.animals.filter(animal => {
+    // Get the tile at the animal's position
+    const tile = state.board?.tiles[animal.position.y][animal.position.x];
+    
+    // Check if the tile is a habitat in this biome
+    return tile && 
+           tile.isHabitat && 
+           tile.biomeId === biomeId &&
+           animal.state === AnimalState.ACTIVE &&
+           !animal.hasMoved &&
+           animal.ownerId === currentPlayerId;
+  });
   
   // Update the unit's hasMoved flag
   if (unitsOnHabitat.length > 0) {
@@ -625,14 +629,9 @@ export function updateBiomesMap(biomes: Map<string, Biome>): void {
 /**
  * Process egg production for all biomes
  * Produces eggs in biomes based on their production rate
- * 
- * @param applyToState Whether to apply the changes to state (default: true)
- * @returns The production result containing new animals and updated biomes
  */
-export function produceEggs(applyToState: boolean = true) {
+export function produceEggs(applyToState: boolean = true): void {
   const state = useGameStore.getState();
-  
-  // Extract only the specific pieces of state needed by biomeEggProduction
   const result = EcosystemController.biomeEggProduction(
     state.turn,
     state.animals,
@@ -641,13 +640,11 @@ export function produceEggs(applyToState: boolean = true) {
     state.resources
   );
   
-  // Apply the changes to the state if requested
-  if (applyToState) {
+  // Apply the changes to the state
+  if (result.animals && result.biomes) {
     useGameStore.setState({
       animals: result.animals,
       biomes: result.biomes
     });
   }
-  
-  return result;
 } 
