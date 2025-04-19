@@ -15,43 +15,18 @@
 ## Ecosystem Integration Plan
 
 ### Phase 1: Refactor to Tile-Centric Resource Model
-- [x] Extend the `Tile` interface in gameStore.ts to include:
-  - [x] Required resource properties (resourceType: ResourceType | null, resourceValue: number, active: boolean)
-  - [x] Add isHabitat: boolean property to identify habitat tiles
-  - [x] Default all tiles to {resourceType: null, resourceValue: 0, active: false, isHabitat: false}
-  - [x] Ensure habitat tiles are marked with isHabitat=true
-
-- [x] Refactor Resource Generation:
-  - [x] Modify resource generation to set tile properties directly instead of creating Resource entities
-  - [x] Maintain 50% resource distribution on eligible terrain
-  - [x] Set initial values: {resourceType: FOREST/KELP/etc, resourceValue: 10, active: true}
-  - [x] Keep terrain-resource type mapping (GRASS→FOREST, WATER→KELP, etc.)
-  - [x] Update exploration system to reveal resources as tiles are explored (already working via fog of war)
-
-- [X] Update Egg Placement Logic:
-  - [x] Ensure eggs can ONLY be placed on tiles with active=false AND isHabitat=false
-  - [x] Modify egg production to use blank tile (active=false) detection that excludes habitats
-
-- [x] Refactor UI/Rendering:
-  - [x] Modify resource rendering to read from tile properties 
-  - [x] Use opacity based on resourceValue/10 for resource health visualization
-  - [x] Keep using same visual assets for resources
-  - [x] Add implementation for StateSubscriptionManager initialize method
-  - [x] Improve renderer initialization with proper dependency injection
-  - [x] Add visual indicators to distinguish active/inactive resources (small red circle for inactive)
-
-- [ ] Extend the `Biome` interface in gameStore.ts to include:
-  - [ ] Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value
-  - [ ] Resource tracking (initialResourceCount, nonDepletedCount, totalHarvested, eggCount)
-
 - [ ] Enhance Tile System for Ecosystem Integration:
-  - [ ] Add hasEgg boolean property to Tile interface with default value of false
-  - [ ] Update state management to keep tile.hasEgg and Animal entities in sync
+  - [x] Add hasEgg boolean property to Tile interface with default value of false
+  - [x] Update state management to keep tile.hasEgg and Animal entities in sync
   - [ ] Create comprehensive getTiles() function similar to getResourceTiles()
   - [ ] Implement hybrid filtering system:
     - [ ] Generic getTilesByFilter(filterFn) core mechanism
     - [ ] Specific helper functions (getBlankTiles(), getEggTiles(), etc.)
   - [ ] Ensure proper rendering of all tile states (resources, eggs, habitats)
+
+- [ ] Extend the `Biome` interface in gameStore.ts to include:
+  - [ ] Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value
+  - [ ] Resource tracking (initialResourceCount, nonDepletedCount, totalHarvested, eggCount)
 
 ### Phase 2: Create Ecosystem Utilities
 - [ ] Create a new utils file `EcosystemUtils.ts` containing:

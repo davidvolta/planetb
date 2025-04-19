@@ -235,13 +235,13 @@ export class EcosystemController {
   }
 
   /**
-   * This function produces eggs based purely on biome ownership and production rate.
+   * Process egg production for all biomes.
    * 
    * @param turn Current turn number
-   * @param animals Current animals array
-   * @param biomes Current biomes map
-   * @param board Game board
-   * @returns Updates to apply to the game state (new animals and updated biomes)
+   * @param animals Array of all animals
+   * @param biomes Map of all biomes
+   * @param board The game board
+   * @returns Updated animals and biomes
    */
   public static biomeEggProduction(
     turn: number,
@@ -256,27 +256,30 @@ export class EcosystemController {
         biomes: biomes
       }; // Skip production on odd-numbered turns
     }
-
+    
+    // Create copies of the animals and biomes for immutability
     const newAnimals = [...animals];
     const updatedBiomes = new Map(biomes);
     
-    // Process each biome directly
-    updatedBiomes.forEach((biome, biomeId) => {
-      // Skip if no production rate
-      if (biome.productionRate <= 0) return;
+    // Process each biome
+    biomes.forEach((biome, biomeId) => {
+      // Skip biomes that don't have an owner
+      if (biome.ownerId === null) {
+        return;
+      }
       
-      // Skip if biome not owned by a player
-      if (biome.ownerId === null) return;
-
-      // Calculate turns since last production
-      const turnsSinceProduction = turn - biome.lastProductionTurn;
-      if (turnsSinceProduction <= 0) return;
-
-      // Calculate how many eggs to create
-      const eggsToCreate = biome.productionRate * Math.floor(turnsSinceProduction / 2);
+      // Skip biomes that have already produced in this turn
+      if (biome.lastProductionTurn === turn) {
+        return;
+      }
       
-      // Skip if no eggs to create this turn
-      if (eggsToCreate <= 0) return;
+      // TODO: Implement lushness check here (must be ≥ 7.0)
+      // Currently using a fixed production rate
+      const eggsToCreate = biome.productionRate;
+      
+      if (eggsToCreate <= 0) {
+        return;
+      }
 
       // Find valid tiles for egg placement
       const validTiles = this.getValidEggPlacementTiles(
@@ -313,6 +316,9 @@ export class EcosystemController {
           type: newAnimal.species, 
           terrain: terrain 
         });
+        
+        // Mark the tile as having an egg
+        board.tiles[tile.y][tile.x].hasEgg = true;
         
         newAnimals.push(newAnimal);
       }

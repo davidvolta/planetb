@@ -150,6 +150,7 @@ interface Tile {
   resourceValue: number; // Value from 0-10, where 0 means depleted
   active: boolean; // Whether this tile has an active resource
   isHabitat: boolean; // Whether this tile is a habitat
+  hasEgg: boolean; // Whether this tile currently has an egg on it
 }
 
 // Base animal structure
@@ -419,6 +420,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             resourceValue: 0, // Default to depleted
             active: false, // Default to not active
             isHabitat: false, // Default to not a habitat
+            hasEgg: false, // Default to not having an egg
           });
         }
         tiles.push(row);
@@ -827,6 +829,26 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
       
+      // Set hasEgg=false on the tile where the egg was
+      let updatedBoard = state.board;
+      if (updatedBoard && updatedBoard.tiles && updatedBoard.tiles[eggPosition.y] && updatedBoard.tiles[eggPosition.y][eggPosition.x]) {
+        // Create a deep copy of the board to avoid mutating state
+        updatedBoard = {
+          ...updatedBoard,
+          tiles: updatedBoard.tiles.map((row, y) => {
+            if (y === eggPosition.y) {
+              return row.map((tile, x) => {
+                if (x === eggPosition.x) {
+                  return { ...tile, hasEgg: false };
+                }
+                return tile;
+              });
+            }
+            return [...row];
+          })
+        };
+      }
+      
       // Evolve the egg to an active unit
       updatedAnimals = updatedAnimals.map(animal =>
         animal.id === id
@@ -843,7 +865,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       return { 
         animals: updatedAnimals,
-        displacementEvent
+        displacementEvent,
+        board: updatedBoard
       };
     }),
 
@@ -912,6 +935,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         return state;
       }
       
+      // Find the unit to move
+      const unit = state.animals.find(animal => animal.id === id);
+      if (!unit) {
+        console.warn(`Unit ${id} not found`);
+        return state;
+      }
+      
       // Check if there's already an active unit at the destination
       const activeUnitAtDestination = state.animals.find(animal =>
         animal.position.x === x &&
@@ -940,12 +970,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       console.log(`Unit ${id} moved to (${x},${y}) and marked as moved for this turn`);
       
       // Clear movement state after move
-      return {
+      return { 
         animals: updatedAnimals,
         selectedUnitId: null,
         validMoves: [],
-        moveMode: false,
-        selectedUnitIsDormant: true
+        moveMode: false
       };
     }),
     
