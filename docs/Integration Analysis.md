@@ -19,7 +19,7 @@ The simulator aligns well with Phase 3 of the Ecosystem Integration Plan in the 
 
 ## Integration Recommendations
 
-1. **Extract Core Logic**: The calculateResourceGenerationRate, calculateBiomeLushness, and produceEggs functions from ecosystem.js should be directly portable to the EcosystemController in the main game.
+1. **Extract Core Logic**: The , calculateBiomeLushness, and produceEggs functions from ecosystem.js should be directly portable to the EcosystemController in the main game.
 
 2. **State Management Differences**: The simulator uses direct object mutation while the main game uses Zustand's immutable state pattern.
 

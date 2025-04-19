@@ -144,6 +144,12 @@ interface Tile {
   explored: boolean;
   visible: boolean;
   biomeId: string | null; // Track which biome this tile belongs to
+  
+  // Resource properties
+  resourceType: ResourceType | null; // Type of resource (FOREST, KELP, etc.) or null if none
+  resourceValue: number; // Value from 0-10, where 0 means depleted
+  active: boolean; // Whether this tile has an active resource
+  isHabitat: boolean; // Whether this tile is a habitat
 }
 
 // Base animal structure
@@ -409,7 +415,13 @@ export const useGameStore = create<GameState>((set, get) => ({
             terrain: terrainData[y][x],
             explored: false,
             visible: false,
-            biomeId: null // Will be set after biome generation
+            biomeId: null, // Will be set after biome generation
+            
+            // Resource properties
+            resourceType: null, // Default to no resource
+            resourceValue: 0, // Default to depleted
+            active: false, // Default to not active
+            isHabitat: false, // Default to not a habitat
           });
         }
         tiles.push(row);
@@ -620,6 +632,15 @@ export const useGameStore = create<GameState>((set, get) => ({
           tiles[y][x].biomeId = biomeMap[y][x];
         }
       }
+      
+      // Mark habitat tiles
+      Array.from(biomes.values()).forEach(biome => {
+        const habitatPos = biome.habitat.position;
+        // Set the isHabitat flag to true for habitat tiles
+        if (habitatPos.y >= 0 && habitatPos.y < height && habitatPos.x >= 0 && habitatPos.x < width) {
+          tiles[habitatPos.y][habitatPos.x].isHabitat = true;
+        }
+      });
       
       // Clean up temporary voronoiNodes structure - we don't need it anymore
       voronoiNodes = [];
