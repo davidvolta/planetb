@@ -217,7 +217,6 @@ export interface GameState {
   currentPlayerId: number;
   board: Board | null;
   animals: Animal[];
-  resources: Resource[]; // Added resources array
   biomes: Map<string, Biome>; // Track biomes by ID
   isInitialized: boolean;  // Flag to track if the game has been initialized
   
@@ -274,7 +273,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentPlayerId: 0,
   board: null,
   animals: [],
-  resources: [],
   biomes: new Map(),
   isInitialized: false,
   
@@ -325,8 +323,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       state.turn,
       state.animals,
       state.biomes,
-      state.board!,
-      state.resources
+      state.board!
     );
     
     // Extract updated animals and biomes from the result
@@ -365,7 +362,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       timestamp: null
     } as GameState['biomeCaptureEvent']; // Force type alignment
     
-    return { 
+    return {
       animals: resetAnimals,
       biomes: updatedBiomes,
       turn: state.turn + 1,
@@ -734,7 +731,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         board: { width, height, tiles },
         isInitialized: true,
         animals: animals,
-        resources: [], // Start with empty resources array
         biomes: biomes
       };
     }),

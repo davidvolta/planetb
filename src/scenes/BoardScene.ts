@@ -176,14 +176,30 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
   
-  // Set up all state subscriptions
+  // Set up subscriptions to state changes
   private setupSubscriptions() {
-    // Use the StateSubscriptionManager to set up subscriptions
-    this.subscriptionManager.setupSubscriptions(
-      (animalId, gridX, gridY) => this.handleUnitSelection(animalId)
-    );
-
-    this.subscriptionsSetup = true;     // Mark subscriptions as set up
+    if (this.subscriptionsSetup) return;
+    
+    // Initialize the subscription manager with the renderers
+    this.subscriptionManager.initialize({
+      habitatRenderer: this.habitatRenderer,
+      animalRenderer: this.animalRenderer,
+      resourceRenderer: this.resourceRenderer
+    });
+    
+    // Set up subscriptions to state changes
+    this.subscriptionManager.setupSubscriptions((animalId, gridX, gridY) => {
+      this.handleUnitSelection(animalId);
+    });
+    
+    // Subscribe to board changes for re-rendering
+    this.events.on('board_updated', this.updateBoard, this);
+    
+    // Listen for spawn events from the state
+    this.events.on('unit_spawned', this.handleUnitSpawned, this);
+    
+    // Mark as set up
+    this.subscriptionsSetup = true;
   }
   
   // Clean up all subscriptions to prevent memory leak
@@ -285,9 +301,9 @@ export default class BoardScene extends Phaser.Scene {
       }
     }
     
-    // Generate resources if none exist yet
-    const resources = actions.getResources();
-    if (resources.length === 0) {
+    // Check if there are resources on the board
+    const resourceTiles = actions.getResourceTiles();
+    if (resourceTiles.length === 0) {
       console.log("Initial resource generation");
       this.regenerateResources();
     }

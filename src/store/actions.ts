@@ -452,8 +452,8 @@ export function regenerateResources(
     return;
   }
   
-  // Generate new resources with current settings
-  const newResources = EcosystemController.generateResources(
+  // Generate resources by setting tile properties directly
+  EcosystemController.generateResources(
     width, 
     height, 
     terrainData,
@@ -461,38 +461,150 @@ export function regenerateResources(
     state.biomes
   );
   
-  // Update the resources in the store
+  // Update the board in the store since tile properties have changed
   useGameStore.setState({
-    resources: newResources
+    board: { ...state.board }
   });
 }
 
 /**
- * Get all resources in the game
+ * Get all tiles with active resources in the game
+ * @returns Array of tiles that have active resources 
  */
-export function getResources(): any[] {
-  return useGameStore.getState().resources;
+export function getResourceTiles(): { tile: any, x: number, y: number }[] {
+  const state = useGameStore.getState();
+  if (!state.board) return [];
+  
+  const resourceTiles = [];
+  
+  // Scan all tiles for active resources
+  for (let y = 0; y < state.board.height; y++) {
+    for (let x = 0; x < state.board.width; x++) {
+      const tile = state.board.tiles[y][x];
+      if (tile.active && tile.resourceType) {
+        resourceTiles.push({
+          tile,
+          x,
+          y
+        });
+      }
+    }
+  }
+  
+  return resourceTiles;
 }
 
 /**
  * Select a resource tile at the given coordinates
  */
 export function selectResourceTile(x: number, y: number): boolean {
-  const resources = useGameStore.getState().resources;
-  return EcosystemController.selectResourceTile(x, y, resources);
+  const state = useGameStore.getState();
+  if (!state.board) return false;
+  
+  const tile = state.board.tiles[y][x];
+  
+  // Only allow selecting tiles with active resources
+  if (!tile.active || !tile.resourceType) {
+    return false;
+  }
+  
+  // TODO: Implement resource tile selection logic
+  console.log(`Selected resource tile at (${x}, ${y}) of type ${tile.resourceType} with value ${tile.resourceValue}`);
+  return true;
 }
 
 /**
- * Harvest a specific amount from a resource
+ * Get resource tiles belonging to a specific biome
+ * @param biomeId The ID of the biome to retrieve resources for
  */
-export function harvestResource(resourceId: string, amount: number): boolean {
+export function getResourceTilesForBiome(biomeId: string): { tile: any, x: number, y: number }[] {
   const state = useGameStore.getState();
-  return EcosystemController.harvestResource(
-    resourceId, 
-    amount, 
-    state.resources, 
-    state.biomes
-  );
+  if (!state.board) return [];
+  
+  const resourceTiles = [];
+  
+  // Scan all tiles for active resources in this biome
+  for (let y = 0; y < state.board.height; y++) {
+    for (let x = 0; x < state.board.width; x++) {
+      const tile = state.board.tiles[y][x];
+      if (tile.biomeId === biomeId && tile.active && tile.resourceType) {
+        resourceTiles.push({
+          tile,
+          x,
+          y
+        });
+      }
+    }
+  }
+  
+  return resourceTiles;
+}
+
+/**
+ * Harvest a specific amount from a resource tile
+ * @param x X coordinate of the resource tile
+ * @param y Y coordinate of the resource tile
+ * @param amount Amount to harvest (0-10)
+ * @returns Whether the harvest was successful
+ */
+export function harvestResourceTile(x: number, y: number, amount: number): boolean {
+  const state = useGameStore.getState();
+  if (!state.board) return false;
+  
+  const tile = state.board.tiles[y][x];
+  
+  // Can only harvest active resources
+  if (!tile.active || !tile.resourceType) {
+    console.warn(`No active resource at (${x}, ${y})`);
+    return false;
+  }
+  
+  // Validate amount
+  if (amount < 0 || amount > tile.resourceValue) {
+    console.warn(`Invalid harvest amount: ${amount}, resourceValue: ${tile.resourceValue}`);
+    return false;
+  }
+  
+  // Get the biome this tile belongs to
+  const biomeId = tile.biomeId;
+  if (!biomeId) {
+    console.warn(`Tile at (${x}, ${y}) does not belong to a biome`);
+    return false;
+  }
+  
+  // Update the tile's resource value
+  const newValue = tile.resourceValue - amount;
+  
+  // Deep clone the board to update the tile
+  const updatedBoard = {
+    ...state.board,
+    tiles: state.board.tiles.map((row, rowIndex) => {
+      if (rowIndex !== y) return row;
+      
+      return row.map((t, colIndex) => {
+        if (colIndex !== x) return t;
+        
+        // If new value is 0, set active to false to permanently deplete the resource
+        const active = newValue > 0;
+        
+        return {
+          ...t,
+          resourceValue: newValue,
+          active: active
+        };
+      });
+    })
+  };
+  
+  // Update the board in the state
+  useGameStore.setState({
+    board: updatedBoard
+  });
+  
+  // Recalculate and update the biome's lushness after harvesting
+  calculateBiomeLushness(biomeId);
+  
+  return true;
 }
 
 /**
@@ -518,6 +630,7 @@ export function updateAllBiomeLushness(): void {
 
 /**
  * Regenerate resources based on biome lushness
+ * This is a placeholder - will be implemented in Phase 5
  */
 export function regenerateAllResourcesByLushness(): void {
   const state = useGameStore.getState();
@@ -527,16 +640,8 @@ export function regenerateAllResourcesByLushness(): void {
     return;
   }
   
-  const updatedResources = EcosystemController.regenerateAllResources(
-    state.biomes,
-    state.resources,
-    state.board
-  );
-  
-  // Update the resources in the store
-  useGameStore.setState({
-    resources: updatedResources
-  });
+  // TODO: Implement tile resource regeneration based on biome lushness
+  console.log("Resource regeneration based on lushness not yet implemented");
 }
 
 /**
@@ -568,16 +673,6 @@ export function clearBiomeCaptureEvent(): void {
 }
 
 /**
- * Get resources belonging to a specific biome
- * @param biomeId The ID of the biome to retrieve resources for
- */
-export function getResourcesForBiome(biomeId: string): Resource[] {
-  return useGameStore.getState().resources.filter(resource => 
-    resource.biomeId === biomeId
-  );
-}
-
-/**
  * Update a biome's lushness value
  * @param biomeId The ID of the biome to update
  * @param value The new lushness value
@@ -602,6 +697,7 @@ export function updateBiomeLushness(biomeId: string, value: number): void {
   useGameStore.setState({
     biomes: updatedBiomes
   });
+
 }
 
 /**
@@ -636,8 +732,7 @@ export function produceEggs(applyToState: boolean = true): void {
     state.turn,
     state.animals,
     state.biomes,
-    state.board!,
-    state.resources
+    state.board!
   );
   
   // Apply the changes to the state

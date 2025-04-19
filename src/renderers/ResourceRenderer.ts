@@ -36,10 +36,10 @@ export class ResourceRenderer extends BaseRenderer {
   }
   
   /**
-   * Render all resources based on the provided resource data
-   * @param resources Array of resource objects from the game state
+   * Render all resources based on tiles with resource properties
+   * @param resourceTiles Array of tiles that have active resources
    */
-  renderResources(resources: Resource[]): void {
+  renderResourceTiles(resourceTiles: { tile: any, x: number, y: number }[]): void {
     // Check if staticObjectsLayer exists before proceeding
     const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
     if (!staticObjectsLayer) {
@@ -47,13 +47,15 @@ export class ResourceRenderer extends BaseRenderer {
       return;
     }
     
-    // Get a map of current resource sprites by ID
-    const existingResources = new Map();
+    // Get a map of current resource sprites by position (since we don't have resource IDs anymore)
+    const existingResourceSprites = new Map();
     staticObjectsLayer.getAll().forEach(child => {
       if (child instanceof Phaser.GameObjects.Sprite) {
-        const resourceId = child.getData('resourceId');
-        if (resourceId) {
-          existingResources.set(resourceId, {
+        const gridX = child.getData('gridX');
+        const gridY = child.getData('gridY');
+        if (gridX !== undefined && gridY !== undefined) {
+          const key = `${gridX},${gridY}`;
+          existingResourceSprites.set(key, {
             sprite: child,
             used: false
           });
@@ -61,31 +63,37 @@ export class ResourceRenderer extends BaseRenderer {
       }
     });
     
-    // Process each resource - create new or update existing
-    resources.forEach(resource => {
-      // Calculate position using coordinate utility
-      const gridX = resource.position.x;
-      const gridY = resource.position.y;
+    // Process each resource tile - create new sprites or update existing ones
+    resourceTiles.forEach(({ tile, x, y }) => {
+      // Calculate world position
       const worldPosition = CoordinateUtils.gridToWorld(
-        gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
       
-      // Apply vertical offset to raise the sprite above the tile
       const worldX = worldPosition.x;
       const worldY = worldPosition.y;
       
-      // Determine the texture based on resource type
-      const textureKey = this.getTextureKeyForResourceType(resource.type);
+      // Generate a unique key for this position
+      const key = `${x},${y}`;
       
-      // Check if we have an existing sprite
-      const existing = existingResources.get(resource.id);
+      // Determine the texture based on resource type
+      const textureKey = this.getTextureKeyForResourceType(tile.resourceType);
+      
+      // Set opacity based on resource value (0-10 scale)
+      const opacity = tile.resourceValue / 10;
+      
+      // Check if we have an existing sprite at this position
+      const existing = existingResourceSprites.get(key);
       
       if (existing) {
         // Mark as used so we don't delete it later
         existing.used = true;
         
-        // Update position
+        // Update position (shouldn't need this, but just to be safe)
         existing.sprite.setPosition(worldX, worldY);
+        
+        // Update opacity based on resource value
+        existing.sprite.setAlpha(opacity);
         
         // Update texture if resource type changed
         if (existing.sprite.texture.key !== textureKey) {
@@ -95,14 +103,14 @@ export class ResourceRenderer extends BaseRenderer {
         // Create a new sprite for this resource
         const resourceSprite = this.scene.add.sprite(worldX, worldY, textureKey);
         
-        // Set scale
+        // Set scale and opacity
         resourceSprite.setScale(this.resourceScale);
+        resourceSprite.setAlpha(opacity);
         
-        // Store the resource ID on the sprite
-        resourceSprite.setData('resourceId', resource.id);
-        resourceSprite.setData('resourceType', resource.type);
-        resourceSprite.setData('gridX', gridX);
-        resourceSprite.setData('gridY', gridY);
+        // Store position and type data on the sprite
+        resourceSprite.setData('gridX', x);
+        resourceSprite.setData('gridY', y);
+        resourceSprite.setData('resourceType', tile.resourceType);
         
         // Add the sprite to the static objects layer
         this.layerManager.addToLayer('staticObjects', resourceSprite);
@@ -110,7 +118,7 @@ export class ResourceRenderer extends BaseRenderer {
     });
     
     // Remove sprites for resources that no longer exist
-    existingResources.forEach((data) => {
+    existingResourceSprites.forEach((data, key) => {
       if (!data.used) {
         data.sprite.destroy();
       }
@@ -118,88 +126,23 @@ export class ResourceRenderer extends BaseRenderer {
   }
   
   /**
-   * Add a single resource sprite
-   * @param resource The resource to add
+   * Maintains compatibility with the old Resource-based API
+   * @deprecated Use renderResourceTiles instead
    */
-  addResource(resource: Resource): void {
-    const worldPosition = CoordinateUtils.gridToWorld(
-      resource.position.x, 
-      resource.position.y, 
-      this.tileSize, 
-      this.tileHeight, 
-      this.anchorX, 
-      this.anchorY
-    );
+  renderResources(resources: Resource[]): void {
+    console.warn("renderResources is deprecated. Use renderResourceTiles instead.");
+    // Convert resources to a format that can be used by renderResourceTiles
+    const resourceTiles = resources.map(resource => ({
+      tile: {
+        resourceType: resource.type,
+        resourceValue: 10, // Assume max value for backward compatibility
+        active: true
+      },
+      x: resource.position.x,
+      y: resource.position.y
+    }));
     
-    const worldX = worldPosition.x;
-    const worldY = worldPosition.y;
-    const textureKey = this.getTextureKeyForResourceType(resource.type);
-    
-    const resourceSprite = this.scene.add.sprite(worldX, worldY, textureKey);
-    resourceSprite.setScale(this.resourceScale);
-    
-    resourceSprite.setData('resourceId', resource.id);
-    resourceSprite.setData('resourceType', resource.type);
-    resourceSprite.setData('gridX', resource.position.x);
-    resourceSprite.setData('gridY', resource.position.y);
-    
-    this.layerManager.addToLayer('staticObjects', resourceSprite);
-  }
-  
-  /**
-   * Update a single resource sprite
-   * @param resource The resource to update
-   */
-  updateResource(resource: Resource): void {
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (!staticObjectsLayer) return;
-    
-    staticObjectsLayer.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Sprite && 
-          child.getData('resourceId') === resource.id) {
-        
-        // Update position if needed
-        const worldPosition = CoordinateUtils.gridToWorld(
-          resource.position.x,
-          resource.position.y,
-          this.tileSize,
-          this.tileHeight,
-          this.anchorX,
-          this.anchorY
-        );
-        
-        const worldX = worldPosition.x;
-        const worldY = worldPosition.y;
-        
-        child.setPosition(worldX, worldY);
-        
-        // Update texture if type changed
-        const textureKey = this.getTextureKeyForResourceType(resource.type);
-        if (child.texture.key !== textureKey) {
-          child.setTexture(textureKey);
-        }
-        
-        // Update grid position data
-        child.setData('gridX', resource.position.x);
-        child.setData('gridY', resource.position.y);
-      }
-    });
-  }
-  
-  /**
-   * Remove a resource sprite
-   * @param resourceId ID of the resource to remove
-   */
-  removeResource(resourceId: string): void {
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (!staticObjectsLayer) return;
-    
-    staticObjectsLayer.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Sprite && 
-          child.getData('resourceId') === resourceId) {
-        child.destroy();
-      }
-    });
+    this.renderResourceTiles(resourceTiles);
   }
   
   /**
@@ -211,7 +154,7 @@ export class ResourceRenderer extends BaseRenderer {
     
     staticObjectsLayer.getAll().forEach(child => {
       if (child instanceof Phaser.GameObjects.Sprite && 
-          child.getData('resourceId')) {
+          child.getData('resourceType')) {
         child.destroy();
       }
     });

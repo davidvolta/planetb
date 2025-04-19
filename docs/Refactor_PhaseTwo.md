@@ -46,3 +46,23 @@
 9. **Consistent API Patterns**
    - Make store methods and action functions follow consistent parameter patterns
    - Either both use object parameters or both use individual parameters
+
+
+
+To simplify the subscription system, I'd recommend these architectural changes:
+
+1. **Use selector-based subscriptions** - Instead of manually comparing previous/current values, adopt a more declarative approach where components just specify what data they need.
+
+2. **Automatic dependency tracking** - Implement a system that automatically tracks which parts of the state each renderer needs, eliminating manual subscription setup.
+
+3. **Centralize subscription logic** - Create a single subscription manager that handles all subscriptions rather than spreading logic across multiple files.
+
+4. **Event-driven updates** - For fine-grained updates, use a simpler event system where state changes emit specific events that renderers can listen for directly.
+
+5. **Memoization pattern** - Replace deep comparisons with memoized selectors that only recalculate when inputs change.
+
+6. **Resource management** - Implement an automatic cleanup system for subscriptions based on component lifecycle.
+
+7. **Reduced granularity** - Instead of highly specific optimizations like individual lushness updates, balance between performance and maintainability with slightly coarser update strategies.
+
+This would significantly reduce boilerplate code while maintaining performance and making the system more maintainable.

@@ -32,7 +32,6 @@ export class EcosystemController {
    * @param terrainData 2D array of terrain types
    * @param board The game board
    * @param biomes The map of biomes
-   * @returns Array of generated resources
    */
   public static generateResources(
     width: number, 
@@ -40,12 +39,10 @@ export class EcosystemController {
     terrainData: TerrainType[][],
     board: Board,
     biomes: Map<string, Biome>
-  ): Resource[] {
-    const resources: Resource[] = [];
-    
+  ): void {
     if (!board) {
       console.warn("Board not initialized, cannot generate resources");
-      return resources;
+      return;
     }
     
     // Define resource chance (percentage of eligible tiles that should have resources)
@@ -92,7 +89,7 @@ export class EcosystemController {
       const shuffledTiles = [...eligibleTiles].sort(() => Math.random() - 0.5);
       const selectedTiles = shuffledTiles.slice(0, resourceCount);
       
-      // Create resources on the selected tiles
+      // Set resource properties on the selected tiles
       selectedTiles.forEach(tile => {
         // Determine resource type based on terrain
         let resourceType: ResourceType | null = null;
@@ -107,36 +104,30 @@ export class EcosystemController {
           resourceType = ResourceType.PLANKTON;
         }
         
-        // Add the resource
+        // Set the tile properties directly
         if (resourceType) {
-          resources.push({
-            id: `resource-${resources.length}`,
-            type: resourceType,
-            position: { x: tile.x, y: tile.y },
-            biomeId: biomeId
-          });
+          // Update the tile with resource properties
+          board.tiles[tile.y][tile.x].resourceType = resourceType;
+          board.tiles[tile.y][tile.x].resourceValue = 10; // Initial value is 10
+          board.tiles[tile.y][tile.x].active = true;      // Mark as active
         }
       });
     });
-    
-    return resources;
   }
 
   /**
    * Gets all valid tiles for egg placement in a biome
-   * Valid tiles are in the biome, don't have eggs, and don't have resources
+   * Valid tiles are in the biome, don't have eggs, and don't have active resources
    * 
    * @param biomeId The ID of the biome to find valid egg placement tiles for
    * @param state Simplified game state containing board and animals
    * @param allBiomes Map of all biomes
-   * @param resources Array of all resources in the game
    * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources in owned biomes
    */
   public static getValidEggPlacementTiles(
     biomeId: string,
     state: ValidEggPlacementState,
-    allBiomes: Map<string, Biome>,
-    resources: Resource[]
+    allBiomes: Map<string, Biome>
   ): Coordinate[] {
     const validTiles: Coordinate[] = [];
     const board = state.board;
@@ -170,18 +161,6 @@ export class EcosystemController {
       }
     });
     
-    // Create a set of resource positions for quick lookup
-    const resourcePositions = new Set<string>();
-    const resourceBiomeMap = new Map<string, string | undefined>();
-    
-    resources.forEach(resource => {
-      const key = `${resource.position.x},${resource.position.y}`;
-      resourcePositions.add(key);
-      // Store the biome ID for each resource
-      const resourceTile = board.tiles[resource.position.y][resource.position.x];
-      resourceBiomeMap.set(key, resourceTile.biomeId || undefined);
-    });
-    
     // Track positions with resources for prioritization
     const resourceAdjacencyMap = new Map<string, number>();
     
@@ -196,8 +175,8 @@ export class EcosystemController {
         // Skip if not in the same biome
         if (tile.biomeId !== biomeId) continue;
         
-        // Skip if there's a resource on this tile
-        if (resourcePositions.has(`${x},${y}`)) continue;
+        // Skip if there's an active resource on this tile
+        if (tile.active) continue;
         
         // Check if tile already has an egg
         const hasEgg = state.animals.some(animal => 
@@ -221,12 +200,12 @@ export class EcosystemController {
               // Skip if out of bounds
               if (nx < 0 || ny < 0 || nx >= board.width || ny >= board.height) continue;
               
-              const resourceKey = `${nx},${ny}`;
-              if (resourcePositions.has(resourceKey)) {
-                const resourceBiomeId = resourceBiomeMap.get(resourceKey);
-                
+              const neighborTile = board.tiles[ny][nx];
+              
+              // Check if neighbor has an active resource
+              if (neighborTile.active && neighborTile.resourceType) {
                 // Resources in owned biomes are worth more when considering placement
-                if (resourceBiomeId && playerBiomeIds.has(resourceBiomeId)) {
+                if (neighborTile.biomeId && playerBiomeIds.has(neighborTile.biomeId)) {
                   adjacencyScore += 3;
                 } else {
                   adjacencyScore += 1;
@@ -262,15 +241,13 @@ export class EcosystemController {
    * @param animals Current animals array
    * @param biomes Current biomes map
    * @param board Game board
-   * @param resources Current resources array
    * @returns Updates to apply to the game state (new animals and updated biomes)
    */
   public static biomeEggProduction(
     turn: number,
     animals: Animal[],
     biomes: Map<string, Biome>,
-    board: Board,
-    resources: Resource[]
+    board: Board
   ): BiomeProductionResult {
     // Only produce eggs on even-numbered turns
     if (turn % 2 !== 0) {
@@ -308,8 +285,7 @@ export class EcosystemController {
           board: board,
           animals: newAnimals
         },
-        biomes,
-        resources
+        biomes
       );
 
       // Place eggs on valid tiles - use best tiles first (highest resource adjacency)

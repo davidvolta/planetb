@@ -21,6 +21,8 @@ interface IAnimalRenderer {
 // Interface for a component that can render habitats
 interface IHabitatRenderer {
   renderHabitats(habitats: Habitat[]): void;
+  updateHabitatOwnership(biomeId: string): void;
+  updateHabitatLushness(biomeId: string, newValue: number): void;
 }
 
 // Interface for a component that can render move ranges
@@ -84,14 +86,14 @@ export class StateSubscriptionManager {
   private subscriptionsSetup: boolean = false;
   
   // Define subscription keys to ensure consistency
-  private static readonly SUBSCRIPTIONS = {
+  public static readonly SUBSCRIPTIONS = {
     // Board state subscriptions
     BOARD: 'StateSubscriptionManager.board',
     
     // Entity state subscriptions
     ANIMALS: 'StateSubscriptionManager.animals',
     HABITATS: 'StateSubscriptionManager.habitats',
-    RESOURCES: 'StateSubscriptionManager.resources',
+    RESOURCE_TILES: 'StateSubscriptionManager.resourceTiles',
     
     // Interaction state subscriptions
     VALID_MOVES: 'StateSubscriptionManager.validMoves',
@@ -191,11 +193,26 @@ export class StateSubscriptionManager {
     // Subscribe to habitat changes (via biomes)
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.HABITATS,
-      (state) => Array.from(state.biomes.values()).map((biome: Biome) => biome.habitat),
-      (habitats) => {
-        if (habitats) {
+      (state) => state.biomes,
+      (biomes, previousBiomes) => {
+        if (!biomes) return;
+        
+        // First render: do a full render of all habitats
+        if (!previousBiomes) {
+          const habitats = Array.from(biomes.values()).map((biome: Biome) => biome.habitat);
           this.habitatRenderer.renderHabitats(habitats);
+          return;
         }
+        
+        // Update mode: check for biomes with changed lushness
+        biomes.forEach((biome, biomeId) => {
+          const previousBiome = previousBiomes.get(biomeId);
+          
+          // If lushness changed, update just that habitat's lushness display
+          if (previousBiome && biome.lushness !== previousBiome.lushness) {
+            this.habitatRenderer.updateHabitatLushness(biomeId, biome.lushness);
+          }
+        });
       },
       { immediate: true, debug: false } // Set immediate: true to render on subscription
     );
@@ -203,14 +220,19 @@ export class StateSubscriptionManager {
   
   // Set up subscriptions related to resources
   private setupResourceSubscriptions(): void {
-    // Subscribe to resource changes
+    // Subscribe to resource tile changes
     StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.RESOURCES,
-      (state) => state.resources,
-      (resources) => {
-        if (resources) {
-          // If we have a ResourceRenderer, render the resources
-          this.resourceRenderer?.renderResources(resources);
+      StateSubscriptionManager.SUBSCRIPTIONS.RESOURCE_TILES,
+      (state) => state.board, // Watch the board since resources are now tile properties
+      (board) => {
+        if (board) {
+          // Get resource tiles from actions
+          const resourceTiles = actions.getResourceTiles();
+          
+          // If we have a ResourceRenderer, render the resource tiles
+          if (this.resourceRenderer) {
+            this.resourceRenderer.renderResourceTiles(resourceTiles);
+          }
         }
       },
       { immediate: true, debug: false } // Set immediate: true to render on subscription
@@ -345,16 +367,9 @@ export class StateSubscriptionManager {
             if (biomeCaptureEvent.biomeId) {
               this.scene.revealBiomeTiles(biomeCaptureEvent.biomeId);
               
-              // Get the captured biome (for logging purposes)
-              const capturedBiome = actions.getBiomeById(biomeCaptureEvent.biomeId);
-              if (capturedBiome) {
-                // Use biomes directly instead of extracting habitats
-                const state = useGameStore.getState();
-                const biomes = Array.from(state.biomes.values());
-                
-                // Render biomes by passing their habitat property
-                this.habitatRenderer.renderHabitats(biomes.map(biome => biome.habitat));
-              }
+              // Update just the captured habitat's ownership status
+              // This is more efficient than re-rendering all habitats
+              this.habitatRenderer.updateHabitatOwnership(biomeCaptureEvent.biomeId);
             }
           }
           
@@ -432,5 +447,16 @@ export class StateSubscriptionManager {
     });
     
     return uniqueTiles;
+  }
+
+  // Initialize renderers after construction (used by BoardScene)
+  public initialize(renderers: {
+    habitatRenderer: HabitatRenderer;
+    animalRenderer: AnimalRenderer;
+    resourceRenderer: ResourceRenderer;
+  }): void {
+    this.habitatRenderer = renderers.habitatRenderer;
+    this.animalRenderer = renderers.animalRenderer;
+    this.resourceRenderer = renderers.resourceRenderer;
   }
 } 

@@ -20,17 +20,17 @@
 ## Ecosystem Integration Plan
 
 ### Phase 1: Refactor to Tile-Centric Resource Model
-- [ ] Extend the `Tile` interface in gameStore.ts to include:
-  - [ ] Required resource properties (resourceType: ResourceType | null, resourceValue: number, active: boolean)
+- [x] Extend the `Tile` interface in gameStore.ts to include:
+  - [x] Required resource properties (resourceType: ResourceType | null, resourceValue: number, active: boolean)
   - [x] Add isHabitat: boolean property to identify habitat tiles
-  - [ ] Default all tiles to {resourceType: null, resourceValue: 0, active: false, isHabitat: false}
+  - [x] Default all tiles to {resourceType: null, resourceValue: 0, active: false, isHabitat: false}
   - [x] Ensure habitat tiles are marked with isHabitat=true
 
-- [ ] Refactor Resource Generation:
-  - [ ] Modify resource generation to set tile properties directly instead of creating Resource entities
-  - [ ] Maintain 50% resource distribution on eligible terrain
-  - [ ] Set initial values: {resourceType: FOREST/KELP/etc, resourceValue: 10, active: true}
-  - [ ] Keep terrain-resource type mapping (GRASS→FOREST, WATER→KELP, etc.)
+- [x] Refactor Resource Generation:
+  - [x] Modify resource generation to set tile properties directly instead of creating Resource entities
+  - [x] Maintain 50% resource distribution on eligible terrain
+  - [x] Set initial values: {resourceType: FOREST/KELP/etc, resourceValue: 10, active: true}
+  - [x] Keep terrain-resource type mapping (GRASS→FOREST, WATER→KELP, etc.)
   - [ ] Update exploration system to reveal resources as tiles are explored
 
 - [ ] Update Egg Placement Logic:
@@ -64,7 +64,6 @@
   - [ ] Display resource values numerically on tiles
   - [ ] Use opacity to visualize resource health (value/10)
   - [ ] Keep the existing resource assets, just modify their display
-
 ### Phase 4: Implement Harvesting System
 - [ ] Create new action functions in actions.ts:
   - [ ] selectTile(x, y)
