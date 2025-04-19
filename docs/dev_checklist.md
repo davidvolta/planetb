@@ -12,17 +12,31 @@
 
 - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
+## Tile Interface Resource Generation Plan
+- [ ] Update BoardScene.regenerateResources() to:
+  - [ ] Get current board state and all biomes
+  - [ ] Delegate to actions.regenerateResources with proper params
+  - [ ] Explicitly render resource tiles and blank tiles after regeneration
+
+- [ ] Enhance actions.regenerateResources() to:
+  - [ ] Apply resource percentage on a per-biome basis
+  - [ ] Work directly with the tile interface rather than resources array
+  - [ ] Balance resource and blank tiles appropriately
+  - [ ] Update EcosystemController.generateResources to be fully tile-centric
+
+- [ ] Optimize ResourceRenderer:
+  - [ ] Ensure renderResourceTiles works with regenerated resources
+  - [ ] Validate visualizeBlankTiles properly identifies blank tiles
+  - [ ] Properly clean up previous visualizations
+
+- [ ] Cleanup and Optimization:
+  - [ ] Remove deprecated Resource-based code
+  - [ ] Add proper debugging logs
+  - [ ] Ensure debug slider changes are immediately visible
+
 ## Ecosystem Integration Plan
 
 ### Phase 1: Refactor to Tile-Centric Resource Model
-- [ ] Enhance Tile System for Ecosystem Integration:
-  - [x] Add hasEgg boolean property to Tile interface with default value of false
-  - [x] Update state management to keep tile.hasEgg and Animal entities in sync
-  - [x] Create comprehensive getTiles() function similar to getResourceTiles()
-  - [x] Implement hybrid filtering system:
-    - [x] Generic getTilesByFilter(filterFn) core mechanism
-    - [x] Specific helper functions (getBlankTiles(), getEggTiles(), etc.)
-  - [ ] Ensure proper rendering of all tile states (resources, eggs, habitats)
 
 - [ ] Extend the `Biome` interface in gameStore.ts to include:
   - [ ] Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value

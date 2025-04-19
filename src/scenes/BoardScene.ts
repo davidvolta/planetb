@@ -953,5 +953,14 @@ updateBoard() {
     
     // Call the regenerate action to create new resources
     actions.regenerateResources(board.width, board.height, terrainData);
+    
+    // Fetch the updated resource tiles
+    const resourceTiles = actions.getResourceTiles();
+    
+    // Refresh resource visualization using the new tile interface
+    this.resourceRenderer.renderResourceTiles(resourceTiles.map(({ tile, x, y }) => ({ tile, x, y })));
+    
+    // Explicitly refresh blank tile indicators after resource generation
+    this.resourceRenderer.visualizeBlankTiles();
   }
 }
