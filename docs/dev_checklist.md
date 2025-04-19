@@ -19,32 +19,38 @@
 
 ## Ecosystem Integration Plan
 
-### Phase 1: Enhance Biome Structure & Setup Ecosystem Utilities
-- [ ] Extend the `Biome` interface in gameStore.ts to include:
-  - [ ] Tiles array with status tracking (value, active, hasEgg)
-  - [ ] Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value
-  - [ ] Tile tracking (initialTileCount, nonDepletedCount, totalHarvested, eggCount)
+### Phase 1: Refactor to Tile-Centric Resource Model
+- [ ] Extend the `Tile` interface in gameStore.ts to include:
+  - [ ] Resource properties (resourceType, resourceValue, active)
+  - [ ] Future egg placement property (hasEgg)
+  
+- [ ] Refactor Resources:
+  - [ ] Convert Resources from separate entities to tile properties
+  - [ ] Update resource creation/initialization logic
+  - [ ] Update rendering code to use tile resource properties
+  - [ ] Remove separate Resource entities after conversion is complete
 
+- [ ] Extend the `Biome` interface in gameStore.ts to include:
+  - [ ] Lushness properties (baseLushness, lushnessBoost) - with total lushness as the main value
+  - [ ] Resource tracking (initialResourceCount, nonDepletedCount, totalHarvested, eggCount)
+
+### Phase 2: Create Ecosystem Utilities
 - [ ] Create a new utils file `EcosystemUtils.ts` containing:
   - [ ] The polynomial resource generation formula with fixed coefficient values
   - [ ] Lushness calculation functions based on tile resource values
   - [ ] Egg production logic based on lushness threshold (≥7.0)
+  - [ ] Functions to find all tiles belonging to a specific biome
 
-- [ ] Update the BiomeGenerator to initialize biomes with proper ecosystem values
+- [ ] Create helper functions for common tile-based operations:
+  - [ ] Calculate total resource value in a biome
+  - [ ] Find blank tiles suitable for egg placement
+  - [ ] Update resource values based on lushness
 
-### Phase 2: Update Rendering System
+### Phase 3: Update Rendering System
 - [ ] Enhance TileRenderer to:
   - [ ] Display resource values numerically on tiles
   - [ ] Use opacity to visualize resource health (value/10)
   - [ ] Keep the existing resource assets, just modify their display
-
-### Phase 3: Replace Habitat Production with Biome-Based Ecosystem
-  - [ ] Calculate resource regeneration based on lushness
-  - [ ] Update lushness values for each biome
-  - [ ] Produce dormant animal units (eggs) on blank tiles based on lushness thresholds
-  - [ ] Keep existing system where eggs are represented as dormant animal units
-
-- [ ] Connect this to the existing evolveAnimal function for converting eggs to active animals
 
 ### Phase 4: Implement Harvesting System
 - [ ] Create new action functions in actions.ts:
@@ -57,12 +63,18 @@
 
 - [ ] Implement the harvest logic in gameStore:
   - [ ] Update tile resource values based on the harvested amount
-  - [ ] Convert depleted tiles (value 0) to blank tiles immediately
+  - [ ] Convert depleted tiles (value 0) to blank tiles
   - [ ] Update the biome's lushness based on the new tile state
 
-### Phase 5: Refactor Simulator to Use Shared Code
+### Phase 5: Replace Habitat Production with Biome-Based Ecosystem
+- [ ] Implement resource regeneration based on biome lushness
+- [ ] Update biome lushness calculations based on tile resource values
+- [ ] Produce dormant animal units (eggs) on blank tiles based on lushness thresholds
+- [ ] Keep existing system where eggs are represented as dormant animal units
+- [ ] Connect this to the existing evolveAnimal function for converting eggs to active animals
+
+### Phase 6: Refactor Simulator to Use Shared Code
 - [ ] Update simulator.js to use the shared EcosystemUtils functions
-- [ ] Keep the simulator UI largely the same
 - [ ] Ensure both the game and simulator use exactly the same calculation methods
 
 
