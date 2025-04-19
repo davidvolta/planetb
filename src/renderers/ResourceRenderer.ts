@@ -228,26 +228,6 @@ export class ResourceRenderer extends BaseRenderer {
   }
   
   /**
-   * Maintains compatibility with the old Resource-based API
-   * @deprecated Use renderResourceTiles instead
-   */
-  renderResources(resources: Resource[]): void {
-    console.warn("renderResources is deprecated. Use renderResourceTiles instead.");
-    // Convert resources to a format that can be used by renderResourceTiles
-    const resourceTiles = resources.map(resource => ({
-      tile: {
-        resourceType: resource.type,
-        resourceValue: 10, // Assume max value for backward compatibility
-        active: true
-      },
-      x: resource.position.x,
-      y: resource.position.y
-    }));
-    
-    this.renderResourceTiles(resourceTiles);
-  }
-  
-  /**
    * Clear all resources
    */
   clearResources(): void {
