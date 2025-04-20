@@ -398,13 +398,39 @@ updateBoard() {
       // Log the habitat click
       console.log(`Biome clicked: ${clickedBiome.id} at position (${gridX},${gridY})`);
       
-      // Select biome in store regardless of ownership
-      actions.selectBiome(clickedBiome.id);
+      // Check if there's an active unit on this habitat that can be moved
+      const hasSelectableUnit = hasActiveUnit && !hasMovedUnit;
       
-      // Show RED selection indicator for habitat
-      this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+      // Check if we are clicking on a habitat that has the currently selected unit
+      const isClickingSelectedUnitOnHabitat = selectedUnitId && 
+        contents.activeUnits.some(unit => unit.id === selectedUnitId);
       
-      return; // Return early after selecting the habitat
+      // If we're clicking on the currently selected unit's tile again, select the biome
+      // Or if there's no selectable unit, select the biome directly
+      if (isClickingSelectedUnitOnHabitat || !hasSelectableUnit) {
+        // Deselect the unit if we're clicking on a selected unit's tile 
+        // (second click behavior)
+        if (isClickingSelectedUnitOnHabitat) {
+          actions.deselectUnit();
+          this.moveRangeRenderer.clearMoveHighlights();
+        }
+        
+        // Select biome in store regardless of ownership
+        actions.selectBiome(clickedBiome.id);
+        
+        // Show RED selection indicator for habitat
+        this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+        
+        return; // Return early after selecting the habitat
+      }
+      
+      // If there's a selectable unit that's not already selected, prioritize selecting it first
+      // This allows the double-click behavior to work
+      if (hasSelectableUnit) {
+        const unit = contents.activeUnits[0]; // Use the first active unit
+        this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
+        return;
+      }
     }
     
     // Only handle active unit selection if none of the above actions were taken
