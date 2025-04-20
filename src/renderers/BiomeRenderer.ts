@@ -56,7 +56,7 @@ export class BiomeRenderer extends BaseRenderer {
       }
     });
     
-    // Get the game state and board
+    // Get the board for coordinate reference
     const state = useGameStore.getState();
     const board = state.board;
     
@@ -64,35 +64,40 @@ export class BiomeRenderer extends BaseRenderer {
       return;
     }
     
-    // Find and render all habitat tiles on the board
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        const tile = board.tiles[y][x];
-        if (tile.isHabitat && tile.biomeId) {
-          // Find the corresponding biome
-          const biome = state.biomes.get(tile.biomeId);
-          if (biome) {
-            // Calculate position using coordinate utility
-            const worldPosition = CoordinateUtils.gridToWorld(
-              x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-            );
-            
-            // Determine biome state
-            const isCaptured = biome.ownerId !== null;
-            const lushness = biome.totalLushness || 0;
-            
-            // Create the biome graphic for this tile
-            const biomeGraphic = this.createBiomeGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
-            biomeGraphic.setData('biomeId', biome.id);
-            biomeGraphic.setData('gridX', x);
-            biomeGraphic.setData('gridY', y);
-            biomeGraphic.setData('isCaptured', isCaptured);
-            biomeGraphic.setData('lushness', lushness);
-            this.layerManager.addToLayer('staticObjects', biomeGraphic);
-          }
-        }
+    // Directly iterate through the provided biomes array
+    biomes.forEach(biome => {
+      // Skip biomes without habitat position data
+      if (!biome.habitat || !biome.habitat.position) {
+        return;
       }
-    }
+      
+      // Get the habitat position from the biome
+      const x = biome.habitat.position.x;
+      const y = biome.habitat.position.y;
+      
+      // Make sure the position is valid on our board
+      if (x < 0 || x >= board.width || y < 0 || y >= board.height) {
+        return;
+      }
+      
+      // Calculate world position for rendering
+      const worldPosition = CoordinateUtils.gridToWorld(
+        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+      );
+      
+      // Determine biome state
+      const isCaptured = biome.ownerId !== null;
+      const lushness = biome.totalLushness || 0;
+      
+      // Create the biome graphic
+      const biomeGraphic = this.createBiomeGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
+      biomeGraphic.setData('biomeId', biome.id);
+      biomeGraphic.setData('gridX', x);
+      biomeGraphic.setData('gridY', y);
+      biomeGraphic.setData('isCaptured', isCaptured);
+      biomeGraphic.setData('lushness', lushness);
+      this.layerManager.addToLayer('staticObjects', biomeGraphic);
+    });
   }
   
   /**
