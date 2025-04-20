@@ -95,7 +95,7 @@ export class StateSubscriptionManager {
     
     // Entity state subscriptions
     ANIMALS: 'StateSubscriptionManager.animals',
-    HABITATS: 'StateSubscriptionManager.habitats',
+    BIOMES: 'StateSubscriptionManager.biomes',
     RESOURCE_TILES: 'StateSubscriptionManager.resourceTiles',
     
     // Interaction state subscriptions
@@ -150,7 +150,8 @@ export class StateSubscriptionManager {
     }
     
     this.setupBoardSubscriptions();
-    this.setupEntitySubscriptions(onUnitClicked);
+    this.setupAnimalSubscriptions(onUnitClicked);
+    this.setupBiomeSubscriptions();
     this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
     this.subscriptionsSetup = true;  // Mark subscriptions as set up
@@ -188,8 +189,8 @@ export class StateSubscriptionManager {
     );
   }
   
-  // Set up subscriptions related to game entities (animals, habitats)
-  private setupEntitySubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
+  // Set up subscriptions related to animals
+  private setupAnimalSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
     // Subscribe to animal changes
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.ANIMALS,
@@ -202,10 +203,13 @@ export class StateSubscriptionManager {
       },
       { immediate: true, debug: false } // Set immediate: true to render on subscription
     );
-    
-    // Subscribe to biome changes (via biomes)
+  }
+  
+  // Set up subscriptions related to biomes - a fundamental game construct
+  private setupBiomeSubscriptions(): void {
+    // Subscribe to biome changes
     StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.HABITATS,
+      StateSubscriptionManager.SUBSCRIPTIONS.BIOMES,
       (state) => state.biomes,
       (biomes, previousBiomes) => {
         if (!biomes) return;

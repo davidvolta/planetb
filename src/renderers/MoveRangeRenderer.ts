@@ -28,15 +28,6 @@ export class MoveRangeRenderer extends BaseRenderer {
   }
   
   /**
-   * Initialize the renderer with board anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
-  initialize(anchorX: number, anchorY: number): void {
-    this.setAnchor(anchorX, anchorY);
-  }
-  
-  /**
    * Show move range highlights for valid moves
    * @param validMoves Array of valid move positions
    * @param moveMode Whether move mode is active

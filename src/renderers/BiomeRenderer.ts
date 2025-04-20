@@ -26,15 +26,6 @@ export class BiomeRenderer extends BaseRenderer {
   }
   
   /**
-   * Initialize the renderer with board anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
-  initialize(anchorX: number, anchorY: number): void {
-    this.setAnchor(anchorX, anchorY);
-  }
-  
-  /**
    * Render all biomes based on the provided biome data
    * @param biomes Array of biome objects to render
    */
@@ -80,17 +71,12 @@ export class BiomeRenderer extends BaseRenderer {
         return;
       }
       
-      // Calculate world position for rendering
-      const worldPosition = CoordinateUtils.gridToWorld(
-        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
-      
       // Determine biome state
       const isCaptured = biome.ownerId !== null;
       const lushness = biome.totalLushness || 0;
       
-      // Create the biome graphic
-      const biomeGraphic = this.createBiomeGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
+      // Create the biome graphic (now passing grid coordinates)
+      const biomeGraphic = this.createBiomeGraphic(x, y, isCaptured, lushness);
       biomeGraphic.setData('biomeId', biome.id);
       biomeGraphic.setData('gridX', x);
       biomeGraphic.setData('gridY', y);
@@ -102,15 +88,20 @@ export class BiomeRenderer extends BaseRenderer {
   
   /**
    * Create a biome graphic based on its biome ownership
-   * @param x World X coordinate
-   * @param y World Y coordinate
+   * @param gridX Grid X coordinate (not world coordinate)
+   * @param gridY Grid Y coordinate (not world coordinate)
    * @param isCaptured Whether the biome is captured (has an owner)
    * @param lushness The lushness value of the biome (0-10)
    * @returns A container with the biome graphic
    */
-  private createBiomeGraphic(x: number, y: number, isCaptured: boolean, lushness: number): Phaser.GameObjects.Container {
-    // Create a container for the biome
-    const container = this.scene.add.container(x, y);
+  private createBiomeGraphic(gridX: number, gridY: number, isCaptured: boolean, lushness: number): Phaser.GameObjects.Container {
+    // Convert grid coordinates to world coordinates
+    const worldPosition = CoordinateUtils.gridToWorld(
+      gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+    );
+    
+    // Create a container for the biome at the world position
+    const container = this.scene.add.container(worldPosition.x, worldPosition.y);
     const graphics = this.scene.add.graphics();
     
     // Calculate scale factor (approximately 5px smaller on each side)
@@ -227,9 +218,6 @@ export class BiomeRenderer extends BaseRenderer {
       // Get the position data
       const gridX = biomeGraphic.getData('gridX');
       const gridY = biomeGraphic.getData('gridY');
-      const worldPosition = CoordinateUtils.gridToWorld(
-        gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
       
       // Get updated ownership state
       const isCaptured = biome.ownerId !== null;
@@ -237,7 +225,7 @@ export class BiomeRenderer extends BaseRenderer {
       
       // Destroy the old graphic and create a new one with updated state
       biomeGraphic.destroy();
-      const newBiomeGraphic = this.createBiomeGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
+      const newBiomeGraphic = this.createBiomeGraphic(gridX, gridY, isCaptured, lushness);
       newBiomeGraphic.setData('biomeId', biome.id);
       newBiomeGraphic.setData('gridX', gridX);
       newBiomeGraphic.setData('gridY', gridY);

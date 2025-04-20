@@ -32,15 +32,6 @@ export class TileRenderer extends BaseRenderer {
   }
   
   /**
-   * Initialize the renderer with board anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
-  initialize(anchorX: number, anchorY: number): void {
-    this.setAnchor(anchorX, anchorY);
-  }
-  
-  /**
    * Creates all tiles for the board
    * @param board The board data with terrain information
    * @param centerX Optional center X position (defaults to screen center)

@@ -18,13 +18,8 @@ export class SelectionRenderer extends BaseRenderer {
     tileHeight: number
   ) {
     super(scene, layerManager, tileSize, tileHeight);
-  }
-  
-  //Initialize the renderer with board anchor position
-  initialize(anchorX: number, anchorY: number): void {
-    this.setAnchor(anchorX, anchorY);
     
-    // Create selection and hover indicators
+    // Create indicators during constructor
     this.createSelectionIndicator();
     this.createHoverIndicator();
   }

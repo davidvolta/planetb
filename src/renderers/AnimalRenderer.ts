@@ -31,15 +31,6 @@ export class AnimalRenderer extends BaseRenderer {
   }
   
   /**
-   * Initialize the renderer with board anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
-  initialize(anchorX: number, anchorY: number): void {
-    this.setAnchor(anchorX, anchorY);
-  }
-  
-  /**
    * Render all animals based on the provided animal data
    * @param animals Array of animal objects from the game state
    * @param onUnitClicked Callback function when a unit is clicked

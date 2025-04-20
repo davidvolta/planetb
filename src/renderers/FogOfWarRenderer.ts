@@ -44,15 +44,6 @@ export class FogOfWarRenderer extends BaseRenderer {
   }
   
   /**
-   * Initialize the renderer with board anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
-  initialize(anchorX: number, anchorY: number): void {
-    this.setAnchor(anchorX, anchorY);
-  }
-  
-  /**
    * Create a fog tile at the specified grid coordinates
    * @param gridX X position on the grid
    * @param gridY Y position on the grid

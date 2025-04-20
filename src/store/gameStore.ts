@@ -630,7 +630,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           id: biomeId,
           color,
           baseLushness: 3.5, // Initialize baseLushness to the "stable" value
-          lushnessBoost: 0.0, // Initialize lushnessBoost to 0.0
+          lushnessBoost: 1.2, // Initialize lushnessBoost to 0.0
           totalLushness: 4.5, // Initialize totalLushness to the "stable" value
           initialResourceCount: 0, // Initialize initialResourceCount to 0
           nonDepletedCount: 0, // Initialize nonDepletedCount to 0
