@@ -5,6 +5,7 @@ import { generateVoronoiBiomes } from "../utils/BiomeGenerator";
 import { VoronoiNode, isNodeOverlapping } from "../utils/BiomeGenerator";
 import { devtools } from 'zustand/middleware';
 import { EcosystemController } from "../controllers/EcosystemController";
+import { updateAllBiomesLushness } from "./actions";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -333,14 +334,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     // Update all biome lushness values
     if (state.board) {
-      // First, update the base lushness from resource state
-      const biomesWithBaseLushness = EcosystemController.updateAllBiomeLushness(updatedBiomes);
+      // Create a temporary state with our current values
+      const currentState = useGameStore.getState();
       
-      // Then, update the lushness boost from egg percentage
-      updatedBiomes = EcosystemController.updateAllBiomeLushnessBoosts(
-        state.board,
-        biomesWithBaseLushness
-      );
+      // Store the current biomes
+      const prevBiomes = currentState.biomes;
+      
+      // Set the biomes to our updated ones from egg production
+      useGameStore.setState({ biomes: updatedBiomes });
+      
+      // Call the action to update all biomes' lushness
+      updateAllBiomesLushness();
+      
+      // Get the updated biomes with new lushness values
+      updatedBiomes = useGameStore.getState().biomes;
+      
+      // Restore previous biomes in the state
+      useGameStore.setState({ biomes: prevBiomes });
     }
     
     // Reset the hasMoved flags for all animals but preserve previousPosition
@@ -884,11 +894,19 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           // Update the lushness boost for this biome based on new egg percentage
           if (updatedBoard) {
-            const updatedBiome = EcosystemController.updateBiomeLushnessBoost(biomeId, updatedBoard, updatedBiomes);
-            if (updatedBiome) {
-              updatedBiomes.set(biomeId, updatedBiome);
-              console.log(`Updated lushness boost for biome ${biomeId} to ${updatedBiome.lushnessBoost}`);
-            }
+            // Calculate new lushness values using the central calculation
+            const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
+            
+            // Create updated biome with new lushness values
+            const updatedBiome = {
+              ...updatedBiomes.get(biomeId)!,
+              baseLushness: lushnessValues.baseLushness,
+              lushnessBoost: lushnessValues.lushnessBoost,
+              totalLushness: lushnessValues.totalLushness
+            };
+            
+            updatedBiomes.set(biomeId, updatedBiome);
+            console.log(`Updated lushness for biome ${biomeId}. Base: ${updatedBiome.baseLushness}, Boost: ${updatedBiome.lushnessBoost}, Total: ${updatedBiome.totalLushness}`);
           }
         }
       }
@@ -1088,10 +1106,20 @@ export const useGameStore = create<GameState>((set, get) => ({
               console.log(`Decremented egg count for biome ${biomeId} to ${biome.eggCount - 1}`);
               
               // Update the lushness boost for this biome based on new egg percentage
-              const updatedBiome = EcosystemController.updateBiomeLushnessBoost(biomeId, updatedBoard, updatedBiomes);
-              if (updatedBiome) {
+              if (updatedBoard) {
+                // Calculate new lushness values using the central calculation
+                const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
+                
+                // Create updated biome with new lushness values
+                const updatedBiome = {
+                  ...updatedBiomes.get(biomeId)!,
+                  baseLushness: lushnessValues.baseLushness,
+                  lushnessBoost: lushnessValues.lushnessBoost,
+                  totalLushness: lushnessValues.totalLushness
+                };
+                
                 updatedBiomes.set(biomeId, updatedBiome);
-                console.log(`Updated lushness boost for biome ${biomeId} to ${updatedBiome.lushnessBoost} after removing egg`);
+                console.log(`Updated lushness for biome ${biomeId}. Base: ${updatedBiome.baseLushness}, Boost: ${updatedBiome.lushnessBoost}, Total: ${updatedBiome.totalLushness}`);
               }
             }
             

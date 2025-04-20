@@ -385,19 +385,47 @@ export function getBiomeById(id: string): Biome | undefined {
 }
 
 /**
- * Calculate the base lushness value for a biome
+ * Calculate lushness for a biome, returning all lushness values
+ * @param biomeId The ID of the biome to calculate lushness for
+ * @returns Object containing baseLushness, lushnessBoost, and totalLushness
  */
-export function calculateBiomeLushness(biomeId: string): number {
-  const biomes = useGameStore.getState().biomes;
+export function calculateBiomeLushness(biomeId: string): {
+  baseLushness: number;
+  lushnessBoost: number;
+  totalLushness: number;
+} {
+  const state = useGameStore.getState();
+  const biomes = state.biomes;
+  
   return EcosystemController.calculateBiomeLushness(biomeId, biomes);
 }
 
 /**
- * Update lushness values for all biomes
+ * Update all biomes' lushness values - NEW VERSION
+ * This function updates all biomes' lushness with the central calculation
  */
-export function updateAllBiomeLushness(): void {
+export function updateAllBiomesLushness(): void {
   const state = useGameStore.getState();
-  const updatedBiomes = EcosystemController.updateAllBiomeLushness(state.biomes);
+  
+  // Create a new map to store updated biomes
+  const updatedBiomes = new Map(state.biomes);
+  
+  // Update each biome individually using the central calculation method
+  updatedBiomes.forEach((biome, biomeId) => {
+    // Calculate new lushness values using our central method
+    const lushnessValues = calculateBiomeLushness(biomeId);
+    
+    // Update the biome with the new values
+    const updatedBiome = {
+      ...biome,
+      baseLushness: lushnessValues.baseLushness,
+      lushnessBoost: lushnessValues.lushnessBoost,
+      totalLushness: lushnessValues.totalLushness
+    };
+    
+    // Store the updated biome
+    updatedBiomes.set(biomeId, updatedBiome);
+  });
   
   // Update the biomes in the store
   useGameStore.setState({
@@ -408,14 +436,9 @@ export function updateAllBiomeLushness(): void {
 /**
  * Update a biome's lushness values
  * @param biomeId The ID of the biome to update
- * @param baseLushness The new base lushness value
- * @param lushnessBoost The new lushness boost value (optional)
  */
-export function updateBiomeLushness(
-  biomeId: string, 
-  baseLushness: number, 
-  lushnessBoost?: number
-): void {
+export function updateBiomeLushness(biomeId: string): void {
+  // Get current state
   const state = useGameStore.getState();
   const biome = state.biomes.get(biomeId);
   
@@ -424,67 +447,20 @@ export function updateBiomeLushness(
     return;
   }
   
-  // Use provided lushnessBoost or keep existing value
-  const newLushnessBoost = lushnessBoost !== undefined ? lushnessBoost : biome.lushnessBoost;
+  // Calculate new lushness values using the central calculation function
+  const lushnessValues = calculateBiomeLushness(biomeId);
   
+  // Create updated biome with new lushness values
   const updatedBiome = {
     ...biome,
-    baseLushness,
-    lushnessBoost: newLushnessBoost,
-    totalLushness: baseLushness + newLushnessBoost
+    baseLushness: lushnessValues.baseLushness,
+    lushnessBoost: lushnessValues.lushnessBoost,
+    totalLushness: lushnessValues.totalLushness
   };
   
+  // Update biome in state
   const updatedBiomes = new Map(state.biomes);
   updatedBiomes.set(biomeId, updatedBiome);
-  
-  useGameStore.setState({
-    biomes: updatedBiomes
-  });
-}
-
-/**
- * Update lushness boost for a biome based on its egg coverage
- * @param biomeId The ID of the biome to update
- */
-export function updateBiomeLushnessBoost(biomeId: string): void {
-  const state = useGameStore.getState();
-  
-  if (!state.board) {
-    console.warn("Board not available, cannot update lushness boost");
-    return;
-  }
-  
-  const updatedBiome = EcosystemController.updateBiomeLushnessBoost(
-    biomeId, 
-    state.board, 
-    state.biomes
-  );
-  
-  if (updatedBiome) {
-    const updatedBiomes = new Map(state.biomes);
-    updatedBiomes.set(biomeId, updatedBiome);
-    
-    useGameStore.setState({
-      biomes: updatedBiomes
-    });
-  }
-}
-
-/**
- * Update lushness boost for all biomes
- */
-export function updateAllBiomeLushnessBoosts(): void {
-  const state = useGameStore.getState();
-  
-  if (!state.board) {
-    console.warn("Board not available, cannot update lushness boosts");
-    return;
-  }
-  
-  const updatedBiomes = EcosystemController.updateAllBiomeLushnessBoosts(
-    state.board,
-    state.biomes
-  );
   
   useGameStore.setState({
     biomes: updatedBiomes
@@ -750,7 +726,7 @@ export function harvestResourceTile(x: number, y: number, amount: number): boole
   
   // Recalculate lushness for the biome to reflect the resource change
   const baseLushness = calculateBiomeLushness(biomeId);
-  updateBiomeLushness(biomeId, baseLushness);
+  updateBiomeLushness(biomeId);
   
   return true;
 }

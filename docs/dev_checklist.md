@@ -13,34 +13,6 @@
 
 ## Lushness Refactoring Plan
 
-### Phase 1: Core Calculation Consolidation
-- [ ] Create core calculation function in EcosystemController:
-  ```typescript
-  static calculateBiomeLushness(biomeId: string, board: Board, biomes: Map<string, Biome>): {
-    baseLushness: number;
-    lushnessBoost: number;
-    totalLushness: number;
-  } {
-    // Pure calculation function - no side effects
-  }
-  ```
-
-### Phase 2: Create Action Creators for Lushness Updates
-- [ ] Implement single biome update action:
-  ```typescript
-  export function updateBiomeLushness(biomeId: string): void {
-    // Get current state
-    // Calculate new lushness
-    // Update store with immutable pattern
-  }
-  ```
-- [ ] Implement batch update for all biomes:
-  ```typescript
-  export function updateAllBiomesLushness(): void {
-    // Update all biomes efficiently
-  }
-  ```
-
 ### Phase 3: Integrate Lushness Updates Into Existing Systems
 - [ ] Modify egg-related actions to call updateBiomeLushness:
   - [ ] Egg placement
@@ -51,11 +23,6 @@
 - [ ] Add lushness update to biome capture flow
 
 ### Phase 4: Cleanup & Testing
-- [ ] Remove deprecated lushness functions:
-  - [ ] updateAllBiomeLushness()
-  - [ ] updateBiomeLushnessBoost()
-  - [ ] updateAllBiomeLushnessBoosts()
-  - [ ] calculateLushnessBoost()
 - [ ] Ensure BiomeRenderer correctly handles lushness updates
 - [ ] Test all interaction paths:
   - [ ] Egg production → lushness boost update
