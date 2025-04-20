@@ -3,6 +3,7 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
 import { useGameStore } from '../store/gameStore';
+import { Biome } from '../store/gameStore';
 
 /**
  * Responsible for rendering and managing biome graphics
@@ -35,10 +36,9 @@ export class BiomeRenderer extends BaseRenderer {
   
   /**
    * Render all biomes based on the provided biome data
-   * Note: With the biome-centric architecture, these habitats come from biomes
-   * @param habitats Array of habitat objects from the biomes
+   * @param biomes Array of biome objects to render
    */
-  renderBiomes(habitats: any[]): void {
+  renderBiomes(biomes: Biome[]): void {
     // Check if staticObjectsLayer exists before proceeding
     const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
     if (!staticObjectsLayer) {
@@ -83,7 +83,7 @@ export class BiomeRenderer extends BaseRenderer {
             
             // Create the biome graphic for this tile
             const biomeGraphic = this.createBiomeGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
-            biomeGraphic.setData('biomeId', biome.habitat.id);
+            biomeGraphic.setData('biomeId', biome.id);
             biomeGraphic.setData('gridX', x);
             biomeGraphic.setData('gridY', y);
             biomeGraphic.setData('isCaptured', isCaptured);
@@ -211,8 +211,8 @@ export class BiomeRenderer extends BaseRenderer {
     let biomeGraphic: Phaser.GameObjects.GameObject | undefined;
     staticObjectsLayer.getAll().forEach(gameObject => {
       if (gameObject && 'getData' in gameObject && typeof gameObject.getData === 'function') {
-        const habitatId = gameObject.getData('biomeId');
-        if (habitatId === biome.habitat.id) {
+        const graphicBiomeId = gameObject.getData('biomeId');
+        if (graphicBiomeId === biome.id) {
           biomeGraphic = gameObject;
         }
       }
@@ -233,7 +233,7 @@ export class BiomeRenderer extends BaseRenderer {
       // Destroy the old graphic and create a new one with updated state
       biomeGraphic.destroy();
       const newBiomeGraphic = this.createBiomeGraphic(worldPosition.x, worldPosition.y, isCaptured, lushness);
-      newBiomeGraphic.setData('biomeId', biome.habitat.id);
+      newBiomeGraphic.setData('biomeId', biome.id);
       newBiomeGraphic.setData('gridX', gridX);
       newBiomeGraphic.setData('gridY', gridY);
       newBiomeGraphic.setData('isCaptured', isCaptured);
@@ -266,8 +266,8 @@ export class BiomeRenderer extends BaseRenderer {
     // Find the biome graphic for this biome
     staticObjectsLayer.getAll().forEach(gameObject => {
       if (gameObject && 'getData' in gameObject && typeof gameObject.getData === 'function') {
-        const habitatId = gameObject.getData('biomeId');
-        if (habitatId === biome.habitat.id) {
+        const graphicBiomeId = gameObject.getData('biomeId');
+        if (graphicBiomeId === biome.id) {
           // If this is a container with a text object for lushness, update it
           if ('getAll' in gameObject) {
             const container = gameObject as Phaser.GameObjects.Container;

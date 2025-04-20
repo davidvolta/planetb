@@ -22,7 +22,7 @@ interface IAnimalRenderer {
 
 // Interface for a component that can render biomes
 interface IBiomeRenderer {
-  renderBiomes(habitats: Habitat[]): void;
+  renderBiomes(biomes: Biome[]): void;
   updateBiomeOwnership(biomeId: string): void;
   updateBiomeTotalLushness(biomeId: string, newValue: number): void;
 }
@@ -212,8 +212,8 @@ export class StateSubscriptionManager {
         
         // First render: do a full render of all biomes
         if (!previousBiomes) {
-          const habitats = Array.from(biomes.values()).map((biome: Biome) => biome.habitat);
-          this.biomeRenderer.renderBiomes(habitats);
+          const biomesArray = Array.from(biomes.values());
+          this.biomeRenderer.renderBiomes(biomesArray);
           return;
         }
         
