@@ -688,6 +688,31 @@ export function harvestResourceTile(x: number, y: number, amount: number): boole
     return false;
   }
   
+  // Get the biome
+  const biome = state.biomes.get(biomeId);
+  if (!biome) {
+    console.warn(`Biome ${biomeId} not found`);
+    return false;
+  }
+  
+  // Check if this will deplete the resource
+  const willBeDepleted = (tile.resourceValue - amount) <= 0;
+  
+  // Create updated biome with increased totalHarvested
+  const updatedBiome = {
+    ...biome,
+    totalHarvested: biome.totalHarvested + amount
+  };
+  
+  // If resource will be depleted, decrease nonDepletedCount
+  if (willBeDepleted) {
+    updatedBiome.nonDepletedCount = Math.max(0, biome.nonDepletedCount - 1);
+  }
+  
+  // Update the biome in the map
+  const updatedBiomes = new Map(state.biomes);
+  updatedBiomes.set(biomeId, updatedBiome);
+  
   // Update the tile's resource value
   const newValue = tile.resourceValue - amount;
   
@@ -712,9 +737,10 @@ export function harvestResourceTile(x: number, y: number, amount: number): boole
     })
   };
   
-  // Update the board in the state
+  // Update the board and biomes in the state
   useGameStore.setState({
-    board: updatedBoard
+    board: updatedBoard,
+    biomes: updatedBiomes
   });
   
   // Recalculate and update the biome's lushness after harvesting
@@ -760,23 +786,36 @@ export function regenerateResources(
     }
   }
   
-  // Update state with cleared resources
+  // Reset resource counts in biomes
+  const resetBiomes = new Map<string, Biome>();
+  state.biomes.forEach((biome, biomeId) => {
+    resetBiomes.set(biomeId, {
+      ...biome,
+      initialResourceCount: 0,
+      nonDepletedCount: 0
+    });
+  });
+  
+  // Update state with cleared resources and reset counts
   useGameStore.setState({
-    board: updatedBoard
+    board: updatedBoard,
+    biomes: resetBiomes
   });
   
   // Generate resources by setting tile properties directly
+  // This will also update initialResourceCount and nonDepletedCount
   EcosystemController.generateResources(
     width, 
     height, 
     terrainData,
     updatedBoard, // Use the updated board we just cleared
-    state.biomes
+    resetBiomes
   );
   
-  // Update the board in the store since tile properties have changed
+  // Update the board and biomes in the store since tile properties have changed
   useGameStore.setState({
-    board: { ...updatedBoard }
+    board: { ...updatedBoard },
+    biomes: resetBiomes
   });
   
   console.log(`Resources regenerated with ${GameConfig.resourceGenerationPercentage * 100}% density`);
@@ -885,5 +924,73 @@ export function clearBiomeCaptureEvent(): void {
       biomeId: null,
       timestamp: null
     }
+  });
+}
+
+/**
+ * Get the total resource count for a biome
+ * @param biomeId ID of the biome to get resource count for
+ * @returns Total number of resources (active and depleted) in the biome
+ */
+export function getBiomeResourceCount(biomeId: string): number {
+  const state = useGameStore.getState();
+  
+  if (!state.board || !state.biomes.has(biomeId)) {
+    return 0;
+  }
+  
+  return state.biomes.get(biomeId)!.initialResourceCount;
+}
+
+/**
+ * Get the non-depleted resource count for a biome
+ * @param biomeId ID of the biome to get active resource count for
+ * @returns Number of non-depleted resources in the biome
+ */
+export function getBiomeNonDepletedResourceCount(biomeId: string): number {
+  const state = useGameStore.getState();
+  
+  if (!state.board || !state.biomes.has(biomeId)) {
+    return 0;
+  }
+  
+  // We can either use the cached value in the biome
+  return state.biomes.get(biomeId)!.nonDepletedCount;
+  
+  // Or recalculate it
+  // return EcosystemController.getBiomeNonDepletedResourceCount(biomeId, state.board);
+}
+
+/**
+ * Get the total harvested resources for a biome
+ * @param biomeId ID of the biome to get harvested resource count for
+ * @returns Total amount of resources harvested from the biome
+ */
+export function getBiomeTotalHarvested(biomeId: string): number {
+  const state = useGameStore.getState();
+  
+  if (!state.biomes.has(biomeId)) {
+    return 0;
+  }
+  
+  return state.biomes.get(biomeId)!.totalHarvested;
+}
+
+/**
+ * Updates the resource counts for all biomes
+ * Call this after any changes to resources to ensure counts stay accurate
+ */
+export function updateAllBiomeResourceCounts(): void {
+  const state = useGameStore.getState();
+  
+  if (!state.board) {
+    return;
+  }
+  
+  const updatedBiomes = EcosystemController.updateAllBiomeResourceCounts(state.biomes, state.board);
+  
+  // Update the biomes in the store
+  useGameStore.setState({
+    biomes: updatedBiomes
   });
 } 

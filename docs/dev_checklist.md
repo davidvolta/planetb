@@ -28,13 +28,13 @@
   - [x] Ensure compatibility with existing code
 
 ### Phase 2: Resource Initialization
-- [ ] Update EcosystemController.generateResources
-  - [ ] Count resources for each biome
-  - [ ] Set initialResourceCount and nonDepletedCount
+- [x] Update EcosystemController.generateResources
+  - [x] Count resources for each biome
+  - [x] Set initialResourceCount and nonDepletedCount
 
-- [ ] Add Resource Tracking helpers
-  - [ ] Methods to get resource counts
-  - [ ] Methods to calculate non-depleted resources
+- [x] Add Resource Tracking helpers
+  - [x] Methods to get resource counts
+  - [x] Methods to calculate non-depleted resources
 
 ### Phase 3: Lushness Management
 - [ ] Update Lushness Calculation
@@ -54,11 +54,6 @@
 - [ ] Update Egg Tracking
   - [ ] Increment eggCount when eggs are created
   - [ ] Decrement eggCount when eggs evolve/removed
-
-### Phase 5: Testing and Integration
-- [ ] Test basic functionality
-- [ ] Test edge cases
-- [ ] Test integration with other systems
 
 
 ### Phase 6: Create Ecosystem Utilities

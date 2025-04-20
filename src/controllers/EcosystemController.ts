@@ -54,6 +54,9 @@ export class EcosystemController {
     let totalResourcesGenerated = 0;
     let totalEligibleTiles = 0;
     
+    // Create a copy of the biomes map to update
+    const updatedBiomes = new Map(biomes);
+    
     // Process each biome separately for better distribution
     biomes.forEach((biome, biomeId) => {
       // Collect all tiles belonging to this biome
@@ -102,6 +105,17 @@ export class EcosystemController {
       // Log biome resource generation
       console.log(`Biome ${biomeId}: ${selectedTiles.length}/${eligibleTiles.length} resources (${(selectedTiles.length / Math.max(1, eligibleTiles.length) * 100).toFixed(1)}%)`);
       
+      // Update the biome's resource counts
+      const updatedBiome = {
+        ...biome,
+        initialResourceCount: selectedTiles.length,
+        nonDepletedCount: selectedTiles.length,
+        totalHarvested: 0
+      };
+      
+      // Update the biome in our copy
+      updatedBiomes.set(biomeId, updatedBiome);
+      
       // Set resource properties on the selected tiles
       selectedTiles.forEach(tile => {
         // Determine resource type based on terrain
@@ -125,6 +139,12 @@ export class EcosystemController {
           board.tiles[tile.y][tile.x].active = true;      // Mark as active
         }
       });
+    });
+    
+    // Update the biomes map
+    biomes.clear();
+    updatedBiomes.forEach((biome, biomeId) => {
+      biomes.set(biomeId, biome);
     });
     
     // Log summary of resource generation
@@ -401,15 +421,30 @@ export class EcosystemController {
       return false;
     }
 
-    // TODO: Update the resource value
-    console.log(`Harvesting ${amount} from resource ${resourceId}`);
-    
     // Get the biome associated with this resource
     const biomeId = resource.biomeId;
     if (biomeId) {
       const biome = biomes.get(biomeId);
       if (biome) {
-        // TODO: Update the biome's lushness based on the harvested resource
+        // Get the updated biome with increased totalHarvested
+        const updatedBiome = {
+          ...biome,
+          totalHarvested: biome.totalHarvested + amount
+        };
+        
+        // Assume resource is being depleted if amount is its maximum value (10)
+        // Since we don't have a 'value' property on Resource objects directly
+        const isBeingDepleted = amount >= 10;
+        
+        // If resource is being depleted, decrease nonDepletedCount
+        if (isBeingDepleted && updatedBiome.nonDepletedCount > 0) {
+          updatedBiome.nonDepletedCount--;
+        }
+        
+        // Update the biome in the map
+        biomes.set(biomeId, updatedBiome);
+        
+        // TODO: Recalculate baseLushness after harvesting
       }
     }
     
@@ -483,5 +518,85 @@ export class EcosystemController {
     
     // For now, return the same resources
     return [...resources];
+  }
+
+  /**
+   * Gets the count of resources for a specific biome
+   * 
+   * @param biomeId ID of the biome to count resources for
+   * @param board The game board
+   * @returns Count of all resources (active and depleted) in the biome
+   */
+  public static getBiomeResourceCount(biomeId: string, board: Board): number {
+    if (!board) {
+      return 0;
+    }
+    
+    let count = 0;
+    
+    // Scan board to find resource tiles in this biome
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        if (tile.biomeId === biomeId && tile.resourceType !== null) {
+          count++;
+        }
+      }
+    }
+    
+    return count;
+  }
+
+  /**
+   * Gets the count of non-depleted resources for a specific biome
+   * 
+   * @param biomeId ID of the biome to count active resources for
+   * @param board The game board
+   * @returns Count of active (non-depleted) resources in the biome
+   */
+  public static getBiomeNonDepletedResourceCount(biomeId: string, board: Board): number {
+    if (!board) {
+      return 0;
+    }
+    
+    let count = 0;
+    
+    // Scan board to find active resource tiles in this biome
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        if (tile.biomeId === biomeId && tile.resourceType !== null && tile.active) {
+          count++;
+        }
+      }
+    }
+    
+    return count;
+  }
+
+  /**
+   * Updates the resource counts for all biomes
+   * 
+   * @param biomes Map of all biomes
+   * @param board The game board
+   * @returns Updated biomes with correct non-depleted counts
+   */
+  public static updateAllBiomeResourceCounts(biomes: Map<string, Biome>, board: Board): Map<string, Biome> {
+    const updatedBiomes = new Map(biomes);
+    
+    // Process each biome
+    updatedBiomes.forEach((biome, biomeId) => {
+      const nonDepletedCount = this.getBiomeNonDepletedResourceCount(biomeId, board);
+      
+      // Update the biome with the new count
+      const updatedBiome = {
+        ...biome,
+        nonDepletedCount
+      };
+      
+      updatedBiomes.set(biomeId, updatedBiome);
+    });
+    
+    return updatedBiomes;
   }
 } 

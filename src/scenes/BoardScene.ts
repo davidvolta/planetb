@@ -398,17 +398,13 @@ updateBoard() {
       // Log the habitat click
       console.log(`Biome clicked: ${clickedBiome.id} at position (${gridX},${gridY})`);
       
-      const isOwned = clickedBiome.ownerId !== null;
+      // Select biome in store regardless of ownership
+      actions.selectBiome(clickedBiome.id);
       
-      if (!isOwned) {
-        // Select biome in store
-        actions.selectBiome(clickedBiome.id);
-        
-        // Show RED selection indicator for habitat
-        this.selectionRenderer.showRedSelectionAt(gridX, gridY);
-        
-        return; // Only return early if we actually select the habitat
-      }
+      // Show RED selection indicator for habitat
+      this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+      
+      return; // Return early after selecting the habitat
     }
     
     // Only handle active unit selection if none of the above actions were taken

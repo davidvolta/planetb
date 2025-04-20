@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
-import { GameState } from '../store/gameStore';
+import { GameState, Biome } from '../store/gameStore';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -11,6 +11,12 @@ export default class UIScene extends Phaser.Scene {
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private selectedUnitId: string | null = null;
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
+  
+  // Biome info panel properties
+  private biomeInfoPanel: Phaser.GameObjects.Container | null = null;
+  private biomeInfoBackground: Phaser.GameObjects.Rectangle | null = null;
+  private biomeInfoTexts: { [key: string]: Phaser.GameObjects.Text } = {};
+  private selectedBiomeId: string | null = null;
   
 
   constructor() {
@@ -58,6 +64,42 @@ export default class UIScene extends Phaser.Scene {
       }
     );
 
+    // Subscribe to biome selection changes for info panel
+    StateObserver.subscribe(
+      'ui-biome-info',
+      (state: GameState) => {
+        // Return the selected biome if available
+        if (state.selectedBiomeId) {
+          const biome = state.biomes.get(state.selectedBiomeId);
+          return {
+            biomeId: state.selectedBiomeId,
+            biome: biome || null
+          };
+        }
+        return {
+          biomeId: null,
+          biome: null
+        };
+      },
+      (data) => {
+        // Update biome info panel based on selection
+        this.selectedBiomeId = data.biomeId;
+        
+        if (data.biomeId && data.biome) {
+          // Update and show the biome info panel
+          this.updateBiomeInfoPanel(data.biome);
+          if (this.biomeInfoPanel) {
+            this.biomeInfoPanel.setVisible(true);
+          }
+        } else {
+          // Hide the biome info panel
+          if (this.biomeInfoPanel) {
+            this.biomeInfoPanel.setVisible(false);
+          }
+        }
+      }
+    );
+
     // Listen for the resize event to reposition the UI
     this.scale.on('resize', this.resizeUI, this);
   }
@@ -94,8 +136,14 @@ export default class UIScene extends Phaser.Scene {
     // Create capture biome button (initially hidden)
     this.createCaptureBiomeButton();
     
+    // Create biome info panel (initially hidden)
+    this.createBiomeInfoPanel();
+    
     // Update background size and position buttons correctly
     this.updateBackgroundSize();
+    
+    // Add input listener to hide biome info when clicking elsewhere
+    this.input.on('pointerdown', this.hideBiomeInfoIfClickedOutside, this);
   }
 
   createNextTurnButton() {
@@ -257,12 +305,18 @@ export default class UIScene extends Phaser.Scene {
     // Position the container in the top left with some padding
     const padding = 20;
     this.container.setPosition(padding, padding);
+    
+    // Reposition biome info panel in the top right corner
+    if (this.biomeInfoPanel) {
+      this.biomeInfoPanel.setPosition(width - 320 - padding, padding);
+    }
   }
 
   // Clean up when scene is shut down
   shutdown() {
     // Clean up subscriptions
     StateObserver.unsubscribe('ui-turn');
+    StateObserver.unsubscribe('ui-biome-info');
     
     // Clean up resize listener
     this.scale.off('resize', this.resizeUI, this);
@@ -286,7 +340,169 @@ export default class UIScene extends Phaser.Scene {
       this.captureBiomeButton = null;
     }
     
+    // Clean up biome info panel
+    if (this.biomeInfoPanel) {
+      this.biomeInfoPanel.destroy();
+      this.biomeInfoPanel = null;
+      this.biomeInfoBackground = null;
+      this.biomeInfoTexts = {};
+    }
+    
     this.turnText = null;
     this.selectedUnitId = null;
+    this.selectedBiomeId = null;
+  }
+
+  // Create the biome info panel
+  createBiomeInfoPanel() {
+    // Create a container for the biome info panel
+    this.biomeInfoPanel = this.add.container(0, 0);
+    
+    // Create panel background
+    const panelBg = this.add.rectangle(0, 0, 320, 320, 0x000000, 0.5);
+    panelBg.setOrigin(0, 0);
+    this.biomeInfoPanel.add(panelBg);
+    this.biomeInfoBackground = panelBg;
+    
+    // Create title
+    const titleText = this.add.text(160, 15, 'Biome Information', {
+      fontFamily: 'Raleway',
+      fontSize: '26px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    });
+    titleText.setOrigin(0.5, 0);
+    this.biomeInfoPanel.add(titleText);
+    
+    // Create text fields for biome properties
+    const textFields = [
+      { key: 'id', label: 'Biome ID' },
+      { key: 'baseLushness', label: 'Base Lushness' },
+      { key: 'lushnessBoost', label: 'Lushness Boost' },
+      { key: 'totalLushness', label: 'Total Lushness' },
+      { key: 'initialResourceCount', label: 'Initial Resources' },
+      { key: 'nonDepletedCount', label: 'Active Resources' },
+      { key: 'totalHarvested', label: 'Resources Harvested' },
+      { key: 'eggCount', label: 'Egg Count' },
+      { key: 'owner', label: 'Owner' }
+    ];
+    
+    // Create and position text fields
+    textFields.forEach((field, index) => {
+      const y = 55 + (index * 30);
+      const labelText = this.add.text(15, y, `${field.label}:`, {
+        fontFamily: 'Raleway',
+        fontSize: '20px',
+        color: '#FFFFFF'
+      });
+      labelText.setOrigin(0, 0);
+      
+      const valueText = this.add.text(305, y, '-', {
+        fontFamily: 'Raleway',
+        fontSize: '20px',
+        color: '#FFFFFF'
+      });
+      valueText.setOrigin(1, 0);
+      
+      if (this.biomeInfoPanel) {
+        this.biomeInfoPanel.add(labelText);
+        this.biomeInfoPanel.add(valueText);
+      }
+      
+      // Store reference to value text for updating
+      this.biomeInfoTexts[field.key] = valueText;
+    });
+    
+    // Position the panel in the top right corner
+    const padding = 20;
+    this.biomeInfoPanel.setPosition(this.scale.width - 320 - padding, padding);
+    
+    // Initially hide the panel
+    this.biomeInfoPanel.setVisible(false);
+  }
+
+  // Update the biome info panel with current biome data
+  updateBiomeInfoPanel(biome: Biome) {
+    if (!this.biomeInfoPanel || !biome) return;
+    
+    // Update all text fields with biome data
+    // ID (shortened if too long)
+    const shortId = biome.id.length > 10 ? biome.id.substring(0, 8) + '...' : biome.id;
+    if (this.biomeInfoTexts['id']) {
+      this.biomeInfoTexts['id'].setText(shortId);
+    }
+    
+    // Lushness values
+    if (this.biomeInfoTexts['baseLushness']) {
+      this.biomeInfoTexts['baseLushness'].setText(biome.baseLushness.toFixed(1));
+    }
+    
+    if (this.biomeInfoTexts['lushnessBoost']) {
+      this.biomeInfoTexts['lushnessBoost'].setText(biome.lushnessBoost.toFixed(1));
+    }
+    
+    // Set color for total lushness based on threshold
+    const totalLushnessText = this.biomeInfoTexts['totalLushness'];
+    if (totalLushnessText) {
+      totalLushnessText.setText(biome.totalLushness.toFixed(1));
+      totalLushnessText.setColor(biome.totalLushness >= 7.0 ? '#00FF00' : '#FF0000');
+    }
+    
+    // Resource counts
+    if (this.biomeInfoTexts['initialResourceCount']) {
+      this.biomeInfoTexts['initialResourceCount'].setText(biome.initialResourceCount.toString());
+    }
+    
+    if (this.biomeInfoTexts['nonDepletedCount']) {
+      this.biomeInfoTexts['nonDepletedCount'].setText(biome.nonDepletedCount.toString());
+    }
+    
+    if (this.biomeInfoTexts['totalHarvested']) {
+      this.biomeInfoTexts['totalHarvested'].setText(biome.totalHarvested.toString());
+    }
+    
+    // Egg count
+    if (this.biomeInfoTexts['eggCount']) {
+      this.biomeInfoTexts['eggCount'].setText(biome.eggCount.toString());
+    }
+    
+    // Owner info
+    if (this.biomeInfoTexts['owner']) {
+      const ownerText = biome.ownerId !== null ? `Player ${biome.ownerId}` : 'None';
+      this.biomeInfoTexts['owner'].setText(ownerText);
+      this.biomeInfoTexts['owner'].setColor(biome.ownerId !== null ? '#00FF00' : '#AAAAAA');
+    }
+  }
+
+  // Hide biome info panel if clicked outside of it
+  hideBiomeInfoIfClickedOutside(pointer: Phaser.Input.Pointer) {
+    // Do nothing if panel is not visible or doesn't exist
+    if (!this.biomeInfoPanel || !this.biomeInfoPanel.visible || !this.biomeInfoBackground) {
+      return;
+    }
+    
+    // Check if the click is within the biome info panel
+    const x = this.biomeInfoPanel.x;
+    const y = this.biomeInfoPanel.y;
+    const width = this.biomeInfoBackground.width;
+    const height = this.biomeInfoBackground.height;
+    
+    const isInside = pointer.x >= x && 
+                      pointer.x <= x + width && 
+                      pointer.y >= y && 
+                      pointer.y <= y + height;
+                      
+    // If clicked outside the panel, hide it
+    if (!isInside) {
+      // Only deselect if not clicking on a habitat
+      // This check helps prevent immediately hiding the panel after selecting a habitat
+      const scene = this;
+      setTimeout(() => {
+        // Give time for habitat selection to process first
+        if (!actions.getSelectedBiomeId() && scene.biomeInfoPanel) {
+          scene.biomeInfoPanel.setVisible(false);
+        }
+      }, 50);
+    }
   }
 } 
