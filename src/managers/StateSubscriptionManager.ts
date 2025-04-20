@@ -6,7 +6,7 @@ import BoardScene from '../scenes/BoardScene';
 import { SelectionRenderer } from '../renderers/SelectionRenderer';
 import { TileRenderer } from '../renderers/TileRenderer';
 import { AnimalRenderer } from '../renderers/AnimalRenderer';
-import { HabitatRenderer } from '../renderers/HabitatRenderer';
+import { BiomeRenderer } from '../renderers/BiomeRenderer';
 import { ResourceRenderer } from '../renderers/ResourceRenderer';
 import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
 import { AnimationController } from '../controllers/AnimationController';
@@ -20,11 +20,11 @@ interface IAnimalRenderer {
   renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void;
 }
 
-// Interface for a component that can render habitats
-interface IHabitatRenderer {
-  renderHabitats(habitats: Habitat[]): void;
-  updateHabitatOwnership(biomeId: string): void;
-  updateHabitatTotalLushness(biomeId: string, newValue: number): void;
+// Interface for a component that can render biomes
+interface IBiomeRenderer {
+  renderBiomes(habitats: Habitat[]): void;
+  updateBiomeOwnership(biomeId: string): void;
+  updateBiomeTotalLushness(biomeId: string, newValue: number): void;
 }
 
 // Interface for a component that can render move ranges
@@ -78,7 +78,7 @@ export class StateSubscriptionManager {
   
   // Renderers and controllers
   private animalRenderer!: AnimalRenderer;
-  private habitatRenderer!: HabitatRenderer;
+  private biomeRenderer!: BiomeRenderer;
   private resourceRenderer!: ResourceRenderer;
   private moveRangeRenderer!: MoveRangeRenderer;
   private animationController!: AnimationController;
@@ -118,14 +118,14 @@ export class StateSubscriptionManager {
   // Initialize all renderers and controllers
   public initialize(renderers: {
     animalRenderer: AnimalRenderer;
-    habitatRenderer: HabitatRenderer;
+    biomeRenderer: BiomeRenderer;
     moveRangeRenderer: MoveRangeRenderer;
     animationController: AnimationController;
     tileRenderer: TileRenderer;
     resourceRenderer: ResourceRenderer;
   }): void {
     this.animalRenderer = renderers.animalRenderer;
-    this.habitatRenderer = renderers.habitatRenderer;
+    this.biomeRenderer = renderers.biomeRenderer;
     this.moveRangeRenderer = renderers.moveRangeRenderer;
     this.animationController = renderers.animationController;
     this.tileRenderer = renderers.tileRenderer; 
@@ -203,17 +203,17 @@ export class StateSubscriptionManager {
       { immediate: true, debug: false } // Set immediate: true to render on subscription
     );
     
-    // Subscribe to habitat changes (via biomes)
+    // Subscribe to biome changes (via biomes)
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.HABITATS,
       (state) => state.biomes,
       (biomes, previousBiomes) => {
         if (!biomes) return;
         
-        // First render: do a full render of all habitats
+        // First render: do a full render of all biomes
         if (!previousBiomes) {
           const habitats = Array.from(biomes.values()).map((biome: Biome) => biome.habitat);
-          this.habitatRenderer.renderHabitats(habitats);
+          this.biomeRenderer.renderBiomes(habitats);
           return;
         }
         
@@ -221,9 +221,9 @@ export class StateSubscriptionManager {
         biomes.forEach((biome, biomeId) => {
           const previousBiome = previousBiomes.get(biomeId);
           
-          // If lushness changed, update just that habitat's lushness display
+          // If lushness changed, update just that biome's lushness display
           if (previousBiome && biome.totalLushness !== previousBiome.totalLushness) {
-            this.habitatRenderer.updateHabitatTotalLushness(biomeId, biome.totalLushness);
+            this.biomeRenderer.updateBiomeTotalLushness(biomeId, biome.totalLushness);
           }
         });
       },
@@ -407,9 +407,9 @@ export class StateSubscriptionManager {
             if (biomeCaptureEvent.biomeId) {
               this.scene.revealBiomeTiles(biomeCaptureEvent.biomeId);
               
-              // Update just the captured habitat's ownership status
-              // This is more efficient than re-rendering all habitats
-              this.habitatRenderer.updateHabitatOwnership(biomeCaptureEvent.biomeId);
+              // Update just the captured biome's ownership status
+              // This is more efficient than re-rendering all biomes
+              this.biomeRenderer.updateBiomeOwnership(biomeCaptureEvent.biomeId);
             }
           }
           

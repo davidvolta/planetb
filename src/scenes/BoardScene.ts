@@ -9,7 +9,7 @@ import { LayerManager } from "../managers/LayerManager";
 import { TileRenderer } from "../renderers/TileRenderer";
 import { SelectionRenderer } from "../renderers/SelectionRenderer";
 import { MoveRangeRenderer } from "../renderers/MoveRangeRenderer";
-import { HabitatRenderer } from "../renderers/HabitatRenderer";
+import { BiomeRenderer } from "../renderers/BiomeRenderer";
 import { AnimalRenderer } from "../renderers/AnimalRenderer";
 import { ResourceRenderer } from "../renderers/ResourceRenderer";
 import { InputManager } from "../managers/InputManager";
@@ -41,7 +41,7 @@ export default class BoardScene extends Phaser.Scene {
   private tileRenderer: TileRenderer;
   private selectionRenderer: SelectionRenderer;
   private moveRangeRenderer: MoveRangeRenderer;
-  private habitatRenderer: HabitatRenderer;
+  private biomeRenderer: BiomeRenderer;
   private animalRenderer: AnimalRenderer;
   private resourceRenderer: ResourceRenderer;
   private fogOfWarRenderer: FogOfWarRenderer;
@@ -70,7 +70,7 @@ export default class BoardScene extends Phaser.Scene {
     this.tileRenderer = new TileRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.selectionRenderer = new SelectionRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.moveRangeRenderer = new MoveRangeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    this.habitatRenderer = new HabitatRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    this.biomeRenderer = new BiomeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.resourceRenderer = new ResourceRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
@@ -133,7 +133,7 @@ export default class BoardScene extends Phaser.Scene {
     this.tileRenderer.initialize(anchorX, anchorY);
     this.selectionRenderer.initialize(anchorX, anchorY);
     this.moveRangeRenderer.initialize(anchorX, anchorY);
-    this.habitatRenderer.initialize(anchorX, anchorY);
+    this.biomeRenderer.initialize(anchorX, anchorY);
     this.animalRenderer.initialize(anchorX, anchorY);
     this.resourceRenderer.initialize(anchorX, anchorY);
     this.fogOfWarRenderer.initialize(anchorX, anchorY);
@@ -174,7 +174,7 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize the subscription manager with all renderers
     this.subscriptionManager.initialize({
       animalRenderer: this.animalRenderer,
-      habitatRenderer: this.habitatRenderer,
+      biomeRenderer: this.biomeRenderer,
       moveRangeRenderer: this.moveRangeRenderer,
       animationController: this.animationController,
       tileRenderer: this.tileRenderer,
@@ -611,8 +611,8 @@ export default class BoardScene extends Phaser.Scene {
     return this.moveRangeRenderer;
   }
   
-  public getHabitatRenderer(): HabitatRenderer {
-    return this.habitatRenderer;
+  public getBiomeRenderer(): BiomeRenderer {
+    return this.biomeRenderer;
   }
   
   public getAnimalRenderer(): AnimalRenderer {
@@ -996,7 +996,7 @@ export default class BoardScene extends Phaser.Scene {
     this.tileRenderer.destroy();
     this.selectionRenderer.destroy();
     this.moveRangeRenderer.destroy();
-    this.habitatRenderer.destroy();
+    this.biomeRenderer.destroy();
     this.animalRenderer.destroy();
     this.resourceRenderer.destroy();
     this.fogOfWarRenderer.destroy();
