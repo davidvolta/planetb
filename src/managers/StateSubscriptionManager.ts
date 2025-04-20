@@ -372,9 +372,12 @@ export class StateSubscriptionManager {
                   );
                   
                   // Update visibility in game state
-                  adjacentTiles.forEach(tile => {
-                    actions.updateTileVisibility(tile.x, tile.y, true);
-                  });
+                  // Use batch update for better performance
+                  actions.updateTilesVisibility(adjacentTiles.map(tile => ({
+                    x: tile.x,
+                    y: tile.y,
+                    visible: true
+                  })));
                   
                   // Remove duplicates and reveal visually
                   const uniqueTiles = this.removeDuplicateTiles(adjacentTiles);

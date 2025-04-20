@@ -214,8 +214,6 @@ export function moveDisplacedUnit(id: string, x: number, y: number): void {
         : animal
     )
   });
-  
-  console.log(`Displaced unit ${id} position updated in state to (${x},${y}), hasMoved: ${originalHasMoved}`);
 }
 
 /**
@@ -572,51 +570,6 @@ export function getEggPlacementTiles(biomeId: string): TileResult[] {
 }
 
 /**
- * Update a tile's visibility state
- * @param x X coordinate
- * @param y Y coordinate
- * @param visible Whether the tile should be visible
- */
-export function updateTileVisibility(x: number, y: number, visible: boolean): void {
-  const state = useGameStore.getState();
-  if (!state.board) return;
-  
-  // Update the tile at the specified position
-  useGameStore.setState(state => {
-    // Return if no board or tile is out of bounds
-    if (!state.board || 
-        x < 0 || x >= state.board.width || 
-        y < 0 || y >= state.board.height) {
-      return state;
-    }
-    
-    // Create a deep copy of the board to avoid mutating it directly
-    const newBoard = {
-      ...state.board,
-      tiles: state.board.tiles.map((row, rowIndex) => {
-        // If this is not the row we're updating, return it as is
-        if (rowIndex !== y) return row;
-        
-        // Otherwise update the specific tile in this row
-        return row.map((tile, colIndex) => {
-          // If this is not the column we're updating, return it as is
-          if (colIndex !== x) return tile;
-          
-          // Otherwise update the tile
-          return {
-            ...tile,
-            explored: true, // Once a tile is explored, it stays explored
-            visible: visible
-          };
-        });
-      })
-    };
-    
-    return { board: newBoard };
-  });
-}
-
-/**
  * Get all resource tiles from the game board
  */
 export function getResourceTiles(): TileResult[] {
@@ -817,8 +770,6 @@ export function regenerateResources(
     board: { ...updatedBoard },
     biomes: resetBiomes
   });
-  
-  console.log(`Resources regenerated with ${GameConfig.resourceGenerationPercentage * 100}% density`);
 }
 
 /**
@@ -992,5 +943,53 @@ export function updateAllBiomeResourceCounts(): void {
   // Update the biomes in the store
   useGameStore.setState({
     biomes: updatedBiomes
+  });
+}
+
+/**
+ * Update multiple tiles' visibility states in a single operation
+ * This is much more efficient than calling updateTileVisibility multiple times
+ * @param tiles Array of tile positions with visibility states to update
+ */
+export function updateTilesVisibility(tiles: { x: number, y: number, visible: boolean }[]): void {
+  const state = useGameStore.getState();
+  if (!state.board || tiles.length === 0) return;
+  
+  // Update all the specified tiles in a single state update
+  useGameStore.setState(state => {
+    // Return if no board
+    if (!state.board) return state;
+    
+    // Create a deep copy of the board to avoid mutating it directly
+    const newBoard = {
+      ...state.board,
+      tiles: state.board.tiles.map((row, rowIndex) => {
+        // Check if this row contains any tiles we need to update
+        const anyUpdatesInRow = tiles.some(tile => tile.y === rowIndex);
+        
+        // If no updates in this row, return it unchanged
+        if (!anyUpdatesInRow) return row;
+        
+        // Otherwise process the row to update specific tiles
+        return row.map((tile, colIndex) => {
+          // Find if this tile position should be updated
+          const tileUpdate = tiles.find(t => 
+            t.y === rowIndex && t.x === colIndex
+          );
+          
+          // If this tile doesn't need an update, return it unchanged
+          if (!tileUpdate) return tile;
+          
+          // Otherwise update the tile
+          return {
+            ...tile,
+            explored: true, // Once a tile is explored, it stays explored
+            visible: tileUpdate.visible
+          };
+        });
+      })
+    };
+    
+    return { board: newBoard };
   });
 } 

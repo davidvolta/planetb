@@ -13,29 +13,6 @@
 
 ## Ecosystem Integration Plan
 
-### Phase 1: Interface Extension
-- [x] Update the Biome Interface in gameStore.ts
-  - [x] Rename current `lushness` to `baseLushness`
-  - [x] Add `lushnessBoost` property
-  - [x] Add `totalLushness` property
-  - [x] Add `initialResourceCount` property
-  - [x] Add `nonDepletedCount` property
-  - [x] Add `totalHarvested` property
-  - [x] Add `eggCount` property
-
-- [x] Update Biome Creation
-  - [x] Set default values for all new properties
-  - [x] Ensure compatibility with existing code
-
-### Phase 2: Resource Initialization
-- [x] Update EcosystemController.generateResources
-  - [x] Count resources for each biome
-  - [x] Set initialResourceCount and nonDepletedCount
-
-- [x] Add Resource Tracking helpers
-  - [x] Methods to get resource counts
-  - [x] Methods to calculate non-depleted resources
-
 ### Phase 3: Lushness Management
 - [ ] Update Lushness Calculation
   - [ ] Calculate baseLushness from resources
@@ -55,8 +32,7 @@
   - [ ] Increment eggCount when eggs are created
   - [ ] Decrement eggCount when eggs evolve/removed
 
-
-### Phase 6: Create Ecosystem Utilities
+### Phase 5: Create Ecosystem Utilities
 - [ ] Create a new utils file `EcosystemUtils.ts` containing:
   - [ ] The polynomial resource generation formula with fixed coefficient values
   - [ ] Lushness calculation functions based on tile resource values
@@ -68,13 +44,12 @@
   - [ ] Find blank tiles suitable for egg placement (active=false AND isHabitat=false)
   - [ ] Update resource values based on lushness
 
-### Phase 7: Update Rendering System
+### Phase 6: Update Rendering System
 - [ ] Enhance TileRenderer to:
-  - [ ] Display resource values numerically on tiles
   - [ ] Use opacity to visualize resource health (value/10)
   - [ ] Keep the existing resource assets, just modify their display
   
-### Phase 8: Implement Harvesting System
+### Phase 7: Implement Harvesting System
 - [ ] Create new action functions in actions.ts:
   - [ ] selectTile(x, y)
       - Selecting a tile with resources (double click behavior for units/eggs)

@@ -186,9 +186,6 @@ export default class BoardScene extends Phaser.Scene {
       this.handleUnitSelection(animalId);
     });
     
-    // Subscribe to board changes for re-rendering
-    this.events.on('board_updated', this.updateBoard, this);
-    
     // Listen for spawn events from the state
     this.events.on('unit_spawned', this.handleUnitSpawned, this);
     
@@ -209,46 +206,6 @@ export default class BoardScene extends Phaser.Scene {
     });
   }
 
-updateBoard() {
-    const needsSetup = !this.layerManager.isLayersSetup();     // Check if we need to setup the layers
-    
-    // Set up layers if needed
-    if (needsSetup) {
-      this.layerManager.setupLayers();
-    }
-  
-    this.createTiles();     // Create new tiles using TileRenderer
-  }
-  
-  
-  // Scene shutdown handler
-  shutdown() {
-    
-    this.unsubscribeAll();    // Clean up subscriptions    
-    this.input.removeAllListeners(); // Clean up input handlers
-    
-    // Clean up renderers
-    this.tileRenderer.destroy();
-    this.selectionRenderer.destroy();
-    this.moveRangeRenderer.destroy();
-    this.habitatRenderer.destroy();
-    this.animalRenderer.destroy();
-    this.resourceRenderer.destroy();
-    this.fogOfWarRenderer.destroy();
-    
-    // Clean up managers
-    this.layerManager.clearAllLayers(true);
-    this.inputManager.destroy();
-    this.cameraManager.destroy();
-    this.animationController.destroy();
-    this.subscriptionManager.destroy();
-    
-    // Reset variables
-    this.tiles = [];
-    this.controlsSetup = false;
-    this.subscriptionsSetup = false;
-  }
-  
   // Create tiles for the board
   private createTiles() {
     // Get board data using actions
@@ -499,10 +456,12 @@ updateBoard() {
         // Get tiles around the destination position that need to be revealed
         const tilesToReveal = CoordinateUtils.getAdjacentTiles(toX, toY, board.width, board.height);
         
-        // Update visibility in game state
-        tilesToReveal.forEach(tile => {
-          this.updateTileVisibility(tile.x, tile.y, true);
-        });
+        // Use batch update for all tiles instead of updating one by one
+        actions.updateTilesVisibility(tilesToReveal.map(tile => ({
+          x: tile.x,
+          y: tile.y,
+          visible: true
+        })));
         
         // Remove duplicates and reveal visually
         const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
@@ -713,10 +672,12 @@ updateBoard() {
         // Get tiles around the destination position that need to be revealed
         const tilesToReveal = CoordinateUtils.getAdjacentTiles(toX, toY, board.width, board.height);
         
-        // Update visibility in game state
-        tilesToReveal.forEach(tile => {
-          this.updateTileVisibility(tile.x, tile.y, true);
-        });
+        // Use batch update for all tiles instead of updating one by one
+        actions.updateTilesVisibility(tilesToReveal.map(tile => ({
+          x: tile.x,
+          y: tile.y,
+          visible: true
+        })));
         
         // Remove duplicates and reveal visually
         const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
@@ -744,6 +705,7 @@ updateBoard() {
     if (!board) return;
     
     const revealedTiles: { x: number, y: number }[] = [];
+    const visibilityUpdates: { x: number, y: number, visible: boolean }[] = [];
     
     // Get current player ID
     const currentPlayerId = actions.getCurrentPlayerId();
@@ -755,8 +717,12 @@ updateBoard() {
         // Reveal 8 adjacent tiles around this unit
         CoordinateUtils.getAdjacentTiles(animal.position.x, animal.position.y, board.width, board.height)
           .forEach(tile => {
-            // Mark as explored and visible in the game state
-            this.updateTileVisibility(tile.x, tile.y, true);
+            // Add to the list of visibility updates
+            visibilityUpdates.push({
+              x: tile.x,
+              y: tile.y,
+              visible: true
+            });
             // Add to the list of tiles to reveal visually
             revealedTiles.push(tile);
           });
@@ -766,15 +732,33 @@ updateBoard() {
     // Reveal player's starting biome
     const biomes = actions.getBiomes();
     
+    // Collect biome tiles to reveal
+    const biomeTilesToReveal: { x: number, y: number, visible: boolean }[] = [];
+    
     // Iterate directly through biomes instead of going through habitats first
     biomes.forEach((biome, biomeId) => {
       // Check if the biome is owned by the current player
       if (biome.ownerId === currentPlayerId) {
         // This is the player's owned biome
-        // Reveal all tiles in this biome
-        this.revealBiomeTiles(biomeId, revealedTiles);
+        // Collect all tiles in this biome
+        for (let y = 0; y < board.height; y++) {
+          for (let x = 0; x < board.width; x++) {
+            const tile = board.tiles[y][x];
+            if (tile.biomeId === biomeId) {
+              // Add to visibility updates
+              biomeTilesToReveal.push({ x, y, visible: true });
+              // Add to the list of tiles to reveal visually
+              revealedTiles.push({ x, y });
+            }
+          }
+        }
       }
     });
+    
+    // Perform all visibility updates in a single batch
+    if (visibilityUpdates.length > 0 || biomeTilesToReveal.length > 0) {
+      actions.updateTilesVisibility([...visibilityUpdates, ...biomeTilesToReveal]);
+    }
     
     // Remove duplicates from the revealedTiles array
     const uniqueTiles = CoordinateUtils.removeDuplicateTiles(revealedTiles);
@@ -798,14 +782,15 @@ updateBoard() {
     
     // Track tiles we reveal
     const tilesToReveal: { x: number, y: number }[] = [];
+    const visibilityUpdates: { x: number, y: number, visible: boolean }[] = [];
     
     // Scan the board for all tiles in this biome
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
         const tile = board.tiles[y][x];
         if (tile.biomeId === biomeId) {
-          // Set this tile to visible in the game state
-          this.updateTileVisibility(x, y, true);
+          // Add to visibility updates
+          visibilityUpdates.push({ x, y, visible: true });
           // Add to our array of tiles to reveal
           tilesToReveal.push({ x, y });
           
@@ -817,15 +802,20 @@ updateBoard() {
       }
     }
     
+    // Perform batch visibility update
+    if (visibilityUpdates.length > 0) {
+      actions.updateTilesVisibility(visibilityUpdates);
+    }
+    
     // If we weren't adding to an existing array, reveal tiles now
     if (!revealedTiles) {
       this.fogOfWarRenderer.revealTiles(tilesToReveal);
     }
   }
   
-  // Update a tile's visibility in the game state
+  // Update a tile's visibility in the game state - updated to use batch updates
   private updateTileVisibility(x: number, y: number, visible: boolean): void {
-    actions.updateTileVisibility(x, y, visible);
+    actions.updateTilesVisibility([{ x, y, visible }]);
   }
   
   // Toggle fog of war on/off
@@ -955,7 +945,6 @@ updateBoard() {
 
   // Public method to regenerate resources with current settings
   public regenerateResources(): void {
-    console.log("Regenerating resources with current settings");
     
     // Get the current board data
     const board = actions.getBoard();
@@ -987,19 +976,41 @@ updateBoard() {
     // Call the regenerate action to update the game state
     actions.regenerateResources(board.width, board.height, terrainData);
     
-    // Allow a small delay before rendering to ensure state is fully updated
-    this.time.delayedCall(10, () => {
-      // Fetch the updated resource tiles using the tile interface
-      const resourceTiles = actions.getResourceTiles();
-      console.log(`Regenerated ${resourceTiles.length} resource tiles`);
-      
-      // Render the updated resource tiles
-      this.resourceRenderer.renderResourceTiles(resourceTiles.map(({ tile, x, y }) => ({ tile, x, y })));
-      
-      // Visualize blank tiles after all resource tiles are rendered
-      this.time.delayedCall(10, () => {
-        this.resourceRenderer.visualizeBlankTiles();
-      });
-    });
+    // Fetch the updated resource tiles using the tile interface
+    const resourceTiles = actions.getResourceTiles();
+    console.log(`Regenerated ${resourceTiles.length} resource tiles`);
+    
+    // Render the updated resource tiles
+    this.resourceRenderer.renderResourceTiles(resourceTiles.map(({ tile, x, y }) => ({ tile, x, y })));
+    
+    // Visualize blank tiles after all resource tiles are rendered
+    this.resourceRenderer.visualizeBlankTiles();
+  }
+
+  // Scene shutdown handler
+  shutdown() {
+    this.unsubscribeAll();    // Clean up subscriptions    
+    this.input.removeAllListeners(); // Clean up input handlers
+    
+    // Clean up renderers
+    this.tileRenderer.destroy();
+    this.selectionRenderer.destroy();
+    this.moveRangeRenderer.destroy();
+    this.habitatRenderer.destroy();
+    this.animalRenderer.destroy();
+    this.resourceRenderer.destroy();
+    this.fogOfWarRenderer.destroy();
+    
+    // Clean up managers
+    this.layerManager.clearAllLayers(true);
+    this.inputManager.destroy();
+    this.cameraManager.destroy();
+    this.animationController.destroy();
+    this.subscriptionManager.destroy();
+    
+    // Reset variables
+    this.tiles = [];
+    this.controlsSetup = false;
+    this.subscriptionsSetup = false;
   }
 }
