@@ -26,15 +26,16 @@ interface BiomeProductionResult {
  */
 export class EcosystemController {
   /**
-   * Generates resources based on biome distribution and terrain types
+   * Generate resources for the game board
+   * This creates resources on eligible tiles based on terrain type and resource density
    * 
    * @param width Board width
    * @param height Board height
-   * @param terrainData 2D array of terrain types
-   * @param board The game board
-   * @param biomes The map of biomes
+   * @param terrainData Array of terrain types for each tile
+   * @param board The current game board
+   * @param biomes Map of all biomes
    */
-  public static generateResources(
+  public static regenerateResources(
     width: number, 
     height: number, 
     terrainData: TerrainType[][],
@@ -42,13 +43,13 @@ export class EcosystemController {
     biomes: Map<string, Biome>
   ): void {
     if (!board) {
-      console.warn("Board not initialized, cannot generate resources");
+      console.warn("Board not initialized, cannot regenerate resources");
       return;
     }
     
     // Define resource chance (percentage of eligible tiles that should have resources)
     const resourceChance = GameConfig.resourceGenerationPercentage;
-    console.log(`Generating resources with ${resourceChance * 100}% density per biome`);
+    console.log(`Regenerating resources with ${resourceChance * 100}% density per biome`);
     
     // Track total resources generated
     let totalResourcesGenerated = 0;
@@ -102,9 +103,6 @@ export class EcosystemController {
       
       totalResourcesGenerated += selectedTiles.length;
       
-      // Log biome resource generation
-      console.log(`Biome ${biomeId}: ${selectedTiles.length}/${eligibleTiles.length} resources (${(selectedTiles.length / Math.max(1, eligibleTiles.length) * 100).toFixed(1)}%)`);
-      
       // Update the biome's resource counts
       const updatedBiome = {
         ...biome,
@@ -146,9 +144,6 @@ export class EcosystemController {
     updatedBiomes.forEach((biome, biomeId) => {
       biomes.set(biomeId, biome);
     });
-    
-    // Log summary of resource generation
-    console.log(`Total resources generated: ${totalResourcesGenerated}/${totalEligibleTiles} (${(totalResourcesGenerated / Math.max(1, totalEligibleTiles) * 100).toFixed(1)}%)`);
   }
 
   /**

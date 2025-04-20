@@ -1,15 +1,17 @@
 import { StateObserver } from '../utils/stateObserver';
-import { Animal, GameState, ValidMove, Habitat, Biome } from '../store/gameStore';
+import { Animal, GameState, ValidMove, Habitat, Biome, Board } from '../store/gameStore';
 import { useGameStore } from '../store/gameStore';
 import * as actions from '../store/actions';
-import { SelectionRenderer } from '../renderers/SelectionRenderer';
 import BoardScene from '../scenes/BoardScene';
+import { SelectionRenderer } from '../renderers/SelectionRenderer';
 import { TileRenderer } from '../renderers/TileRenderer';
 import { AnimalRenderer } from '../renderers/AnimalRenderer';
 import { HabitatRenderer } from '../renderers/HabitatRenderer';
 import { ResourceRenderer } from '../renderers/ResourceRenderer';
 import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
 import { AnimationController } from '../controllers/AnimationController';
+import Phaser from "phaser";
+import * as CoordinateUtils from "../utils/CoordinateUtils";
 
 // Component interfaces: These define the contracts that components must fulfill to receive state updates
 
@@ -236,20 +238,47 @@ export class StateSubscriptionManager {
     // Subscribe to resource tile changes
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.RESOURCE_TILES,
-      (state) => state.board, // Watch the board since resources are now tile properties
-      (board) => {
-        if (board) {
-          // Get resource tiles from actions
+      (state) => {
+        // If the board isn't initialized yet, return null
+        if (!state.board) return null;
+        
+        // Return an object containing ONLY the properties we care about
+        return {
+          // Create a hash of resource tiles that ignores unit positions and visibility
+          resourceHash: this.calculateResourceHash(state.board)
+        };
+      },
+      (resourceState, prevResourceState) => {
+        // Only update if this is the first time or if resources actually changed
+        if (resourceState && (!prevResourceState || resourceState.resourceHash !== prevResourceState.resourceHash)) {
+          // Get resource tiles and render them
           const resourceTiles = actions.getResourceTiles();
-          
-          // If we have a ResourceRenderer, render the resource tiles
           if (this.resourceRenderer) {
             this.resourceRenderer.renderResourceTiles(resourceTiles);
           }
         }
       },
-      { immediate: true, debug: false } // Set immediate: true to render on subscription
+      { immediate: true, debug: false }
     );
+  }
+  
+  // Helper method to calculate a hash that only considers resource properties
+  private calculateResourceHash(board: Board): string {
+    // Create a hash that only considers resource properties, not positions or visibility
+    let hash = '';
+    
+    // Loop through the board once to build a string representing just resource states
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        // Only include resource-related properties in the hash
+        if (tile.resourceType || tile.active || tile.resourceValue > 0) {
+          hash += `${x},${y}:${tile.resourceType || 'none'}:${tile.resourceValue}:${tile.active ? 1 : 0};`;
+        }
+      }
+    }
+    
+    return hash;
   }
   
   // et up subscriptions related to user interactions and gameplay events

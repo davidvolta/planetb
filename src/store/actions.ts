@@ -804,9 +804,9 @@ export function regenerateResources(
   
   // Generate resources by setting tile properties directly
   // This will also update initialResourceCount and nonDepletedCount
-  EcosystemController.generateResources(
-    width, 
-    height, 
+  EcosystemController.regenerateResources(
+    width,
+    height,
     terrainData,
     updatedBoard, // Use the updated board we just cleared
     resetBiomes

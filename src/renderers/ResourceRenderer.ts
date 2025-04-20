@@ -11,6 +11,8 @@ import { TileResult } from '../store/actions';
  */
 export class ResourceRenderer extends BaseRenderer {
   private resourceScale: number = 0.3333;
+  // Track blank tile sprites by position key (x,y)
+  private blankTileSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   
   /**
    * Creates a new ResourceRenderer
@@ -151,13 +153,14 @@ export class ResourceRenderer extends BaseRenderer {
     
     let removedCount = 0;
     
-    // Find all sprites with the blankTileMarker data tag
-    staticObjectsLayer.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Sprite && child.getData('blankTileMarker')) {
-        child.destroy(); // Remove from scene immediately
-        removedCount++;
-      }
+    // Destroy all tracked blank tile sprites
+    this.blankTileSprites.forEach((sprite) => {
+      sprite.destroy();
+      removedCount++;
     });
+    
+    // Clear the tracking map
+    this.blankTileSprites.clear();
     
     if (removedCount > 0) {
       console.log(`Removed ${removedCount} blank tile markers`);
@@ -166,49 +169,143 @@ export class ResourceRenderer extends BaseRenderer {
   
   /**
    * Visualize blank tiles (tiles with hasEgg=false and no resources or habitats)
+   * This performs an incremental update rather than clearing and recreating all markers
    */
   visualizeBlankTiles(): void {
-    // Clear any existing blank tile markers first to prevent duplication
-    this.clearBlankTileMarkers();
-    
     // Get all blank tiles using the filtering system
     const blankTiles = actions.getBlankTiles();
     
     if (blankTiles.length === 0) {
-      return; // Nothing to visualize
+      // No blank tiles, clear any existing ones
+      if (this.blankTileSprites.size > 0) {
+        this.clearBlankTileMarkers();
+      }
+      return;
     }
     
     const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
     if (!staticObjectsLayer) return;
     
-    // Create all blank tile markers at once
-    let markersAdded = 0;
+    // Create a set of current blank tile position keys
+    const currentBlankPositions = new Set<string>();
+    let addedCount = 0;
+    let removedCount = 0;
     
+    // Process all current blank tiles
     blankTiles.forEach(({ x, y, tile }: TileResult) => {
-      // Calculate world position
-      const worldPosition = CoordinateUtils.gridToWorld(
-        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
+      const posKey = `${x},${y}`;
+      currentBlankPositions.add(posKey);
       
-      const worldX = worldPosition.x;
-      const worldY = worldPosition.y;
-      
-      // Create a sprite to indicate blank tile with consistent properties
-      const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
-      
-      // Apply consistent scaling and visual properties
-      blankSprite.setScale(0.25);
-      blankSprite.setDepth(5); // Make sure it renders on top of terrain
-      blankSprite.setData('blankTileMarker', true);
-      blankSprite.setData('gridX', x);
-      blankSprite.setData('gridY', y);
-      
-      // Add to static objects layer
-      this.layerManager.addToLayer('staticObjects', blankSprite);
-      markersAdded++;
+      // Check if we already have a sprite for this position
+      if (!this.blankTileSprites.has(posKey)) {
+        // Need to create a new sprite
+        const worldPosition = CoordinateUtils.gridToWorld(
+          x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+        );
+        
+        const worldX = worldPosition.x;
+        const worldY = worldPosition.y;
+        
+        // Create a sprite to indicate blank tile
+        const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
+        
+        // Apply consistent styling
+        blankSprite.setScale(0.25);
+        blankSprite.setDepth(5);
+        blankSprite.setData('blankTileMarker', true);
+        blankSprite.setData('gridX', x);
+        blankSprite.setData('gridY', y);
+        
+        // Add to layer and to our tracking map
+        this.layerManager.addToLayer('staticObjects', blankSprite);
+        this.blankTileSprites.set(posKey, blankSprite);
+        
+        addedCount++;
+      }
     });
     
-    console.log(`Visualized ${markersAdded} blank tiles`);
+    // Find and remove sprites for positions that are no longer blank
+    const keysToRemove: string[] = [];
+    this.blankTileSprites.forEach((sprite, posKey) => {
+      if (!currentBlankPositions.has(posKey)) {
+        // This position is no longer blank, remove the sprite
+        sprite.destroy();
+        keysToRemove.push(posKey);
+        removedCount++;
+      }
+    });
+    
+    // Remove keys from our tracking map
+    keysToRemove.forEach(key => {
+      this.blankTileSprites.delete(key);
+    });
+    
+    // Log changes only if something actually changed
+    if (addedCount > 0 || removedCount > 0) {
+      console.log(`Blank tiles update: Added ${addedCount}, Removed ${removedCount}, Total ${this.blankTileSprites.size}`);
+    }
+  }
+  
+  /**
+   * Update specific blank tiles that have changed visibility
+   * @param changedTiles Array of tile positions that have changed
+   */
+  updateBlankTilesVisibility(changedTiles: { x: number, y: number }[]): void {
+    if (changedTiles.length === 0) return;
+    
+    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
+    if (!staticObjectsLayer) return;
+    
+    // Get current blank tiles from the action helper
+    const blankTiles = actions.getBlankTiles();
+    
+    // Create a set of blank tile positions for quick lookup
+    const blankPositionSet = new Set<string>();
+    blankTiles.forEach(({ x, y }) => {
+      blankPositionSet.add(`${x},${y}`);
+    });
+    
+    let addedCount = 0;
+    let removedCount = 0;
+    
+    // Process each changed tile
+    changedTiles.forEach(({ x, y }) => {
+      const posKey = `${x},${y}`;
+      const isBlank = blankPositionSet.has(posKey);
+      const hasSprite = this.blankTileSprites.has(posKey);
+      
+      if (isBlank && !hasSprite) {
+        // Need to add a new blank tile marker
+        const worldPosition = CoordinateUtils.gridToWorld(
+          x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+        );
+        
+        const blankSprite = this.scene.add.sprite(worldPosition.x, worldPosition.y, 'blank');
+        blankSprite.setScale(0.25);
+        blankSprite.setDepth(5);
+        blankSprite.setData('blankTileMarker', true);
+        blankSprite.setData('gridX', x);
+        blankSprite.setData('gridY', y);
+        
+        this.layerManager.addToLayer('staticObjects', blankSprite);
+        this.blankTileSprites.set(posKey, blankSprite);
+        
+        addedCount++;
+      } else if (!isBlank && hasSprite) {
+        // Need to remove a blank tile marker
+        const sprite = this.blankTileSprites.get(posKey);
+        if (sprite) {
+          sprite.destroy();
+          this.blankTileSprites.delete(posKey);
+          removedCount++;
+        }
+      }
+    });
+    
+    // Log changes only if something actually changed
+    if (addedCount > 0 || removedCount > 0) {
+      console.log(`Blank tiles visibility update: Added ${addedCount}, Removed ${removedCount}`);
+    }
   }
   
   /**
