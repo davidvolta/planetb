@@ -117,6 +117,16 @@ export function evolveAnimal(id: string): void {
 }
 
 /**
+ * Remove an animal from the game
+ * If it's an egg (dormant animal), this will also update the board's hasEgg property
+ * and update the biome's eggCount and lushnessBoost if applicable
+ * @param id The ID of the animal to remove
+ */
+export function removeAnimal(id: string): void {
+  useGameStore.getState().removeAnimal(id);
+}
+
+/**
  * Get the currently selected unit ID
  */
 export function getSelectedUnitId(): string | null {
@@ -433,6 +443,55 @@ export function updateBiomeLushness(
 }
 
 /**
+ * Update lushness boost for a biome based on its egg coverage
+ * @param biomeId The ID of the biome to update
+ */
+export function updateBiomeLushnessBoost(biomeId: string): void {
+  const state = useGameStore.getState();
+  
+  if (!state.board) {
+    console.warn("Board not available, cannot update lushness boost");
+    return;
+  }
+  
+  const updatedBiome = EcosystemController.updateBiomeLushnessBoost(
+    biomeId, 
+    state.board, 
+    state.biomes
+  );
+  
+  if (updatedBiome) {
+    const updatedBiomes = new Map(state.biomes);
+    updatedBiomes.set(biomeId, updatedBiome);
+    
+    useGameStore.setState({
+      biomes: updatedBiomes
+    });
+  }
+}
+
+/**
+ * Update lushness boost for all biomes
+ */
+export function updateAllBiomeLushnessBoosts(): void {
+  const state = useGameStore.getState();
+  
+  if (!state.board) {
+    console.warn("Board not available, cannot update lushness boosts");
+    return;
+  }
+  
+  const updatedBiomes = EcosystemController.updateAllBiomeLushnessBoosts(
+    state.board,
+    state.biomes
+  );
+  
+  useGameStore.setState({
+    biomes: updatedBiomes
+  });
+}
+
+/**
  * Process egg production for all biomes
  * Produces eggs in biomes based on their production rate
  */
@@ -668,36 +727,30 @@ export function harvestResourceTile(x: number, y: number, amount: number): boole
   
   // Update the tile's resource value
   const newValue = tile.resourceValue - amount;
-  
-  // Deep clone the board to update the tile
-  const updatedBoard = {
-    ...state.board,
-    tiles: state.board.tiles.map((row, rowIndex) => {
-      if (rowIndex !== y) return row;
-      
-      return row.map((t, colIndex) => {
-        if (colIndex !== x) return t;
-        
-        // If new value is 0, set active to false to permanently deplete the resource
-        const active = newValue > 0;
-        
-        return {
-          ...t,
-          resourceValue: newValue,
-          active: active
-        };
-      });
-    })
+  const updatedTile = {
+    ...tile,
+    resourceValue: newValue
   };
   
-  // Update the board and biomes in the state
+  // If resource is fully depleted, set tile to inactive
+  if (newValue <= 0) {
+    updatedTile.active = false;
+    updatedTile.resourceType = null;
+  }
+  
+  // Create updated board with the modified tile
+  const updatedBoard = { ...state.board };
+  updatedBoard.tiles[y][x] = updatedTile;
+  
+  // Update the state
   useGameStore.setState({
     board: updatedBoard,
     biomes: updatedBiomes
   });
   
-  // Recalculate and update the biome's lushness after harvesting
-  calculateBiomeLushness(biomeId);
+  // Recalculate lushness for the biome to reflect the resource change
+  const baseLushness = calculateBiomeLushness(biomeId);
+  updateBiomeLushness(biomeId, baseLushness);
   
   return true;
 }

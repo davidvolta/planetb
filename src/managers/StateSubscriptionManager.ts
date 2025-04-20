@@ -133,7 +133,6 @@ export class StateSubscriptionManager {
     
     // Mark as initialized
     this.initialized = true;
-    console.log("StateSubscriptionManager initialized with all renderers");
   }
   
   // Set up all state subscriptions
@@ -155,7 +154,6 @@ export class StateSubscriptionManager {
     this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
     this.subscriptionsSetup = true;  // Mark subscriptions as set up
-    console.log("StateSubscriptionManager subscriptions set up successfully");
   }
   
   // Set up subscriptions related to the game board
@@ -314,7 +312,6 @@ export class StateSubscriptionManager {
           typeof displacementEvent.toX === 'number' &&
           typeof displacementEvent.toY === 'number'
         ) {
-          console.log("Displacement event detected in StateSubscriptionManager");
           
           // Call the BoardScene's handleDisplacementEvent method
           if (this.scene instanceof BoardScene) {
@@ -345,7 +342,6 @@ export class StateSubscriptionManager {
       (spawnEvent) => {
         // Handle spawn events (mainly to update rendering)
         if (spawnEvent && spawnEvent.occurred) {
-          console.log("Spawn event detected in StateSubscriptionManager");
           
           // If we have a valid unit ID and the scene is a BoardScene
           if (spawnEvent.unitId && this.scene instanceof BoardScene) {
@@ -358,7 +354,6 @@ export class StateSubscriptionManager {
               const fogOfWarRenderer = this.scene.getFogOfWarRenderer();
               // Check if fog of war is enabled before revealing tiles
               if (fogOfWarRenderer) {
-                console.log(`Revealing fog of war around spawned unit at (${spawnedAnimal.position.x}, ${spawnedAnimal.position.y})`);
                 
                 // Get the board to check boundaries
                 const board = actions.getBoard();

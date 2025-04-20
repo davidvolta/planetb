@@ -13,21 +13,24 @@
 
 ## Ecosystem Integration Plan
 
-### Phase 3: Lushness Management
-- [ ] Update Lushness Calculation
-  - [ ] Calculate baseLushness from resources
-  - [ ] Maintain lushnessBoost separately
-  - [ ] Update totalLushness properly
+### Phase 3: Lushness Management ✅
+- [x] Update Lushness Calculation
+  - [x] Calculate baseLushness from resources
+  - [x] Maintain lushnessBoost separately
+  - [x] Update totalLushness properly
 
-- [ ] Create Lushness Update Methods
-  - [ ] Methods to adjust lushnessBoost
-  - [ ] Ensure totalLushness updates correctly
+- [x] Create Lushness Update Methods
+  - [x] Methods to adjust lushnessBoost
+  - [x] Ensure totalLushness updates correctly
 
-### Phase 4: Resource and Egg Tracking
-- [ ] Update Resource Harvesting
-  - [ ] Track totalHarvested when resources are harvested
-  - [ ] Add end-of-turn nonDepletedCount recalculation
+**Implementation Notes**:
+- Added ecosystemConstants.ts with MAX_LUSHNESS (8.0) and EGG_PRODUCTION_THRESHOLD (7.0)
+- Updated EcosystemController to calculate lushness from resource state and egg percentage
+- Updated nextTurn to recalculate lushness values
+- Added egg percentage and lushnessBoost calculation similar to simulator
+- Updated harvestResourceTile to recalculate lushness after harvesting
 
+### Phase 4: Egg Tracking
 - [ ] Update Egg Tracking
   - [ ] Increment eggCount when eggs are created
   - [ ] Decrement eggCount when eggs evolve/removed
@@ -60,6 +63,10 @@
   - [ ] Harvest button that appears when a tile with resources is selected
   - [ ] Amount slider for selecting harvest amount (0-10 scale)
   - [ ] Implement energy counter (UI and gamestore)
+
+- [ ] Track Resource Harvesting
+  - [ ] Track totalHarvested when resources are harvested
+  - [ ] Add end-of-turn nonDepletedCount recalculation
 
 - [ ] Implement the harvest logic in gameStore:
   - [ ] Update tile resource values based on the harvested amount

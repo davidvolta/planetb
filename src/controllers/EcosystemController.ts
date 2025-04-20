@@ -1,5 +1,7 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
 import { getEggPlacementTiles, TileResult } from "../store/actions";
+import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/ecosystemConstants";
+import { useGameStore } from "../store/gameStore";
 
 /**
  * Interface for egg placement validation
@@ -257,18 +259,18 @@ export class EcosystemController {
     board: Board
   ): BiomeProductionResult {
     // Only produce eggs on even-numbered turns
-    if (turn % 2 !== 0) {
-      return { 
-        animals: animals,
-        biomes: biomes
-      }; // Skip production on odd-numbered turns
-    }
-    
-    // Create copies of the animals and biomes for immutability
+    const shouldProduceEggs = turn % 2 === 0;
     const newAnimals = [...animals];
     const updatedBiomes = new Map(biomes);
     
-    // Process each biome
+    // If it's not a turn to produce eggs, just return
+    if (!shouldProduceEggs) {
+      return {
+        animals: newAnimals,
+        biomes: updatedBiomes
+      };
+    }
+    
     biomes.forEach((biome, biomeId) => {
       // Skip biomes that don't have an owner
       if (biome.ownerId === null) {
@@ -280,8 +282,18 @@ export class EcosystemController {
         return;
       }
       
-      // TODO: Implement lushness check here (must be ≥ 7.0)
-      // Currently using a fixed production rate
+      // Check if biome's total lushness is high enough to produce eggs (≥ 7.0)
+      if (biome.totalLushness < EGG_PRODUCTION_THRESHOLD) {
+        // Update the biome's last production turn even if no eggs are produced
+        const updatedBiome: Biome = {
+          ...biome,
+          lastProductionTurn: turn
+        };
+        updatedBiomes.set(biomeId, updatedBiome);
+        return;
+      }
+      
+      // Proceed with egg production if lushness is sufficient
       const eggsToCreate = biome.productionRate;
       
       if (eggsToCreate <= 0) {
@@ -330,12 +342,24 @@ export class EcosystemController {
         newAnimals.push(newAnimal);
       }
 
-      // Update biome's last production turn
+      // Update biome's last production turn and increment eggCount
       const updatedBiome: Biome = {
         ...biome,
-        lastProductionTurn: turn
+        lastProductionTurn: turn,
+        eggCount: biome.eggCount + Math.min(eggsToCreate, validTiles.length)
       };
+      
       updatedBiomes.set(biomeId, updatedBiome);
+      
+      // Update the lushness boost for this biome based on new egg percentage
+      // Only if we actually added eggs
+      if (Math.min(eggsToCreate, validTiles.length) > 0) {
+        const biomeWithUpdatedBoost = this.updateBiomeLushnessBoost(biomeId, board, updatedBiomes);
+        if (biomeWithUpdatedBoost) {
+          updatedBiomes.set(biomeId, biomeWithUpdatedBoost);
+          console.log(`Updated lushness boost for biome ${biomeId} to ${biomeWithUpdatedBoost.lushnessBoost} after egg production`);
+        }
+      }
     });
 
     return {
@@ -463,12 +487,43 @@ export class EcosystemController {
       return 0;
     }
     
-    // TODO: Calculate baseLushness based on resource count and values
-    const defaultLushness = 8.0; // Default "stable" value
+    // Get the board from the store to access tile data
+    const state = useGameStore.getState();
+    if (!state.board) {
+      console.warn("Board not available, cannot calculate lushness");
+      return 0;
+    }
     
-    // TODO: Implement the polynomial resource generation formula
+    // Get all active resource tiles in this biome
+    const activeTiles = [];
+    for (let y = 0; y < state.board.height; y++) {
+      for (let x = 0; x < state.board.width; x++) {
+        const tile = state.board.tiles[y][x];
+        if (tile.biomeId === biomeId && tile.active && tile.resourceType !== null) {
+          activeTiles.push(tile);
+        }
+      }
+    }
     
-    return defaultLushness;
+    // Count tiles with non-depleted resources (resourceValue > 0)
+    const nonDepletedTiles = activeTiles.filter(tile => tile.resourceValue > 0).length;
+    
+    // If all active tiles are depleted or there are no active tiles, lushness is 0
+    if (nonDepletedTiles === 0) {
+      return 0;
+    }
+    
+    // Calculate total current resource value
+    const currentTotal = activeTiles.reduce((sum, tile) => sum + tile.resourceValue, 0);
+    
+    // Calculate initial total (all resources start with value 10)
+    const initialTotal = activeTiles.length * 10;
+    
+    // Resource health ratio (how close to initial state)
+    const resourceRatio = currentTotal / initialTotal;
+    
+    // Direct linear mapping of resource ratio to base lushness
+    return resourceRatio * MAX_LUSHNESS;
   }
 
   /**
@@ -480,14 +535,37 @@ export class EcosystemController {
   public static updateAllBiomeLushness(biomes: Map<string, Biome>): Map<string, Biome> {
     const updatedBiomes = new Map<string, Biome>();
     
+    // Get the board from the store to access tile data
+    const state = useGameStore.getState();
+    if (!state.board) {
+      console.warn("Board not available, cannot update lushness");
+      return biomes;
+    }
+    
     // Iterate through all biomes
     biomes.forEach((biome, biomeId) => {
+      // Get all active resource tiles in this biome to calculate nonDepletedCount
+      let nonDepletedCount = 0;
+      for (let y = 0; y < state.board!.height; y++) {
+        for (let x = 0; x < state.board!.width; x++) {
+          const tile = state.board!.tiles[y][x];
+          if (tile.biomeId === biomeId && tile.active && tile.resourceType !== null && tile.resourceValue > 0) {
+            nonDepletedCount++;
+          }
+        }
+      }
+      
+      // Calculate base lushness
       const baseLushness = this.calculateBiomeLushness(biomeId, biomes);
+      
+      // Update the biome with the new values
       const updatedBiome: Biome = {
         ...biome,
         baseLushness,
+        nonDepletedCount,
         totalLushness: baseLushness + biome.lushnessBoost
       };
+      
       updatedBiomes.set(biomeId, updatedBiome);
     });
     
@@ -590,6 +668,115 @@ export class EcosystemController {
       };
       
       updatedBiomes.set(biomeId, updatedBiome);
+    });
+    
+    return updatedBiomes;
+  }
+
+  /**
+   * Calculates the percentage of blank tiles that have eggs
+   * 
+   * @param biomeId ID of the biome to calculate egg percentage for
+   * @param board The game board
+   * @returns Percentage (0-1) of blank tiles with eggs
+   */
+  public static calculateEggPercentage(biomeId: string, board: Board): number {
+    if (!board) {
+      return 0;
+    }
+    
+    // Find all non-active (blank) tiles in this biome
+    const blankTiles = [];
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        if (tile.biomeId === biomeId && !tile.active && !tile.isHabitat) {
+          blankTiles.push(tile);
+        }
+      }
+    }
+    
+    // If no blank tiles, return 0 percentage
+    if (blankTiles.length === 0) {
+      return 0;
+    }
+    
+    // Count eggs in blank tiles
+    const eggsCount = blankTiles.filter(tile => tile.hasEgg).length;
+    
+    // Calculate percentage (0-1)
+    return eggsCount / blankTiles.length;
+  }
+  
+  /**
+   * Calculates the lushness boost based on egg percentage
+   * 
+   * @param eggPercentage Percentage (0-1) of blank tiles with eggs
+   * @returns Lushness boost value
+   */
+  public static calculateLushnessBoost(eggPercentage: number): number {
+    // Linear boost: 0-50% coverage = 0-2.0 boost
+    // Maximum boost of 2.0 at 50% or more egg coverage
+    return Math.min(MAX_LUSHNESS_BOOST, eggPercentage * 4.0);
+  }
+  
+  /**
+   * Updates lushness boost for a biome based on its egg coverage
+   * 
+   * @param biomeId ID of the biome to update
+   * @param board The game board
+   * @param biomes Map of all biomes
+   * @returns Updated biome with new lushnessBoost
+   */
+  public static updateBiomeLushnessBoost(
+    biomeId: string, 
+    board: Board,
+    biomes: Map<string, Biome>
+  ): Biome | null {
+    const biome = biomes.get(biomeId);
+    
+    if (!biome) {
+      console.warn(`Biome ${biomeId} not found`);
+      return null;
+    }
+    
+    // Calculate egg percentage
+    const eggPercentage = this.calculateEggPercentage(biomeId, board);
+    
+    // Calculate lushness boost
+    const lushnessBoost = this.calculateLushnessBoost(eggPercentage);
+    
+    // Return updated biome with new lushnessBoost
+    return {
+      ...biome,
+      lushnessBoost,
+      totalLushness: biome.baseLushness + lushnessBoost
+    };
+  }
+  
+  /**
+   * Updates all biomes' lushness boost values based on their egg coverage
+   * 
+   * @param board The game board
+   * @param biomes Map of all biomes
+   * @returns Updated map of biomes with new lushnessBoost values
+   */
+  public static updateAllBiomeLushnessBoosts(
+    board: Board,
+    biomes: Map<string, Biome>
+  ): Map<string, Biome> {
+    const updatedBiomes = new Map<string, Biome>();
+    
+    // Update each biome's lushness boost
+    biomes.forEach((biome, biomeId) => {
+      const updatedBiome = this.updateBiomeLushnessBoost(biomeId, board, biomes);
+      
+      if (updatedBiome) {
+        updatedBiomes.set(biomeId, updatedBiome);
+      } else {
+        // If update failed, keep the original biome
+        updatedBiomes.set(biomeId, biome);
+      }
     });
     
     return updatedBiomes;
