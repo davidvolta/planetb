@@ -365,6 +365,10 @@ export function captureBiome(biomeId: string): void {
     });
   }
   
+  // After updating the biome's owner, update its lushness values
+  updateBiomeLushness(biomeId);
+  console.log(`Updated lushness for biome ${biomeId} after capture`);
+  
   // Record the biome capture event
   recordBiomeCaptureEvent(biomeId);
 }
@@ -799,6 +803,10 @@ export function regenerateResources(
     board: { ...updatedBoard },
     biomes: resetBiomes
   });
+  
+  // Update lushness values for all biomes based on the new resource distribution
+  updateAllBiomesLushness();
+  console.log("Updated lushness values for all biomes after resource regeneration");
 }
 
 /**

@@ -1,5 +1,5 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
-import { getEggPlacementTiles, TileResult } from "../store/actions";
+import { getEggPlacementTiles, TileResult, updateBiomeLushness } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/ecosystemConstants";
 import { useGameStore } from "../store/gameStore";
 
@@ -354,19 +354,19 @@ export class EcosystemController {
       // Update the lushness boost for this biome based on new egg percentage
       // Only if we actually added eggs
       if (Math.min(eggsToCreate, validTiles.length) > 0) {
-        // Calculate new lushness values using our central calculation method
-        const lushnessValues = this.calculateBiomeLushness(biomeId, updatedBiomes);
+        // Use the new updateBiomeLushness action instead of directly calculating
+        // Import and call from the actions module to ensure consistent lushness updates
+        updateBiomeLushness(biomeId);
         
-        // Create updated biome with new lushness values
-        const updatedBiome = {
-          ...updatedBiomes.get(biomeId)!,
-          baseLushness: lushnessValues.baseLushness,
-          lushnessBoost: lushnessValues.lushnessBoost,
-          totalLushness: lushnessValues.totalLushness
-        };
+        // The biome should now be updated in the store, but we need to get the new values
+        // for our local updatedBiomes map to return the correct data
+        const state = useGameStore.getState();
+        const refreshedBiome = state.biomes.get(biomeId);
         
-        updatedBiomes.set(biomeId, updatedBiome);
-        console.log(`Updated lushness for biome ${biomeId}. Base: ${updatedBiome.baseLushness}, Boost: ${updatedBiome.lushnessBoost}, Total: ${updatedBiome.totalLushness}`);
+        if (refreshedBiome) {
+          updatedBiomes.set(biomeId, refreshedBiome);
+          console.log(`Updated lushness for biome ${biomeId} via updateBiomeLushness. Base: ${refreshedBiome.baseLushness}, Boost: ${refreshedBiome.lushnessBoost}, Total: ${refreshedBiome.totalLushness}`);
+        }
       }
     });
 

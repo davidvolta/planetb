@@ -14,13 +14,13 @@
 ## Lushness Refactoring Plan
 
 ### Phase 3: Integrate Lushness Updates Into Existing Systems
-- [ ] Modify egg-related actions to call updateBiomeLushness:
-  - [ ] Egg placement
-  - [ ] Egg hatching/destruction
-- [ ] Modify resource-related actions to call updateBiomeLushness:
-  - [ ] Resource creation/generation
-  - [ ] Resource depletion/harvesting
-- [ ] Add lushness update to biome capture flow
+- [x] Modify egg-related actions to call updateBiomeLushness:
+  - [x] Egg placement
+  - [x] Egg hatching/destruction
+- [x] Modify resource-related actions to call updateBiomeLushness:
+  - [x] Resource creation/generation
+  - [x] Resource depletion/harvesting
+- [x] Add lushness update to biome capture flow
 
 ### Phase 4: Cleanup & Testing
 - [ ] Ensure BiomeRenderer correctly handles lushness updates

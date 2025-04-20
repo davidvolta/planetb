@@ -5,7 +5,7 @@ import { generateVoronoiBiomes } from "../utils/BiomeGenerator";
 import { VoronoiNode, isNodeOverlapping } from "../utils/BiomeGenerator";
 import { devtools } from 'zustand/middleware';
 import { EcosystemController } from "../controllers/EcosystemController";
-import { updateAllBiomesLushness } from "./actions";
+import { updateAllBiomesLushness, updateBiomeLushness } from "./actions";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -892,22 +892,33 @@ export const useGameStore = create<GameState>((set, get) => ({
           });
           console.log(`Decremented egg count for biome ${biomeId} to ${biome.eggCount - 1}`);
           
-          // Update the lushness boost for this biome based on new egg percentage
-          if (updatedBoard) {
-            // Calculate new lushness values using the central calculation
-            const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
-            
-            // Create updated biome with new lushness values
-            const updatedBiome = {
-              ...updatedBiomes.get(biomeId)!,
-              baseLushness: lushnessValues.baseLushness,
-              lushnessBoost: lushnessValues.lushnessBoost,
-              totalLushness: lushnessValues.totalLushness
-            };
-            
-            updatedBiomes.set(biomeId, updatedBiome);
-            console.log(`Updated lushness for biome ${biomeId}. Base: ${updatedBiome.baseLushness}, Boost: ${updatedBiome.lushnessBoost}, Total: ${updatedBiome.totalLushness}`);
-          }
+          // Call updateBiomeLushness to update the lushness values for this biome
+          // First, create a temporary state with our updated values so that updateBiomeLushness works correctly
+          const tempUpdatedState = {
+            ...state,
+            board: updatedBoard,
+            biomes: updatedBiomes
+          };
+          
+          // Store the current state
+          const prevState = useGameStore.getState();
+          
+          // Set our temporary state
+          useGameStore.setState(tempUpdatedState);
+          
+          // Call updateBiomeLushness
+          updateBiomeLushness(biomeId);
+          
+          // Get the updated biomes with new lushness values
+          updatedBiomes = useGameStore.getState().biomes;
+          
+          // Restore previous state except for our updated biomes
+          useGameStore.setState({
+            ...prevState,
+            biomes: updatedBiomes
+          });
+          
+          console.log(`Updated lushness for biome ${biomeId} after egg evolution`);
         }
       }
       
@@ -1105,22 +1116,33 @@ export const useGameStore = create<GameState>((set, get) => ({
               });
               console.log(`Decremented egg count for biome ${biomeId} to ${biome.eggCount - 1}`);
               
-              // Update the lushness boost for this biome based on new egg percentage
-              if (updatedBoard) {
-                // Calculate new lushness values using the central calculation
-                const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
-                
-                // Create updated biome with new lushness values
-                const updatedBiome = {
-                  ...updatedBiomes.get(biomeId)!,
-                  baseLushness: lushnessValues.baseLushness,
-                  lushnessBoost: lushnessValues.lushnessBoost,
-                  totalLushness: lushnessValues.totalLushness
-                };
-                
-                updatedBiomes.set(biomeId, updatedBiome);
-                console.log(`Updated lushness for biome ${biomeId}. Base: ${updatedBiome.baseLushness}, Boost: ${updatedBiome.lushnessBoost}, Total: ${updatedBiome.totalLushness}`);
-              }
+              // Call updateBiomeLushness to update the lushness values for this biome
+              // First, create a temporary state with our updated values
+              const tempUpdatedState = {
+                ...state,
+                board: updatedBoard,
+                biomes: updatedBiomes
+              };
+              
+              // Store the current state
+              const prevState = useGameStore.getState();
+              
+              // Set our temporary state
+              useGameStore.setState(tempUpdatedState);
+              
+              // Call updateBiomeLushness
+              updateBiomeLushness(biomeId);
+              
+              // Get the updated biomes with new lushness values
+              updatedBiomes = useGameStore.getState().biomes;
+              
+              // Restore previous state except for our updated biomes
+              useGameStore.setState({
+                ...prevState,
+                biomes: updatedBiomes
+              });
+              
+              console.log(`Updated lushness for biome ${biomeId} after egg removal`);
             }
             
             return {
