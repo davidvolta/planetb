@@ -279,7 +279,7 @@ export class StateSubscriptionManager {
     return hash;
   }
   
-  // et up subscriptions related to user interactions and gameplay events
+  // Set up subscriptions related to user interactions and gameplay events
   private setupInteractionSubscriptions(): void {
     // Subscribe to valid moves changes
     StateObserver.subscribe(

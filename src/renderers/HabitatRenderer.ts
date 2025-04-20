@@ -249,6 +249,8 @@ export class HabitatRenderer extends BaseRenderer {
    * @param newValue The new totalLushness value
    */
   updateHabitatTotalLushness(biomeId: string, newValue: number): void {
+    console.log(`WHAT THE FUCK IS HAPPENING`);
+
     // Get the staticObjectsLayer and game state
     const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
     if (!staticObjectsLayer) {

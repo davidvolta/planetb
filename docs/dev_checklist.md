@@ -13,39 +13,16 @@
 
 ## Ecosystem Integration Plan
 
-### Phase 3: Lushness Management ✅
-- [x] Update Lushness Calculation
-  - [x] Calculate baseLushness from resources
-  - [x] Maintain lushnessBoost separately
-  - [x] Update totalLushness properly
-
-- [x] Create Lushness Update Methods
-  - [x] Methods to adjust lushnessBoost
-  - [x] Ensure totalLushness updates correctly
-
-**Implementation Notes**:
-- Added ecosystemConstants.ts with MAX_LUSHNESS (8.0) and EGG_PRODUCTION_THRESHOLD (7.0)
-- Updated EcosystemController to calculate lushness from resource state and egg percentage
-- Updated nextTurn to recalculate lushness values
-- Added egg percentage and lushnessBoost calculation similar to simulator
-- Updated harvestResourceTile to recalculate lushness after harvesting
-
-### Phase 4: Egg Tracking
-- [ ] Update Egg Tracking
-  - [ ] Increment eggCount when eggs are created
-  - [ ] Decrement eggCount when eggs evolve/removed
-
 ### Phase 5: Create Ecosystem Utilities
 - [ ] Create a new utils file `EcosystemUtils.ts` containing:
   - [ ] The polynomial resource generation formula with fixed coefficient values
-  - [ ] Lushness calculation functions based on tile resource values
   - [ ] Egg production logic based on lushness threshold (≥7.0)
-  - [ ] Functions to find all tiles belonging to a specific biome
+
 
 - [ ] Create helper functions for common tile-based operations:
   - [ ] Calculate total resource value in a biome
   - [ ] Find blank tiles suitable for egg placement (active=false AND isHabitat=false)
-  - [ ] Update resource values based on lushness
+  - [ ] Functions to find all tiles belonging to a specific biome
 
 ### Phase 6: Update Rendering System
 - [ ] Enhance TileRenderer to:
