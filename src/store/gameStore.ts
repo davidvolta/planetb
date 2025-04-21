@@ -5,7 +5,7 @@ import { generateVoronoiBiomes } from "../utils/BiomeGenerator";
 import { VoronoiNode, isNodeOverlapping } from "../utils/BiomeGenerator";
 import { devtools } from 'zustand/middleware';
 import { EcosystemController } from "../controllers/EcosystemController";
-import { updateBiomeLushness } from "./actions";
+import { updateBiomeLushness, updateTileProperty } from "./actions";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -330,22 +330,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     const updatedAnimals = result.animals;
     let updatedBiomes = result.biomes;
     
-    // Update all biome lushness values
+    // Update lushness values ONLY for biomes that have owners
+    // (unowned biomes don't change state between turns)
     if (state.board) {
-      // Create a temporary state with our current values
-      const currentState = useGameStore.getState();
-      
-      // Store the current biomes
-      const prevBiomes = currentState.biomes;
-      
-      // Set the biomes to our updated ones from egg production
-      useGameStore.setState({ biomes: updatedBiomes });
-      
-      // Get the updated biomes with new lushness values
-      updatedBiomes = useGameStore.getState().biomes;
-      
-      // Restore previous biomes in the state
-      useGameStore.setState({ biomes: prevBiomes });
+      updatedBiomes.forEach((biome, biomeId) => {
+        if (biome.ownerId !== null) {
+          const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
+          updatedBiomes.set(biomeId, {
+            ...biome,
+            baseLushness: lushnessValues.baseLushness,
+            lushnessBoost: lushnessValues.lushnessBoost,
+            totalLushness: lushnessValues.totalLushness
+          });
+        }
+      });
     }
     
     // Reset the hasMoved flags for all animals but preserve previousPosition
@@ -779,6 +777,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Get the position of the egg
       const eggPosition = egg.position;
       
+      // Get the tile at the egg's position (we'll reuse this)
+      const eggTile = state.board?.tiles[eggPosition.y][eggPosition.x];
+      if (!eggTile) {
+        console.warn(`Cannot evolve animal ${id}: invalid position`);
+        return state;
+      }
+      
+      // Get the biomeId directly from the cached tile information
+      const biomeId = eggTile.biomeId;
+      
       // Check if there is an active unit at this position (that's not the egg itself)
       const activeUnitAtPosition = state.animals.find(a => 
         a.id !== id && 
@@ -852,28 +860,16 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
       
-      // Set hasEgg=false on the tile where the egg was
-      let updatedBoard = state.board;
-      if (updatedBoard && updatedBoard.tiles && updatedBoard.tiles[eggPosition.y] && updatedBoard.tiles[eggPosition.y][eggPosition.x]) {
-        // Create a deep copy of the board to avoid mutating state
-        updatedBoard = {
-          ...updatedBoard,
-          tiles: updatedBoard.tiles.map((row, y) => {
-            if (y === eggPosition.y) {
-              return row.map((tile, x) => {
-                if (x === eggPosition.x) {
-                  return { ...tile, hasEgg: false };
-                }
-                return tile;
-              });
-            }
-            return [...row];
-          })
-        };
-      }
+      // Get the updated board with hasEgg = false
+      // Use updateState: false so it returns the board instead of updating the state directly
+      const updatedBoard = updateTileProperty(
+        eggPosition.x, 
+        eggPosition.y, 
+        "hasEgg", 
+        false, 
+        { updateState: false }
+      ) as Board;
       
-      // Find the biome associated with the egg's position
-      const biomeId = updatedBoard?.tiles[eggPosition.y][eggPosition.x].biomeId;
       let updatedBiomes = new Map(state.biomes);
       
       // If the egg is in a biome, decrement that biome's egg count
@@ -883,36 +879,23 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (biome && biome.eggCount > 0) {
           // Decrement egg count
           const newEggCount = biome.eggCount - 1;
+          
+          // Update the biome with new egg count
           updatedBiomes.set(biomeId, {
             ...biome,
             eggCount: newEggCount
           });
           
-          // Call updateBiomeLushness to update the lushness values for this biome
-          // First, create a temporary state with our updated values so that updateBiomeLushness works correctly
-          const tempUpdatedState = {
-            ...state,
-            board: updatedBoard,
-            biomes: updatedBiomes
-          };
-          
-          // Store the current state
-          const prevState = useGameStore.getState();
-          
-          // Set our temporary state
-          useGameStore.setState(tempUpdatedState);
-          
-          // Call updateBiomeLushness
-          updateBiomeLushness(biomeId);
-          
-          // Get the updated biomes with new lushness values
-          updatedBiomes = useGameStore.getState().biomes;
-          
-          // Restore previous state except for our updated biomes
-          useGameStore.setState({
-            ...prevState,
-            biomes: updatedBiomes
-          });
+          // Directly calculate new lushness values if this biome is owned
+          if (biome.ownerId !== null) {
+            const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
+            updatedBiomes.set(biomeId, {
+              ...updatedBiomes.get(biomeId)!,
+              baseLushness: lushnessValues.baseLushness,
+              lushnessBoost: lushnessValues.lushnessBoost,
+              totalLushness: lushnessValues.totalLushness
+            });
+          }
         }
       }
       

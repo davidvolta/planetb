@@ -215,15 +215,7 @@ export class TileRenderer extends BaseRenderer {
    * @param board Updated board data
    */
   updateTiles(board: { width: number, height: number, tiles: any[][] }): void {
-    // If board dimensions have changed, recreate all tiles
-    if (
-      board.width * board.height !== this.tiles.length ||
-      this.tiles.length === 0
-    ) {
-      this.createBoardTiles(board);
-      return;
-    }
-    
+  
     // Get biome colors using actions instead of directly from registry
     const biomes = actions.getBiomes();
     
@@ -299,36 +291,6 @@ export class TileRenderer extends BaseRenderer {
   }
   
   /**
-   * Gets all created tiles
-   * @returns Array of tile game objects
-   */
-  getTiles(): Phaser.GameObjects.GameObject[] {
-    return [...this.tiles];
-  }
-  
-  /**
-   * Gets the size properties used for tile rendering
-   * @returns Object with tile size and height
-   */
-  getTileSize(): { tileSize: number, tileHeight: number } {
-    return {
-      tileSize: this.tileSize,
-      tileHeight: this.tileHeight
-    };
-  }
-  
-  /**
-   * Gets the grid anchor position
-   * @returns Object with anchor X and Y coordinates
-   */
-  getAnchorPosition(): { anchorX: number, anchorY: number } {
-    return {
-      anchorX: this.anchorX,
-      anchorY: this.anchorY
-    };
-  }
-  
-  /**
    * Clean up and prepare for destruction
    */
   destroy(): void {
@@ -356,12 +318,5 @@ export class TileRenderer extends BaseRenderer {
         this.updateTiles(board);
       }
     }
-  }
-  
-  /**
-   * Check if biome visualization mode is active
-   */
-  isBiomeModeActive(): boolean {
-    return this.showBiomeMode;
   }
 } 

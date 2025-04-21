@@ -432,27 +432,6 @@ export function updateBiomeLushness(biomeId: string): void {
   });
 }
 
-/**
- * Process egg production for all biomes
- * Produces eggs in biomes based on their production rate
- */
-export function produceEggs(applyToState: boolean = true): void {
-  const state = useGameStore.getState();
-  const result = EcosystemController.biomeEggProduction(
-    state.turn,
-    state.animals,
-    state.biomes,
-    state.board!
-  );
-  
-  // Apply the changes to the state
-  if (result.animals && result.biomes) {
-    useGameStore.setState({
-      animals: result.animals,
-      biomes: result.biomes
-    });
-  }
-}
 
 // =============================================================================
 // TILE & RESOURCE MANAGEMENT
@@ -578,123 +557,6 @@ export function getResourceTiles(): TileResult[] {
   );
 }
 
-/**
- * Get resource tiles belonging to a specific biome
- * @param biomeId The ID of the biome to retrieve resources for
- */
-export function getResourceTilesForBiome(biomeId: string): TileResult[] {
-  return getTilesByFilter((tile) => 
-    tile.biomeId === biomeId && 
-    tile.active && 
-    tile.resourceType !== null
-  );
-}
-
-/**
- * Select a resource tile at the given coordinates
- */
-export function selectResourceTile(x: number, y: number): boolean {
-  const state = useGameStore.getState();
-  if (!state.board) return false;
-  
-  const tile = state.board.tiles[y][x];
-  
-  // Only allow selecting tiles with active resources
-  if (!tile.active || !tile.resourceType) {
-    return false;
-  }
-  
-  // TODO: Implement resource tile selection logic
-  console.log(`Selected resource tile at (${x}, ${y}) of type ${tile.resourceType} with value ${tile.resourceValue}`);
-  return true;
-}
-
-/**
- * Harvest a specific amount from a resource tile
- * @param x X coordinate of the resource tile
- * @param y Y coordinate of the resource tile
- * @param amount Amount to harvest (0-10)
- * @returns Whether the harvest was successful
- */
-export function harvestResourceTile(x: number, y: number, amount: number): boolean {
-  const state = useGameStore.getState();
-  if (!state.board) return false;
-  
-  const tile = state.board.tiles[y][x];
-  
-  // Can only harvest active resources
-  if (!tile.active || !tile.resourceType) {
-    console.warn(`No active resource at (${x}, ${y})`);
-    return false;
-  }
-  
-  // Validate amount
-  if (amount < 0 || amount > tile.resourceValue) {
-    console.warn(`Invalid harvest amount: ${amount}, resourceValue: ${tile.resourceValue}`);
-    return false;
-  }
-  
-  // Get the biome this tile belongs to
-  const biomeId = tile.biomeId;
-  if (!biomeId) {
-    console.warn(`Tile at (${x}, ${y}) does not belong to a biome`);
-    return false;
-  }
-  
-  // Get the biome
-  const biome = state.biomes.get(biomeId);
-  if (!biome) {
-    console.warn(`Biome ${biomeId} not found`);
-    return false;
-  }
-  
-  // Check if this will deplete the resource
-  const willBeDepleted = (tile.resourceValue - amount) <= 0;
-  
-  // Create updated biome with increased totalHarvested
-  const updatedBiome = {
-    ...biome,
-    totalHarvested: biome.totalHarvested + amount
-  };
-  
-  // If resource will be depleted, decrease nonDepletedCount
-  if (willBeDepleted) {
-    updatedBiome.nonDepletedCount = Math.max(0, biome.nonDepletedCount - 1);
-  }
-  
-  // Update the biome in the map
-  const updatedBiomes = new Map(state.biomes);
-  updatedBiomes.set(biomeId, updatedBiome);
-  
-  // Update the tile's resource value
-  const newValue = tile.resourceValue - amount;
-  const updatedTile = {
-    ...tile,
-    resourceValue: newValue
-  };
-  
-  // If resource is fully depleted, set tile to inactive
-  if (newValue <= 0) {
-    updatedTile.active = false;
-    updatedTile.resourceType = null;
-  }
-  
-  // Create updated board with the modified tile
-  const updatedBoard = { ...state.board };
-  updatedBoard.tiles[y][x] = updatedTile;
-  
-  // Update the state
-  useGameStore.setState({
-    board: updatedBoard,
-    biomes: updatedBiomes
-  });
-  
-  // Recalculate lushness for the biome to reflect the resource change
-  const baseLushness = calculateBiomeLushness(biomeId);
-  updateBiomeLushness(biomeId);
-  
-  return true;
-}
 
 /**
  * Regenerate resources with the current settings
@@ -771,32 +633,11 @@ export function regenerateResources(
   });
 }
 
-/**
- * Regenerate resources based on biome lushness
- * This is a placeholder - will be implemented in Phase 5
- */
-export function regenerateAllResourcesByLushness(): void {
-  const state = useGameStore.getState();
-  
-  if (!state.board) {
-    console.warn("Board not initialized, cannot regenerate resources");
-    return;
-  }
-  
-  // TODO: Implement tile resource regeneration based on biome lushness
-  console.log("Resource regeneration based on lushness not yet implemented");
-}
 
 // =============================================================================
 // EVENTS & TRIGGERS
 // =============================================================================
 
-/**
- * Get information about the current displacement event
- */
-export function getDisplacementEvent(): any {
-  return useGameStore.getState().displacementEvent;
-}
 
 /**
  * Clear the current displacement event
@@ -813,13 +654,6 @@ export function clearDisplacementEvent(): void {
       timestamp: null
     }
   });
-}
-
-/**
- * Get information about the current spawn event
- */
-export function getSpawnEvent(): any {
-  return useGameStore.getState().spawnEvent;
 }
 
 /**
@@ -878,74 +712,6 @@ export function clearBiomeCaptureEvent(): void {
 }
 
 /**
- * Get the total resource count for a biome
- * @param biomeId ID of the biome to get resource count for
- * @returns Total number of resources (active and depleted) in the biome
- */
-export function getBiomeResourceCount(biomeId: string): number {
-  const state = useGameStore.getState();
-  
-  if (!state.board || !state.biomes.has(biomeId)) {
-    return 0;
-  }
-  
-  return state.biomes.get(biomeId)!.initialResourceCount;
-}
-
-/**
- * Get the non-depleted resource count for a biome
- * @param biomeId ID of the biome to get active resource count for
- * @returns Number of non-depleted resources in the biome
- */
-export function getBiomeNonDepletedResourceCount(biomeId: string): number {
-  const state = useGameStore.getState();
-  
-  if (!state.board || !state.biomes.has(biomeId)) {
-    return 0;
-  }
-  
-  // We can either use the cached value in the biome
-  return state.biomes.get(biomeId)!.nonDepletedCount;
-  
-  // Or recalculate it
-  // return EcosystemController.getBiomeNonDepletedResourceCount(biomeId, state.board);
-}
-
-/**
- * Get the total harvested resources for a biome
- * @param biomeId ID of the biome to get harvested resource count for
- * @returns Total amount of resources harvested from the biome
- */
-export function getBiomeTotalHarvested(biomeId: string): number {
-  const state = useGameStore.getState();
-  
-  if (!state.biomes.has(biomeId)) {
-    return 0;
-  }
-  
-  return state.biomes.get(biomeId)!.totalHarvested;
-}
-
-/**
- * Updates the resource counts for all biomes
- * Call this after any changes to resources to ensure counts stay accurate
- */
-export function updateAllBiomeResourceCounts(): void {
-  const state = useGameStore.getState();
-  
-  if (!state.board) {
-    return;
-  }
-  
-  const updatedBiomes = EcosystemController.updateAllBiomeResourceCounts(state.biomes, state.board);
-  
-  // Update the biomes in the store
-  useGameStore.setState({
-    biomes: updatedBiomes
-  });
-}
-
-/**
  * Update multiple tiles' visibility states in a single operation
  * This is much more efficient than calling updateTileVisibility multiple times
  * @param tiles Array of tile positions with visibility states to update
@@ -991,4 +757,51 @@ export function updateTilesVisibility(tiles: { x: number, y: number, visible: bo
     
     return { board: newBoard };
   });
+}
+
+/**
+ * Update a single property of a tile at the given coordinates
+ * @param x X coordinate of the tile
+ * @param y Y coordinate of the tile
+ * @param property Name of the property to update
+ * @param value New value for the property
+ * @param options Optional settings { updateState: boolean } - if false, returns the updated board instead of setting state
+ * @returns Updated board if updateState is false, otherwise void
+ */
+export function updateTileProperty(
+  x: number, 
+  y: number, 
+  property: string, 
+  value: any,
+  options?: { updateState: boolean }
+): Board | void {
+  const state = useGameStore.getState();
+  if (!state.board) return;
+  
+  // Get the current tile
+  const currentTile = state.board.tiles[y]?.[x];
+  if (!currentTile) return;
+  
+  // Create a targeted update of the board, only changing the specific tile
+  const updatedBoard = {
+    ...state.board,
+    tiles: [...state.board.tiles] // Shallow copy of the rows array
+  };
+  
+  // Create a new version of just the row containing our tile
+  updatedBoard.tiles[y] = [...updatedBoard.tiles[y]];
+  
+  // Create a new version of just the specific tile with the updated property
+  updatedBoard.tiles[y][x] = {
+    ...currentTile,
+    [property]: value
+  };
+  
+  // Option to return the updated board instead of setting state
+  if (options && options.updateState === false) {
+    return updatedBoard;
+  }
+  
+  // Default behavior: update the state
+  useGameStore.setState({ board: updatedBoard });
 } 
