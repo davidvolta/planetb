@@ -405,39 +405,6 @@ export function calculateBiomeLushness(biomeId: string): {
 }
 
 /**
- * Update all biomes' lushness values - NEW VERSION
- * This function updates all biomes' lushness with the central calculation
- */
-export function updateAllBiomesLushness(): void {
-  const state = useGameStore.getState();
-  
-  // Create a new map to store updated biomes
-  const updatedBiomes = new Map(state.biomes);
-  
-  // Update each biome individually using the central calculation method
-  updatedBiomes.forEach((biome, biomeId) => {
-    // Calculate new lushness values using our central method
-    const lushnessValues = calculateBiomeLushness(biomeId);
-    
-    // Update the biome with the new values
-    const updatedBiome = {
-      ...biome,
-      baseLushness: lushnessValues.baseLushness,
-      lushnessBoost: lushnessValues.lushnessBoost,
-      totalLushness: lushnessValues.totalLushness
-    };
-    
-    // Store the updated biome
-    updatedBiomes.set(biomeId, updatedBiome);
-  });
-  
-  // Update the biomes in the store
-  useGameStore.setState({
-    biomes: updatedBiomes
-  });
-}
-
-/**
  * Update a biome's lushness values
  * @param biomeId The ID of the biome to update
  */
@@ -459,15 +426,19 @@ export function updateBiomeLushness(biomeId: string): void {
     ...biome,
     baseLushness: lushnessValues.baseLushness,
     lushnessBoost: lushnessValues.lushnessBoost,
-    totalLushness: lushnessValues.totalLushness
+    totalLushness: lushnessValues.totalLushness,
+    eggCount: biome.eggCount
   };
   
-  // Update biome in state
-  const updatedBiomes = new Map(state.biomes);
-  updatedBiomes.set(biomeId, updatedBiome);
+  // Get all biomes
+  const biomes = new Map(state.biomes);
   
+  // Update the biome in the map
+  biomes.set(biomeId, updatedBiome);
+  
+  // Update the biomes in the store
   useGameStore.setState({
-    biomes: updatedBiomes
+    biomes
   });
 }
 
@@ -803,10 +774,6 @@ export function regenerateResources(
     board: { ...updatedBoard },
     biomes: resetBiomes
   });
-  
-  // Update lushness values for all biomes based on the new resource distribution
-  updateAllBiomesLushness();
-  console.log("Updated lushness values for all biomes after resource regeneration");
 }
 
 /**

@@ -11,35 +11,12 @@
   - [ ] Refactor for GameController and lessen the load on BoardScene and Gamestore
 
 
-## Lushness Refactoring Plan
-
-### Phase 3: Integrate Lushness Updates Into Existing Systems
-- [x] Modify egg-related actions to call updateBiomeLushness:
-  - [x] Egg placement
-  - [x] Egg hatching/destruction
-- [x] Modify resource-related actions to call updateBiomeLushness:
-  - [x] Resource creation/generation
-  - [x] Resource depletion/harvesting
-- [x] Add lushness update to biome capture flow
-
-### Phase 4: Cleanup & Testing
-- [ ] Ensure BiomeRenderer correctly handles lushness updates
-- [ ] Test all interaction paths:
-  - [ ] Egg production → lushness boost update
-  - [ ] Resource depletion → base lushness update
-  - [ ] Biome capture → correct lushness display
-  - [ ] Turn progression → stable lushness values
-
-
 ## Ecosystem Integration Plan
 
 ### Phase 5: Create Ecosystem Utilities
 - [ ] Create a new utils file `EcosystemUtils.ts` containing:
   - [ ] The polynomial resource generation formula with fixed coefficient values
   - [ ] Egg production logic based on lushness threshold (≥7.0)
-
-
-- [ ] Create helper functions for common tile-based operations:
   - [ ] Calculate total resource value in a biome
   - [ ] Find blank tiles suitable for egg placement (active=false AND isHabitat=false)
   - [ ] Functions to find all tiles belonging to a specific biome

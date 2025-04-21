@@ -5,7 +5,7 @@ import { generateVoronoiBiomes } from "../utils/BiomeGenerator";
 import { VoronoiNode, isNodeOverlapping } from "../utils/BiomeGenerator";
 import { devtools } from 'zustand/middleware';
 import { EcosystemController } from "../controllers/EcosystemController";
-import { updateAllBiomesLushness, updateBiomeLushness } from "./actions";
+import { updateBiomeLushness } from "./actions";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -320,7 +320,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   } as GameState['biomeCaptureEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
-
     const result = EcosystemController.biomeEggProduction(
       state.turn,
       state.animals,
@@ -342,9 +341,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       // Set the biomes to our updated ones from egg production
       useGameStore.setState({ biomes: updatedBiomes });
-      
-      // Call the action to update all biomes' lushness
-      updateAllBiomesLushness();
       
       // Get the updated biomes with new lushness values
       updatedBiomes = useGameStore.getState().biomes;
@@ -639,9 +635,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         biomes.set(biomeId, {
           id: biomeId,
           color,
-          baseLushness: 3.5, // Initialize baseLushness to the "stable" value
+          baseLushness: 0, // Initialize baseLushness to the "stable" value
           lushnessBoost: 1.2, // Initialize lushnessBoost to 0.0
-          totalLushness: 4.5, // Initialize totalLushness to the "stable" value
+          totalLushness: 0, // Initialize totalLushness to the "stable" value
           initialResourceCount: 0, // Initialize initialResourceCount to 0
           nonDepletedCount: 0, // Initialize nonDepletedCount to 0
           totalHarvested: 0, // Initialize totalHarvested to 0
@@ -884,13 +880,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       // If the egg is in a biome, decrement that biome's egg count
       if (biomeId) {
         const biome = updatedBiomes.get(biomeId);
+        
         if (biome && biome.eggCount > 0) {
           // Decrement egg count
+          const newEggCount = biome.eggCount - 1;
           updatedBiomes.set(biomeId, {
             ...biome,
-            eggCount: biome.eggCount - 1
+            eggCount: newEggCount
           });
-          console.log(`Decremented egg count for biome ${biomeId} to ${biome.eggCount - 1}`);
           
           // Call updateBiomeLushness to update the lushness values for this biome
           // First, create a temporary state with our updated values so that updateBiomeLushness works correctly
@@ -917,8 +914,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             ...prevState,
             biomes: updatedBiomes
           });
-          
-          console.log(`Updated lushness for biome ${biomeId} after egg evolution`);
         }
       }
       
@@ -930,11 +925,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       );
       
       const evolvedAnimal = updatedAnimals.find(a => a.id === id);
-      console.log(`Evolving animal:`, { 
-        id, 
-        type: evolvedAnimal?.species, 
-        newState: AnimalState.ACTIVE 
-      });
       
       return { 
         animals: updatedAnimals,
@@ -1114,7 +1104,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                 ...biome,
                 eggCount: biome.eggCount - 1
               });
-              console.log(`Decremented egg count for biome ${biomeId} to ${biome.eggCount - 1}`);
               
               // Call updateBiomeLushness to update the lushness values for this biome
               // First, create a temporary state with our updated values
@@ -1141,8 +1130,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                 ...prevState,
                 biomes: updatedBiomes
               });
-              
-              console.log(`Updated lushness for biome ${biomeId} after egg removal`);
             }
             
             return {
