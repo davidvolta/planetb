@@ -117,16 +117,6 @@ export function evolveAnimal(id: string): void {
 }
 
 /**
- * Remove an animal from the game
- * If it's an egg (dormant animal), this will also update the board's hasEgg property
- * and update the biome's eggCount and lushnessBoost if applicable
- * @param id The ID of the animal to remove
- */
-export function removeAnimal(id: string): void {
-  useGameStore.getState().removeAnimal(id);
-}
-
-/**
  * Get the currently selected unit ID
  */
 export function getSelectedUnitId(): string | null {
@@ -773,6 +763,11 @@ export function regenerateResources(
   useGameStore.setState({
     board: { ...updatedBoard },
     biomes: resetBiomes
+  });
+  
+  // Update lushness for all biomes based on their new resource states
+  resetBiomes.forEach((biome, biomeId) => {
+    updateBiomeLushness(biomeId);
   });
 }
 

@@ -273,7 +273,6 @@ export interface GameState {
   moveUnit: (id: string, x: number, y: number) => void;
   getValidMoves: (id: string) => ValidMove[];
   selectBiome: (id: string | null) => void;
-  removeAnimal: (id: string) => void; // Add new removeAnimal function
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -1054,96 +1053,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
     return { animals: updatedAnimals };
   }),
-
-  removeAnimal: (id: string) => 
-    set((state) => {
-      // Find the animal to remove
-      const animalToRemove = state.animals.find(a => a.id === id);
-      if (!animalToRemove) {
-        console.warn(`Cannot remove animal ${id}: not found`);
-        return state;
-      }
-      
-      console.log(`Removing animal ${id} (${animalToRemove.species}) from position (${animalToRemove.position.x}, ${animalToRemove.position.y})`);
-      
-      // Copy the animals array without the animal we're removing
-      const updatedAnimals = state.animals.filter(a => a.id !== id);
-      
-      // If this is a dormant animal (egg), update the tile's hasEgg property
-      let updatedBoard = state.board;
-      if (animalToRemove.state === AnimalState.DORMANT && updatedBoard) {
-        const eggPosition = animalToRemove.position;
-        
-        // Update the board to mark the tile as no longer having an egg
-        updatedBoard = {
-          ...updatedBoard,
-          tiles: updatedBoard.tiles.map((row, y) => {
-            if (y === eggPosition.y) {
-              return row.map((tile, x) => {
-                if (x === eggPosition.x) {
-                  return { ...tile, hasEgg: false };
-                }
-                return tile;
-              });
-            }
-            return [...row];
-          })
-        };
-        
-        // Find the biome associated with the egg's position and update its egg count
-        if (updatedBoard.tiles[eggPosition.y][eggPosition.x].biomeId) {
-          const biomeId = updatedBoard.tiles[eggPosition.y][eggPosition.x].biomeId;
-          let updatedBiomes = new Map(state.biomes);
-          
-          // If the egg is in a biome, decrement that biome's egg count
-          if (biomeId) {
-            const biome = updatedBiomes.get(biomeId);
-            if (biome && biome.eggCount > 0) {
-              // Decrement egg count
-              updatedBiomes.set(biomeId, {
-                ...biome,
-                eggCount: biome.eggCount - 1
-              });
-              
-              // Call updateBiomeLushness to update the lushness values for this biome
-              // First, create a temporary state with our updated values
-              const tempUpdatedState = {
-                ...state,
-                board: updatedBoard,
-                biomes: updatedBiomes
-              };
-              
-              // Store the current state
-              const prevState = useGameStore.getState();
-              
-              // Set our temporary state
-              useGameStore.setState(tempUpdatedState);
-              
-              // Call updateBiomeLushness
-              updateBiomeLushness(biomeId);
-              
-              // Get the updated biomes with new lushness values
-              updatedBiomes = useGameStore.getState().biomes;
-              
-              // Restore previous state except for our updated biomes
-              useGameStore.setState({
-                ...prevState,
-                biomes: updatedBiomes
-              });
-            }
-            
-            return {
-              animals: updatedAnimals,
-              board: updatedBoard,
-              biomes: updatedBiomes
-            };
-          }
-        }
-      }
-      
-      // If it wasn't a dormant animal or wasn't in a biome, just return the updated animals
-      return { animals: updatedAnimals };
-    }),
 }));
 
 // Helper function to find valid adjacent tiles for displacement
