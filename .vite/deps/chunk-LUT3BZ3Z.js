@@ -1146,8 +1146,8 @@ var createStoreImpl = (createState) => {
 var createStore = (createState) => createState ? createStoreImpl(createState) : createStoreImpl;
 
 export {
-  require_react,
-  createStore
+  createStore,
+  require_react
 };
 /*! Bundled license information:
 
@@ -1162,4 +1162,4 @@ react/cjs/react.development.js:
    * LICENSE file in the root directory of this source tree.
    *)
 */
-//# sourceMappingURL=chunk-Y5F3ZA2B.js.map
+//# sourceMappingURL=chunk-LUT3BZ3Z.js.map
