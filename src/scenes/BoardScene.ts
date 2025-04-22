@@ -256,7 +256,7 @@ export default class BoardScene extends Phaser.Scene {
     const resourceTiles = actions.getResourceTiles();
     if (resourceTiles.length === 0) {
       console.log("Initial resource generation");
-      this.regenerateResources();
+      this.resetResources();
     }
     
     // Visualize blank tiles by default
@@ -943,20 +943,20 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Public method to regenerate resources with current settings
-  public regenerateResources(): void {
+  // Public method to reset resources with current settings
+  public resetResources(): void {
     
     // Get the current board data
     const board = actions.getBoard();
     if (!board) {
-      console.warn("Cannot regenerate resources: No board data available");
+      console.warn("Cannot reset resources: No board data available");
       return;
     }
     
     // Get all biomes for per-biome resource distribution
     const biomes = actions.getBiomes();
     if (!biomes || biomes.size === 0) {
-      console.warn("Cannot regenerate resources: No biomes available");
+      console.warn("Cannot reset resources: No biomes available");
       return;
     }
     
@@ -973,12 +973,12 @@ export default class BoardScene extends Phaser.Scene {
     this.resourceRenderer.clearResources();
     this.resourceRenderer.clearBlankTileMarkers();
     
-    // Call the regenerate action to update the game state
-    actions.regenerateResources(board.width, board.height, terrainData);
+    // Call the reset action to update the game state
+    actions.resetResources(board.width, board.height, terrainData);
     
     // Fetch the updated resource tiles using the tile interface
     const resourceTiles = actions.getResourceTiles();
-    console.log(`Regenerated ${resourceTiles.length} resource tiles`);
+    console.log(`Reset ${resourceTiles.length} resource tiles`);
     
     // Render the updated resource tiles
     this.resourceRenderer.renderResourceTiles(resourceTiles.map(({ tile, x, y }) => ({ tile, x, y })));

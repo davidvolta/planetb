@@ -559,9 +559,9 @@ export function getResourceTiles(): TileResult[] {
 
 
 /**
- * Regenerate resources with the current settings
+ * Reset resources with the current settings
  */
-export function regenerateResources(
+export function resetResources(
   width: number, 
   height: number, 
   terrainData: TerrainType[][]
@@ -569,7 +569,7 @@ export function regenerateResources(
   const state = useGameStore.getState();
   
   if (!state.board) {
-    console.warn("Board not initialized, cannot regenerate resources");
+    console.warn("Board not initialized, cannot reset resources");
     return;
   }
   
@@ -613,7 +613,7 @@ export function regenerateResources(
   
   // Generate resources by setting tile properties directly
   // This will also update initialResourceCount and nonDepletedCount
-  EcosystemController.regenerateResources(
+  EcosystemController.resetResources(
     width,
     height,
     terrainData,

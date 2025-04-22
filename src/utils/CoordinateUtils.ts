@@ -122,29 +122,6 @@ export function createIsoDiamondPoints(
   ];
 }
 
-// Validates that coordinate conversions work bidirectionally
-export function validateCoordinateConversion(
-  gridX: number,
-  gridY: number,
-  tileSize: number,
-  tileHeight: number,
-  anchorX: number,
-  anchorY: number
-): { isValid: boolean, original: { x: number, y: number }, world: { x: number, y: number }, converted: { x: number, y: number } } {
-  const original = { x: gridX, y: gridY };
-  
-  const world = gridToWorld(gridX, gridY, tileSize, tileHeight, anchorX, anchorY);   // Convert to world coordinates
-  const converted = screenToGrid(world.x, world.y, tileSize, tileHeight, anchorX, anchorY);   // Convert back to grid coordinates
-  const isValid = original.x === converted.x && original.y === converted.y;   // Check if the conversion is valid
-  
-  return {
-    isValid,
-    original,
-    world,
-    converted
-  };
-}
-
 //Remove duplicate coordinate objects from an array
 export function removeDuplicateTiles(tiles: { x: number, y: number }[]): { x: number, y: number }[] {
   const uniqueKeys = new Set<string>();

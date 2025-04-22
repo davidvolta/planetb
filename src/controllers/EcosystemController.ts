@@ -28,8 +28,8 @@ interface BiomeProductionResult {
  */
 export class EcosystemController {
   /**
-   * Generate resources for the game board
-   * This creates resources on eligible tiles based on terrain type and resource density
+   * Reset and regenerate resources for the game board
+   * This clears all existing resources and creates new ones based on terrain type and resource density
    * 
    * @param width Board width
    * @param height Board height
@@ -37,7 +37,7 @@ export class EcosystemController {
    * @param board The current game board
    * @param biomes Map of all biomes
    */
-  public static regenerateResources(
+  public static resetResources(
     width: number, 
     height: number, 
     terrainData: TerrainType[][],
@@ -45,13 +45,13 @@ export class EcosystemController {
     biomes: Map<string, Biome>
   ): void {
     if (!board) {
-      console.warn("Board not initialized, cannot regenerate resources");
+      console.warn("Board not initialized, cannot reset resources");
       return;
     }
     
     // Define resource chance (percentage of eligible tiles that should have resources)
     const resourceChance = GameConfig.resourceGenerationPercentage;
-    console.log(`Regenerating resources with ${resourceChance * 100}% density per biome`);
+    console.log(`Resetting resources with ${resourceChance * 100}% density per biome`);
     
     // Track total resources generated
     let totalResourcesGenerated = 0;

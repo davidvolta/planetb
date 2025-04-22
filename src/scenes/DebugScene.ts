@@ -149,7 +149,7 @@ export default class DebugScene extends Phaser.Scene {
     let percentage = Math.max(0, Math.min(1, x / trackWidth));
     this.updateSliderUI(percentage);
     
-    // Update the resource percentage and regenerate resources
+    // Update the resource percentage and reset resources
     this.updateResourcePercentage(percentage);
   }
   
@@ -170,7 +170,7 @@ export default class DebugScene extends Phaser.Scene {
     let percentage = Math.max(0, Math.min(1, x / trackWidth));
     this.updateSliderUI(percentage);
     
-    // Update the resource percentage and regenerate resources
+    // Update the resource percentage and reset resources
     this.updateResourcePercentage(percentage);
   }
   
@@ -193,14 +193,14 @@ export default class DebugScene extends Phaser.Scene {
     this.resourcePercentage = percentage;
   }
   
-  // Update the resource percentage and regenerate resources
+  // Update the resource percentage and reset resources
   private updateResourcePercentage(percentage: number): void {
     // Set the resource percentage in GameConfig
     GameConfig.setResourcePercentage(percentage);
     
-    // Regenerate resources if board scene exists
-    if (this.boardScene && typeof this.boardScene.regenerateResources === 'function') {
-      this.boardScene.regenerateResources();
+    // Reset resources if board scene exists
+    if (this.boardScene && typeof this.boardScene.resetResources === 'function') {
+      this.boardScene.resetResources();
     }
   }
 

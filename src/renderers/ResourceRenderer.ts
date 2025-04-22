@@ -300,22 +300,6 @@ export class ResourceRenderer extends BaseRenderer {
   }
   
   /**
-   * Clear any inactive resource markers
-   * @deprecated This method is kept for backward compatibility
-   */
-  clearInactiveResourceMarkers(): void {
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (!staticObjectsLayer) return;
-    
-    staticObjectsLayer.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Graphics && 
-          child.getData('inactiveResourceMarker')) {
-        child.destroy();
-      }
-    });
-  }
-  
-  /**
    * Clear all resources
    */
   clearResources(): void {
