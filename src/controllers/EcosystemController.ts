@@ -1,5 +1,5 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
-import { getEggPlacementTiles, TileResult, updateBiomeLushness } from "../store/actions";
+import { getEggPlacementTiles, TileResult, updateBiomeLushness, getTilesForBiome } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/ecosystemConstants";
 import { useGameStore } from "../store/gameStore";
 
@@ -396,8 +396,33 @@ export class EcosystemController {
   }
 
   /**
-   * Calculates the lushness for a specific biome based on its resource state
-   * 
+   * Calculate the percentage of blank tiles in a biome that have eggs
+   * @param biomeId ID of the biome to calculate for
+   * @param board The game board
+   * @param biome The biome object with up-to-date eggCount
+   * @returns Percentage (0-1) of blank tiles that have eggs
+   */
+  private static calculateEggPercentage(biomeId: string, board: Board, biome: Biome): number {
+    // Get all tiles in this biome and filter for blank tiles (not active, not habitat)
+    const biomeTiles = getTilesForBiome(biomeId);
+    const blankTiles = biomeTiles.filter(tileResult => 
+      !tileResult.tile.active && !tileResult.tile.isHabitat
+    );
+    
+    // If no blank tiles, return 0
+    if (blankTiles.length === 0) {
+      return 0;
+    }
+    
+    // Use the biome's eggCount which is kept in sync with state changes
+    const eggCount = biome.eggCount;
+    
+    // Calculate and return percentage
+    return eggCount / blankTiles.length;
+  }
+
+  /**
+   * Calculate lushness for a biome, returning all lushness values
    * @param biomeId ID of the biome to calculate lushness for
    * @param biomes Map of all biomes
    * @returns Object containing baseLushness, lushnessBoost, and totalLushness
@@ -460,7 +485,8 @@ export class EcosystemController {
     }
 
     // Calculate lushnessBoost based on egg percentage
-    const eggPercentage = this.calculateEggPercentage(biomeId, state.board);
+    // Pass the biome object to use its eggCount directly
+    const eggPercentage = this.calculateEggPercentage(biomeId, state.board, biome);
     const lushnessBoost = this.calculateLushnessBoost(eggPercentage);
     
     // Calculate total lushness (base + boost)
@@ -471,43 +497,6 @@ export class EcosystemController {
       lushnessBoost,
       totalLushness
     };
-  }
-
-  /**
-   * Calculate the percentage of blank tiles in a biome that have eggs
-   * @param biomeId ID of the biome to calculate for
-   * @param board The game board
-   * @returns Percentage (0-1) of blank tiles that have eggs
-   */
-  private static calculateEggPercentage(biomeId: string, board: Board): number {
-    let blankTileCount = 0;
-    let eggCount = 0;
-    
-    // Scan board to count blank tiles and eggs in this biome
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        const tile = board.tiles[y][x];
-        // Only count tiles in this biome
-        if (tile.biomeId === biomeId) {
-          // Count blank tiles (not active, not habitat)
-          if (!tile.active && !tile.isHabitat) {
-            blankTileCount++;
-            // Count eggs on blank tiles
-            if (tile.hasEgg) {
-              eggCount++;
-            }
-          }
-        }
-      }
-    }
-    
-    // If no blank tiles, return 0
-    if (blankTileCount === 0) {
-      return 0;
-    }
-    
-    // Calculate and return percentage
-    return eggCount / blankTileCount;
   }
 
   /**
