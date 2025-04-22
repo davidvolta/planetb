@@ -505,7 +505,7 @@ export class EcosystemController {
    * @returns Lushness boost value (0-MAX_LUSHNESS_BOOST)
    */
   private static calculateLushnessBoost(eggPercentage: number): number {
-    // Linear boost formula: percentage * 4, capped at MAX_LUSHNESS_BOOST
-    return Math.min(MAX_LUSHNESS_BOOST, eggPercentage * 4.0);
+    // Linear boost formula: percentage * 2, capped at MAX_LUSHNESS_BOOST
+    return Math.min(2.0, eggPercentage * 2.0);
   }
 }
