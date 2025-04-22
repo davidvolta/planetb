@@ -183,6 +183,7 @@ interface Player {
   name: string;
   color: string;
   isActive: boolean;
+  energy: number; // Amount of resources collected by this player
 }
 
 // Animal states
@@ -236,6 +237,8 @@ export interface GameState {
   
   // Selection state
   selectedBiomeId: string | null; // ID of the currently selected biome
+  selectedResource: Coordinate | null; // Currently selected resource tile
+  selectResource: (coord: Coordinate | null) => void;
   
   // Displacement tracking (for animation and UI feedback)
   displacementEvent: {
@@ -292,6 +295,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   
   // Initialize selection state
   selectedBiomeId: null,
+  selectedResource: null,
+  selectResource: (coord) => set({ selectedResource: coord }),
   
   // Initialize displacement event with default values
   displacementEvent: {
@@ -395,6 +400,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         name,
         color,
         isActive: state.players.length === 0, // First player starts active
+        energy: 0
       };
       return { players: [...state.players, newPlayer] };
     }),

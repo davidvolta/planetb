@@ -279,6 +279,9 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
+    // Clear previous resource selection
+    actions.selectResourceTile(null);
+
     // Get contents at this location
     const contents = this.checkTileContents(gridX, gridY);
     
@@ -385,31 +388,43 @@ export default class BoardScene extends Phaser.Scene {
       // This allows the double-click behavior to work
       if (hasSelectableUnit) {
         const unit = contents.activeUnits[0]; // Use the first active unit
+        // Skip selection if the unit has already moved this turn
+        if (unit.hasMoved) {
+          console.log(`Unit ${unit.id} has already moved this turn and cannot be selected`);
+          return;
+        }
+        // Select the active unit
         this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
         return;
       }
     }
     
-    // Only handle active unit selection if none of the above actions were taken
-    // and if the unit hasn't moved
+    // Only handle active unit selection if none of the above actions were taken and unit hasn't moved
     if (hasActiveUnit) {
-      const unit = contents.activeUnits[0]; // Just use the first one for now
-      
-      // Skip selection if the unit has already moved this turn
+      const unit = contents.activeUnits[0];
+      // Skip selection if the unit has already moved
       if (unit.hasMoved) {
         console.log(`Unit ${unit.id} has already moved this turn and cannot be selected`);
         return;
       }
-      
+      // Select the active unit
       this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
-      
       return;
     }
     
-    // If we clicked on an empty tile, deselect any selected unit
-    this.handleUnitSelection(null);
+    // Check for clicking a resource tile
+    const resourceBoard = actions.getBoard();
+    if (resourceBoard) {
+      const resourceTile = resourceBoard.tiles[gridY][gridX];
+      if (resourceTile.active && resourceTile.resourceType !== null) {
+        actions.selectResourceTile({ x: gridX, y: gridY });
+        this.selectionRenderer.showSelectionAt(gridX, gridY);
+        return;
+      }
+    }
     
-    // Deselect any selected biome
+    // If we clicked on an empty or non-resource tile, deselect any selected unit and biome
+    this.handleUnitSelection(null);
     actions.selectBiome(null);
     
     // Hide valid moves - clear the move highlights

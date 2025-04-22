@@ -11,6 +11,8 @@ export default class UIScene extends Phaser.Scene {
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private selectedUnitId: string | null = null;
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
+  private harvestButton: Phaser.GameObjects.Container | null = null;
+  private energyText: Phaser.GameObjects.Text | null = null;
   
   // Biome info panel properties
   private biomeInfoPanel: Phaser.GameObjects.Container | null = null;
@@ -62,6 +64,16 @@ export default class UIScene extends Phaser.Scene {
           this.updateBackgroundSize();
         }
       }
+    );
+
+    // Subscribe to energy updates (no immediate initial callback)
+    StateObserver.subscribe(
+      'ui-energy',
+      (state: GameState) => ({ energy: state.players[state.currentPlayerId]?.energy ?? 0 }),
+      (data) => {
+        this.energyText?.setText(`Energy: ${data.energy}`);
+      },
+      { immediate: false }
     );
 
     // Subscribe to biome selection changes for info panel
@@ -138,6 +150,10 @@ export default class UIScene extends Phaser.Scene {
     
     // Create biome info panel (initially hidden)
     this.createBiomeInfoPanel();
+    
+    // Create energy display and harvest button
+    this.createEnergyText();
+    this.createHarvestButton();
     
     // Update background size and position buttons correctly
     this.updateBackgroundSize();
@@ -238,6 +254,35 @@ export default class UIScene extends Phaser.Scene {
     this.container?.add(this.captureBiomeButton);
   }
 
+  createEnergyText() {
+    this.energyText = this.add.text(100, 40, 'Energy: 0', {
+      fontFamily: 'Raleway',
+      fontSize: '16px',
+      color: '#FFFFFF'
+    });
+    this.energyText.setOrigin(0.5, 0);
+    this.container?.add(this.energyText);
+  }
+
+  createHarvestButton() {
+    this.harvestButton = this.add.container(0, 0);
+    const bg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
+    bg.setOrigin(0);
+    bg.setInteractive({ useHandCursor: true })
+      .on('pointerdown', this.handleHarvest, this)
+      .on('pointerover', () => bg.setFillStyle(0xA0A0A0))
+      .on('pointerout', () => bg.setFillStyle(0x808080));
+    const text = this.add.text(75, 20, 'Harvest', {
+      fontFamily: 'Raleway',
+      fontSize: '16px',
+      color: '#FFFFFF'
+    });
+    text.setOrigin(0.5);
+    this.harvestButton.add(bg);
+    this.harvestButton.add(text);
+    this.container?.add(this.harvestButton);
+  }
+
   handleNextTurn() {
     const nextTurn = actions.getNextTurn();
     nextTurn();
@@ -264,6 +309,10 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
+  handleHarvest() {
+    actions.harvestTileResource(1);
+  }
+
   updateBackgroundSize() {
     if (this.background) {
       // Start with a base height
@@ -278,9 +327,22 @@ export default class UIScene extends Phaser.Scene {
         this.spawnButton.setPosition(25, 110);
       }
       
+      // Position harvest button below action buttons
+      if (this.harvestButton) {
+        const hasButtons = (this.spawnButton && this.spawnButton.visible) ||
+                           (this.captureBiomeButton && this.captureBiomeButton.visible);
+        const yPos = hasButtons ? 160 : 110;
+        this.harvestButton.setPosition(25, yPos);
+      }
+      
       // Add height for one button if either is visible
       if ((this.spawnButton && this.spawnButton.visible) || 
           (this.captureBiomeButton && this.captureBiomeButton.visible)) {
+        height += 50;
+      }
+      
+      // Add height for harvest button row
+      if (this.harvestButton) {
         height += 50;
       }
       
@@ -317,6 +379,7 @@ export default class UIScene extends Phaser.Scene {
     // Clean up subscriptions
     StateObserver.unsubscribe('ui-turn');
     StateObserver.unsubscribe('ui-biome-info');
+    StateObserver.unsubscribe('ui-energy');
     
     // Clean up resize listener
     this.scale.off('resize', this.resizeUI, this);
@@ -338,6 +401,16 @@ export default class UIScene extends Phaser.Scene {
     if (this.captureBiomeButton) {
       this.captureBiomeButton.destroy();
       this.captureBiomeButton = null;
+    }
+    
+    if (this.harvestButton) {
+      this.harvestButton.destroy();
+      this.harvestButton = null;
+    }
+    
+    if (this.energyText) {
+      this.energyText.destroy();
+      this.energyText = null;
     }
     
     // Clean up biome info panel

@@ -1,6 +1,6 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
 import { getEggPlacementTiles, TileResult, updateBiomeLushness, getTilesForBiome } from "../store/actions";
-import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/ecosystemConstants";
+import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/gameConfig";
 import { useGameStore } from "../store/gameStore";
 
 /**
