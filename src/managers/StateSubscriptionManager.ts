@@ -24,7 +24,6 @@ interface IAnimalRenderer {
 interface IBiomeRenderer {
   renderBiomes(biomes: Biome[]): void;
   updateBiomeOwnership(biomeId: string): void;
-  updateBiomeTotalLushness(biomeId: string, newValue: number): void;
 }
 
 // Interface for a component that can render move ranges
@@ -159,33 +158,23 @@ export class StateSubscriptionManager {
   
   // Set up subscriptions related to the game board
   private setupBoardSubscriptions(): void {
-    // Keep track of previous board state to compare
-    let previousBoardHash = ''; // this is a hack and one day you'll need to fix board state updates for real      
     
     // Subscribe to board changes
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.BOARD,
       (state) => state.board,
-      (board) => {
-        if (board) {
-          // Create a simple hash representing the essential board properties
-          // We only care about dimensions and tiles, not unit positions
-          const currentBoardHash = `${board.width}-${board.height}`;
-          
-          // Only recreate board if this is the first time or if essential properties changed
-          if (previousBoardHash !== currentBoardHash) {
-            console.log("Board dimensions changed, recreating tiles");
-            // Update board using tile renderer
-            this.tileRenderer.createBoardTiles(board);
-            // Update the hash
-            previousBoardHash = currentBoardHash;
-          } else {
-            // Board dimensions haven't changed, skip recreation
-            console.log("Skipping board recreation - only unit positions changed");
-          }
+      (board, previousBoard) => {
+        if (!board) return;
+        
+        // Only create board tiles on initial render
+        if (!previousBoard) {
+          this.tileRenderer.createBoardTiles(board);
         }
       },
-      { immediate: false, debug: false } // Changed from true to false to prevent duplicate creation
+      { 
+        immediate: true, // Render immediately on subscription to handle initial state
+        debug: false 
+      }
     );
   }
   
@@ -214,24 +203,47 @@ export class StateSubscriptionManager {
       (biomes, previousBiomes) => {
         if (!biomes) return;
         
-        // First render: do a full render of all biomes
+        // Check if this is the first render (previous state is undefined)
         if (!previousBiomes) {
+          // Initial render - render all biomes at once
           const biomesArray = Array.from(biomes.values());
+          console.log(`Initial render of ${biomesArray.length} biomes`);
           this.biomeRenderer.renderBiomes(biomesArray);
-          return;
-        }
-        
-        // Update mode: check for biomes with changed lushness
-        biomes.forEach((biome, biomeId) => {
-          const previousBiome = previousBiomes.get(biomeId);
-          
-          // If lushness changed, update just that biome's lushness display
-          if (previousBiome && biome.totalLushness !== previousBiome.totalLushness) {
-            this.biomeRenderer.updateBiomeTotalLushness(biomeId, biome.totalLushness);
+        } else {
+          // Subsequent update - find which biomes have lushness changes and only update those
+          for (const [id, biome] of biomes.entries()) {
+            const prevBiome = previousBiomes.get(id);
+            if (prevBiome && biome.totalLushness !== prevBiome.totalLushness) {
+              // Only update individual biomes that changed
+              this.biomeRenderer.updateBiomeOwnership(id);
+              console.log(`Updated biome ${id} for lushness change: ${prevBiome.totalLushness} → ${biome.totalLushness}`);
+            }
           }
-        });
+        }
       },
-      { immediate: true, debug: false } // Set immediate: true to render on subscription
+      { 
+        immediate: true, // Use immediate:true to handle initial rendering here
+        debug: false,
+        // Custom equality function that focuses on lushness changes
+        equalityFn: (a, b) => {
+          if (!(a instanceof Map) || !(b instanceof Map)) return a === b;
+          if (a.size !== b.size) return false;
+          
+          // Compare each biome's totalLushness value
+          for (const [id, biomeA] of a.entries()) {
+            const biomeB = b.get(id);
+            // If biome doesn't exist in both maps or lushness changed
+            if (!biomeB || biomeA.totalLushness !== biomeB.totalLushness) {
+              // Log the change for debugging
+              if (biomeB) {
+                console.log(`Lushness change detected for biome ${id}: ${biomeB.totalLushness} → ${biomeA.totalLushness}`);
+              }
+              return false; // Trigger update
+            }
+          }
+          return true; // No lushness changes, don't update
+        }
+      }
     );
   }
   
@@ -241,19 +253,31 @@ export class StateSubscriptionManager {
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.RESOURCE_TILES,
       (state) => {
-        // If the board isn't initialized yet, return null
         if (!state.board) return null;
         
-        // Return an object containing ONLY the properties we care about
-        return {
-          // Create a hash of resource tiles that ignores unit positions and visibility
-          resourceHash: this.calculateResourceHash(state.board)
-        };
+        // Extract only the resource-related data from tiles
+        const resourceData = [];
+        for (let y = 0; y < state.board.height; y++) {
+          for (let x = 0; x < state.board.width; x++) {
+            const tile = state.board.tiles[y][x];
+            if (tile.resourceType || tile.active || tile.resourceValue > 0) {
+              resourceData.push({
+                x, 
+                y, 
+                resourceType: tile.resourceType,
+                resourceValue: tile.resourceValue,
+                active: tile.active
+              });
+            }
+          }
+        }
+        return resourceData;
       },
-      (resourceState, prevResourceState) => {
-        // Only update if this is the first time or if resources actually changed
-        if (resourceState && (!prevResourceState || resourceState.resourceHash !== prevResourceState.resourceHash)) {
-          // Get resource tiles and render them
+      (resourceData, prevResourceData) => {
+        // Only update on initial render or when resources actually change
+        if (!resourceData) return;
+        
+        if (!prevResourceData || this.hasResourceChanges(resourceData, prevResourceData)) {
           const resourceTiles = actions.getResourceTiles();
           if (this.resourceRenderer) {
             this.resourceRenderer.renderResourceTiles(resourceTiles);
@@ -264,23 +288,35 @@ export class StateSubscriptionManager {
     );
   }
   
-  // Helper method to calculate a hash that only considers resource properties
-  private calculateResourceHash(board: Board): string {
-    // Create a hash that only considers resource properties, not positions or visibility
-    let hash = '';
+  // Helper method to detect meaningful resource changes
+  private hasResourceChanges(currentResources: any[], previousResources: any[]): boolean {
+    // Quick check for different number of resources
+    if (currentResources.length !== previousResources.length) {
+      return true;
+    }
     
-    // Loop through the board once to build a string representing just resource states
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        const tile = board.tiles[y][x];
-        // Only include resource-related properties in the hash
-        if (tile.resourceType || tile.active || tile.resourceValue > 0) {
-          hash += `${x},${y}:${tile.resourceType || 'none'}:${tile.resourceValue}:${tile.active ? 1 : 0};`;
-        }
+    // Create maps for quick lookup
+    const previousMap = new Map();
+    for (const resource of previousResources) {
+      const key = `${resource.x},${resource.y}`;
+      previousMap.set(key, resource);
+    }
+    
+    // Check for any changes in resource properties
+    for (const resource of currentResources) {
+      const key = `${resource.x},${resource.y}`;
+      const prevResource = previousMap.get(key);
+      
+      // If resource doesn't exist in previous data or has different properties
+      if (!prevResource || 
+          resource.resourceType !== prevResource.resourceType ||
+          resource.resourceValue !== prevResource.resourceValue || 
+          resource.active !== prevResource.active) {
+        return true;
       }
     }
     
-    return hash;
+    return false;
   }
   
   // Set up subscriptions related to user interactions and gameplay events

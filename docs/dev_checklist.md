@@ -3,18 +3,8 @@
 ## Ecosystem Integration Plan
 
 ### Phase 4:  Production with Biome-Based Ecosystem
-- [ ] Produce dormant animal units (eggs) on blank tiles based on lushness thresholds
-- [ ] Keep existing system where eggs are represented as dormant animal units
-- [ ] Connect this to the existing evolveAnimal function for converting eggs to active animals
+- [ ] Eggs = lushnessboost
 
-### Phase 5: Create Ecosystem Utilities
-- [ ] Create a new utils file `EcosystemUtils.ts` containing:
-  - [ ] The polynomial resource generation formula with fixed coefficient values
-  - [ ] Egg production logic based on lushness threshold (≥7.0)
-  - [ ] Calculate total resource value in a biome
-  - [ ] Find blank tiles suitable for egg placement (active=false AND isHabitat=false)
-  - [ ] Functions to find all tiles belonging to a specific biome
-  
 ### Phase 6: Implement Harvesting System
 - [ ] Create new action functions in actions.ts:
       - Selecting a tile with resources (double click behavior for units/eggs)
@@ -37,6 +27,7 @@
   - [ ] Update the biome's lushness based on the new tile state
 
 - [ ] Implement resource regeneration based on biome lushness
+  - [ ] Helper function for the polynomial resource generation formula with fixed coefficient values
 
 
 ### Phase 7: Refactor Simulator to Use Shared Code

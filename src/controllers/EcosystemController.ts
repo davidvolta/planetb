@@ -459,8 +459,9 @@ export class EcosystemController {
       baseLushness = resourceRatio * MAX_LUSHNESS;
     }
 
-    // Get the current lushness boost from the biome
-    const lushnessBoost = biome.lushnessBoost;
+    // Calculate lushnessBoost based on egg percentage
+    const eggPercentage = this.calculateEggPercentage(biomeId, state.board);
+    const lushnessBoost = this.calculateLushnessBoost(eggPercentage);
     
     // Calculate total lushness (base + boost)
     const totalLushness = baseLushness + lushnessBoost;
@@ -472,4 +473,50 @@ export class EcosystemController {
     };
   }
 
+  /**
+   * Calculate the percentage of blank tiles in a biome that have eggs
+   * @param biomeId ID of the biome to calculate for
+   * @param board The game board
+   * @returns Percentage (0-1) of blank tiles that have eggs
+   */
+  private static calculateEggPercentage(biomeId: string, board: Board): number {
+    let blankTileCount = 0;
+    let eggCount = 0;
+    
+    // Scan board to count blank tiles and eggs in this biome
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        // Only count tiles in this biome
+        if (tile.biomeId === biomeId) {
+          // Count blank tiles (not active, not habitat)
+          if (!tile.active && !tile.isHabitat) {
+            blankTileCount++;
+            // Count eggs on blank tiles
+            if (tile.hasEgg) {
+              eggCount++;
+            }
+          }
+        }
+      }
+    }
+    
+    // If no blank tiles, return 0
+    if (blankTileCount === 0) {
+      return 0;
+    }
+    
+    // Calculate and return percentage
+    return eggCount / blankTileCount;
+  }
+
+  /**
+   * Calculate lushness boost based on egg percentage
+   * @param eggPercentage Percentage (0-1) of blank tiles with eggs
+   * @returns Lushness boost value (0-MAX_LUSHNESS_BOOST)
+   */
+  private static calculateLushnessBoost(eggPercentage: number): number {
+    // Linear boost formula: percentage * 4, capped at MAX_LUSHNESS_BOOST
+    return Math.min(MAX_LUSHNESS_BOOST, eggPercentage * 4.0);
+  }
 }
