@@ -370,7 +370,7 @@ export default class UIScene extends Phaser.Scene {
       }
       
       // Add height for harvest button row
-      if (this.harvestButton) {
+      if (this.harvestButton && this.harvestButton.visible) {
         height += 50;
       }
       

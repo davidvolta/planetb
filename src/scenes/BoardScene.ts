@@ -1,9 +1,8 @@
 import Phaser from "phaser";
 import { TerrainType } from "../store/gameStore";
 import { StateObserver } from "../utils/stateObserver";
-import { AnimalState, Habitat, Animal } from "../store/gameStore";
+import { AnimalState } from "../store/gameStore";
 import * as actions from "../store/actions";
-import { ValidMove } from "../store/gameStore";
 import * as CoordinateUtils from "../utils/CoordinateUtils";
 import { LayerManager } from "../managers/LayerManager";
 import { TileRenderer } from "../renderers/TileRenderer";
@@ -50,8 +49,6 @@ export default class BoardScene extends Phaser.Scene {
   // Setup tracking
   private controlsSetup = false;
   private subscriptionsSetup = false;
-  
-  // Fog of War state
   private fogOfWarEnabled = true;
   
   // Managers and controllers
@@ -65,8 +62,11 @@ export default class BoardScene extends Phaser.Scene {
   constructor() {
     super({ key: "BoardScene" });
     
-    // Initialize the layer manager
+    // Initialize managers
     this.layerManager = new LayerManager(this);
+    this.inputManager = new InputManager(this, this.tileSize, this.tileHeight);
+    this.animationController = new AnimationController(this, this.tileSize, this.tileHeight);
+    this.cameraManager = new CameraManager(this);
     
     // Initialize renderers
     this.tileRenderer = new TileRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
@@ -76,11 +76,6 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.resourceRenderer = new ResourceRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    
-    // Initialize managers
-    this.inputManager = new InputManager(this, this.tileSize, this.tileHeight);
-    this.animationController = new AnimationController(this, this.tileSize, this.tileHeight);
-    this.cameraManager = new CameraManager(this);
     
     // Initialize the state subscription manager (now with simplified constructor)
     this.subscriptionManager = new StateSubscriptionManager(this);
