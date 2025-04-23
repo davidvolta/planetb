@@ -555,69 +555,28 @@ export default class BoardScene extends Phaser.Scene {
   private initializeVisibility(): void {
     const board = actions.getBoard();
     if (!board) return;
-    
-    const revealedTiles: { x: number, y: number }[] = [];
-    const visibilityUpdates: { x: number, y: number, visible: boolean }[] = [];
-    
-    // Get current player ID
+
     const currentPlayerId = actions.getCurrentPlayerId();
-    
-    // Reveal tiles around player's units
-    const animals = actions.getAnimals();
-    animals.forEach(animal => {
-      if (animal.ownerId === currentPlayerId && animal.state === AnimalState.ACTIVE) {
-        // Reveal 8 adjacent tiles around this unit
-        CoordinateUtils.getAdjacentTiles(animal.position.x, animal.position.y, board.width, board.height)
-          .forEach(tile => {
-            // Add to the list of visibility updates
-            visibilityUpdates.push({
-              x: tile.x,
-              y: tile.y,
-              visible: true
-            });
-            // Add to the list of tiles to reveal visually
-            revealedTiles.push(tile);
-          });
-      }
-    });
-    
-    // Reveal player's starting biome
-    const biomes = actions.getBiomes();
-    
-    // Collect biome tiles to reveal
-    const biomeTilesToReveal: { x: number, y: number, visible: boolean }[] = [];
-    
-    // Iterate directly through biomes instead of going through habitats first
-    biomes.forEach((biome, biomeId) => {
-      // Check if the biome is owned by the current player
-      if (biome.ownerId === currentPlayerId) {
-        // This is the player's owned biome
-        // Collect all tiles in this biome
-        for (let y = 0; y < board.height; y++) {
-          for (let x = 0; x < board.width; x++) {
-            const tile = board.tiles[y][x];
-            if (tile.biomeId === biomeId) {
-              // Add to visibility updates
-              biomeTilesToReveal.push({ x, y, visible: true });
-              // Add to the list of tiles to reveal visually
-              revealedTiles.push({ x, y });
-            }
-          }
-        }
-      }
-    });
-    
-    // Perform all visibility updates in a single batch
-    if (visibilityUpdates.length > 0 || biomeTilesToReveal.length > 0) {
-      actions.updateTilesVisibility([...visibilityUpdates, ...biomeTilesToReveal]);
+
+    // Adjacent tiles around active player units
+    const unitAdjacents = actions.getAnimals()
+      .filter(a => a.ownerId === currentPlayerId && a.state === AnimalState.ACTIVE)
+      .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, board.width, board.height));
+    const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
+
+    // All tiles of owned biomes
+    const biomeTiles = Array.from(actions.getBiomes().entries())
+      .filter(([_, b]) => b.ownerId === currentPlayerId)
+      .flatMap(([id]) => actions.getTilesForBiome(id).map(({ x, y }) => ({ x, y })));
+    const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
+
+    // Combine and batch update visibility
+    const allTilesToReveal = [...uniqueUnitTiles, ...uniqueBiomeTiles];
+    if (allTilesToReveal.length > 0) {
+      const visibilityUpdates = allTilesToReveal.map(({ x, y }) => ({ x, y, visible: true }));
+      actions.updateTilesVisibility(visibilityUpdates);
+      this.fogOfWarRenderer.revealTiles(allTilesToReveal);
     }
-    
-    // Remove duplicates from the revealedTiles array
-    const uniqueTiles = CoordinateUtils.removeDuplicateTiles(revealedTiles);
-    
-    // Reveal these tiles in the fog of war - this will also update object visibility
-    // through the callback we set up in createTiles
-    this.fogOfWarRenderer.revealTiles(uniqueTiles);
   }
   
   // Reveal all tiles in a biome
