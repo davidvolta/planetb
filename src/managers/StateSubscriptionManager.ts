@@ -442,6 +442,8 @@ export class StateSubscriptionManager {
           if (this.scene instanceof BoardScene) {
             // Hide selection indicator
             this.scene.getSelectionRenderer().hideSelection();
+            // Hide any move highlights since capture counts as a unit move
+            this.scene.getMoveRangeRenderer().clearMoveHighlights();
             
             // Reveal the biome tiles for the captured biome
             if (biomeCaptureEvent.biomeId) {

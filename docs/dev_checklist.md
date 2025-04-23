@@ -22,8 +22,7 @@
 - [x] Remove legacy `handleTileClick` method and all related click logic from `BoardScene.ts`.
 - [x] In `BoardScene.setupInputHandlers()`, replace `onTileClick` callback with `tileInteractionController.handleClick(gridX, gridY)`.
 - [x] Remove `InputManager.onPointerMove` handler registration; keep hover logic only in `BoardScene.update()` via `selectionRenderer.updateFromPointer()`.
-- [ ] Ensure `TileRenderer` attaches `gridX`/`gridY` data to each Phaser tile gameObject.
-- [ ] Delete obsolete controllers: `src/controllers/ToggleSelectionController.ts` and update `controllers/index.ts` exports.
+- [x] Ensure `TileRenderer` attaches `gridX`/`gridY` data to each Phaser tile gameObject.
 - [ ] Test click scenarios:
   - Moving units on valid targets
   - Selecting active vs. dormant units

@@ -47,8 +47,8 @@ export class TileInteractionController {
     // Build list of handlers in priority order
     const handlers: ((x: number, y: number) => void)[] = [];
 
-    // Case 1: active unit selection
-    if (contents.activeUnits.length > 0) {
+    // Case 1: active unit selection (only if unit hasn't moved)
+    if (contents.activeUnits.length > 0 && !contents.activeUnits[0].hasMoved) {
       handlers.push((x, y) => {
         actions.selectUnit(contents.activeUnits[0].id);
         this.scene.selectionRenderer.showSelectionAt(x, y);
@@ -63,15 +63,13 @@ export class TileInteractionController {
       });
     }
 
-    // Case 3: unowned habitat selection
+    // Case 3: habitat selection (owned or unowned)
     if (contents.biomes.length > 0) {
       const biome = contents.biomes[0];
-      if (biome.ownerId === null) {
-        handlers.push((x, y) => {
-          actions.selectBiome(biome.id);
-          this.scene.selectionRenderer.showRedSelectionAt(x, y);
-        });
-      }
+      handlers.push((x, y) => {
+        actions.selectBiome(biome.id);
+        this.scene.selectionRenderer.showRedSelectionAt(x, y);
+      });
     }
 
     // Case 4: select resource in owned biome
