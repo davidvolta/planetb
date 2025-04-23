@@ -47,104 +47,60 @@ export class EcosystemController {
       console.warn("Board not initialized, cannot reset resources");
       return;
     }
-    
-    // Define resource chance (percentage of eligible tiles that should have resources)
+
     const resourceChance = GameConfig.resourceGenerationPercentage;
     console.log(`Resetting resources with ${resourceChance * 100}% density per biome`);
-    
-    // Track total resources generated
-    let totalResourcesGenerated = 0;
-    let totalEligibleTiles = 0;
-    
-    // Create a copy of the biomes map to update
+
     const updatedBiomes = new Map(biomes);
-    
-    // Process each biome separately for better distribution
+
     biomes.forEach((biome, biomeId) => {
-      // Collect all tiles belonging to this biome
-      const biomeTiles: {x: number, y: number, terrain: TerrainType}[] = [];
-      
-      // Scan board to find tiles in this biome
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          // Skip if this position has a habitat
-          if (board.tiles[y][x].isHabitat) {
-            continue;
-          }
-          
-          // Check if tile belongs to this biome
-          const tile = board.tiles[y][x];
-          if (tile.biomeId === biomeId) {
-            biomeTiles.push({
-              x, 
-              y, 
-              terrain: terrainData[y][x]
-            });
-          }
-        }
-      }
-      
-      // Filter for tiles that can have resources
-      const eligibleTiles = biomeTiles.filter(tile => {
-        // Only certain terrain types can have resources
-        return tile.terrain === TerrainType.GRASS ||
-               tile.terrain === TerrainType.WATER ||
-               tile.terrain === TerrainType.MOUNTAIN ||
-               tile.terrain === TerrainType.UNDERWATER;
-      });
-      
-      totalEligibleTiles += eligibleTiles.length;
-      
-      // Calculate how many tiles should have resources in this biome
-      const resourceCount = Math.round(eligibleTiles.length * resourceChance);
-      
-      // Randomly shuffle eligible tiles and select the first resourceCount tiles
-      const shuffledTiles = [...eligibleTiles].sort(() => Math.random() - 0.5);
-      const selectedTiles = shuffledTiles.slice(0, resourceCount);
-      
-      totalResourcesGenerated += selectedTiles.length;
-      
-      // Update the biome's resource counts
-      const updatedBiome = {
+      // Gather and shuffle eligible tiles for this biome
+      const eligibleTiles = getTilesForBiome(biomeId)
+        .filter(({ tile }) => !tile.isHabitat)
+        .filter(({ tile }) =>
+          [
+            TerrainType.GRASS,
+            TerrainType.WATER,
+            TerrainType.MOUNTAIN,
+            TerrainType.UNDERWATER
+          ].includes(tile.terrain)
+        );
+
+      const selectedTiles = [...eligibleTiles]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.round(eligibleTiles.length * resourceChance));
+
+      // Update biome resource metrics
+      updatedBiomes.set(biomeId, {
         ...biome,
         initialResourceCount: selectedTiles.length,
         nonDepletedCount: selectedTiles.length,
         totalHarvested: 0
+      });
+
+      // Apply resources on board tiles
+      const terrainToResource: Record<TerrainType, ResourceType> = {
+        [TerrainType.GRASS]: ResourceType.FOREST,
+        [TerrainType.WATER]: ResourceType.KELP,
+        [TerrainType.MOUNTAIN]: ResourceType.INSECTS,
+        [TerrainType.UNDERWATER]: ResourceType.PLANKTON,
+        [TerrainType.BEACH]: ResourceType.NONE
       };
-      
-      // Update the biome in our copy
-      updatedBiomes.set(biomeId, updatedBiome);
-      
-      // Set resource properties on the selected tiles
-      selectedTiles.forEach(tile => {
-        // Determine resource type based on terrain
-        let resourceType: ResourceType | null = null;
-        
-        if (tile.terrain === TerrainType.GRASS) {
-          resourceType = ResourceType.FOREST;
-        } else if (tile.terrain === TerrainType.WATER) {
-          resourceType = ResourceType.KELP;
-        } else if (tile.terrain === TerrainType.MOUNTAIN) {
-          resourceType = ResourceType.INSECTS;
-        } else if (tile.terrain === TerrainType.UNDERWATER) {
-          resourceType = ResourceType.PLANKTON;
-        }
-        
-        // Set the tile properties directly
-        if (resourceType) {
-          // Update the tile with resource properties
-          board.tiles[tile.y][tile.x].resourceType = resourceType;
-          board.tiles[tile.y][tile.x].resourceValue = 10; // Initial value is 10
-          board.tiles[tile.y][tile.x].active = true;      // Mark as active
-        }
+
+      selectedTiles.forEach(({ x, y, tile }) => {
+        const terrain = tile.terrain as TerrainType;
+        const type = terrainToResource[terrain];
+        if (!type) return;
+        const t = board.tiles[y][x];
+        t.resourceType = type;
+        t.resourceValue = 10;
+        t.active = true;
       });
     });
-    
-    // Update the biomes map
+
+    // Commit updated biomes map
     biomes.clear();
-    updatedBiomes.forEach((biome, biomeId) => {
-      biomes.set(biomeId, biome);
-    });
+    updatedBiomes.forEach((b, id) => biomes.set(id, b));
   }
 
   /**

@@ -27,7 +27,8 @@ export enum ResourceType {
   FOREST = 'forest',
   KELP = 'kelp',
   INSECTS = 'insects',
-  PLANKTON = 'plankton'
+  PLANKTON = 'plankton',
+  NONE = 'none' // Represents no resource (e.g. BEACH)
 }
 
 // Define the core interface for animal abilities

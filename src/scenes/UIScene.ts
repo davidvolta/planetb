@@ -402,58 +402,6 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
-  // Clean up when scene is shut down
-  shutdown() {
-    // Clean up subscriptions
-    StateObserver.unsubscribe('ui-turn');
-    StateObserver.unsubscribe('ui-biome-info');
-    StateObserver.unsubscribe('ui-energy');
-    
-    // Clean up resize listener
-    this.scale.off('resize', this.resizeUI, this);
-    
-    // Clean up references to UI components
-    this.container = null;
-    this.background = null;
-    
-    if (this.nextTurnButton) {
-      this.nextTurnButton.destroy();
-      this.nextTurnButton = null;
-    }
-    
-    if (this.spawnButton) {
-      this.spawnButton.destroy();
-      this.spawnButton = null;
-    }
-    
-    if (this.captureBiomeButton) {
-      this.captureBiomeButton.destroy();
-      this.captureBiomeButton = null;
-    }
-    
-    if (this.harvestButton) {
-      this.harvestButton.destroy();
-      this.harvestButton = null;
-    }
-    
-    if (this.energyText) {
-      this.energyText.destroy();
-      this.energyText = null;
-    }
-    
-    // Clean up biome info panel
-    if (this.biomeInfoPanel) {
-      this.biomeInfoPanel.destroy();
-      this.biomeInfoPanel = null;
-      this.biomeInfoBackground = null;
-      this.biomeInfoTexts = {};
-    }
-    
-    this.turnText = null;
-    this.selectedUnitId = null;
-    this.selectedBiomeId = null;
-  }
-
   // Create the biome info panel
   createBiomeInfoPanel() {
     // Create a container for the biome info panel
@@ -575,6 +523,59 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
+
+  // Clean up when scene is shut down
+  shutdown() {
+    // Clean up subscriptions
+    StateObserver.unsubscribe('ui-turn');
+    StateObserver.unsubscribe('ui-biome-info');
+    StateObserver.unsubscribe('ui-energy');
+    
+    // Clean up resize listener
+    this.scale.off('resize', this.resizeUI, this);
+    
+    // Clean up references to UI components
+    this.container = null;
+    this.background = null;
+    
+    if (this.nextTurnButton) {
+      this.nextTurnButton.destroy();
+      this.nextTurnButton = null;
+    }
+    
+    if (this.spawnButton) {
+      this.spawnButton.destroy();
+      this.spawnButton = null;
+    }
+    
+    if (this.captureBiomeButton) {
+      this.captureBiomeButton.destroy();
+      this.captureBiomeButton = null;
+    }
+    
+    if (this.harvestButton) {
+      this.harvestButton.destroy();
+      this.harvestButton = null;
+    }
+    
+    if (this.energyText) {
+      this.energyText.destroy();
+      this.energyText = null;
+    }
+    
+    // Clean up biome info panel
+    if (this.biomeInfoPanel) {
+      this.biomeInfoPanel.destroy();
+      this.biomeInfoPanel = null;
+      this.biomeInfoBackground = null;
+      this.biomeInfoTexts = {};
+    }
+    
+    this.turnText = null;
+    this.selectedUnitId = null;
+    this.selectedBiomeId = null;
+  }
+  
   // Hide biome info panel if clicked outside of it
   hideBiomeInfoIfClickedOutside(pointer: Phaser.Input.Pointer) {
     // Do nothing if panel is not visible or doesn't exist
