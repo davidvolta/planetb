@@ -296,7 +296,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Initialize selection state
   selectedBiomeId: null,
   selectedResource: null,
-  selectResource: (coord) => set({ selectedResource: coord }),
+  selectResource: (coord) => set({
+    selectedResource: coord,
+    selectedUnitId: null,
+    validMoves: [],
+    moveMode: false,
+    selectedUnitIsDormant: false
+  }),
   
   // Initialize displacement event with default values
   displacementEvent: {
@@ -925,19 +931,37 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Biome selection method
   selectBiome: (id: string | null) => 
     set(state => {
-      // Handle null case to deselect
+      // Clear unit selection and move highlights on any biome select/deselect
       if (id === null) {
-        return { selectedBiomeId: null };
+        return {
+          selectedBiomeId: null,
+          selectedUnitId: null,
+          validMoves: [],
+          moveMode: false,
+          selectedUnitIsDormant: false
+        };
       }
       
       // Check if it's a biome ID
       const biome = state.biomes.get(id);
       if (biome) {
-        return { selectedBiomeId: id };
+        return {
+          selectedBiomeId: id,
+          selectedUnitId: null,
+          validMoves: [],
+          moveMode: false,
+          selectedUnitIsDormant: false
+        };
       }
       
-      // If we couldn't find a matching biome, clear selection
-      return { selectedBiomeId: null };
+      // If invalid biome ID, clear both biome and unit selection/move state
+      return {
+        selectedBiomeId: null,
+        selectedUnitId: null,
+        validMoves: [],
+        moveMode: false,
+        selectedUnitIsDormant: false
+      };
     }),
 
   // Movement-related methods

@@ -86,6 +86,7 @@ export class TileInteractionController {
       if (biome && biome.ownerId === playerId) {
         handlers.push((x, y) => {
           actions.selectResourceTile({ x, y });
+          actions.selectBiome(null);
           this.scene.selectionRenderer.showRedSelectionAt(x, y);
         });
       }
@@ -96,7 +97,6 @@ export class TileInteractionController {
       actions.selectUnit(null);
       actions.selectBiome(null);
       actions.selectResourceTile(null);
-      this.scene.moveRangeRenderer.clearMoveHighlights();
       this.scene.selectionRenderer.hideSelection();
     });
 

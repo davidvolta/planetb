@@ -128,6 +128,10 @@ export default class UIScene extends Phaser.Scene {
         return { hasResource };
       },
       (data) => {
+        // Always hide biome info when resource selection changes
+        if (this.biomeInfoPanel) {
+          this.biomeInfoPanel.setVisible(false);
+        }
         this.harvestButton?.setVisible(data.hasResource);
         this.updateBackgroundSize();
       },
