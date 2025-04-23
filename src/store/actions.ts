@@ -388,48 +388,17 @@ export function calculateBiomeLushness(biomeId: string): {
   lushnessBoost: number;
   totalLushness: number;
 } {
-  const state = useGameStore.getState();
-  const biomes = state.biomes;
-  
-  return EcosystemController.calculateBiomeLushness(biomeId, biomes);
+  return EcosystemController.calculateBiomeLushness(
+    biomeId,
+    useGameStore.getState().biomes
+  );
 }
 
 /**
- * Update a biome's lushness values
- * @param biomeId The ID of the biome to update
+ * Delegate lushness update to the EcosystemController.
  */
 export function updateBiomeLushness(biomeId: string): void {
-  // Get current state
-  const state = useGameStore.getState();
-  const biome = state.biomes.get(biomeId);
-  
-  if (!biome) {
-    console.warn(`Biome ${biomeId} not found, cannot update lushness`);
-    return;
-  }
-  
-  // Calculate new lushness values using the central calculation function
-  const lushnessValues = calculateBiomeLushness(biomeId);
-  
-  // Create updated biome with new lushness values
-  const updatedBiome = {
-    ...biome,
-    baseLushness: lushnessValues.baseLushness,
-    lushnessBoost: lushnessValues.lushnessBoost,
-    totalLushness: lushnessValues.totalLushness,
-    eggCount: biome.eggCount
-  };
-  
-  // Get all biomes
-  const biomes = new Map(state.biomes);
-  
-  // Update the biome in the map
-  biomes.set(biomeId, updatedBiome);
-  
-  // Update the biomes in the store
-  useGameStore.setState({
-    biomes
-  });
+  EcosystemController.updateBiomeLushness(biomeId);
 }
 
 
@@ -562,7 +531,28 @@ export function getResourceTiles(): TileResult[] {
  * @param amount Number of resource units to harvest
  */
 export function harvestTileResource(amount: number): void {
-  EcosystemController.harvestTileResource(amount);
+  const state = useGameStore.getState();
+  // At this point, board is initialized and a resource tile is selected
+  const coord = state.selectedResource!;
+  const board = state.board!;
+
+  // Compute new state via pure controller logic
+  const { board: newBoard, players: newPlayers, biomes: newBiomes } =
+    EcosystemController.computeHarvest(
+      coord,
+      board,
+      state.players,
+      state.currentPlayerId,
+      state.biomes,
+      amount
+    );
+  // Commit updated state
+  useGameStore.setState({ board: newBoard, players: newPlayers, biomes: newBiomes });
+  // Refresh lushness for this biome
+  const tile = newBoard.tiles[coord.y][coord.x];
+  if (tile.biomeId) {
+    updateBiomeLushness(tile.biomeId);
+  }
 }
 
 /**

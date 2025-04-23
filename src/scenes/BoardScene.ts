@@ -418,6 +418,16 @@ export default class BoardScene extends Phaser.Scene {
   public getAnimalRenderer(): AnimalRenderer {
     return this.animalRenderer;
   }
+
+   // Get the fog of war renderer
+  public getFogOfWarRenderer(): FogOfWarRenderer {
+    return this.fogOfWarRenderer;
+  }
+
+  // Get resource renderer
+  public getResourceRenderer(): ResourceRenderer {
+    return this.resourceRenderer;
+  }
   
   public getInputManager(): InputManager {
     return this.inputManager;
@@ -430,6 +440,7 @@ export default class BoardScene extends Phaser.Scene {
   public getAnimationController(): AnimationController {
     return this.animationController;
   }
+
 
   //Get the current input mode
   isInMoveMode(): boolean {
@@ -563,15 +574,6 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
   
-  // Get the fog of war renderer
-  public getFogOfWarRenderer(): FogOfWarRenderer {
-    return this.fogOfWarRenderer;
-  }
-
-  // Get resource renderer
-  public getResourceRenderer(): ResourceRenderer {
-    return this.resourceRenderer;
-  }
 
   // Toggle biome visualization mode on/off
   public toggleBiomeVisualization(enabled: boolean): void {
