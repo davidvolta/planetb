@@ -4,6 +4,7 @@ export class TileInteractionController {
   private scene: any;
   private inputManager: any;
   private toggleState: Record<string, number> = {};
+  private lastClickedKey: string | null = null;
 
   constructor(scene: any, inputManager: any) {
     this.scene = scene;
@@ -25,6 +26,12 @@ export class TileInteractionController {
     if (!board || !board.tiles[y] || !board.tiles[y][x].visible) {
       // Case 7: ignore clicks on hidden or out-of-bounds tiles
       return;
+    }
+
+    // Reset toggleState for newly clicked tile so first click always fires
+    const key = `${x},${y}`;
+    if (key !== this.lastClickedKey) {
+      this.toggleState[key] = 0;
     }
 
     // Case 2: valid move target has priority over selection
@@ -94,9 +101,9 @@ export class TileInteractionController {
     });
 
     // Cycle through handlers on repeated clicks
-    const key = `${x},${y}`;
     const idx = this.toggleState[key] || 0;
     handlers[idx % handlers.length](x, y);
     this.toggleState[key] = (idx + 1) % handlers.length;
+    this.lastClickedKey = key;
   }
 } 
