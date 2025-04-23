@@ -346,7 +346,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (state.board) {
       updatedBiomes.forEach((biome, biomeId) => {
         if (biome.ownerId !== null) {
-          const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
+          // Pass the board into calculateBiomeLushness as per new signature
+          const lushnessValues = EcosystemController.calculateBiomeLushness(
+            biomeId,
+            state.board!,
+            updatedBiomes
+          );
           updatedBiomes.set(biomeId, {
             ...biome,
             baseLushness: lushnessValues.baseLushness,
@@ -900,7 +905,11 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           // Directly calculate new lushness values if this biome is owned
           if (biome.ownerId !== null) {
-            const lushnessValues = EcosystemController.calculateBiomeLushness(biomeId, updatedBiomes);
+            const lushnessValues = EcosystemController.calculateBiomeLushness(
+              biomeId,
+              updatedBoard,
+              updatedBiomes
+            );
             updatedBiomes.set(biomeId, {
               ...updatedBiomes.get(biomeId)!,
               baseLushness: lushnessValues.baseLushness,

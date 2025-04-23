@@ -247,9 +247,16 @@ export function getSelectedBiomeId(): string | null {
  * Returns true if the biome can be captured
  */
 export function isSelectedBiomeAvailableForCapture(): boolean {
-  const biomeId = getSelectedBiomeId();
-  if (!biomeId) return false;
-  return canCaptureBiome(biomeId);
+  const state = useGameStore.getState();
+  const biomeId = state.selectedBiomeId;
+  if (!biomeId || !state.board) return false;
+  return EcosystemController.computeCanCapture(
+    biomeId,
+    state.board,
+    state.animals,
+    state.biomes,
+    state.currentPlayerId
+  );
 }
 
 /**
@@ -263,103 +270,46 @@ export function selectBiome(biomeId: string | null): void {
 /**
  * Checks if a biome can be captured based on unit position
  * Returns true if there's an active unit on the habitat that hasn't moved yet
- * @param biomeId The ID of the biome to check
+ * @param biomeId The ID of the biome to check (pure wrapper)
  * @returns boolean indicating if biome can be captured
  */
 export function canCaptureBiome(biomeId: string): boolean {
   const state = useGameStore.getState();
-  const biome = state.biomes.get(biomeId);
-  
-  // Exit if biome doesn't exist or already has an owner
-  if (!biome || biome.ownerId !== null) {
-    return false;
-  }
-  
-  // Find any active units on this biome's habitat tile
-  const unitsOnHabitat = state.animals.filter(animal => {
-    // Get the tile at the animal's position
-    const tile = state.board?.tiles[animal.position.y][animal.position.x];
-    
-    // Check if the tile is a habitat in this biome
-    return tile && 
-           tile.isHabitat && 
-           tile.biomeId === biomeId &&
-           animal.state === AnimalState.ACTIVE &&
-           !animal.hasMoved &&
-           animal.ownerId === state.currentPlayerId; // Must be current player's unit
-  });
-
-  return unitsOnHabitat.length > 0;
+  return EcosystemController.computeCanCapture(
+    biomeId,
+    state.board!,
+    state.animals,
+    state.biomes,
+    state.currentPlayerId
+  );
 }
 
 /**
- * Capture a biome by setting its owner
+ * Capture a biome by setting its owner via pure compute and state commit
  * @param biomeId ID of the biome to capture
  */
 export function captureBiome(biomeId: string): void {
-  const state = useGameStore.getState();
-  const biome = state.biomes.get(biomeId);
-  
-  // Exit if biome doesn't exist or already has an owner
-  if (!biome || biome.ownerId !== null) {
+  // Only proceed if capture is valid
+  if (!canCaptureBiome(biomeId)) {
     return;
   }
-  
-  // Get the current player ID
-  const currentPlayerId = state.currentPlayerId;
-  
-  // Create updated biome with ownership properties
-  const updatedBiome = {
-    ...biome,
-    ownerId: currentPlayerId,
-    lastProductionTurn: state.turn - 1 // Set lastProductionTurn to previous turn for correct egg production timing
-  };
-  
-  // Create a new Map with the updated biome
-  const updatedBiomes = new Map(state.biomes);
-  updatedBiomes.set(biomeId, updatedBiome);
-  
-  // Find the unit that is on the habitat tile
-  const unitsOnHabitat = state.animals.filter(animal => {
-    // Get the tile at the animal's position
-    const tile = state.board?.tiles[animal.position.y][animal.position.x];
-    
-    // Check if the tile is a habitat in this biome
-    return tile && 
-           tile.isHabitat && 
-           tile.biomeId === biomeId &&
-           animal.state === AnimalState.ACTIVE &&
-           !animal.hasMoved &&
-           animal.ownerId === currentPlayerId;
-  });
-  
-  // Update the unit's hasMoved flag
-  if (unitsOnHabitat.length > 0) {
-    const unitId = unitsOnHabitat[0].id; // Use the first unit if multiple
-    
-    const updatedAnimals = state.animals.map(animal => 
-      animal.id === unitId 
-        ? { ...animal, hasMoved: true } 
-        : animal
+  const state = useGameStore.getState();
+  // Compute capture effects purely
+  const { animals: newAnimals, biomes: newBiomes } =
+    EcosystemController.computeCapture(
+      biomeId,
+      state.animals,
+      state.biomes,
+      state.board!,
+      state.currentPlayerId,
+      state.turn
     );
-    
-    // Update biomes and animals
-    useGameStore.setState({ 
-      biomes: updatedBiomes,
-      animals: updatedAnimals
-    });
-  } else {
-    // Just update biomes if no unit found
-    useGameStore.setState({ 
-      biomes: updatedBiomes
-    });
-  }
-  
-  // After updating the biome's owner, update its lushness values
+  // Commit world changes
+  useGameStore.setState({ animals: newAnimals, biomes: newBiomes });
+  // Recalculate lushness for this biome
   updateBiomeLushness(biomeId);
   console.log(`Updated lushness for biome ${biomeId} after capture`);
-  
-  // Record the biome capture event
+  // Emit capture event
   recordBiomeCaptureEvent(biomeId);
 }
 
@@ -388,9 +338,12 @@ export function calculateBiomeLushness(biomeId: string): {
   lushnessBoost: number;
   totalLushness: number;
 } {
+  const state = useGameStore.getState();
+  // Pass board and biomes into the controller
   return EcosystemController.calculateBiomeLushness(
     biomeId,
-    useGameStore.getState().biomes
+    state.board!,
+    state.biomes
   );
 }
 

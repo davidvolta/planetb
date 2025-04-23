@@ -422,80 +422,43 @@ export class EcosystemController {
   }
 
   /**
-   * Calculate lushness for a biome, returning all lushness values
+   * Compute lushness for a biome, returning all lushness values
    * @param biomeId ID of the biome to calculate lushness for
+   * @param board Current game board
    * @param biomes Map of all biomes
    * @returns Object containing baseLushness, lushnessBoost, and totalLushness
    */
-  public static calculateBiomeLushness(biomeId: string, biomes: Map<string, Biome>): {
+  public static calculateBiomeLushness(
+    biomeId: string,
+    board: Board,
+    biomes: Map<string, Biome>
+  ): {
     baseLushness: number;
     lushnessBoost: number;
     totalLushness: number;
   } {
     const biome = biomes.get(biomeId);
-    
     if (!biome) {
       console.warn(`Biome ${biomeId} not found`);
-      return {
-        baseLushness: 0,
-        lushnessBoost: 0,
-        totalLushness: 0
-      };
+      return { baseLushness: 0, lushnessBoost: 0, totalLushness: 0 };
     }
-    
-    // Get the board from the store to access tile data
-    const state = useGameStore.getState();
-    if (!state.board) {
-      console.warn("Board not available, cannot calculate lushness");
-      return {
-        baseLushness: 0,
-        lushnessBoost: 0,
-        totalLushness: 0
-      };
-    }
-    
-    // Get all active resource tiles in this biome
-    const activeTiles = [];
-    for (let y = 0; y < state.board.height; y++) {
-      for (let x = 0; x < state.board.width; x++) {
-        const tile = state.board.tiles[y][x];
-        if (tile.biomeId === biomeId && tile.active && tile.resourceType !== null) {
-          activeTiles.push(tile);
-        }
-      }
-    }
-    
-    // Count tiles with non-depleted resources (resourceValue > 0)
-    const nonDepletedTiles = activeTiles.filter(tile => tile.resourceValue > 0).length;
-    
-    // If all active tiles are depleted or there are no active tiles, lushness is 0
+    // Get active resource tiles in this biome
+    const activeTiles = getTilesForBiome(biomeId)
+      .filter(({ tile }) => tile.active && tile.resourceType !== null)
+      .map(({ tile }) => tile);
+    const nonDepleted = activeTiles.length;
     let baseLushness = 0;
-    if (nonDepletedTiles > 0) {
-      // Calculate total current resource value
-      const currentTotal = activeTiles.reduce((sum, tile) => sum + tile.resourceValue, 0);
-      
-      // Calculate initial total (all resources start with value 10)
+    if (nonDepleted > 0) {
+      const currentTotal = activeTiles.reduce((sum, t) => sum + t.resourceValue, 0);
       const initialTotal = activeTiles.length * 10;
-      
-      // Resource health ratio (how close to initial state)
-      const resourceRatio = currentTotal / initialTotal;
-      
-      // Direct linear mapping of resource ratio to base lushness
-      baseLushness = resourceRatio * MAX_LUSHNESS;
+      baseLushness = (currentTotal / initialTotal) * MAX_LUSHNESS;
     }
-
-    // Calculate lushnessBoost based on egg percentage
-    // Pass the biome object to use its eggCount directly
-    const eggPercentage = this.calculateEggPercentage(biomeId, state.board, biome);
+    const eggPercentage = this.calculateEggPercentage(biomeId, board, biome);
     const lushnessBoost = this.calculateLushnessBoost(eggPercentage);
-    
-    // Calculate total lushness (base + boost)
-    const totalLushness = baseLushness + lushnessBoost;
-    
     return {
       baseLushness,
       lushnessBoost,
-      totalLushness
+      totalLushness: baseLushness + lushnessBoost
     };
   }
 
@@ -570,8 +533,11 @@ export class EcosystemController {
       console.warn(`Biome ${biomeId} not found, cannot update lushness`);
       return;
     }
+    // Board is guaranteed to be initialized here
+    const board = state.board!;
     const { baseLushness, lushnessBoost, totalLushness } = this.calculateBiomeLushness(
       biomeId,
+      board,
       state.biomes
     );
     const updatedBiome = {
@@ -584,5 +550,87 @@ export class EcosystemController {
     const updatedBiomes = new Map(state.biomes);
     updatedBiomes.set(biomeId, updatedBiome);
     useGameStore.setState({ biomes: updatedBiomes });
+  }
+
+  /**
+   * Pure computation of capturing a biome without side-effects.
+   * Returns updated animals and biomes.
+   */
+  public static computeCapture(
+    biomeId: string,
+    animals: Animal[],
+    biomes: Map<string, Biome>,
+    board: Board,
+    currentPlayerId: number,
+    turn: number
+  ): { animals: Animal[]; biomes: Map<string, Biome> } {
+    // Check existence and ownership
+    const biome = biomes.get(biomeId);
+    if (!biome || biome.ownerId !== null) {
+      return { animals: [...animals], biomes: new Map(biomes) };
+    }
+    // Update biome ownership and timing
+    const updatedBiome: Biome = {
+      ...biome,
+      ownerId: currentPlayerId,
+      lastProductionTurn: turn - 1
+    };
+    const newBiomes = new Map(biomes);
+    newBiomes.set(biomeId, updatedBiome);
+
+    // Find an active unit on the habitat that hasn't moved
+    const unitsOnHabitat = animals.filter(a => {
+      const tile = board.tiles[a.position.y]?.[a.position.x];
+      return (
+        tile &&
+        tile.isHabitat &&
+        tile.biomeId === biomeId &&
+        a.state === AnimalState.ACTIVE &&
+        !a.hasMoved &&
+        a.ownerId === currentPlayerId
+      );
+    });
+    let newAnimals: Animal[] = [...animals];
+    if (unitsOnHabitat.length > 0) {
+      const unitId = unitsOnHabitat[0].id;
+      newAnimals = animals.map(a =>
+        a.id === unitId ? { ...a, hasMoved: true } : a
+      );
+    }
+    return { animals: newAnimals, biomes: newBiomes };
+  }
+
+  /**
+   * Pure check whether a biome can be captured (no side-effects).
+   * @param biomeId ID of the biome to test
+   * @param board Current game board
+   * @param animals List of all animals in state
+   * @param biomes Map of all biomes
+   * @param currentPlayerId ID of the current player
+   */
+  public static computeCanCapture(
+    biomeId: string,
+    board: Board,
+    animals: Animal[],
+    biomes: Map<string, Biome>,
+    currentPlayerId: number
+  ): boolean {
+    // Can't capture if nonexistent or already owned
+    const biome = biomes.get(biomeId);
+    if (!biome || biome.ownerId !== null) {
+      return false;
+    }
+    // Is there an alive, active unit of the current player on that habitat?
+    return animals.some(a => {
+      const tile = board.tiles[a.position.y]?.[a.position.x];
+      return (
+        tile != null &&
+        tile.isHabitat &&
+        tile.biomeId === biomeId &&
+        a.state === AnimalState.ACTIVE &&
+        !a.hasMoved &&
+        a.ownerId === currentPlayerId
+      );
+    });
   }
 }
