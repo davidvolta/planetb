@@ -18,6 +18,7 @@ import { CameraManager } from "../managers/CameraManager";
 import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
 import { FogOfWarRenderer } from '../renderers/FogOfWarRenderer';
 import { TILE_SIZE, TILE_HEIGHT } from '../constants/gameConfig';
+import { TileInteractionController } from "../controllers/TileInteractionController";
 
 // Custom event names
 export const EVENTS = {
@@ -59,6 +60,7 @@ export default class BoardScene extends Phaser.Scene {
   private animationController: AnimationController;
   private cameraManager: CameraManager;
   private subscriptionManager: StateSubscriptionManager;
+  private tileInteractionController: TileInteractionController;
 
   constructor() {
     super({ key: "BoardScene" });
@@ -82,6 +84,8 @@ export default class BoardScene extends Phaser.Scene {
     
     // Initialize the state subscription manager (now with simplified constructor)
     this.subscriptionManager = new StateSubscriptionManager(this);
+    // Instantiate TileInteractionController
+    this.tileInteractionController = new TileInteractionController(this, this.inputManager);
   }
 
   // Preload assets needed for the scene
@@ -268,189 +272,6 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Handle tile clicks
-  private handleTileClick(clickedObject: Phaser.GameObjects.GameObject) {
-    // Get stored grid coordinates from the object
-    const gridX = clickedObject.getData('gridX');
-    const gridY = clickedObject.getData('gridY');
-    
-    // Skip if no coordinates stored
-    if (gridX === undefined || gridY === undefined) {
-      return;
-    }
-    
-    // Clear previous resource selection
-    actions.selectResourceTile(null);
-
-    // Get contents at this location
-    const contents = this.checkTileContents(gridX, gridY);
-    
-    // Check if there's an active unit that has already moved
-    const hasMovedUnit = contents.activeUnits.some(unit => unit.hasMoved);
-    
-    // Check if there's an owned biome at this location
-    const hasOwnedBiome = contents.biomes.some(biome => biome.ownerId !== null);
-    
-    // First, check if this tile is a valid move target - this gets priority over other interactions
-    const isValidMoveTarget = this.moveRangeRenderer.isValidMoveTarget(gridX, gridY);
-    
-    if (isValidMoveTarget) {
-      // This is a valid move target - handle unit movement
-      console.log(`Moving unit to (${gridX}, ${gridY})`);
-      
-      const selectedUnitId = actions.getSelectedUnitId();
-      // Get the selected animal's current position
-      const animals = actions.getAnimals();
-      const selectedAnimal = animals.find(animal => animal.id === selectedUnitId);
-      
-      if (selectedUnitId && selectedAnimal) {
-        // Get current position from the unit state
-        const fromX = selectedAnimal.position.x;
-        const fromY = selectedAnimal.position.y;
-        
-        // Start animation for unit movement
-        this.startUnitMovement(selectedUnitId, fromX, fromY, gridX, gridY);
-      }
-      
-      return;
-    }
-    
-    // Show selection indicator at the clicked tile using SelectionRenderer
-    // Do NOT show white selection if the tile has a unit that has already moved or an owned biome
-    if (!hasMovedUnit && !hasOwnedBiome) {
-      this.selectionRenderer.showSelectionAt(gridX, gridY);
-    }
-    
-    // Double-click on a unit (active or dormant) to harvest underlying resource
-    const selectedUnitId = actions.getSelectedUnitId();
-    const unitsOnTile = [...contents.activeUnits, ...contents.dormantUnits];
-    if (selectedUnitId && unitsOnTile.some(u => u.id === selectedUnitId)) {
-      const board = actions.getBoard();
-      if (board) {
-        const tile = board.tiles[gridY][gridX];
-        if (tile.active && tile.resourceType !== null) {
-          actions.selectResourceTile({ x: gridX, y: gridY });
-          this.selectionRenderer.showRedSelectionAt(gridX, gridY);
-          return;
-        }
-      }
-    }
-    
-    // Check if the tile contains both active and dormant units
-    const hasActiveUnit = contents.activeUnits.length > 0;
-    const hasDormantUnit = contents.dormantUnits.length > 0;
-    const hasHabitat = contents.biomes.length > 0;
-    
-    // Get currently selected unit (if any)
-    const selectedUnit = selectedUnitId ? contents.activeUnits.find(unit => unit.id === selectedUnitId) : null;
-    const isClickingSelectedUnit = selectedUnit !== null;
-    
-    // First check if there's a dormant unit we can interact with
-    if (hasDormantUnit) {
-      const dormantUnit = contents.dormantUnits[0];
-      
-      // Select the dormant unit without showing move range (it can't move)
-      this.handleUnitSelection(dormantUnit.id, { x: gridX, y: gridY });
-      
-      // Show RED selection indicator for dormant unit
-      this.selectionRenderer.showRedSelectionAt(gridX, gridY);
-      
-      // Clear any existing move highlights
-      this.moveRangeRenderer.clearMoveHighlights();
-      
-      console.log(`Selected dormant unit: ${dormantUnit.id} at ${gridX},${gridY}`);
-      
-      return;
-    }
-    
-    // Then check if there's a habitat we can interact with
-    if (hasHabitat) {
-      const clickedBiome = contents.biomes[0]; // Just use the first one for now
-      
-      // Log the habitat click
-      console.log(`Biome clicked: ${clickedBiome.id} at position (${gridX},${gridY})`);
-      
-      // Check if there's an active unit on this habitat that can be moved
-      const hasSelectableUnit = hasActiveUnit && !hasMovedUnit;
-      
-      // Check if we are clicking on a habitat that has the currently selected unit
-      const isClickingSelectedUnitOnHabitat = selectedUnitId && 
-        contents.activeUnits.some(unit => unit.id === selectedUnitId);
-      
-      // If we're clicking on the currently selected unit's tile again, select the biome
-      // Or if there's no selectable unit, select the biome directly
-      if (isClickingSelectedUnitOnHabitat || !hasSelectableUnit) {
-        // Deselect the unit if we're clicking on a selected unit's tile 
-        // (second click behavior)
-        if (isClickingSelectedUnitOnHabitat) {
-          actions.deselectUnit();
-          this.moveRangeRenderer.clearMoveHighlights();
-        }
-        
-        // Select biome in store regardless of ownership
-        actions.selectBiome(clickedBiome.id);
-        
-        // Show RED selection indicator for habitat
-        this.selectionRenderer.showRedSelectionAt(gridX, gridY);
-        
-        return; // Return early after selecting the habitat
-      }
-      
-      // If there's a selectable unit that's not already selected, prioritize selecting it first
-      // This allows the double-click behavior to work
-      if (hasSelectableUnit) {
-        const unit = contents.activeUnits[0]; // Use the first active unit
-        // Skip selection if the unit has already moved this turn
-        if (unit.hasMoved) {
-          console.log(`Unit ${unit.id} has already moved this turn and cannot be selected`);
-          return;
-        }
-        // Select the active unit
-        this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
-        return;
-      }
-    }
-    
-    // Only handle active unit selection if none of the above actions were taken and unit hasn't moved
-    if (hasActiveUnit) {
-      const unit = contents.activeUnits[0];
-      // Skip selection if the unit has already moved this turn
-      if (unit.hasMoved) {
-        console.log(`Unit ${unit.id} has already moved this turn and cannot be selected`);
-        return;
-      }
-      // Select the active unit
-      this.handleUnitSelection(unit.id, { x: gridX, y: gridY });
-      return;
-    }
-    
-    // Check for clicking a resource tile in a biome owned by the current player
-    const resourceBoard = actions.getBoard();
-    if (resourceBoard) {
-      const resourceTile = resourceBoard.tiles[gridY][gridX];
-      const biomeId = resourceTile.biomeId;
-      const biome = biomeId ? actions.getBiomes().get(biomeId) : undefined;
-      const currentPlayerId = actions.getCurrentPlayerId();
-      if (
-        resourceTile.active &&
-        resourceTile.resourceType !== null &&
-        biome &&
-        biome.ownerId === currentPlayerId
-      ) {
-        actions.selectResourceTile({ x: gridX, y: gridY });
-        this.selectionRenderer.showSelectionAt(gridX, gridY);
-        return;
-      }
-    }
-    
-    // If we clicked on an empty or non-resource tile, deselect any selected unit and biome
-    this.handleUnitSelection(null);
-    actions.selectBiome(null);
-    
-    // Hide valid moves - clear the move highlights
-    this.moveRangeRenderer.clearMoveHighlights();
-  }
-
   // Clear all move highlights
   clearMoveHighlights() {
     this.moveRangeRenderer.clearMoveHighlights();     // Delegate to the move range renderer
@@ -617,14 +438,10 @@ export default class BoardScene extends Phaser.Scene {
     
     // Register tile click callback for all clickable objects (tiles and habitats)
     this.inputManager.onTileClick((gameObject) => {
-      this.handleTileClick(gameObject);
-    });
-    
-    // Register pointer move callback for hover detection
-    this.inputManager.onPointerMove((worldX, worldY, pointer) => {
-      const board = actions.getBoard();
-      if (board) {
-        this.selectionRenderer.updateFromPointer(pointer, board.width, board.height);
+      const gridX = gameObject.getData('gridX');
+      const gridY = gameObject.getData('gridY');
+      if (gridX !== undefined && gridY !== undefined) {
+        this.tileInteractionController.handleClick(gridX, gridY);
       }
     });
     
