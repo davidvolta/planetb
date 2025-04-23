@@ -348,44 +348,6 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Check what entities exist at specific coordinates
-  private checkTileContents(x: number, y: number) {
-
-    const animals = actions.getAnimals();
-    const biomes = actions.getBiomes();
-    
-    // Find active units at this location
-    const activeUnits = animals.filter(animal => 
-      animal.position.x === x && 
-      animal.position.y === y && 
-      animal.state === AnimalState.ACTIVE
-    );
-    
-    // Find dormant units at this location
-    const dormantUnits = animals.filter(animal => 
-      animal.position.x === x && 
-      animal.position.y === y && 
-      animal.state === AnimalState.DORMANT
-    );
-    
-    // Find biomes at this location by checking habitat positions
-    const biomesAtLocation = Array.from(biomes.values())
-      .filter(biome => 
-        biome.habitat.position.x === x && 
-        biome.habitat.position.y === y
-      );
-    
-    // Extract habitats from biomes for backward compatibility
-    const habitatsAtLocation = biomesAtLocation.map(biome => biome.habitat);
-    
-    return {
-      activeUnits,
-      dormantUnits,
-      habitats: habitatsAtLocation,
-      biomes: biomesAtLocation
-    };
-  }
-
   // Update method called each frame
   update() {
     // Let the selection renderer handle hover updates

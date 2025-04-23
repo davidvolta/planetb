@@ -880,4 +880,27 @@ export function updateTileProperty(
   
   // Default behavior: update the state
   useGameStore.setState({ board: updatedBoard });
+}
+
+/**
+ * Get all units at a given tile coordinate
+ */
+export function getUnitsAt(x: number, y: number): Animal[] {
+  return useGameStore.getState().animals.filter(a =>
+    a.position.x === x && a.position.y === y
+  );
+}
+
+/**
+ * Get active units at a given tile coordinate
+ */
+export function getActiveUnitsAt(x: number, y: number): Animal[] {
+  return getUnitsAt(x, y).filter(a => a.state === AnimalState.ACTIVE);
+}
+
+/**
+ * Get dormant units (eggs) at a given tile coordinate
+ */
+export function getDormantUnitsAt(x: number, y: number): Animal[] {
+  return getUnitsAt(x, y).filter(a => a.state === AnimalState.DORMANT);
 } 

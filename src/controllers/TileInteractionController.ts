@@ -47,32 +47,37 @@ export class TileInteractionController {
       return;
     }
 
-    // Gather contents for selection cases
-    const contents = this.scene.checkTileContents(x, y);
+    // Build content arrays for selection cases using store helpers
+    const activeUnits = actions.getActiveUnitsAt(x, y);
+    const dormantUnits = actions.getDormantUnitsAt(x, y);
+    const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
+    const biomesAtLocation = habitatTiles
+      .map(({ tile }) => actions.getBiomes().get(tile.biomeId!))
+      .filter((b): b is any => !!b);
     const playerId = actions.getCurrentPlayerId();
 
     // Build list of handlers in priority order
     const handlers: ((x: number, y: number) => void)[] = [];
 
     // Case 1: active unit selection (only if unit hasn't moved)
-    if (contents.activeUnits.length > 0 && !contents.activeUnits[0].hasMoved) {
+    if (activeUnits.length > 0 && !activeUnits[0].hasMoved) {
       handlers.push((x, y) => {
-        actions.selectUnit(contents.activeUnits[0].id);
+        actions.selectUnit(activeUnits[0].id);
         this.scene.selectionRenderer.showSelectionAt(x, y);
       });
     }
 
     // Case 5: dormant unit selection
-    if (contents.dormantUnits.length > 0) {
+    if (dormantUnits.length > 0) {
       handlers.push((x, y) => {
-        actions.selectUnit(contents.dormantUnits[0].id);
+        actions.selectUnit(dormantUnits[0].id);
         this.scene.selectionRenderer.showRedSelectionAt(x, y);
       });
     }
 
     // Case 3: habitat selection (owned or unowned)
-    if (contents.biomes.length > 0) {
-      const biome = contents.biomes[0];
+    if (biomesAtLocation.length > 0) {
+      const biome = biomesAtLocation[0];
       handlers.push((x, y) => {
         actions.selectBiome(biome.id);
         this.scene.selectionRenderer.showRedSelectionAt(x, y);
