@@ -968,12 +968,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectUnit: (id: string | null) => 
     set((state) => {
       if (!id) {
-        // Deselecting a unit
         return { 
-          selectedUnitId: null, 
-          validMoves: [], 
+          selectedUnitId: null,
+          validMoves: [],
           moveMode: false,
-          selectedUnitIsDormant: true
+          selectedUnitIsDormant: true,
+          selectedResource: null  // clear resource selection
         };
       }
       
@@ -986,7 +986,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           selectedUnitId: id,
           validMoves: [],
           moveMode: false,
-          selectedUnitIsDormant: unit.state === AnimalState.DORMANT
+          selectedUnitIsDormant: unit.state === AnimalState.DORMANT,
+          selectedResource: null  // clear resource selection
         };
       }
       
@@ -997,7 +998,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         selectedUnitId: id,
         validMoves,
         moveMode: true,
-        selectedUnitIsDormant: unit?.state === AnimalState.DORMANT
+        selectedUnitIsDormant: unit?.state === AnimalState.DORMANT,
+        selectedResource: null  // clear resource selection
       };
     }),
     

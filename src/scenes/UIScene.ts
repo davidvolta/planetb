@@ -183,6 +183,9 @@ export default class UIScene extends Phaser.Scene {
     
     // Add input listener to hide biome info when clicking elsewhere
     this.input.on('pointerdown', this.hideBiomeInfoIfClickedOutside, this);
+    
+    // Add keyboard shortcut for Harvest (H)
+    this.input.keyboard?.on('keydown-H', this.handleHarvest, this);
   }
 
   createNextTurnButton() {
