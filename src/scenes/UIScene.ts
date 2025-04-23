@@ -182,7 +182,7 @@ export default class UIScene extends Phaser.Scene {
     this.updateBackgroundSize();
     
     // Add input listener to hide biome info when clicking elsewhere
-    this.input.on('pointerdown', this.hideBiomeInfoIfClickedOutside, this);
+    //this.input.on('pointerdown', this.hideBiomeInfoIfClickedOutside, this);
     
     // Add keyboard shortcut for Harvest (H)
     this.input.keyboard?.on('keydown-H', this.handleHarvest, this);
@@ -576,35 +576,4 @@ export default class UIScene extends Phaser.Scene {
     this.selectedBiomeId = null;
   }
   
-  // Hide biome info panel if clicked outside of it
-  hideBiomeInfoIfClickedOutside(pointer: Phaser.Input.Pointer) {
-    // Do nothing if panel is not visible or doesn't exist
-    if (!this.biomeInfoPanel || !this.biomeInfoPanel.visible || !this.biomeInfoBackground) {
-      return;
-    }
-    
-    // Check if the click is within the biome info panel
-    const x = this.biomeInfoPanel.x;
-    const y = this.biomeInfoPanel.y;
-    const width = this.biomeInfoBackground.width;
-    const height = this.biomeInfoBackground.height;
-    
-    const isInside = pointer.x >= x && 
-                      pointer.x <= x + width && 
-                      pointer.y >= y && 
-                      pointer.y <= y + height;
-                      
-    // If clicked outside the panel, hide it
-    if (!isInside) {
-      // Only deselect if not clicking on a habitat
-      // This check helps prevent immediately hiding the panel after selecting a habitat
-      const scene = this;
-      setTimeout(() => {
-        // Give time for habitat selection to process first
-        if (!actions.getSelectedBiomeId() && scene.biomeInfoPanel) {
-          scene.biomeInfoPanel.setVisible(false);
-        }
-      }, 50);
-    }
-  }
 } 
