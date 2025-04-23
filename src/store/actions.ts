@@ -558,65 +558,11 @@ export function getResourceTiles(): TileResult[] {
 }
 
 /**
- * Stub for harvesting resources from the selected tile
+ * Delegate harvesting logic to the EcosystemController.
  * @param amount Number of resource units to harvest
  */
 export function harvestTileResource(amount: number): void {
-  const state = useGameStore.getState();
-  const coord = state.selectedResource;
-  if (!coord) {
-    console.warn('No resource tile selected to harvest.');
-    return;
-  }
-  const { x, y } = coord;
-  const board = state.board;
-  if (!board) {
-    console.warn('Board not initialized, cannot harvest resource.');
-    return;
-  }
-  const tile = board.tiles[y][x];
-  if (!tile.active || tile.resourceType === null) {
-    console.warn(`No active resource at (${x},${y}) to harvest.`);
-    return;
-  }
-  // Determine harvest amount (cannot exceed current value)
-  const harvestAmount = Math.min(amount, tile.resourceValue);
-  const newValue = tile.resourceValue - harvestAmount;
-  // Update tile resource value
-  updateTileProperty(x, y, 'resourceValue', newValue);
-  // Deactivate if depleted
-  if (newValue <= 0) {
-    updateTileProperty(x, y, 'active', false);
-  }
-  // Update player energy
-  const playerId = state.currentPlayerId;
-  const updatedPlayers = state.players.map(player =>
-    player.id === playerId
-      ? { ...player, energy: player.energy + harvestAmount }
-      : player
-  );
-  useGameStore.setState({ players: updatedPlayers });
-  // Update biome harvest stats
-  const biomeId = tile.biomeId;
-  if (biomeId) {
-    const biome = state.biomes.get(biomeId);
-    if (biome) {
-      const newTotalHarvested = biome.totalHarvested + harvestAmount;
-      let newNonDepletedCount = biome.nonDepletedCount;
-      if (newValue <= 0) {
-        newNonDepletedCount = Math.max(0, biome.nonDepletedCount - 1);
-      }
-      const updatedBiomes = new Map(state.biomes);
-      updatedBiomes.set(biomeId, {
-        ...biome,
-        totalHarvested: newTotalHarvested,
-        nonDepletedCount: newNonDepletedCount
-      });
-      useGameStore.setState({ biomes: updatedBiomes });
-      // Recalculate lushness for this biome immediately
-      updateBiomeLushness(biomeId);
-    }
-  }
+  EcosystemController.harvestTileResource(amount);
 }
 
 /**

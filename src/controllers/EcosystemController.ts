@@ -1,5 +1,5 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
-import { getEggPlacementTiles, TileResult, updateBiomeLushness, getTilesForBiome } from "../store/actions";
+import { getEggPlacementTiles, TileResult, updateBiomeLushness, getTilesForBiome, updateTileProperty } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/gameConfig";
 import { useGameStore } from "../store/gameStore";
 
@@ -507,5 +507,66 @@ export class EcosystemController {
   private static calculateLushnessBoost(eggPercentage: number): number {
     // Linear boost formula: percentage * 2, capped at MAX_LUSHNESS_BOOST
     return Math.min(2.0, eggPercentage * 2.0);
+  }
+
+  /**
+   * Harvest resources from the currently selected resource tile.
+   * Updates tile, player energy, biome stats, and recalculates lushness via actions.
+   */
+  public static harvestTileResource(amount: number): void {
+    const state = useGameStore.getState();
+    const coord = state.selectedResource;
+    if (!coord) {
+      console.warn('No resource tile selected to harvest.');
+      return;
+    }
+    const { x, y } = coord;
+    const board = state.board;
+    if (!board) {
+      console.warn('Board not initialized, cannot harvest resource.');
+      return;
+    }
+    const tile = board.tiles[y][x];
+    if (!tile.active || tile.resourceType === null) {
+      console.warn(`No active resource at (${x},${y}) to harvest.`);
+      return;
+    }
+    // Determine harvest amount
+    const harvestAmount = Math.min(amount, tile.resourceValue);
+    const newValue = tile.resourceValue - harvestAmount;
+    // Update tile resource value and status
+    updateTileProperty(x, y, 'resourceValue', newValue);
+    if (newValue <= 0) {
+      updateTileProperty(x, y, 'active', false);
+    }
+    // Update player energy
+    const playerId = state.currentPlayerId;
+    const updatedPlayers = state.players.map(player =>
+      player.id === playerId
+        ? { ...player, energy: player.energy + harvestAmount }
+        : player
+    );
+    useGameStore.setState({ players: updatedPlayers });
+    // Update biome harvest stats
+    const biomeId = tile.biomeId;
+    if (biomeId) {
+      const biome = state.biomes.get(biomeId);
+      if (biome) {
+        const newTotalHarvested = biome.totalHarvested + harvestAmount;
+        let newNonDepletedCount = biome.nonDepletedCount;
+        if (newValue <= 0) {
+          newNonDepletedCount = Math.max(0, biome.nonDepletedCount - 1);
+        }
+        const updatedBiomes = new Map(state.biomes);
+        updatedBiomes.set(biomeId, {
+          ...biome,
+          totalHarvested: newTotalHarvested,
+          nonDepletedCount: newNonDepletedCount
+        });
+        useGameStore.setState({ biomes: updatedBiomes });
+        // Recalculate lushness for this biome immediately
+        updateBiomeLushness(biomeId);
+      }
+    }
   }
 }
