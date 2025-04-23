@@ -238,22 +238,13 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize renderers after tiles are created
     this.selectionRenderer.initialize(anchorX, anchorY);
     
-    // Set up visibility callback for fog of war
-    this.fogOfWarRenderer.setTileVisibilityCallback((x, y, isVisible) => {
-      this.updateObjectVisibility(x, y, isVisible);
-    });
-    
     // Create Fog of War if it's enabled
     if (this.fogOfWarEnabled) {
       this.fogOfWarRenderer.createFogOfWar(board);
       this.initializeVisibility();
     } else {
-      // Make all objects visible by default if fog of war is disabled
-      for (let y = 0; y < board.height; y++) {
-        for (let x = 0; x < board.width; x++) {
-          this.updateObjectVisibility(x, y, true);
-        }
-      }
+      // Disable fog of war and reveal all
+      this.fogOfWarRenderer.clearFogOfWar();
     }
     
     // Check if there are resources on the board
@@ -598,37 +589,20 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
   
-  // Update a tile's visibility in the game state - updated to use batch updates
-  private updateTileVisibility(x: number, y: number, visible: boolean): void {
-    actions.updateTilesVisibility([{ x, y, visible }]);
-  }
-  
   // Toggle fog of war on/off
   public toggleFogOfWar(enabled: boolean): void {
     this.fogOfWarEnabled = enabled;
     const board = actions.getBoard();
     if (!board) return;
-
     if (enabled) {
-      // Re-enable fog of war
       this.fogOfWarRenderer.createFogOfWar(board);
-
-      // Show and reveal explored tiles
       const exploredTiles = actions.getTilesByFilter(tile => tile.explored);
-      const coordsToReveal = exploredTiles.map(({ x, y }) => ({ x, y }));
-      if (coordsToReveal.length > 0) {
-        this.fogOfWarRenderer.revealTiles(coordsToReveal);
-        coordsToReveal.forEach(({ x, y }) => this.updateObjectVisibility(x, y, true));
+      const coords = exploredTiles.map(({ x, y }) => ({ x, y }));
+      if (coords.length) {
+        this.fogOfWarRenderer.revealTiles(coords);
       }
-
-      // Hide objects on unexplored tiles
-      const unexploredTiles = actions.getTilesByFilter(tile => !tile.explored);
-      unexploredTiles.forEach(({ x, y }) => this.updateObjectVisibility(x, y, false));
     } else {
-      // Disable fog and make all objects visible
       this.fogOfWarRenderer.clearFogOfWar();
-      const allTiles = actions.getTiles();
-      allTiles.forEach(({ x, y }) => this.updateObjectVisibility(x, y, true));
     }
   }
   
@@ -636,65 +610,6 @@ export default class BoardScene extends Phaser.Scene {
   public getFogOfWarRenderer(): FogOfWarRenderer {
     return this.fogOfWarRenderer;
   }
-
-  // Update visibility of objects at a specific tile location
-  private updateObjectVisibility(x: number, y: number, isVisible: boolean): void {
-    // Update terrain tile visibility
-    const terrainLayer = this.layerManager.getTerrainLayer();
-    if (terrainLayer) {
-      terrainLayer.getAll().forEach(object => {
-        if (object.getData && object.getData('gridX') === x && object.getData('gridY') === y) {
-          // Use type assertion to any as a safe way to access the method
-          const gameObject = object as any;
-          if (typeof gameObject.setVisible === 'function') {
-            gameObject.setVisible(isVisible);
-          }
-        }
-      });
-    }
-    
-    // Update units visibility
-    const unitsLayer = this.layerManager.getUnitsLayer();
-    if (unitsLayer) {
-      unitsLayer.getAll().forEach(object => {
-        if (object.getData && object.getData('gridX') === x && object.getData('gridY') === y) {
-          // Use type assertion to any as a safe way to access the method
-          const gameObject = object as any;
-          if (typeof gameObject.setVisible === 'function') {
-            gameObject.setVisible(isVisible);
-          }
-        }
-      });
-    }
-    
-    // Update habitats visibility
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (staticObjectsLayer) {
-      staticObjectsLayer.getAll().forEach(object => {
-        if (object.getData && object.getData('gridX') === x && object.getData('gridY') === y) {
-          // Use type assertion to any as a safe way to access the method
-          const gameObject = object as any;
-          if (typeof gameObject.setVisible === 'function') {
-            gameObject.setVisible(isVisible);
-          }
-        }
-      });
-    }
-    
-    // Update resources visibility
-    if (staticObjectsLayer) {
-      staticObjectsLayer.getAll().forEach(object => {
-        if (object.getData && object.getData('gridX') === x && object.getData('gridY') === y) {
-          // Use type assertion to any as a safe way to access the method
-          const gameObject = object as any;
-          if (typeof gameObject.setVisible === 'function') {
-            gameObject.setVisible(isVisible);
-          }
-        }
-      });
-    }
-  }
-
 
   // Get resource renderer
   public getResourceRenderer(): ResourceRenderer {
