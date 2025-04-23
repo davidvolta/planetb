@@ -2,23 +2,10 @@
 
 ## Ecosystem Integration Plan
 
-### Phase 4:  Production with Biome-Based Ecosystem
-- [ ] Eggs = lushnessboost
-
 ### Phase 6: Implement Harvesting System
-- [ ] Create new action functions in actions.ts:
-      - Selecting a tile with resources (double click behavior for units/eggs)
-  - [ ] harvestTileResource(tileId, amount)
-      - Allow partial harvesting (0-10 scale per tile's resource value)
-  
-- [ ] Add UI components for harvesting:
-  - [ ] Harvest button that appears when a tile with resources is selected
-  - [ ] Amount slider for selecting harvest amount (0-10 scale)
-  - [ ] Implement energy counter (UI and gamestore)
-
-- [ ] Track Resource Harvesting
+  - [ ] Harvest button that ONLY appears when a tile with resources is selected
   - [ ] Track totalHarvested when resources are harvested
-  - [ ] Add end-of-turn nonDepletedCount recalculation
+  - [ ] Add end-of-harvest update lushness through new nonDepletedCount recalculation
   
 
 - [ ] Implement the harvest logic in gameStore:

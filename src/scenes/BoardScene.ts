@@ -424,11 +424,19 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // Check for clicking a resource tile
+    // Check for clicking a resource tile in a biome owned by the current player
     const resourceBoard = actions.getBoard();
     if (resourceBoard) {
       const resourceTile = resourceBoard.tiles[gridY][gridX];
-      if (resourceTile.active && resourceTile.resourceType !== null) {
+      const biomeId = resourceTile.biomeId;
+      const biome = biomeId ? actions.getBiomes().get(biomeId) : undefined;
+      const currentPlayerId = actions.getCurrentPlayerId();
+      if (
+        resourceTile.active &&
+        resourceTile.resourceType !== null &&
+        biome &&
+        biome.ownerId === currentPlayerId
+      ) {
         actions.selectResourceTile({ x: gridX, y: gridY });
         this.selectionRenderer.showSelectionAt(gridX, gridY);
         return;

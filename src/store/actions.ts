@@ -613,6 +613,8 @@ export function harvestTileResource(amount: number): void {
         nonDepletedCount: newNonDepletedCount
       });
       useGameStore.setState({ biomes: updatedBiomes });
+      // Recalculate lushness for this biome immediately
+      updateBiomeLushness(biomeId);
     }
   }
 }

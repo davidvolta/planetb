@@ -114,6 +114,25 @@ export default class UIScene extends Phaser.Scene {
 
     // Listen for the resize event to reposition the UI
     this.scale.on('resize', this.resizeUI, this);
+
+    // Subscribe to resource selection and resourceValue to show/hide Harvest button
+    StateObserver.subscribe(
+      'ui-resource',
+      (state: GameState) => {
+        const coord = state.selectedResource;
+        if (!coord || !state.board) {
+          return { hasResource: false };
+        }
+        const tile = state.board.tiles[coord.y][coord.x];
+        const hasResource = tile.active && tile.resourceValue > 0;
+        return { hasResource };
+      },
+      (data) => {
+        this.harvestButton?.setVisible(data.hasResource);
+        this.updateBackgroundSize();
+      },
+      { immediate: false }
+    );
   }
 
   create() {
@@ -281,6 +300,8 @@ export default class UIScene extends Phaser.Scene {
     this.harvestButton.add(bg);
     this.harvestButton.add(text);
     this.container?.add(this.harvestButton);
+    // Hide harvest button until a resource is selected
+    this.harvestButton.setVisible(false);
   }
 
   handleNextTurn() {
