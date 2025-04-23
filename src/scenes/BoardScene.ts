@@ -321,15 +321,27 @@ export default class BoardScene extends Phaser.Scene {
       this.selectionRenderer.showSelectionAt(gridX, gridY);
     }
     
+    // Double-click on a unit (active or dormant) to harvest underlying resource
+    const selectedUnitId = actions.getSelectedUnitId();
+    const unitsOnTile = [...contents.activeUnits, ...contents.dormantUnits];
+    if (selectedUnitId && unitsOnTile.some(u => u.id === selectedUnitId)) {
+      const board = actions.getBoard();
+      if (board) {
+        const tile = board.tiles[gridY][gridX];
+        if (tile.active && tile.resourceType !== null) {
+          actions.selectResourceTile({ x: gridX, y: gridY });
+          this.selectionRenderer.showRedSelectionAt(gridX, gridY);
+          return;
+        }
+      }
+    }
+    
     // Check if the tile contains both active and dormant units
     const hasActiveUnit = contents.activeUnits.length > 0;
     const hasDormantUnit = contents.dormantUnits.length > 0;
     const hasHabitat = contents.biomes.length > 0;
     
     // Get currently selected unit (if any)
-    const selectedUnitId = actions.getSelectedUnitId();
-    
-    // Check if we're clicking the same tile that has the currently selected unit
     const selectedUnit = selectedUnitId ? contents.activeUnits.find(unit => unit.id === selectedUnitId) : null;
     const isClickingSelectedUnit = selectedUnit !== null;
     
@@ -402,7 +414,7 @@ export default class BoardScene extends Phaser.Scene {
     // Only handle active unit selection if none of the above actions were taken and unit hasn't moved
     if (hasActiveUnit) {
       const unit = contents.activeUnits[0];
-      // Skip selection if the unit has already moved
+      // Skip selection if the unit has already moved this turn
       if (unit.hasMoved) {
         console.log(`Unit ${unit.id} has already moved this turn and cannot be selected`);
         return;
