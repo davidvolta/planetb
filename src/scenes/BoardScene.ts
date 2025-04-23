@@ -622,46 +622,20 @@ export default class BoardScene extends Phaser.Scene {
   
   // Reveal all tiles in a biome
   public revealBiomeTiles(biomeId: string, revealedTiles?: { x: number, y: number }[]): void {
-    // Check if the biome exists
-    const biome = actions.getBiomeById(biomeId);
-    if (!biome) {
-      console.warn(`[revealBiomeTiles] Biome ${biomeId} not found`);
-      return;
-    }
-    
-    const board = actions.getBoard();
-    if (!board) return;
-    
-    // Track tiles we reveal
-    const tilesToReveal: { x: number, y: number }[] = [];
-    const visibilityUpdates: { x: number, y: number, visible: boolean }[] = [];
-    
-    // Scan the board for all tiles in this biome
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        const tile = board.tiles[y][x];
-        if (tile.biomeId === biomeId) {
-          // Add to visibility updates
-          visibilityUpdates.push({ x, y, visible: true });
-          // Add to our array of tiles to reveal
-          tilesToReveal.push({ x, y });
-          
-          // Add to the passed-in array if it exists
-          if (revealedTiles) {
-            revealedTiles.push({ x, y });
-          }
-        }
-      }
-    }
-    
-    // Perform batch visibility update
-    if (visibilityUpdates.length > 0) {
-      actions.updateTilesVisibility(visibilityUpdates);
-    }
-    
-    // If we weren't adding to an existing array, reveal tiles now
-    if (!revealedTiles) {
-      this.fogOfWarRenderer.revealTiles(tilesToReveal);
+    // Fetch tiles belonging to this biome
+    const tileResults = actions.getTilesForBiome(biomeId);
+    if (tileResults.length === 0) return;
+
+    // Batch update visibility
+    const visibilityUpdates = tileResults.map(({ x, y }) => ({ x, y, visible: true }));
+    actions.updateTilesVisibility(visibilityUpdates);
+
+    // Reveal in fog of war
+    const coords = tileResults.map(({ x, y }) => ({ x, y }));
+    if (revealedTiles) {
+      revealedTiles.push(...coords);
+    } else {
+      this.fogOfWarRenderer.revealTiles(coords);
     }
   }
   
@@ -673,45 +647,29 @@ export default class BoardScene extends Phaser.Scene {
   // Toggle fog of war on/off
   public toggleFogOfWar(enabled: boolean): void {
     this.fogOfWarEnabled = enabled;
-    
-    // Get the board
     const board = actions.getBoard();
     if (!board) return;
-    
+
     if (enabled) {
       // Re-enable fog of war
       this.fogOfWarRenderer.createFogOfWar(board);
-      
-      // Collect all previously explored tiles
-      const exploredTiles: { x: number, y: number }[] = [];
-      for (let y = 0; y < board.height; y++) {
-        for (let x = 0; x < board.width; x++) {
-          const tile = board.tiles[y][x];
-          if (tile.explored) {
-            exploredTiles.push({ x, y });
-            // Update object visibility for this tile
-            this.updateObjectVisibility(x, y, true);
-          } else {
-            // Hide objects at unexplored tiles
-            this.updateObjectVisibility(x, y, false);
-          }
-        }
+
+      // Show and reveal explored tiles
+      const exploredTiles = actions.getTilesByFilter(tile => tile.explored);
+      const coordsToReveal = exploredTiles.map(({ x, y }) => ({ x, y }));
+      if (coordsToReveal.length > 0) {
+        this.fogOfWarRenderer.revealTiles(coordsToReveal);
+        coordsToReveal.forEach(({ x, y }) => this.updateObjectVisibility(x, y, true));
       }
-      
-      // Reveal all explored tiles in one batch operation
-      if (exploredTiles.length > 0) {
-        this.fogOfWarRenderer.revealTiles(exploredTiles);
-      }
+
+      // Hide objects on unexplored tiles
+      const unexploredTiles = actions.getTilesByFilter(tile => !tile.explored);
+      unexploredTiles.forEach(({ x, y }) => this.updateObjectVisibility(x, y, false));
     } else {
-      // Disable fog of war by clearing all fog tiles
+      // Disable fog and make all objects visible
       this.fogOfWarRenderer.clearFogOfWar();
-      
-      // Make all objects visible since fog of war is now disabled
-      for (let y = 0; y < board.height; y++) {
-        for (let x = 0; x < board.width; x++) {
-          this.updateObjectVisibility(x, y, true);
-        }
-      }
+      const allTiles = actions.getTiles();
+      allTiles.forEach(({ x, y }) => this.updateObjectVisibility(x, y, true));
     }
   }
   
