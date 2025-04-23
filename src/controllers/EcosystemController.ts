@@ -1,7 +1,6 @@
 import { ResourceType, Coordinate, TerrainType, Habitat, Resource, GameConfig, AnimalState, Board, Animal, Biome, GameState } from "../store/gameStore";
 import { getEggPlacementTiles, TileResult, updateBiomeLushness, getTilesForBiome, updateTileProperty } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/gameConfig";
-import { useGameStore } from "../store/gameStore";
 
 /**
  * Interface for egg placement validation
@@ -258,122 +257,62 @@ export class EcosystemController {
     biomes: Map<string, Biome>,
     board: Board
   ): BiomeProductionResult {
-    // Only produce eggs on even-numbered turns
-    const shouldProduceEggs = turn % 2 === 0;
-    const newAnimals = [...animals];
-    const updatedBiomes = new Map(biomes);
-    
-    // If it's not a turn to produce eggs, just return
-    if (!shouldProduceEggs) {
-      return {
-        animals: newAnimals,
-        biomes: updatedBiomes
-      };
+    // Early exit on non-egg turns
+    if (turn % 2 !== 0) {
+      return { animals: [...animals], biomes: new Map(biomes) };
     }
-    
+
+    const newAnimals: Animal[] = [...animals];
+    const updatedBiomes: Map<string, Biome> = new Map(biomes);
+
     biomes.forEach((biome, biomeId) => {
-      // Skip biomes that don't have an owner
-      if (biome.ownerId === null) {
-        return;
-      }
-      
-      // Skip biomes that have already produced in this turn
-      if (biome.lastProductionTurn === turn) {
-        return;
-      }
-      
-      // Check if biome's total lushness is high enough to produce eggs (≥ 7.0)
-      if (biome.totalLushness < EGG_PRODUCTION_THRESHOLD) {
-        // Update the biome's last production turn even if no eggs are produced
-        const updatedBiome: Biome = {
-          ...biome,
-          lastProductionTurn: turn
-        };
-        updatedBiomes.set(biomeId, updatedBiome);
-        return;
-      }
-      
-      // Proceed with egg production if lushness is sufficient
-      const eggsToCreate = biome.productionRate;
-      
-      if (eggsToCreate <= 0) {
+      // Skip biomes without owner or already processed
+      if (biome.ownerId === null || biome.lastProductionTurn === turn) {
         return;
       }
 
-      // Find valid tiles for egg placement
+      // Prepare base update for lastProductionTurn
+      const baseUpdatedBiome: Biome = { ...biome, lastProductionTurn: turn };
+
+      // If not enough lushness or nothing to produce, update turn and skip
+      if (biome.totalLushness < EGG_PRODUCTION_THRESHOLD || biome.productionRate <= 0) {
+        updatedBiomes.set(biomeId, baseUpdatedBiome);
+        return;
+      }
+
+      // Determine valid egg placement tiles
       const validTiles = this.getValidEggPlacementTiles(
-        biomeId, 
-        {
-          board: board,
-          animals: newAnimals
-        },
+        biomeId,
+        { board, animals: newAnimals },
         biomes
       );
+      const eggsToPlace = Math.min(biome.productionRate, validTiles.length);
+      const startIndex = newAnimals.length;
 
-      // Place eggs on valid tiles - use best tiles first (highest resource adjacency)
-      const eggsPlaced = Math.min(eggsToCreate, validTiles.length);
-      for (let i = 0; i < eggsPlaced; i++) {
-        // Take from the start of the array (highest resource adjacency first)
-        const tile = validTiles[i];
-
-        // Get appropriate species based on terrain
-        const terrain = board.tiles[tile.y][tile.x].terrain;
-        const species = this.getSpeciesForTerrain(terrain);
-
-        // Create new egg (owned by the biome owner)
-        const newAnimal: Animal = {
-          id: `animal-${newAnimals.length}`,
-          species,
+      // Create new egg animals
+      const newEggs = validTiles.slice(0, eggsToPlace).map((tile, idx) => {
+        board.tiles[tile.y][tile.x].hasEgg = true;
+        return {
+          id: `animal-${startIndex + idx}`,
+          species: this.getSpeciesForTerrain(board.tiles[tile.y][tile.x].terrain),
           state: AnimalState.DORMANT,
           position: tile,
           previousPosition: null,
           hasMoved: false,
-          ownerId: biome.ownerId,
-        };
-        
-        // Mark the tile as having an egg
-        board.tiles[tile.y][tile.x].hasEgg = true;
-        
-        newAnimals.push(newAnimal);
-      }
+          ownerId: biome.ownerId!,
+        } as Animal;
+      });
 
-      // Update biome's last production turn and increment eggCount
-      const newEggCount = biome.eggCount + eggsPlaced;
-      const updatedBiome: Biome = {
-        ...biome,
-        lastProductionTurn: turn,
-        eggCount: newEggCount
-      };
-      
-      updatedBiomes.set(biomeId, updatedBiome);
-      
-      // Update the state with the new egg count before calling updateBiomeLushness
-      const tempBiomes = new Map(useGameStore.getState().biomes);
-      tempBiomes.set(biomeId, updatedBiome);
-      useGameStore.setState({ biomes: tempBiomes });
-      
-      // Update the lushness boost for this biome based on new egg percentage
-      // Only if we actually added eggs
-      if (eggsPlaced > 0) {
-        // Use the new updateBiomeLushness action instead of directly calculating
-        // Import and call from the actions module to ensure consistent lushness updates
-        updateBiomeLushness(biomeId);
-        
-        // The biome should now be updated in the store, but we need to get the new values
-        // for our local updatedBiomes map to return the correct data
-        const state = useGameStore.getState();
-        const refreshedBiome = state.biomes.get(biomeId);
-        
-        if (refreshedBiome) {
-          updatedBiomes.set(biomeId, refreshedBiome);
-        }
-      }
+      newAnimals.push(...newEggs);
+
+      // Update eggCount and lastProductionTurn
+      updatedBiomes.set(biomeId, {
+        ...baseUpdatedBiome,
+        eggCount: biome.eggCount + newEggs.length,
+      });
     });
-    
-    return {
-      animals: newAnimals,
-      biomes: updatedBiomes
-    };
+
+    return { animals: newAnimals, biomes: updatedBiomes };
   }
 
   /**
@@ -521,35 +460,6 @@ export class EcosystemController {
     });
 
     return { board: newBoard, players: newPlayers, biomes: newBiomes };
-  }
-
-  /**
-   * Update lushness values of a biome directly in the store.
-   */
-  public static updateBiomeLushness(biomeId: string): void {
-    const state = useGameStore.getState();
-    const biome = state.biomes.get(biomeId);
-    if (!biome) {
-      console.warn(`Biome ${biomeId} not found, cannot update lushness`);
-      return;
-    }
-    // Board is guaranteed to be initialized here
-    const board = state.board!;
-    const { baseLushness, lushnessBoost, totalLushness } = this.calculateBiomeLushness(
-      biomeId,
-      board,
-      state.biomes
-    );
-    const updatedBiome = {
-      ...biome,
-      baseLushness,
-      lushnessBoost,
-      totalLushness,
-      eggCount: biome.eggCount
-    };
-    const updatedBiomes = new Map(state.biomes);
-    updatedBiomes.set(biomeId, updatedBiome);
-    useGameStore.setState({ biomes: updatedBiomes });
   }
 
   /**

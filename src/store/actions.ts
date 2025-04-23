@@ -351,7 +351,26 @@ export function calculateBiomeLushness(biomeId: string): {
  * Delegate lushness update to the EcosystemController.
  */
 export function updateBiomeLushness(biomeId: string): void {
-  EcosystemController.updateBiomeLushness(biomeId);
+  const state = useGameStore.getState();
+  // Calculate new lushness values using the existing action helper
+  const { baseLushness, lushnessBoost, totalLushness } = calculateBiomeLushness(biomeId);
+  const biome = state.biomes.get(biomeId);
+  if (!biome) {
+    console.warn(`Biome ${biomeId} not found, cannot update lushness`);
+    return;
+  }
+  // Prepare updated biome object
+  const updatedBiome: Biome = {
+    ...biome,
+    baseLushness,
+    lushnessBoost,
+    totalLushness,
+    eggCount: biome.eggCount,
+  };
+  // Commit updated biomes map in one state update
+  const updatedBiomes = new Map(state.biomes);
+  updatedBiomes.set(biomeId, updatedBiome);
+  useGameStore.setState({ biomes: updatedBiomes });
 }
 
 
