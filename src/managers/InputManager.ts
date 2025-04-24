@@ -167,33 +167,6 @@ export class InputManager {
     this.callbacks.onPointerMove = callback;
   }
   
-  // Convert screen coordinates to grid coordinates
-  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null {
-    // Get board data
-    const board = actions.getBoard();
-    if (!board) return null;
-    
-    // Get world point from screen coordinates
-    const worldPoint = this.getCamera().getWorldPoint(screenX, screenY);
-    
-    // Convert to grid using the utility
-    const gridPosition = CoordinateUtils.screenToGrid(
-      0, 0, // Not used when worldPoint is provided
-      this.tileSize,
-      this.tileHeight,
-      this.anchorX,
-      this.anchorY,
-      worldPoint
-    );
-    
-    // Check if grid position is valid
-    if (CoordinateUtils.isValidCoordinate(gridPosition.x, gridPosition.y, board.width, board.height)) {
-      return gridPosition;
-    }
-    
-    return null;
-  }
-  
   // Clean up all resources and event listeners
   destroy(): void {
     // Remove all keyboard shortcuts

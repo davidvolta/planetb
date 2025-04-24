@@ -5,7 +5,7 @@ import { generateVoronoiBiomes } from "../utils/BiomeGenerator";
 import { VoronoiNode, isNodeOverlapping } from "../utils/BiomeGenerator";
 import { devtools } from 'zustand/middleware';
 import { EcosystemController } from "../controllers/EcosystemController";
-import { updateBiomeLushness, updateTileProperty } from "./actions";
+import { updateBiomeLushness } from "./actions";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -880,13 +880,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       // Get the updated board with hasEgg = false
       // Use updateState: false so it returns the board instead of updating the state directly
-      const updatedBoard = updateTileProperty(
-        eggPosition.x, 
-        eggPosition.y, 
-        "hasEgg", 
-        false, 
-        { updateState: false }
-      ) as Board;
+      const updatedBoard: Board = {
+        ...state.board!,
+        tiles: state.board!.tiles.map((row, rowIndex) =>
+          rowIndex === eggPosition.y
+            ? row.map((tile, colIndex) =>
+                colIndex === eggPosition.x
+                  ? { ...tile, hasEgg: false }
+                  : tile
+              )
+            : row
+        )
+      };
       
       let updatedBiomes = new Map(state.biomes);
       

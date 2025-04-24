@@ -557,8 +557,6 @@ export function resetResources(
     return;
   }
   
-  // First, clear all existing resources
-  // Reset all resource properties on tiles
   const updatedBoard = { ...state.board };
   
   // Reset resource properties across the board first
@@ -741,53 +739,6 @@ export function updateTilesVisibility(tiles: { x: number, y: number, visible: bo
     
     return { board: newBoard };
   });
-}
-
-/**
- * Update a single property of a tile at the given coordinates
- * @param x X coordinate of the tile
- * @param y Y coordinate of the tile
- * @param property Name of the property to update
- * @param value New value for the property
- * @param options Optional settings { updateState: boolean } - if false, returns the updated board instead of setting state
- * @returns Updated board if updateState is false, otherwise void
- */
-export function updateTileProperty(
-  x: number, 
-  y: number, 
-  property: string, 
-  value: any,
-  options?: { updateState: boolean }
-): Board | void {
-  const state = useGameStore.getState();
-  if (!state.board) return;
-  
-  // Get the current tile
-  const currentTile = state.board.tiles[y]?.[x];
-  if (!currentTile) return;
-  
-  // Create a targeted update of the board, only changing the specific tile
-  const updatedBoard = {
-    ...state.board,
-    tiles: [...state.board.tiles] // Shallow copy of the rows array
-  };
-  
-  // Create a new version of just the row containing our tile
-  updatedBoard.tiles[y] = [...updatedBoard.tiles[y]];
-  
-  // Create a new version of just the specific tile with the updated property
-  updatedBoard.tiles[y][x] = {
-    ...currentTile,
-    [property]: value
-  };
-  
-  // Option to return the updated board instead of setting state
-  if (options && options.updateState === false) {
-    return updatedBoard;
-  }
-  
-  // Default behavior: update the state
-  useGameStore.setState({ board: updatedBoard });
 }
 
 /**

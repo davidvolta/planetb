@@ -66,3 +66,11 @@ To simplify the subscription system, I'd recommend these architectural changes:
 7. **Reduced granularity** - Instead of highly specific optimizations like individual lushness updates, balance between performance and maintainability with slightly coarser update strategies.
 
 This would significantly reduce boilerplate code while maintaining performance and making the system more maintainable.
+
+---
+
+SPLIT SELECTORS (GET) FROM ACTIONS (SET)
+
+- Extract all of the getX and isX functions (plus the tile‐filter helpers like getTiles…) into selectors.ts, reimplementing them there so they call useGameStore.getState() directly.
+- Remove those same functions (and the export * from './selectors' re‑export) from actions.ts.
+- Update every file that was doing import … from "../store/actions" to pull selectors from "../store/selectors" instead.

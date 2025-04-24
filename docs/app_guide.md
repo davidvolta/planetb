@@ -10,8 +10,8 @@ The project follows a component-based architecture with clear separation of conc
 
 ```
 src/
+├── constants/   # Game configuration
 ├── controllers/ # Game logic controllers
-├── game/        # Core game initialization
 ├── managers/    # System managers
 ├── renderers/   # Visual rendering components
 ├── scenes/      # Phaser scenes including the main BoardScene
@@ -35,7 +35,7 @@ The game employs a modular architecture with specialized components organized by
 Renderers are responsible for visualizing game elements:
 - **BaseRenderer**: Provides common functionality for all renderers
 - **TileRenderer**: Renders the terrain tiles and handles tile-related visual effects
-- **HabitatRenderer**: Manages habitat visualization, including creation and improvement animations
+- **BiomeRenderer**: Manages habitat visualization, including creation and improvement animations
 - **AnimalRenderer**: Handles animal visualization, movement animations, and state changes
 - **SelectionRenderer**: Shows selection indicators for tiles, animals, and habitats
 - **MoveRangeRenderer**: Visualizes movement ranges and valid action targets
@@ -52,12 +52,17 @@ Managers handle system-level concerns:
 #### Controllers
 Controllers implement game logic:
 - **AnimationController**: Coordinates complex animation sequences
-- **EcosystemController**: Manages biome-centric ecosystem functionality including:
-  - Resource generation and distribution across biomes
-  - Biome egg production based on ownership and production rates
-  - Habitat functionality and placement
-  - Resource harvesting and lushness calculations
-  - Species selection based on terrain compatibility
+- **EcosystemController**: Implements pure and mutating ecology services:
+  - Resetting/regenerating resources per biome
+  - Purely computing harvest results for board, players, and biomes
+  - Egg production through `biomeEggProduction` and tile-filtered placement
+  - Calculating lushness (`baseLushness`, `lushnessBoost`, `totalLushness`)
+  - Computing capture eligibility and effects
+- **TileInteractionController**: Interprets user tile clicks and cycles through actions:
+  - Unit selection (active/dormant) and move initiation
+  - Habitat selection and biome capture triggers
+  - Resource selection and harvesting
+  - Cycling handlers for repeated clicks
 
 ### State Management
 

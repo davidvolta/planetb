@@ -63,18 +63,24 @@ The InputManager handles user input processing and delegation to the appropriate
 
 ```typescript
 class InputManager {
-  constructor(scene: Phaser.Scene, tileSize: number, tileHeight: number);
+  constructor(
+    scene: Phaser.Scene,
+    tileSize?: number = 64,
+    tileHeight?: number = 32,
+    anchorX?: number = 0,
+    anchorY?: number = 0
+  );
   
   // Initialization
   initialize(anchorX: number, anchorY: number): void;
   
   // Input setup
-  setupKeyboardControls(): void;
-  setupClickEventDelegation(): void;
+  setupControls(): void;          // camera panning and zooming
+  setupKeyboardControls(): void;  // keyboard shortcuts
+  setupClickEventDelegation(): void; // click event delegation
   
   // Click handlers
   onTileClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void;
-  onHabitatClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void;
   onPointerMove(callback: (worldX: number, worldY: number, pointer: Phaser.Input.Pointer) => void): void;
   
   // Coordinate utilities
@@ -87,11 +93,12 @@ class InputManager {
 
 ### Responsibilities
 
-- Setting up and managing keyboard controls
-- Delegating click events to the appropriate handlers
+- Setting up camera panning on pointer drag and wheel zoom
+- Setting up keyboard shortcuts and handling key events
+- Delegating click events for grid-based game objects via onTileClick
+- Managing pointer movement and hover callbacks via onPointerMove
 - Converting screen coordinates to grid coordinates
-- Handling pointer movement and hover events
-- Managing input-related event listeners
+- Cleaning up input event listeners and keyboard shortcuts
 
 ## CameraManager
 
