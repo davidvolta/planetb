@@ -313,8 +313,8 @@ export default class BoardScene extends Phaser.Scene {
     console.log('Unit spawned, updating UI');
     
     // Hide the selection indicator and clear any move highlights
-    this.selectionRenderer.hideSelection();
     this.moveRangeRenderer.clearMoveHighlights();
+    this.selectionRenderer.hideSelection();
     
     // Clear the event
     actions.clearSpawnEvent();
@@ -367,6 +367,10 @@ export default class BoardScene extends Phaser.Scene {
     
     // Register tile click callback for all clickable objects (tiles and habitats)
     this.inputManager.onTileClick((gameObject) => {
+      // Ignore clicks while animations are running
+      if (this.animationController.hasActiveAnimations()) {
+        return;
+      }
       const gridX = gameObject.getData('gridX');
       const gridY = gameObject.getData('gridY');
       if (gridX !== undefined && gridY !== undefined) {

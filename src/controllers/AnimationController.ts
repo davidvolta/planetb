@@ -58,13 +58,13 @@ export class AnimationController {
   }
   
   /**
-   * Animate a unit moving from one position to another
+   * Animate a unit sprite moving from one position to another with optional interactivity settings.
    * @param sprite The sprite to animate
    * @param fromX Starting X grid coordinate
    * @param fromY Starting Y grid coordinate
    * @param toX Destination X grid coordinate
    * @param toY Destination Y grid coordinate
-   * @param options Animation options
+   * @param options Animation options (disableInteractive, duration, ease)
    * @returns Promise that resolves when animation completes
    */
   animateUnitMovement(
@@ -74,101 +74,63 @@ export class AnimationController {
     toX: number,
     toY: number,
     options: {
-      applyTint?: boolean;
-      disableInteractive?: boolean;
       duration?: number | null;
       ease?: string;
-      onComplete?: () => void;
     } = {}
   ): Promise<void> {
     return new Promise((resolve) => {
-      // If there's no sprite, resolve immediately
       if (!sprite) {
         console.error('Cannot animate movement: sprite is missing');
         resolve();
         return;
       }
-      
-      // Set default options
+
       const {
-        applyTint = false,
-        disableInteractive = false,
         duration: fixedDuration = null,
-        ease = 'Power2.out',
-        onComplete = () => {}
+        ease = 'Power2.out'
       } = options;
-      
-      // Convert grid coordinates to world coordinates
+
+      // Convert grid coordinates to world positions
       const startPos = CoordinateUtils.gridToWorld(
         fromX, fromY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
       const endPos = CoordinateUtils.gridToWorld(
         toX, toY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
-      
-      // Apply vertical offset
       const endWorldY = endPos.y + this.verticalOffset;
-      
-      // Calculate movement duration based on distance (unless fixed duration is provided)
-      let duration;
-      if (fixedDuration) {
-        duration = fixedDuration;
-      } else {
-        const distance = Math.sqrt(
-          Math.pow(endPos.x - startPos.x, 2) + 
-          Math.pow(endPos.y - startPos.y, 2)
-        );
-        const baseDuration = 75; // Moderate duration for smooth movement
-        duration = baseDuration * (distance / this.tileSize);
-      }
-      
-      // Create the animation tween
+
+      // Compute duration
+      const duration = fixedDuration ?? Math.sqrt(
+        (endPos.x - startPos.x) ** 2 +
+        (endPos.y - startPos.y) ** 2
+      ) * (75 / this.tileSize);
+
+      // Create and track tween
       const tween = this.scene.tweens.add({
         targets: sprite,
         x: endPos.x,
         y: endWorldY,
-        duration: duration,
-        ease: ease, // Quick acceleration, gentle stop (configurable)
+        duration,
+        ease,
         onUpdate: () => {
-          // Calculate current grid coordinates during movement
-          const currentWorldY = sprite.y - this.verticalOffset;
-          const currentWorldX = sprite.x;
-          const relY = (currentWorldY - this.anchorY) / this.tileHeight;
-          const relX = (currentWorldX - this.anchorX) / this.tileSize;
+          // Update depth throughout movement
+          const relY = ((sprite.y - this.verticalOffset) - this.anchorY) / this.tileHeight;
+          const relX = (sprite.x - this.anchorX) / this.tileSize;
           const currentGridY = (relY * 2 - relX) / 2;
           const currentGridX = relY - currentGridY;
-
-          // Update depth during movement
           sprite.setDepth(computeDepth(currentGridX, currentGridY, true));
         },
         onComplete: () => {
-          // Update the sprite's stored grid coordinates
+          // Finalize sprite data
           sprite.setData('gridX', toX);
           sprite.setData('gridY', toY);
-          
-          // Set final depth at destination
           sprite.setDepth(computeDepth(toX, toY, true));
-          
-          // Apply light gray tint to indicate the unit has moved
-          if (applyTint) {
-            sprite.setTint(0xAAAAAA);
-          }
-          
-          // Disable interactivity
-          if (disableInteractive) {
-            sprite.disableInteractive();
-          }
-          
-          // Call the completion callback
-          onComplete();
-          
-          // Cleanup this tween from tracking
+
+          // Remove and resolve
           this.activeTweens = this.activeTweens.filter(t => t !== tween);
-          // Resolve the promise
           resolve();
         }
       });
-      // Track this tween so we can stop it later
       this.activeTweens.push(tween);
     });
   }
@@ -181,7 +143,6 @@ export class AnimationController {
    * @param fromY Starting Y grid coordinate
    * @param toX Destination X grid coordinate
    * @param toY Destination Y grid coordinate
-   * @param options Additional options
    * @returns Promise that resolves when movement is complete
    */
   async moveUnit(
@@ -190,24 +151,12 @@ export class AnimationController {
     fromX: number,
     fromY: number,
     toX: number,
-    toY: number,
-    options: {
-      onBeforeMove?: () => void;
-      onAfterMove?: () => void;
-    } = {}
+    toY: number
   ): Promise<void> {
-    // Call before-move callback if provided
-    options.onBeforeMove?.();
-
-    // Await the tween-based animation
-    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY, {
-      applyTint: true,
-      disableInteractive: true
-    });
-
-    // Update game state and call after-move callback
+    // Animate movement
+    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
+    // Update game state
     actions.moveUnit(unitId, toX, toY);
-    options.onAfterMove?.();
   }
   
   /**
@@ -218,7 +167,6 @@ export class AnimationController {
    * @param fromY Starting Y grid coordinate
    * @param toX Destination X grid coordinate
    * @param toY Destination Y grid coordinate
-   * @param options Additional options
    * @returns Promise that resolves when displacement is complete
    */
   async displaceUnit(
@@ -227,24 +175,12 @@ export class AnimationController {
     fromX: number,
     fromY: number,
     toX: number,
-    toY: number,
-    options: {
-      onBeforeDisplace?: () => void;
-      onAfterDisplace?: () => void;
-    } = {}
+    toY: number
   ): Promise<void> {
-    // Call before-displace callback if provided
-    options.onBeforeDisplace?.();
-
-    // Await the tween-based displacement animation
-    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY, {
-      applyTint: false,          // Don't apply the "moved" tint
-      disableInteractive: false  // Don't disable interactivity
-    });
-
+    // Animate displacement
+    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
     // Update game state after displacement completes
     actions.moveDisplacedUnit(unitId, toX, toY);
-    options.onAfterDisplace?.();
   }
   
   /**
@@ -254,5 +190,12 @@ export class AnimationController {
     // Stop only tweens created by this controller
     this.activeTweens.forEach(t => t.stop());
     this.activeTweens = [];
+  }
+  
+  /**
+   * Returns whether any animations are currently active
+   */
+  public hasActiveAnimations(): boolean {
+    return this.activeTweens.length > 0;
   }
 } 
