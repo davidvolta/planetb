@@ -18,10 +18,6 @@ export class SelectionRenderer extends BaseRenderer {
     tileHeight: number
   ) {
     super(scene, layerManager, tileSize, tileHeight);
-    
-    // Create indicators during constructor
-    this.createSelectionIndicator();
-    this.createHoverIndicator();
   }
   
   // Creates the selection indicator graphics

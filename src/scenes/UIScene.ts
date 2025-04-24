@@ -152,11 +152,11 @@ export default class UIScene extends Phaser.Scene {
     this.background = uiBackground;
     
     // Add turn text
-    this.turnText = this.add.text(100, 10, 'Turn: 1', { 
+    this.turnText = this.add.text(25, 10, 'Turn: 1', {
+      fontFamily: 'Arial',
       fontSize: '24px',
       color: '#FFFFFF'
-    });
-    this.turnText.setOrigin(0.5, 0);
+    }).setOrigin(0, 0);
     this.container.add(this.turnText);
 
     // Position the UI in the top left corner
@@ -202,7 +202,7 @@ export default class UIScene extends Phaser.Scene {
     
     // Create button text with keyboard shortcut
     const buttonText = this.add.text(75, 20, 'Next Turn', {
-      fontFamily: 'Raleway',
+      fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
     });
@@ -232,7 +232,7 @@ export default class UIScene extends Phaser.Scene {
     
     // Create button text with shortcut hint
     const buttonText = this.add.text(75, 20, 'Spawn Unit', {
-      fontFamily: 'Raleway',
+      fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
     });
@@ -264,7 +264,7 @@ export default class UIScene extends Phaser.Scene {
     
     // Create button text
     const buttonText = this.add.text(75, 20, 'Capture Biome', {
-      fontFamily: 'Raleway',
+      fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
     });
@@ -281,13 +281,23 @@ export default class UIScene extends Phaser.Scene {
   }
 
   createEnergyText() {
-    this.energyText = this.add.text(100, 40, 'Energy: 0', {
-      fontFamily: 'Raleway',
-      fontSize: '16px',
+    // Create energy display next to the turn counter on the same line
+    this.energyText = this.add.text(0, 0, 'Energy: 0', {
+      fontFamily: 'Arial',
+      fontSize: '24px',
       color: '#FFFFFF'
-    });
-    this.energyText.setOrigin(0.5, 0);
+    }).setOrigin(0, 0);
     this.container?.add(this.energyText);
+    // Position energy text to the right of turnText
+    if (this.turnText) {
+      // Place energy text to the right of turnText with ample padding
+      const turnRight = this.turnText.x + this.turnText.width;
+      const padding = 20;
+      this.energyText.setPosition(turnRight + padding, this.turnText.y);
+    } else {
+      // Fallback position if turnText is unavailable
+      this.energyText.setPosition(25 + this.energyText.width + 20, 10);
+    }
   }
 
   createHarvestButton() {
@@ -299,7 +309,7 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerover', () => bg.setFillStyle(0xA0A0A0))
       .on('pointerout', () => bg.setFillStyle(0x808080));
     const text = this.add.text(75, 20, 'Harvest', {
-      fontFamily: 'Raleway',
+      fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
     });
@@ -415,7 +425,7 @@ export default class UIScene extends Phaser.Scene {
     
     // Create title
     const titleText = this.add.text(160, 15, 'Biome Information', {
-      fontFamily: 'Raleway',
+      fontFamily: 'Arial',
       fontSize: '26px',
       color: '#FFFFFF',
       fontStyle: 'bold'
@@ -440,14 +450,14 @@ export default class UIScene extends Phaser.Scene {
     textFields.forEach((field, index) => {
       const y = 55 + (index * 30);
       const labelText = this.add.text(15, y, `${field.label}:`, {
-        fontFamily: 'Raleway',
+        fontFamily: 'Arial',
         fontSize: '20px',
         color: '#FFFFFF'
       });
       labelText.setOrigin(0, 0);
       
       const valueText = this.add.text(305, y, '-', {
-        fontFamily: 'Raleway',
+        fontFamily: 'Arial',
         fontSize: '20px',
         color: '#FFFFFF'
       });

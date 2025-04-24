@@ -99,6 +99,14 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("blank", "assets/blank.png");
 
     this.load.on('complete', () => {
+      // Set nearest filter on all loaded textures to preserve pixel-art for sprites
+      const keys = ['egg','buffalo','bird','snake','octopus','turtle','forest','kelp','insects','plankton','blank'];
+      keys.forEach(key => {
+        const tex = this.textures.get(key);
+        if (tex) {
+          tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+      });
       this.events.emit(EVENTS.ASSETS_LOADED);
     });
   }

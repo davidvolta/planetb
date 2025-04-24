@@ -1,37 +1,26 @@
 # Development Checklist
 
-## Ecosystem Integration Plan
+## Future Tasks
+- [ ] Refactor all unit movement/displacement. Put it all into a controller.
+  - [ ] Fix ineligble spawning moves on terrain
 
-###PHASE 1
-- [ ] Implement resource regeneration based on biome lushness
-  - [ ] Create helper function `calculateResourceGenerationRate(lushness: number)` with polynomial coefficients (a, b, c, d).
-  - [ ] Implement `regenerateResources` in `EcosystemController`:
-    - Iterate player-owned biomes and compute generationRate.
-    - Distribute regeneration across eligible tiles (active, 0<value<max).
-    - Clamp tile values to max resource value.
-  - [ ] Call `regenerateResources` at the start of `nextTurn()` before egg production and before resetting `hasMoved` flags.
-  - [ ] Write unit tests for the generation helper and regeneration logic.
-  - [ ] Update `docs/overview/utils_overview.md` and `docs/app_guide.md` to document the regeneration algorithm.
+- [ ] Refactor game init
 
-###PHASE 2
+- [ ] Convert to immer/immutable state instead of subscribers
+  - [ ] First remove all subscribers. Especially UI BIOME!
+
+- [ ] Change tinting mechanism
+- [ ] Flip unit when moving
+
+- [ ] Now its kind of boring that eggs appear in the same place always
+
+- [ ] Style edges of owned biomes (flood fill with stroke)
+
+- [ ] Refactor for GameController and lessen the load on Gamestore
+
 - [ ] Implement a play function
   - [ ] Calls next turn (do we need to rebuild it for the play function?)
   - [ ] Similar to how the simulator does it. Let the game board run.
   - [ ] Speed function (1x, 2x, 5x)
   - [ ] Pause button 
 
-
-
----------------
-
-## Future Tasks
-- [ ] Refactor all unit movement/displacement. Put it all into a controller.
-- [ ] Refactor game init
-- [ ] Convery to immer/immutable state instead of subscribers
-  - [ ] First remove all subscribers except UI. BIOME!
-- [ ] Change tinting mechanism
-- [ ] Fix ineligble spawning moves on terrain
-- [ ] Now its kind of boring that eggs appear in the same place always
-- [ ] Fix Raley Font (lost during architecture update)
-- [ ] Style edges of owned biomes (flood fill with stroke)
-- [ ] Refactor for GameController and lessen the load on Gamestore
