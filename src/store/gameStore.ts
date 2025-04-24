@@ -331,26 +331,35 @@ export const useGameStore = create<GameState>((set, get) => ({
   } as GameState['biomeCaptureEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
+    // Regenerate resources based on current lushness before any actions
+    const regeneratedBoard = EcosystemController.regenerateResources(
+      state.board!,
+      state.biomes
+    );
+    // Then run egg production logic
     const result = EcosystemController.biomeEggProduction(
       state.turn,
       state.animals,
       state.biomes,
-      state.board!
+      regeneratedBoard
     );
-    
+
+    // Use the regenerated board forward
+    const updatedBoard = regeneratedBoard;
     // Extract updated animals and biomes from the result
     const updatedAnimals = result.animals;
     let updatedBiomes = result.biomes;
-    
-    // Update lushness values ONLY for biomes that have owners
-    // (unowned biomes don't change state between turns)
+    // Update state board with regenerated values as starting point
+    useGameStore.setState({ board: updatedBoard });
+
+    // Update lushness values for owned biomes
     if (state.board) {
       updatedBiomes.forEach((biome, biomeId) => {
         if (biome.ownerId !== null) {
           // Pass the board into calculateBiomeLushness as per new signature
           const lushnessValues = EcosystemController.calculateBiomeLushness(
             biomeId,
-            state.board!,
+            updatedBoard,
             updatedBiomes
           );
           updatedBiomes.set(biomeId, {

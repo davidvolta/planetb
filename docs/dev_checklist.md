@@ -4,8 +4,14 @@
 
 ###PHASE 1
 - [ ] Implement resource regeneration based on biome lushness
-  - [ ] Helper function for the polynomial resource generation formula with fixed coefficient values
-  - [ ] Update resourcevalues in all biomes based on the biomelushess at the start of  nextTurn() before eggs are produced.
+  - [ ] Create helper function `calculateResourceGenerationRate(lushness: number)` with polynomial coefficients (a, b, c, d).
+  - [ ] Implement `regenerateResources` in `EcosystemController`:
+    - Iterate player-owned biomes and compute generationRate.
+    - Distribute regeneration across eligible tiles (active, 0<value<max).
+    - Clamp tile values to max resource value.
+  - [ ] Call `regenerateResources` at the start of `nextTurn()` before egg production and before resetting `hasMoved` flags.
+  - [ ] Write unit tests for the generation helper and regeneration logic.
+  - [ ] Update `docs/overview/utils_overview.md` and `docs/app_guide.md` to document the regeneration algorithm.
 
 ###PHASE 2
 - [ ] Implement a play function

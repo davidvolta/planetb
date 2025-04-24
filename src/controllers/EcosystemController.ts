@@ -26,6 +26,56 @@ interface BiomeProductionResult {
  * - Ecological balance simulation
  */
 export class EcosystemController {
+  // Resource generation polynomial parameters
+  private static resourceGenParams = { a: -0.0015, b: 0.043, c: 0.04, d: 0.1 };
+
+  /**
+   * Calculate resource generation rate based on total lushness using polynomial f(l)=a*l^3+b*l^2+c*l+d
+   */
+  public static calculateResourceGenerationRate(lushness: number): number {
+    const p = this.resourceGenParams;
+    return Math.max(0,
+      p.a * Math.pow(lushness, 3) +
+      p.b * Math.pow(lushness, 2) +
+      p.c * lushness +
+      p.d
+    );
+  }
+
+  /**
+   * Regenerate resources on all player-owned biomes according to generation rate
+   */
+  public static regenerateResources(
+    board: Board,
+    biomes: Map<string, Biome>
+  ): Board {
+    const newBoard: Board = {
+      ...board,
+      tiles: board.tiles.map(row => row.map(tile => ({ ...tile })))
+    };
+    const maxValue = 10;
+    biomes.forEach((biome, biomeId) => {
+      if (biome.ownerId !== null) {
+        const generationRate = this.calculateResourceGenerationRate(biome.totalLushness);
+        for (let y = 0; y < newBoard.height; y++) {
+          for (let x = 0; x < newBoard.width; x++) {
+            const tile = newBoard.tiles[y][x];
+            if (
+              tile.biomeId === biomeId &&
+              tile.active &&
+              tile.resourceValue > 0 &&
+              tile.resourceValue < maxValue
+            ) {
+              const regen = generationRate * (1 - tile.resourceValue / maxValue);
+              tile.resourceValue = Math.min(maxValue, tile.resourceValue + regen);
+            }
+          }
+        }
+      }
+    });
+    return newBoard;
+  }
+
   /**
    * Reset and regenerate resources for the game board
    * This clears all existing resources and creates new ones based on terrain type and resource density
