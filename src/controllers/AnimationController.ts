@@ -22,6 +22,9 @@ export class AnimationController {
   // Vertical offset to raise units above tiles
   private verticalOffset: number = -12;
   
+  // Track active tweens created by this controller to avoid killing unrelated tweens
+  private activeTweens: Phaser.Tweens.Tween[] = [];
+  
   /**
    * Creates a new AnimationController
    * @param scene The parent scene
@@ -74,6 +77,7 @@ export class AnimationController {
       applyTint?: boolean;
       disableInteractive?: boolean;
       duration?: number | null;
+      ease?: string;
       onComplete?: () => void;
     } = {}
   ): Promise<void> {
@@ -90,6 +94,7 @@ export class AnimationController {
         applyTint = false,
         disableInteractive = false,
         duration: fixedDuration = null,
+        ease = 'Power2.out',
         onComplete = () => {}
       } = options;
       
@@ -118,12 +123,12 @@ export class AnimationController {
       }
       
       // Create the animation tween
-      this.scene.tweens.add({
+      const tween = this.scene.tweens.add({
         targets: sprite,
         x: endPos.x,
         y: endWorldY,
         duration: duration,
-        ease: 'Power2.out', // Quick acceleration, gentle stop
+        ease: ease, // Quick acceleration, gentle stop (configurable)
         onUpdate: () => {
           // Calculate current grid coordinates during movement
           const currentWorldY = sprite.y - this.verticalOffset;
@@ -157,10 +162,14 @@ export class AnimationController {
           // Call the completion callback
           onComplete();
           
+          // Cleanup this tween from tracking
+          this.activeTweens = this.activeTweens.filter(t => t !== tween);
           // Resolve the promise
           resolve();
         }
       });
+      // Track this tween so we can stop it later
+      this.activeTweens.push(tween);
     });
   }
   
@@ -242,9 +251,8 @@ export class AnimationController {
    * Clean up resources and cancel any running animations
    */
   destroy(): void {
-    // Cancel any active tweens
-    if (this.scene.tweens) {
-      this.scene.tweens.killAll();
-    }
+    // Stop only tweens created by this controller
+    this.activeTweens.forEach(t => t.stop());
+    this.activeTweens = [];
   }
 } 

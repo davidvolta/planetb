@@ -266,15 +266,30 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
+  // Helper to lookup a unit sprite by ID
+  private getUnitSprite(unitId: string): Phaser.GameObjects.Sprite | undefined {
+    return this.animalRenderer.getSpriteById(unitId);
+  }
+
+  // Helper to reveal fog of war around a given tile
+  private revealFogAt(x: number, y: number): void {
+    const board = actions.getBoard();
+    if (!board) return;
+    const tilesToReveal = CoordinateUtils.getAdjacentTiles(x, y, board.width, board.height);
+    actions.updateTilesVisibility(tilesToReveal.map(tile => ({ x: tile.x, y: tile.y, visible: true })));
+    const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
+    this.fogOfWarRenderer.revealTiles(uniqueTiles);
+  }
+
   // Clear all move highlights
   clearMoveHighlights() {
     this.moveRangeRenderer.clearMoveHighlights();     // Delegate to the move range renderer
   }
 
   // Start movement animation of a unit
-  private startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number) {
+  private async startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
     // Lookup the unit sprite directly
-    const unitSprite = this.animalRenderer.getSpriteById(unitId);
+    const unitSprite = this.getUnitSprite(unitId);
     if (!unitSprite) {
       console.error(`Could not find sprite for unit ${unitId}`);
       return;
@@ -284,36 +299,13 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.clearMoveHighlights();
     this.selectionRenderer.hideSelection();
     
-    // If fog of war is enabled, update visibility around the destination position BEFORE moving
+    // If fog of war is enabled, reveal around the destination
     if (this.fogOfWarEnabled) {
-      // Get the board to check boundaries
-      const board = actions.getBoard();
-      if (board) {
-        // Get tiles around the destination position that need to be revealed
-        const tilesToReveal = CoordinateUtils.getAdjacentTiles(toX, toY, board.width, board.height);
-        
-        // Use batch update for all tiles instead of updating one by one
-        actions.updateTilesVisibility(tilesToReveal.map(tile => ({
-          x: tile.x,
-          y: tile.y,
-          visible: true
-        })));
-        
-        // Remove duplicates and reveal visually
-        const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
-        this.fogOfWarRenderer.revealTiles(uniqueTiles);
-      }
+      this.revealFogAt(toX, toY);
     }
     
-    // Use the animation controller to move the unit AFTER revealing fog of war
-    this.animationController.moveUnit(unitId, unitSprite, fromX, fromY, toX, toY, {
-      onBeforeMove: () => {
-        // Any actions needed before movement, like clearing selection
-      },
-      onAfterMove: () => {
-        // Animation complete, no need to do anything with fog of war here anymore
-      }
-    });
+    // Animate and update state
+    await this.animationController.moveUnit(unitId, unitSprite, fromX, fromY, toX, toY);
   }
 
   // Handle unit spawned events
@@ -446,37 +438,19 @@ export default class BoardScene extends Phaser.Scene {
     console.log(`Handling displacement for unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
     
     // Lookup the unit sprite directly
-    const unitSprite = this.animalRenderer.getSpriteById(unitId);
+    const unitSprite = this.getUnitSprite(unitId);
     if (!unitSprite) {
       console.error(`Could not find sprite for unit ${unitId} to displace`);
       actions.clearDisplacementEvent();
       return;
     }
     
-    // If fog of war is enabled, update visibility around the destination position BEFORE moving
+    // If fog of war is enabled, reveal around the destination
     if (this.fogOfWarEnabled) {
-      console.log(`Revealing fog of war before unit is displaced to (${toX}, ${toY})`);
-      
-      // Get the board to check boundaries
-      const board = actions.getBoard();
-      if (board) {
-        // Get tiles around the destination position that need to be revealed
-        const tilesToReveal = CoordinateUtils.getAdjacentTiles(toX, toY, board.width, board.height);
-        
-        // Use batch update for all tiles instead of updating one by one
-        actions.updateTilesVisibility(tilesToReveal.map(tile => ({
-          x: tile.x,
-          y: tile.y,
-          visible: true
-        })));
-        
-        // Remove duplicates and reveal visually
-        const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
-        this.fogOfWarRenderer.revealTiles(uniqueTiles);
-      }
+      this.revealFogAt(toX, toY);
     }
     
-    // Use the animation controller to displace the unit AFTER revealing fog of war
+    // Animate displacement and update state
     await this.animationController.displaceUnit(unitId, unitSprite, fromX, fromY, toX, toY);
     // Clear the displacement event after animation completes
     actions.clearDisplacementEvent();
