@@ -290,9 +290,9 @@ export default class UIScene extends Phaser.Scene {
     this.container?.add(this.energyText);
     // Position energy text to the right of turnText
     if (this.turnText) {
-      // Place energy text to the right of turnText with ample padding
+      // Place energy text to the right of turnText with increased padding
       const turnRight = this.turnText.x + this.turnText.width;
-      const padding = 20;
+      const padding = 40;
       this.energyText.setPosition(turnRight + padding, this.turnText.y);
     } else {
       // Fallback position if turnText is unavailable

@@ -1,8 +1,13 @@
 # Development Checklist
 
 ## Future Tasks
-- [ ] Refactor all unit movement/displacement. Put it all into a controller.
-  - [ ] Fix ineligble spawning moves on terrain
+- [ ] Refactor unit movement/displacement into `UnitMovementController`
+  - [ ] Create `UnitMovementController` with `moveUnit()` and `displaceUnit()` methods
+  - [ ] Delegate BoardScene's `startUnitMovement` and `handleDisplacementEvent` to `UnitMovementController`
+  - [ ] Move animation logic into `AnimationController`, focusing it solely on visuals
+  - [ ] Extract displacement logic from `evolveAnimal()` into `UnitMovementController`
+  - [ ] Integrate `UnitMovementController` into `TileInteractionController` for both AI and UI usage
+  - [ ] Remove obsolete movement code from `BoardScene` after migration
 
 - [ ] Refactor game init
 
