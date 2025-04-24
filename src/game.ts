@@ -16,7 +16,7 @@ const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   parent: 'game-container',
   scene: [BoardScene, DebugScene, UIScene],
   pixelArt: true,
-  antialias: true,
+  antialias: false,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

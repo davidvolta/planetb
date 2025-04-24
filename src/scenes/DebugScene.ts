@@ -210,39 +210,39 @@ export default class DebugScene extends Phaser.Scene {
     this.biomeCheckbox = this.add.container(x, y);
     this.biomeCheckbox.setDepth(1000);
     
-    // Create label first
-    this.biomeCheckboxText = this.add.text(0, 0, "Biomes", {
+    // Create checkbox outline on the left
+    this.biomeCheckboxBox = this.add.rectangle(0, 0, 16, 16, 0x00FF00, 0)
+      .setStrokeStyle(2, 0x00FF00)
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true });
+    
+    // Create checkbox inner fill
+    this.biomeCheckboxInner = this.add.rectangle(0, 0, 10, 10, 0x00FF00, 1)
+      .setOrigin(0, 0.5)
+      .setPosition(3, 0);
+    this.biomeCheckboxInner.setVisible(this.biomeEnabled);
+    
+    // Create label to the right of checkbox
+    const labelOffsetBio = 16 + 10;
+    this.biomeCheckboxText = this.add.text(labelOffsetBio, 0, "Biomes", {
       fontSize: "14px",
-      fontFamily: "monospace",
+      fontFamily: "Arial",
       color: "#00FF00",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       padding: { x: 5, y: 2 },
     }).setOrigin(0, 0.5);
     
-    // Get width of text to position checkbox after it
-    const textWidth = this.biomeCheckboxText.width;
+    // Add components to container in order
+    this.biomeCheckbox.add([
+      this.biomeCheckboxBox,
+      this.biomeCheckboxInner,
+      this.biomeCheckboxText
+    ]);
     
-    // Create checkbox background (outline) after the text
-    this.biomeCheckboxBox = this.add.rectangle(textWidth + 10, 0, 16, 16, 0x00FF00, 0)
-      .setStrokeStyle(2, 0x00FF00)
-      .setOrigin(0, 0.5)
-      .setInteractive({ useHandCursor: true });
-    
-    // Create checkbox inner fill (shown when checked)
-    this.biomeCheckboxInner = this.add.rectangle(textWidth + 10, 0, 10, 10, 0x00FF00, 1)
-      .setOrigin(0, 0.5)
-      .setPosition(textWidth + 13, 0); // Center in the box
-    
-    // Set initial state
-    this.biomeCheckboxInner.setVisible(this.biomeEnabled);
-    
-    // Add components to container
-    this.biomeCheckbox.add([this.biomeCheckboxText, this.biomeCheckboxBox, this.biomeCheckboxInner]);
-    
-    // Set up click handler
+    // Set up click handlers
     this.biomeCheckboxBox.on('pointerdown', this.toggleBiome, this);
-    this.biomeCheckboxText.setInteractive({ useHandCursor: true });
-    this.biomeCheckboxText.on('pointerdown', this.toggleBiome, this);
+    this.biomeCheckboxText.setInteractive({ useHandCursor: true })
+      .on('pointerdown', this.toggleBiome, this);
   }
   
   // Toggle biome visualization state
@@ -262,39 +262,35 @@ export default class DebugScene extends Phaser.Scene {
     this.fowCheckbox = this.add.container(x, y);
     this.fowCheckbox.setDepth(1000);
     
-    // Create label first
-    this.fowCheckboxText = this.add.text(0, 0, "FOW", {
+    // Create checkbox outline on the left
+    this.fowCheckboxBox = this.add.rectangle(0, 0, 16, 16, 0x00FF00, 0)
+      .setStrokeStyle(2, 0x00FF00)
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true });
+    
+    // Create checkbox inner fill
+    this.fowCheckboxInner = this.add.rectangle(0, 0, 10, 10, 0x00FF00, 1)
+      .setOrigin(0, 0.5)
+      .setPosition(3, 0);
+    this.fowCheckboxInner.setVisible(this.fowEnabled);
+    
+    // Create label to the right of checkbox
+    const labelOffset = 16 + 10;
+    this.fowCheckboxText = this.add.text(labelOffset, 0, "FOW", {
       fontSize: "14px",
-      fontFamily: "monospace",
+      fontFamily: "Arial",
       color: "#00FF00",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       padding: { x: 5, y: 2 },
     }).setOrigin(0, 0.5);
     
-    // Get width of text to position checkbox after it
-    const textWidth = this.fowCheckboxText.width;
+    // Add components to container in order
+    this.fowCheckbox.add([this.fowCheckboxBox, this.fowCheckboxInner, this.fowCheckboxText]);
     
-    // Create checkbox background (outline) after the text
-    this.fowCheckboxBox = this.add.rectangle(textWidth + 10, 0, 16, 16, 0x00FF00, 0)
-      .setStrokeStyle(2, 0x00FF00)
-      .setOrigin(0, 0.5)
-      .setInteractive({ useHandCursor: true });
-    
-    // Create checkbox inner fill (shown when checked)
-    this.fowCheckboxInner = this.add.rectangle(textWidth + 10, 0, 10, 10, 0x00FF00, 1)
-      .setOrigin(0, 0.5)
-      .setPosition(textWidth + 13, 0); // Center in the box
-    
-    // Set initial state
-    this.fowCheckboxInner.setVisible(this.fowEnabled);
-    
-    // Add components to container
-    this.fowCheckbox.add([this.fowCheckboxText, this.fowCheckboxBox, this.fowCheckboxInner]);
-    
-    // Set up click handler
+    // Set up click handlers
     this.fowCheckboxBox.on('pointerdown', this.toggleFow, this);
-    this.fowCheckboxText.setInteractive({ useHandCursor: true });
-    this.fowCheckboxText.on('pointerdown', this.toggleFow, this);
+    this.fowCheckboxText.setInteractive({ useHandCursor: true })
+      .on('pointerdown', this.toggleFow, this);
   }
   
   // Toggle fog of war state
@@ -315,26 +311,33 @@ export default class DebugScene extends Phaser.Scene {
 
   // Handle window resize
   private handleResize() {
-    const bottomY = this.cameras.main.height - 10;
-    
-    if (this.fpsText) {
-      // Update position to bottom left of new screen size
-      this.fpsText.setPosition(10, bottomY);
-    }
-    
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const bottomY = height - 10;
+    const padding = 10;
+    let xOffset = padding;
+    // Position FOW, Biomes, and Resources controls horizontally
     if (this.fowCheckbox) {
-      // Update position to be above the FPS counter
-      this.fowCheckbox.setPosition(10, bottomY - 30);
+      const bounds = this.fowCheckbox.getBounds();
+      this.fowCheckbox.setPosition(xOffset, bottomY - bounds.height);
+      xOffset += bounds.width + padding;
     }
-    
     if (this.biomeCheckbox) {
-      // Update position to be above the FOW toggle
-      this.biomeCheckbox.setPosition(10, bottomY - 60);
+      const bounds = this.biomeCheckbox.getBounds();
+      this.biomeCheckbox.setPosition(xOffset, bottomY - bounds.height);
+      xOffset += bounds.width + padding;
     }
-    
     if (this.resourceSlider) {
-      // Update position to be above the biome toggle
-      this.resourceSlider.setPosition(10, bottomY - 90);
+      const bounds = this.resourceSlider.getBounds();
+      this.resourceSlider.setPosition(xOffset, bottomY - bounds.height);
+      xOffset += bounds.width + padding;
+    }
+    // Position FPS on the right
+    if (this.fpsText) {
+      const fpsWidth = this.fpsText.width;
+      // Position FPS slightly further left to ensure full value is visible
+      const fpsX = width - fpsWidth - (padding * 2);
+      this.fpsText.setPosition(fpsX, bottomY);
     }
   }
 
