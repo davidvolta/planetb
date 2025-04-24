@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import * as actions from '../store/actions';
+import { computeDepth } from '../utils/DepthUtils';
 
 /**
  * Controls and manages all animations in the board scene, including:
@@ -20,9 +21,6 @@ export class AnimationController {
   
   // Vertical offset to raise units above tiles
   private verticalOffset: number = -12;
-  
-  // Flag to track if animations are in progress
-  private animationInProgress: boolean = false;
   
   /**
    * Creates a new AnimationController
@@ -57,14 +55,6 @@ export class AnimationController {
   }
   
   /**
-   * Check if any animation is currently in progress
-   * @returns Whether an animation is running
-   */
-  isAnimating(): boolean {
-    return this.animationInProgress;
-  }
-  
-  /**
    * Animate a unit moving from one position to another
    * @param sprite The sprite to animate
    * @param fromX Starting X grid coordinate
@@ -84,7 +74,6 @@ export class AnimationController {
       applyTint?: boolean;
       disableInteractive?: boolean;
       duration?: number | null;
-      isDisplacement?: boolean;
       onComplete?: () => void;
     } = {}
   ): Promise<void> {
@@ -101,7 +90,6 @@ export class AnimationController {
         applyTint = false,
         disableInteractive = false,
         duration: fixedDuration = null,
-        isDisplacement = false,
         onComplete = () => {}
       } = options;
       
@@ -115,9 +103,6 @@ export class AnimationController {
       
       // Apply vertical offset
       const endWorldY = endPos.y + this.verticalOffset;
-      
-      // Mark animation as in progress
-      this.animationInProgress = true;
       
       // Calculate movement duration based on distance (unless fixed duration is provided)
       let duration;
@@ -140,26 +125,16 @@ export class AnimationController {
         duration: duration,
         ease: 'Power2.out', // Quick acceleration, gentle stop
         onUpdate: () => {
-          // Calculate current grid Y position based on the sprite's current position
+          // Calculate current grid coordinates during movement
           const currentWorldY = sprite.y - this.verticalOffset;
           const currentWorldX = sprite.x;
-          
-          // Reverse the isometric projection to get approximate grid coordinates
           const relY = (currentWorldY - this.anchorY) / this.tileHeight;
           const relX = (currentWorldX - this.anchorX) / this.tileSize;
-          
-          // Calculate approximate grid Y
           const currentGridY = (relY * 2 - relX) / 2;
-          
-          // Calculate approximate grid X
           const currentGridX = relY - currentGridY;
-          
-          // Update depth during movement with a little helper formula that calculates the
-          // appropriate depth for isometric display based on grid position
-          const baseDepth = 5;
-          const positionOffset = (currentGridX + currentGridY) / 1000;
-          const stateOffset = 0.0005; // Small offset to ensure active units appear above others
-          sprite.setDepth(baseDepth + positionOffset + stateOffset);
+
+          // Update depth during movement
+          sprite.setDepth(computeDepth(currentGridX, currentGridY, true));
         },
         onComplete: () => {
           // Update the sprite's stored grid coordinates
@@ -167,10 +142,7 @@ export class AnimationController {
           sprite.setData('gridY', toY);
           
           // Set final depth at destination
-          const baseDepth = 5;
-          const positionOffset = (toX + toY) / 1000;
-          const stateOffset = 0.0005;
-          sprite.setDepth(baseDepth + positionOffset + stateOffset);
+          sprite.setDepth(computeDepth(toX, toY, true));
           
           // Apply light gray tint to indicate the unit has moved
           if (applyTint) {
@@ -181,9 +153,6 @@ export class AnimationController {
           if (disableInteractive) {
             sprite.disableInteractive();
           }
-          
-          // Mark animation as complete
-          this.animationInProgress = false;
           
           // Call the completion callback
           onComplete();
@@ -206,7 +175,7 @@ export class AnimationController {
    * @param options Additional options
    * @returns Promise that resolves when movement is complete
    */
-  moveUnit(
+  async moveUnit(
     unitId: string,
     sprite: Phaser.GameObjects.Sprite,
     fromX: number,
@@ -218,30 +187,18 @@ export class AnimationController {
       onAfterMove?: () => void;
     } = {}
   ): Promise<void> {
-    return new Promise((resolve) => {
-      // Call before move callback if provided
-      if (options.onBeforeMove) {
-        options.onBeforeMove();
-      }
-      
-      // Animate the unit movement
-      this.animateUnitMovement(sprite, fromX, fromY, toX, toY, {
-        applyTint: true,
-        disableInteractive: true,
-        onComplete: () => {
-          // Update the game state after animation completes
-          actions.moveUnit(unitId, toX, toY);
-          
-          // Call after move callback if provided
-          if (options.onAfterMove) {
-            options.onAfterMove();
-          }
-          
-          // Resolve the promise
-          resolve();
-        }
-      });
+    // Call before-move callback if provided
+    options.onBeforeMove?.();
+
+    // Await the tween-based animation
+    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY, {
+      applyTint: true,
+      disableInteractive: true
     });
+
+    // Update game state and call after-move callback
+    actions.moveUnit(unitId, toX, toY);
+    options.onAfterMove?.();
   }
   
   /**
@@ -255,7 +212,7 @@ export class AnimationController {
    * @param options Additional options
    * @returns Promise that resolves when displacement is complete
    */
-  displaceUnit(
+  async displaceUnit(
     unitId: string,
     sprite: Phaser.GameObjects.Sprite,
     fromX: number,
@@ -267,40 +224,24 @@ export class AnimationController {
       onAfterDisplace?: () => void;
     } = {}
   ): Promise<void> {
-    return new Promise((resolve) => {
-      // Call before displacement callback if provided
-      if (options.onBeforeDisplace) {
-        options.onBeforeDisplace();
-      }
-      
-      // Animate the unit displacement
-      this.animateUnitMovement(sprite, fromX, fromY, toX, toY, {
-        applyTint: false,           // Don't apply the "moved" tint
-        disableInteractive: false,  // Don't disable interactivity
-        isDisplacement: true,
-        onComplete: () => {
-          // Update the game state after animation completes
-          actions.moveDisplacedUnit(unitId, toX, toY);
-          
-          // Call after displacement callback if provided
-          if (options.onAfterDisplace) {
-            options.onAfterDisplace();
-          }
-          
-          // Resolve the promise
-          resolve();
-        }
-      });
+    // Call before-displace callback if provided
+    options.onBeforeDisplace?.();
+
+    // Await the tween-based displacement animation
+    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY, {
+      applyTint: false,          // Don't apply the "moved" tint
+      disableInteractive: false  // Don't disable interactivity
     });
+
+    // Update game state after displacement completes
+    actions.moveDisplacedUnit(unitId, toX, toY);
+    options.onAfterDisplace?.();
   }
   
   /**
    * Clean up resources and cancel any running animations
    */
   destroy(): void {
-    // Set animating flag to false
-    this.animationInProgress = false;
-    
     // Cancel any active tweens
     if (this.scene.tweens) {
       this.scene.tweens.killAll();
