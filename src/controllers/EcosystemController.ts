@@ -308,11 +308,11 @@ export class EcosystemController {
     const activeTiles = getTilesForBiome(biomeId)
       .filter(({ tile }) => tile.active && tile.resourceType !== null)
       .map(({ tile }) => tile);
-    const nonDepleted = activeTiles.length;
+    // Calculate base lushness relative to initial resource count
+    const currentTotal = activeTiles.reduce((sum, t) => sum + t.resourceValue, 0);
+    const initialTotal = biome.initialResourceCount * 10;
     let baseLushness = 0;
-    if (nonDepleted > 0) {
-      const currentTotal = activeTiles.reduce((sum, t) => sum + t.resourceValue, 0);
-      const initialTotal = activeTiles.length * 10;
+    if (initialTotal > 0) {
       baseLushness = (currentTotal / initialTotal) * MAX_LUSHNESS;
     }
     const eggPercentage = this.calculateEggPercentage(biomeId, board, biome);
