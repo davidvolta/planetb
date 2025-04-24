@@ -382,51 +382,6 @@ export default class BoardScene extends Phaser.Scene {
     this.controlsSetup = true;
   }
 
-  // Getters for managers and renderers
-  
-  public getTileRenderer(): TileRenderer {
-    return this.tileRenderer;
-  }
-  
-  public getSelectionRenderer(): SelectionRenderer {
-    return this.selectionRenderer;
-  }
-  
-  public getMoveRangeRenderer(): MoveRangeRenderer {
-    return this.moveRangeRenderer;
-  }
-  
-  public getBiomeRenderer(): BiomeRenderer {
-    return this.biomeRenderer;
-  }
-  
-  public getAnimalRenderer(): AnimalRenderer {
-    return this.animalRenderer;
-  }
-
-   // Get the fog of war renderer
-  public getFogOfWarRenderer(): FogOfWarRenderer {
-    return this.fogOfWarRenderer;
-  }
-
-  // Get resource renderer
-  public getResourceRenderer(): ResourceRenderer {
-    return this.resourceRenderer;
-  }
-  
-  public getInputManager(): InputManager {
-    return this.inputManager;
-  }
-  
-  public getCameraManager(): CameraManager {
-    return this.cameraManager;
-  }
-  
-  public getAnimationController(): AnimationController {
-    return this.animationController;
-  }
-
-
   //Get the current input mode
   isInMoveMode(): boolean {
     return actions.isMoveMode();
