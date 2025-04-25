@@ -300,88 +300,6 @@ const DEFAULT_BIOME_CAPTURE_EVENT: GameState['biomeCaptureEvent'] = {
   timestamp: null
 };
 
-// Helper to find a dormant egg by ID
-function getEggById(state: GameState, id: string): Animal | undefined {
-  return state.animals.find(a => a.id === id && a.state === AnimalState.DORMANT);
-}
-
-// Helper to remove an egg flag from the board
-function removeEggFromPosition(board: Board, coord: Coordinate): Board {
-  return {
-    ...board,
-    tiles: board.tiles.map((row, y) =>
-      y === coord.y
-        ? row.map((tile, x) =>
-            x === coord.x ? { ...tile, hasEgg: false } : tile
-          )
-        : row
-    )
-  };
-}
-
-// Helper to update egg count in a biome and recalculate lushness
-function updateEggCountAndLushness(
-  biomes: Map<string, Biome>,
-  biomeId: string,
-  board: Board
-): Map<string, Biome> {
-  const newBiomes = new Map(biomes);
-  const biome = newBiomes.get(biomeId);
-  if (!biome) return newBiomes;
-  const updatedEggCount = Math.max(0, biome.eggCount - 1);
-  newBiomes.set(biomeId, { ...biome, eggCount: updatedEggCount });
-  if (biome.ownerId !== null) {
-    const { baseLushness, lushnessBoost, totalLushness } =
-      EcosystemController.calculateBiomeLushness(biomeId, board, newBiomes);
-    newBiomes.set(biomeId, {
-      ...newBiomes.get(biomeId)!,
-      baseLushness,
-      lushnessBoost,
-      totalLushness
-    });
-  }
-  return newBiomes;
-}
-
-// Pure helper to regenerate resources at start of turn
-function regenerateResources(state: GameState): Board {
-  return EcosystemController.regenerateResources(state.board!, state.biomes);
-}
-
-// Pure helper to produce eggs and return new animals and biomes
-function produceEggs(
-  state: GameState,
-  board: Board
-): { animals: Animal[]; biomes: Map<string, Biome> } {
-  const result = EcosystemController.biomeEggProduction(
-    state.turn,
-    state.animals,
-    state.biomes,
-    board
-  );
-  return { animals: result.animals, biomes: result.biomes };
-}
-
-// Pure helper to recalculate lushness for owned biomes
-function recalcLushness(
-  board: Board,
-  biomes: Map<string, Biome>
-): Map<string, Biome> {
-  const newBiomes = new Map(biomes);
-  newBiomes.forEach((biome, biomeId) => {
-    if (biome.ownerId !== null) {
-      const { baseLushness, lushnessBoost, totalLushness } =
-        EcosystemController.calculateBiomeLushness(
-          biomeId,
-          board,
-          newBiomes
-        );
-      newBiomes.set(biomeId, { ...biome, baseLushness, lushnessBoost, totalLushness });
-    }
-  });
-  return newBiomes;
-}
-
 // Pure helper to reset movement flags and clear events
 function resetMovementAndEvents(
   animals: Animal[]
@@ -397,43 +315,6 @@ function resetMovementAndEvents(
     displacementEvent: DEFAULT_DISPLACEMENT_EVENT,
     spawnEvent: DEFAULT_SPAWN_EVENT,
     biomeCaptureEvent: DEFAULT_BIOME_CAPTURE_EVENT
-  };
-}
-
-// Pure helper to handle displacement logic
-function pureHandleDisplacement(
-  board: Board,
-  animalsList: Animal[],
-  activeUnit: Animal,
-  position: Coordinate
-): { animals: Animal[]; displacementEvent: GameState['displacementEvent'] } {
-  const validTiles = MovementController.getValidDisplacementTiles(position, animalsList, board);
-  if (validTiles.length === 0) {
-    return { animals: animalsList, displacementEvent: DEFAULT_DISPLACEMENT_EVENT };
-  }
-  let displacementPosition: Coordinate;
-  if (activeUnit.hasMoved) {
-    const prevDir = MovementController.determinePreviousDirection(activeUnit);
-    displacementPosition = MovementController.findContinuationTile(activeUnit, validTiles, prevDir) || MovementController.randomTile(validTiles)!;
-  } else {
-    displacementPosition = MovementController.randomTile(validTiles)!;
-  }
-  const displacedAnimals = animalsList.map(animal =>
-    animal.id === activeUnit.id
-      ? { ...animal, previousPosition: { ...animal.position }, position: displacementPosition }
-      : animal
-  );
-  return {
-    animals: displacedAnimals,
-    displacementEvent: {
-      occurred: true,
-      unitId: activeUnit.id,
-      fromX: position.x,
-      fromY: position.y,
-      toX: displacementPosition.x,
-      toY: displacementPosition.y,
-      timestamp: Date.now()
-    }
   };
 }
 
@@ -489,9 +370,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   } as GameState['biomeCaptureEvent'], // Force type alignment
 
   nextTurn: () => set((state) => {
-    const newBoard = regenerateResources(state);
-    const { animals: postEggAnimals, biomes: postEggBiomes } = produceEggs(state, newBoard);
-    const newBiomes = recalcLushness(newBoard, postEggBiomes);
+    const newBoard = EcosystemController.regenerateResourcesState(state);
+    const { animals: postEggAnimals, biomes: postEggBiomes } = EcosystemController.produceEggsState(state, newBoard);
+    const newBiomes = EcosystemController.recalcLushnessState(newBoard, postEggBiomes);
     const { animals: resetAnimals, displacementEvent, spawnEvent, biomeCaptureEvent } =
       resetMovementAndEvents(postEggAnimals);
     return {
@@ -548,85 +429,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     return board.tiles[y][x];
   },
 
-  evolveAnimal: (id) =>
+  evolveAnimal: (id: string) =>
     set((state) => {
-      // Orchestrate egg evolution using pure helpers
-      const egg = getEggById(state, id);
-      if (!egg) {
-        console.warn(`Cannot evolve animal ${id}: not found or not a dormant egg`);
-        return state;
-      }
-      const eggPosition = egg.position;
-      const board = state.board!;
-      // Retrieve biomeId from tile (Animal doesn't have biomeId)
-      const tile = board.tiles[eggPosition.y][eggPosition.x];
-      const biomeId = tile.biomeId;
-      // Handle displacement of any active unit at egg position
-      const activeUnit = state.animals.find(a =>
-        a.id !== id &&
-        a.position.x === eggPosition.x &&
-        a.position.y === eggPosition.y &&
-        a.state === AnimalState.ACTIVE
-      );
-      let tempAnimals = state.animals;
-      let tempEvent = DEFAULT_DISPLACEMENT_EVENT;
-      if (activeUnit) {
-        const result = pureHandleDisplacement(board, state.animals, activeUnit, eggPosition);
-        tempAnimals = result.animals;
-        tempEvent = result.displacementEvent;
-      }
-      // Remove egg flag from board
-      const newBoard = removeEggFromPosition(board, eggPosition);
-      // Update biome egg count & lushness if in a biome
-      const newBiomes = biomeId
-        ? updateEggCountAndLushness(state.biomes, biomeId, newBoard)
-        : state.biomes;
-      // Evolve the egg to active unit
-      const finalAnimals = tempAnimals.map(a =>
-        a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
-      );
-      return {
-        animals: finalAnimals,
-        board: newBoard,
-        biomes: newBiomes,
-        displacementEvent: tempEvent
-      };
-    }),
-
-  // Biome selection method
-  selectBiome: (id: string | null) => 
-    set(state => {
-      // Clear unit selection and move highlights on any biome select/deselect
-      if (id === null) {
-        return {
-          selectedBiomeId: null,
-          selectedUnitId: null,
-          validMoves: [],
-          moveMode: false,
-          selectedUnitIsDormant: false
-        };
-      }
-      
-      // Check if it's a biome ID
-      const biome = state.biomes.get(id);
-      if (biome) {
-        return {
-          selectedBiomeId: id,
-          selectedUnitId: null,
-          validMoves: [],
-          moveMode: false,
-          selectedUnitIsDormant: false
-        };
-      }
-      
-      // If invalid biome ID, clear both biome and unit selection/move state
-      return {
-        selectedBiomeId: null,
-        selectedUnitId: null,
-        validMoves: [],
-        moveMode: false,
-        selectedUnitIsDormant: false
-      };
+      const { animals, board, biomes, displacementEvent } =
+        EcosystemController.evolveAnimalState(state, id);
+      return { animals, board, biomes, displacementEvent };
     }),
 
   // Movement-related methods
@@ -714,4 +521,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
     return { animals: updatedAnimals };
   }),
+
+  // Biome selection method (moved to end of actions)
+  selectBiome: (id: string | null) => 
+    set(state => {
+      if (id === null) {
+        return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
+      }
+      const biome = state.biomes.get(id);
+      if (biome) {
+        return { selectedBiomeId: id, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
+      }
+      return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
+    }),
 }));

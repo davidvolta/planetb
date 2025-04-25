@@ -1,6 +1,8 @@
 import { ResourceType, Coordinate, TerrainType, GameConfig, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
 import { getEggPlacementTiles, getTilesForBiome } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/gameConfig";
+import type { GameState } from "../store/gameStore";
+import { MovementController } from "./MovementController";
 
 /**
  * Interface for egg placement validation
@@ -530,5 +532,155 @@ export class EcosystemController {
         a.ownerId === currentPlayerId
       );
     });
+  }
+
+  /**
+   * Regenerate resources for the entire game state
+   */
+  public static regenerateResourcesState(state: GameState): Board {
+    return this.regenerateResources(state.board!, state.biomes);
+  }
+
+  /**
+   * Produce eggs for the entire game state using the given board snapshot
+   */
+  public static produceEggsState(
+    state: GameState,
+    board: Board
+  ): { animals: Animal[]; biomes: Map<string, Biome> } {
+    return this.biomeEggProduction(
+      state.turn,
+      state.animals,
+      state.biomes,
+      board
+    );
+  }
+
+  /**
+   * Recalculate lushness across owned biomes using the provided board snapshot
+   */
+  public static recalcLushnessState(
+    board: Board,
+    biomes: Map<string, Biome>
+  ): Map<string, Biome> {
+    const newBiomes = new Map(biomes);
+    newBiomes.forEach((biome, biomeId) => {
+      if (biome.ownerId !== null) {
+        const { baseLushness, lushnessBoost, totalLushness } =
+          this.calculateBiomeLushness(biomeId, board, newBiomes);
+        newBiomes.set(biomeId, { ...biome, baseLushness, lushnessBoost, totalLushness });
+      }
+    });
+    return newBiomes;
+  }
+
+  /**
+   * Get a dormant egg by ID from game state
+   */
+  public static getEggById(state: GameState, id: string): Animal | undefined {
+    return state.animals.find(a => a.id === id && a.state === AnimalState.DORMANT);
+  }
+
+  /**
+   * Remove egg flag from the board at a coordinate
+   */
+  public static removeEggFromPosition(board: Board, coord: Coordinate): Board {
+    return {
+      ...board,
+      tiles: board.tiles.map((row, y) =>
+        row.map((tile, x) => (
+          x === coord.x && y === coord.y
+            ? { ...tile, hasEgg: false }
+            : tile
+        ))
+      )
+    };
+  }
+
+  /**
+   * Decrement egg count and recalc lushness for a biome after egg evolution
+   */
+  public static updateEggCountAndLushness(
+    biomes: Map<string, Biome>,
+    biomeId: string,
+    board: Board
+  ): Map<string, Biome> {
+    const newBiomes = new Map(biomes);
+    const biome = newBiomes.get(biomeId);
+    if (!biome) return newBiomes;
+    const updatedCount = Math.max(0, biome.eggCount - 1);
+    newBiomes.set(biomeId, { ...biome, eggCount: updatedCount });
+    if (biome.ownerId !== null) {
+      const { baseLushness, lushnessBoost, totalLushness } =
+        this.calculateBiomeLushness(biomeId, board, newBiomes);
+      newBiomes.set(biomeId, { ...newBiomes.get(biomeId)!, baseLushness, lushnessBoost, totalLushness });
+    }
+    return newBiomes;
+  }
+
+  /**
+   * Evolve an egg into an active animal, handling displacement, board updates, and lushness.
+   */
+  public static evolveAnimalState(
+    state: GameState,
+    id: string
+  ): {
+    animals: Animal[];
+    board: Board;
+    biomes: Map<string, Biome>;
+    displacementEvent: GameState['displacementEvent'];
+  } {
+    // Find the egg
+    const egg = this.getEggById(state, id);
+    if (!egg) {
+      console.warn(`Cannot evolve animal ${id}: not found or not a dormant egg`);
+      return {
+        animals: state.animals,
+        board: state.board!,
+        biomes: state.biomes,
+        displacementEvent: { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null } as GameState['displacementEvent']
+      };
+    }
+    // Prepare initial state
+    const board = state.board!;
+    let animals = state.animals;
+    let displacementEvent: GameState['displacementEvent'] = { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null };
+    const eggPos = egg.position;
+    // Handle displacement
+    const collider = animals.find(a =>
+      a.id !== id && a.state === AnimalState.ACTIVE && a.position.x === eggPos.x && a.position.y === eggPos.y
+    );
+    if (collider) {
+      animals = MovementController.handleDisplacement(
+        eggPos.x,
+        eggPos.y,
+        collider,
+        animals,
+        board
+      );
+      const displaced = animals.find(a => a.id === collider.id)!;
+      displacementEvent = {
+        occurred: true,
+        unitId: collider.id,
+        fromX: collider.position.x,
+        fromY: collider.position.y,
+        toX: displaced.position.x,
+        toY: displaced.position.y,
+        timestamp: Date.now()
+      };
+    }
+    // Remove egg from board
+    const newBoard = this.removeEggFromPosition(board, eggPos);
+    // Update biomes
+    const tile = board.tiles[eggPos.y][eggPos.x];
+    const biomeId = tile.biomeId;
+    const newBiomes = biomeId
+      ? this.updateEggCountAndLushness(state.biomes, biomeId, newBoard)
+      : state.biomes;
+    // Activate the egg
+    const finalAnimals = animals.map(a =>
+      a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
+    );
+    return { animals: finalAnimals, board: newBoard, biomes: newBiomes, displacementEvent };
   }
 }
