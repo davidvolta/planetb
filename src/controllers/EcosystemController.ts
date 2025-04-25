@@ -1,6 +1,6 @@
-import { ResourceType, Coordinate, TerrainType, GameConfig, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
+import { ResourceType, Coordinate, TerrainType, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
 import { getEggPlacementTiles, getTilesForBiome } from "../store/actions";
-import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/gameConfig";
+import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import type { GameState } from "../store/gameStore";
 import { MovementController } from "./MovementController";
 
@@ -100,7 +100,7 @@ export class EcosystemController {
       return;
     }
 
-    const resourceChance = GameConfig.resourceGenerationPercentage;
+    const resourceChance = RESOURCE_GENERATION_PERCENTAGE;
     console.log(`Resetting resources with ${resourceChance * 100}% density per biome`);
 
     const updatedBiomes = new Map(biomes);

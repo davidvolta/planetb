@@ -203,19 +203,6 @@ export interface Resource {
   biomeId: string | null; // Add biome ID to track which biome each resource belongs to
 }
 
-// Game configuration and settings
-export const GameConfig = {
-  resourceGenerationPercentage: 0.5, // 50% chance fixed value
-  
-  // Setter for resource generation percentage (0.0 to 1.0)
-  setResourcePercentage: (percentage: number) => {
-    // Ensure the percentage is between 0 and 1
-    const clampedValue = Math.max(0, Math.min(1, percentage));
-    GameConfig.resourceGenerationPercentage = clampedValue;
-    return clampedValue;
-  }
-};
-
 // Game state interface
 export interface GameState {
   turn: number;
@@ -370,13 +357,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         height,
         state.currentPlayerId
       );
-      return {
+    return {
         board,
         animals,
         biomes,
         isInitialized: true
-      };
-    }),
+    };
+  }),
 
   addPlayer: (name: string, color: string) => 
     set((state) => {
@@ -423,16 +410,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newBiomes = EcosystemController.recalcLushnessState(newBoard, postEggBiomes);
     const { animals: resetAnimals, displacementEvent, spawnEvent, biomeCaptureEvent } =
       resetMovementAndEvents(postEggAnimals);
-    return {
+      return { 
       board: newBoard,
       animals: resetAnimals,
       biomes: newBiomes,
       turn: state.turn + 1,
-      displacementEvent,
+        displacementEvent,
       spawnEvent,
       biomeCaptureEvent
-    };
-  }),
+      };
+    }),
 
   // MOVEMENT
   selectUnit: (id: string | null) => 
@@ -478,14 +465,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   moveUnit: (id: string, x: number, y: number) =>
     set((state) => {
       // Update the moved unit's position and flag
-      let updatedAnimals = state.animals.map(animal =>
-        animal.id === id
-          ? {
-              ...animal,
+      let updatedAnimals = state.animals.map(animal => 
+        animal.id === id 
+          ? { 
+              ...animal, 
               previousPosition: { ...animal.position },
               position: { x, y },
-              hasMoved: true
-            }
+              hasMoved: true 
+            } 
           : animal
       );
       // Handle collision displacement via MovementController
@@ -535,8 +522,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   // EVOLUTION
   evolveAnimal: (id: string) =>
     set((state) => {
-      const { animals, board, biomes, displacementEvent } =
+      const { board: newBoard, biomes: newBiomes, displacementEvent } =
         EcosystemController.evolveAnimalState(state, id);
-      return { animals, board, biomes, displacementEvent };
+      // Only activate the egg here; let displacement animation handle others
+      const activatedAnimals = state.animals.map(a =>
+        a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
+      );
+      return {
+        animals: activatedAnimals,
+        board: newBoard,
+        biomes: newBiomes,
+        displacementEvent
+      };
     }),
 }));

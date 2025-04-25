@@ -183,7 +183,6 @@ export default class BoardScene extends Phaser.Scene {
       animalRenderer: this.animalRenderer,
       biomeRenderer: this.biomeRenderer,
       moveRangeRenderer: this.moveRangeRenderer,
-      animationController: this.animationController,
       tileRenderer: this.tileRenderer,
       resourceRenderer: this.resourceRenderer
     });
@@ -309,14 +308,17 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Handle unit spawned events
-  private handleUnitSpawned() {
+  private handleUnitSpawned(unitId: string) {
     console.log('Unit spawned, updating UI');
-    
-    // Hide the selection indicator and clear any move highlights
     this.moveRangeRenderer.clearMoveHighlights();
     this.selectionRenderer.hideSelection();
-    
-    // Clear the event
+    if (this.fogOfWarEnabled && unitId) {
+      const unit = actions.getAnimals().find(a => a.id === unitId);
+      if (unit) {
+        this.revealFogAt(unit.position.x, unit.position.y);
+      }
+    }
+    // Clear the spawn event; displacement (if any) is handled via subscriptions
     actions.clearSpawnEvent();
   }
 

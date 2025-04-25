@@ -321,7 +321,7 @@ export class StateSubscriptionManager {
       state => state.spawnEvent,
       spawnEvent => {
         if (spawnEvent && spawnEvent.occurred) {
-          this.scene.events.emit('unit_spawned');
+          this.scene.events.emit('unit_spawned', spawnEvent.unitId!);
           actions.clearSpawnEvent();
         }
       }

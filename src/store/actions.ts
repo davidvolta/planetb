@@ -1,16 +1,4 @@
-import { 
-  useGameStore, 
-  Animal, 
-  GameState, 
-  AnimalState,
-  Board, 
-  Biome, 
-  TerrainType, 
-  Habitat, 
-  GameConfig,
-  Coordinate,
-  Resource
-} from "./gameStore";
+import { useGameStore, Animal, AnimalState, Board, Biome, TerrainType, Coordinate } from "./gameStore";
 import { EcosystemController } from "../controllers/EcosystemController";
 
 /**

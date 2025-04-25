@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 import BoardScene from "./BoardScene";
-import { GameConfig } from "../store/gameStore";
+import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 
 export default class DebugScene extends Phaser.Scene {
+  
   private fpsText!: Phaser.GameObjects.Text;
   private boardScene: BoardScene | null = null;
   
@@ -26,7 +27,7 @@ export default class DebugScene extends Phaser.Scene {
   private resourceSliderTrack!: Phaser.GameObjects.Rectangle;
   private resourceSliderHandle!: Phaser.GameObjects.Rectangle;
   private resourcePercentText!: Phaser.GameObjects.Text;
-  private resourcePercentage: number = 0.5; // Default to 50%
+  private resourcePercentage: number = RESOURCE_GENERATION_PERCENTAGE; // Initialize from constant
   private isDraggingSlider: boolean = false;
 
   constructor() {
@@ -98,7 +99,10 @@ export default class DebugScene extends Phaser.Scene {
       .setStrokeStyle(1, 0x00FF00)
       .setOrigin(0, 0.5);
     
-    // Create slider handle
+    // Initialize the handle position based on the current resource percentage
+    // Already initialized from constant in class declaration
+    
+    // Create slider handle at correct position
     this.resourceSliderHandle = this.add.rectangle(
       textWidth + 15 + (trackWidth * this.resourcePercentage), 
       0, 
@@ -195,8 +199,8 @@ export default class DebugScene extends Phaser.Scene {
   
   // Update the resource percentage and reset resources
   private updateResourcePercentage(percentage: number): void {
-    // Set the resource percentage in GameConfig
-    GameConfig.setResourcePercentage(percentage);
+    // Update the instance value
+    this.resourcePercentage = percentage;
     
     // Reset resources if board scene exists
     if (this.boardScene && typeof this.boardScene.resetResources === 'function') {

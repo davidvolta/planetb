@@ -2,23 +2,19 @@
 
 ## Future Tasks
 
-- [ ] Refactor game init
-
-- [ ] Convert to immer/immutable state instead of subscribers
-  - [ ] First remove all subscribers. Especially UI BIOME!
-
 - [ ] Change tinting mechanism
 - [ ] Flip unit when moving
 
-- [ ] Now its kind of boring that eggs appear in the same place always
+- [ ] Fix directional spawning
+- [ ] Fix units being displaced to invalid tiles
 
 - [ ] Style edges of owned biomes (flood fill with stroke)
 
-- [ ] Refactor for GameController and lessen the load on Gamestore
+- [ ] Add second player as AI
 
 - [ ] Implement a play function
   - [ ] Calls next turn (do we need to rebuild it for the play function?)
   - [ ] Similar to how the simulator does it. Let the game board run.
   - [ ] Speed function (1x, 2x, 5x)
-  - [ ] Pause button 
+  - [ ] Pause button   
 
