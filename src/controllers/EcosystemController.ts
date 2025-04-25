@@ -1,4 +1,4 @@
-import { ResourceType, Coordinate, TerrainType, GameConfig, AnimalState, Board, Animal, Biome } from "../store/gameStore";
+import { ResourceType, Coordinate, TerrainType, GameConfig, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
 import { getEggPlacementTiles, getTilesForBiome } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST } from "../constants/gameConfig";
 
@@ -308,6 +308,22 @@ export class EcosystemController {
   }
 
   /**
+   * Get all tiles (with coordinates) for a biome from the passed-in board
+   */
+  private static getBoardTilesForBiome(board: Board, biomeId: string): { tile: Tile; x: number; y: number }[] {
+    const results: { tile: Tile; x: number; y: number }[] = [];
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y][x];
+        if (tile.biomeId === biomeId) {
+          results.push({ tile, x, y });
+        }
+      }
+    }
+    return results;
+  }
+
+  /**
    * Calculate the percentage of blank tiles in a biome that have eggs
    * @param biomeId ID of the biome to calculate for
    * @param board The game board
@@ -315,10 +331,9 @@ export class EcosystemController {
    * @returns Percentage (0-1) of blank tiles that have eggs
    */
   private static calculateEggPercentage(biomeId: string, board: Board, biome: Biome): number {
-    // Get all tiles in this biome and filter for blank tiles (not active, not habitat)
-    const biomeTiles = getTilesForBiome(biomeId);
-    const blankTiles = biomeTiles.filter(tileResult => 
-      !tileResult.tile.active && !tileResult.tile.isHabitat
+    const biomeTiles = this.getBoardTilesForBiome(board, biomeId);
+    const blankTiles = biomeTiles.filter(({ tile }) =>
+      !tile.active && !tile.isHabitat
     );
     
     // If no blank tiles, return 0
@@ -355,7 +370,7 @@ export class EcosystemController {
       return { baseLushness: 0, lushnessBoost: 0, totalLushness: 0 };
     }
     // Get active resource tiles in this biome
-    const activeTiles = getTilesForBiome(biomeId)
+    const activeTiles = this.getBoardTilesForBiome(board, biomeId)
       .filter(({ tile }) => tile.active && tile.resourceType !== null)
       .map(({ tile }) => tile);
     // Calculate base lushness relative to initial resource count
