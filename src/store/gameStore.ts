@@ -1029,55 +1029,28 @@ export const useGameStore = create<GameState>((set, get) => ({
     
   moveUnit: (id: string, x: number, y: number) =>
     set((state) => {
-      // Verify this is a valid move
-      const isValidMove = state.validMoves.some(move => move.x === x && move.y === y);
-      
-      if (!isValidMove) {
-        console.warn(`Invalid move to ${x},${y} for unit ${id}`);
-        return state;
-      }
-      
-      // Find the unit to move
-      const unit = state.animals.find(animal => animal.id === id);
-      if (!unit) {
-        console.warn(`Unit ${id} not found`);
-        return state;
-      }
-      
-      // Check if there's already an active unit at the destination
-      const activeUnitAtDestination = state.animals.find(animal =>
-        animal.position.x === x &&
-        animal.position.y === y &&
-        animal.state === AnimalState.ACTIVE &&
-        animal.id !== id
-      );
-      
-      let updatedAnimals = state.animals.map(animal => 
-        animal.id === id 
-          ? { 
-              ...animal, 
-              previousPosition: { ...animal.position }, // Save current position as previous
-              position: { x, y },                      // Update to new position
-              hasMoved: true 
-            } 
+      // Update the moved unit's position and flag
+      let updatedAnimals = state.animals.map(animal =>
+        animal.id === id
+          ? {
+              ...animal,
+              previousPosition: { ...animal.position },
+              position: { x, y },
+              hasMoved: true
+            }
           : animal
       );
-      
-      // If there's an active unit at the destination, handle displacement
-      if (activeUnitAtDestination) {
-        console.log(`Found active unit ${activeUnitAtDestination.id} at destination (${x},${y}), will handle displacement`);
-        updatedAnimals = handleDisplacement(x, y, activeUnitAtDestination, updatedAnimals);
+      // Handle collision displacement if another active unit occupied target
+      const collided = state.animals.find(a =>
+        a.id !== id &&
+        a.state === AnimalState.ACTIVE &&
+        a.position.x === x &&
+        a.position.y === y
+      );
+      if (collided) {
+        updatedAnimals = handleDisplacement(x, y, collided, updatedAnimals);
       }
-      
-      console.log(`Unit ${id} moved to (${x},${y}) and marked as moved for this turn`);
-      
-      // Clear movement state after move
-      return { 
-        animals: updatedAnimals,
-        selectedUnitId: null,
-        validMoves: [],
-        moveMode: false
-      };
+      return { animals: updatedAnimals };
     }),
     
   getValidMoves: (id: string) => {
