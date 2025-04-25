@@ -179,7 +179,6 @@ export class StateSubscriptionManager {
             if (prevBiome && biome.totalLushness !== prevBiome.totalLushness) {
               // Only update individual biomes that changed
               this.biomeRenderer.updateBiomeOwnership(id);
-              console.log(`Updated biome ${id} for lushness change: ${prevBiome.totalLushness} → ${biome.totalLushness}`);
             }
           }
         }
@@ -197,10 +196,7 @@ export class StateSubscriptionManager {
             const biomeB = b.get(id);
             // If biome doesn't exist in both maps or lushness changed
             if (!biomeB || biomeA.totalLushness !== biomeB.totalLushness) {
-              // Log the change for debugging
-              if (biomeB) {
-                console.log(`Lushness change detected for biome ${id}: ${biomeB.totalLushness} → ${biomeA.totalLushness}`);
-              }
+              // Trigger update
               return false; // Trigger update
             }
           }

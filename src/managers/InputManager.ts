@@ -154,6 +154,14 @@ export class InputManager {
           // Let the player decide when to end their turn
         }
       });
+      
+      // Handle harvest with 'H' key when a resource is selected
+      this.scene.input.keyboard.on('keydown-H', () => {
+        const selectedResource = actions.getSelectedResource();
+        if (selectedResource) {
+          actions.harvestTileResource(1);
+        }
+      });
     }
   }
   
