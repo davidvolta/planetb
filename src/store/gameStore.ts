@@ -336,13 +336,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Initialize selection state
   selectedBiomeId: null,
   selectedResource: null,
-  selectResource: (coord) => set({
-    selectedResource: coord,
-    selectedUnitId: null,
-    validMoves: [],
-    moveMode: false,
-    selectedUnitIsDormant: false
-  }),
   
   // Initialize displacement event with default values
   displacementEvent: {
@@ -369,22 +362,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     timestamp: null
   } as GameState['biomeCaptureEvent'], // Force type alignment
 
-  nextTurn: () => set((state) => {
-    const newBoard = EcosystemController.regenerateResourcesState(state);
-    const { animals: postEggAnimals, biomes: postEggBiomes } = EcosystemController.produceEggsState(state, newBoard);
-    const newBiomes = EcosystemController.recalcLushnessState(newBoard, postEggBiomes);
-    const { animals: resetAnimals, displacementEvent, spawnEvent, biomeCaptureEvent } =
-      resetMovementAndEvents(postEggAnimals);
-    return {
-      board: newBoard,
-      animals: resetAnimals,
-      biomes: newBiomes,
-      turn: state.turn + 1,
-      displacementEvent,
-      spawnEvent,
-      biomeCaptureEvent
-    };
-  }),
+  // INITIALIZATION METHODS
+  initializeBoard: (width, height) =>
+    set((state) => {
+      const { board, animals, biomes } = initGameBoard(
+        width,
+        height,
+        state.currentPlayerId
+      );
+      return {
+        board,
+        animals,
+        biomes,
+        isInitialized: true
+      };
+    }),
 
   addPlayer: (name: string, color: string) => 
     set((state) => {
@@ -407,21 +399,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { players: updatedPlayers, currentPlayerId: playerId };
     }),
 
-  initializeBoard: (width, height) =>
-    set((state) => {
-      const { board, animals, biomes } = initGameBoard(
-        width,
-        height,
-        state.currentPlayerId
-      );
-      return {
-        board,
-        animals,
-        biomes,
-        isInitialized: true
-      };
-    }),
-
+  // GETTERS / SELECTORS
   getTile: (x, y) => {
     const board = get().board;
     if (!board) return undefined;
@@ -429,14 +407,34 @@ export const useGameStore = create<GameState>((set, get) => ({
     return board.tiles[y][x];
   },
 
-  evolveAnimal: (id: string) =>
-    set((state) => {
-      const { animals, board, biomes, displacementEvent } =
-        EcosystemController.evolveAnimalState(state, id);
-      return { animals, board, biomes, displacementEvent };
-    }),
+  getValidMoves: (id: string) => {
+    const state = get();
+    // Delegate to MovementController
+    const unit = state.animals.find(a => a.id === id);
+    return unit && state.board
+      ? MovementController.calculateValidMoves(unit, state.board, state.animals)
+      : [];
+  },
 
-  // Movement-related methods
+  // TURN PROGRESSION
+  nextTurn: () => set((state) => {
+    const newBoard = EcosystemController.regenerateResourcesState(state);
+    const { animals: postEggAnimals, biomes: postEggBiomes } = EcosystemController.produceEggsState(state, newBoard);
+    const newBiomes = EcosystemController.recalcLushnessState(newBoard, postEggBiomes);
+    const { animals: resetAnimals, displacementEvent, spawnEvent, biomeCaptureEvent } =
+      resetMovementAndEvents(postEggAnimals);
+    return {
+      board: newBoard,
+      animals: resetAnimals,
+      biomes: newBiomes,
+      turn: state.turn + 1,
+      displacementEvent,
+      spawnEvent,
+      biomeCaptureEvent
+    };
+  }),
+
+  // MOVEMENT
   selectUnit: (id: string | null) => 
     set((state) => {
       if (!id) {
@@ -504,15 +502,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
       return { animals: updatedAnimals };
     }),
-    
-  getValidMoves: (id: string) => {
-    const state = get();
-    // Delegate to MovementController
-    const unit = state.animals.find(a => a.id === id);
-    return unit && state.board
-      ? MovementController.calculateValidMoves(unit, state.board, state.animals)
-      : [];
-  },
 
   resetMovementFlags: () => set((state) => {
     const updatedAnimals = state.animals.map(animal => ({
@@ -522,7 +511,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     return { animals: updatedAnimals };
   }),
 
-  // Biome selection method (moved to end of actions)
+  // SELECTION
+  selectResource: (coord) => set({
+    selectedResource: coord,
+    selectedUnitId: null,
+    validMoves: [],
+    moveMode: false,
+    selectedUnitIsDormant: false
+  }),
+
   selectBiome: (id: string | null) => 
     set(state => {
       if (id === null) {
@@ -533,5 +530,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { selectedBiomeId: id, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
       }
       return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
+    }),
+
+  // EVOLUTION
+  evolveAnimal: (id: string) =>
+    set((state) => {
+      const { animals, board, biomes, displacementEvent } =
+        EcosystemController.evolveAnimalState(state, id);
+      return { animals, board, biomes, displacementEvent };
     }),
 }));
