@@ -80,6 +80,7 @@ export class AnimalRenderer extends BaseRenderer {
         // Create a new sprite for this animal with the correct texture
         const animalSprite = this.scene.add.sprite(worldX, worldY, textureKey);
         
+     
         // Set appropriate scale
         animalSprite.setScale(0.3333);
         

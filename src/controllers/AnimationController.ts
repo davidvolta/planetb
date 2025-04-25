@@ -99,11 +99,21 @@ export class AnimationController {
       );
       const endWorldY = endPos.y + this.verticalOffset;
 
+      // Facing: flip based on actual world horizontal movement, ignore pure vertical moves
+      const dx = endPos.x - startPos.x;
+      if (dx > 0) {
+        sprite.setFlipX(true);
+      } else if (dx < 0) {
+        sprite.setFlipX(false);
+      }
+
       // Compute duration
-      const duration = fixedDuration ?? Math.sqrt(
+      let duration = fixedDuration ?? Math.sqrt(
         (endPos.x - startPos.x) ** 2 +
         (endPos.y - startPos.y) ** 2
       ) * (75 / this.tileSize);
+      // DEBUG: slow down animation for timing introspection
+      duration *= 4;
 
       // Create and track tween
       const tween = this.scene.tweens.add({
