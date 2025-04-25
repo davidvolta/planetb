@@ -342,90 +342,23 @@ export class StateSubscriptionManager {
       StateSubscriptionManager.SUBSCRIPTIONS.DISPLACEMENT,
       (state) => state.displacementEvent,
       (displacementEvent) => {
-        // Only animate if displacement actually occurred and all required values are present
-        if (
-          displacementEvent && 
-          displacementEvent.occurred && 
-          displacementEvent.unitId &&
-          typeof displacementEvent.fromX === 'number' &&
-          typeof displacementEvent.fromY === 'number' &&
-          typeof displacementEvent.toX === 'number' &&
-          typeof displacementEvent.toY === 'number'
-        ) {
-          
-          // Call the BoardScene's handleDisplacementEvent method
+        if (displacementEvent && displacementEvent.occurred) {
           if (this.scene instanceof BoardScene) {
-            // Use the displacement event data to animate the displacement
-            this.scene.handleDisplacementEvent(
-              displacementEvent.unitId,
-              displacementEvent.fromX,
-              displacementEvent.fromY,
-              displacementEvent.toX,
-              displacementEvent.toY
-            );
-          } else {
-            // If the scene isn't a BoardScene, just clear the event
-            actions.clearDisplacementEvent();
+            const { unitId, fromX, fromY, toX, toY } = displacementEvent;
+            this.scene.handleDisplacementEvent(unitId!, fromX!, fromY!, toX!, toY!);
           }
-        } else if (displacementEvent && displacementEvent.occurred) {
-          // If we have an incomplete displacement event, log an error and clear it
-          console.error("Incomplete displacement event detected", displacementEvent);
           actions.clearDisplacementEvent();
         }
       }
     );
     
-    // Subscribe to spawn events
+    // Simplified spawn-event subscription
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.SPAWN,
-      (state) => state.spawnEvent,
-      (spawnEvent) => {
-        // Handle spawn events (mainly to update rendering)
+      state => state.spawnEvent,
+      spawnEvent => {
         if (spawnEvent && spawnEvent.occurred) {
-          
-          // If we have a valid unit ID and the scene is a BoardScene
-          if (spawnEvent.unitId && this.scene instanceof BoardScene) {
-            // Get the animal that was just spawned
-            const animals = actions.getAnimals();
-            const spawnedAnimal = animals.find(animal => animal.id === spawnEvent.unitId);
-            
-            // If we found the animal and fog of war is enabled, reveal tiles around it
-            if (spawnedAnimal) {
-              const fogOfWarRenderer = this.scene.getFogOfWarRenderer();
-              // Check if fog of war is enabled before revealing tiles
-              if (fogOfWarRenderer) {
-                
-                // Get the board to check boundaries
-                const board = actions.getBoard();
-                if (board) {
-                  // Get tiles around the new position that need to be revealed
-                  const adjacentTiles = this.getAdjacentTiles(
-                    spawnedAnimal.position.x, 
-                    spawnedAnimal.position.y, 
-                    board.width, 
-                    board.height
-                  );
-                  
-                  // Update visibility in game state
-                  // Use batch update for better performance
-                  actions.updateTilesVisibility(adjacentTiles.map(tile => ({
-                    x: tile.x,
-                    y: tile.y,
-                    visible: true
-                  })));
-                  
-                  // Remove duplicates and reveal visually
-                  const uniqueTiles = this.removeDuplicateTiles(adjacentTiles);
-                  fogOfWarRenderer.revealTiles(uniqueTiles);
-                }
-              }
-            }
-            
-            // Clear the selection indicator
-            this.scene.getSelectionRenderer().hideSelection();
-          }
-          
-          // Clear the spawn event after handling it
+          this.scene.events.emit('unit_spawned');
           actions.clearSpawnEvent();
         }
       }
@@ -438,15 +371,9 @@ export class StateSubscriptionManager {
       (biomeCaptureEvent) => {
         // Handle biome capture events
         if (biomeCaptureEvent && biomeCaptureEvent.occurred) {
-          // Clear the selection indicator - cast scene to BoardScene to access the method
-          if (this.scene instanceof BoardScene) {
-            // Hide selection indicator
-            this.scene.getSelectionRenderer().hideSelection();
-            // Hide any move highlights since capture counts as a unit move
-            this.scene.getMoveRangeRenderer().clearMoveHighlights();
-            
-            // Reveal the biome tiles for the captured biome
-            if (biomeCaptureEvent.biomeId) {
+          // Reveal the biome tiles for the captured biome
+          if (biomeCaptureEvent.biomeId) {
+            if (this.scene instanceof BoardScene) {
               this.scene.revealBiomeTiles(biomeCaptureEvent.biomeId);
               
               // Update just the captured biome's ownership status
