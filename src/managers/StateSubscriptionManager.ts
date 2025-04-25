@@ -9,7 +9,6 @@ import { AnimalRenderer } from '../renderers/AnimalRenderer';
 import { BiomeRenderer } from '../renderers/BiomeRenderer';
 import { ResourceRenderer } from '../renderers/ResourceRenderer';
 import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
-import { AnimationController } from '../controllers/AnimationController';
 import Phaser from "phaser";
 import * as CoordinateUtils from "../utils/CoordinateUtils";
 
@@ -32,35 +31,6 @@ interface IMoveRangeRenderer {
   clearMoveHighlights(): void;
 }
 
-// Interface for a component that can handle animations
-interface IAnimationController {
-  moveUnit(
-    unitId: string,
-    sprite: Phaser.GameObjects.Sprite,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
-    options?: {
-      onBeforeMove?: () => void;
-      onAfterMove?: () => void;
-    }
-  ): Promise<void>;
-  
-  displaceUnit(
-    unitId: string,
-    sprite: Phaser.GameObjects.Sprite,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
-    options?: {
-      onBeforeDisplace?: () => void;
-      onAfterDisplace?: () => void;
-    }
-  ): Promise<void>;
-}
-
 // Interface for a component that can update the board
 interface ITileRenderer {
   createBoardTiles(
@@ -80,7 +50,6 @@ export class StateSubscriptionManager {
   private biomeRenderer!: BiomeRenderer;
   private resourceRenderer!: ResourceRenderer;
   private moveRangeRenderer!: MoveRangeRenderer;
-  private animationController!: AnimationController;
   private tileRenderer!: TileRenderer;
   
   // Track initialization and subscription state
@@ -103,10 +72,6 @@ export class StateSubscriptionManager {
     SPAWN: 'StateSubscriptionManager.spawn',
     BIOME_CAPTURE: 'StateSubscriptionManager.biomeCapture',
     
-    // UI state subscriptions
-    SELECTED_UNIT: 'StateSubscriptionManager.selectedUnit',
-    SELECTED_HABITAT: 'StateSubscriptionManager.selectedHabitat',
-    TURN: 'StateSubscriptionManager.turn',
   };
   
   // Create a new StateSubscriptionManager
@@ -119,14 +84,12 @@ export class StateSubscriptionManager {
     animalRenderer: AnimalRenderer;
     biomeRenderer: BiomeRenderer;
     moveRangeRenderer: MoveRangeRenderer;
-    animationController: AnimationController;
     tileRenderer: TileRenderer;
     resourceRenderer: ResourceRenderer;
   }): void {
     this.animalRenderer = renderers.animalRenderer;
     this.biomeRenderer = renderers.biomeRenderer;
     this.moveRangeRenderer = renderers.moveRangeRenderer;
-    this.animationController = renderers.animationController;
     this.tileRenderer = renderers.tileRenderer; 
     this.resourceRenderer = renderers.resourceRenderer;
     
@@ -421,46 +384,5 @@ export class StateSubscriptionManager {
   destroy(): void {
     this.unsubscribeAll();
     this.initialized = false;
-  }
-  
-  // Get the 8 adjacent tiles around a central position
-  private getAdjacentTiles(x: number, y: number, boardWidth: number, boardHeight: number): { x: number, y: number }[] {
-    const adjacentOffsets = [
-      { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
-      { x: -1, y: 0 }, /* Center */ { x: 1, y: 0 },
-      { x: -1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 1 }
-    ];
-    
-    // Include the central tile itself
-    const result = [{ x, y }];
-    
-    // Add all valid adjacent tiles
-    adjacentOffsets.forEach(offset => {
-      const newX = x + offset.x;
-      const newY = y + offset.y;
-      
-      // Check if coordinates are within board boundaries
-      if (newX >= 0 && newX < boardWidth && newY >= 0 && newY < boardHeight) {
-        result.push({ x: newX, y: newY });
-      }
-    });
-    
-    return result;
-  }
-  
-  // Remove duplicate tiles from an array
-  private removeDuplicateTiles(tiles: { x: number, y: number }[]): { x: number, y: number }[] {
-    const uniqueKeys = new Set<string>();
-    const uniqueTiles: { x: number, y: number }[] = [];
-    
-    tiles.forEach(tile => {
-      const key = `${tile.x},${tile.y}`;
-      if (!uniqueKeys.has(key)) {
-        uniqueKeys.add(key);
-        uniqueTiles.push(tile);
-      }
-    });
-    
-    return uniqueTiles;
   }
 } 
