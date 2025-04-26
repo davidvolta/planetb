@@ -184,7 +184,8 @@ export default class BoardScene extends Phaser.Scene {
       biomeRenderer: this.biomeRenderer,
       moveRangeRenderer: this.moveRangeRenderer,
       tileRenderer: this.tileRenderer,
-      resourceRenderer: this.resourceRenderer
+      resourceRenderer: this.resourceRenderer,
+      selectionRenderer: this.selectionRenderer
     });
     
     // Set up subscriptions to state changes
@@ -311,7 +312,6 @@ export default class BoardScene extends Phaser.Scene {
   private handleUnitSpawned(unitId: string) {
     console.log('Unit spawned, updating UI');
     this.moveRangeRenderer.clearMoveHighlights();
-    this.selectionRenderer.hideSelection();
     if (this.fogOfWarEnabled && unitId) {
       const unit = actions.getAnimals().find(a => a.id === unitId);
       if (unit) {
@@ -322,18 +322,9 @@ export default class BoardScene extends Phaser.Scene {
     actions.clearSpawnEvent();
   }
 
-  // Handle unit selection
-  private handleUnitSelection(unitId: string | null, showSelectionAt?: { x: number, y: number }) {
-    // Select or deselect the unit in store
+  // Handle unit selection (UI now via subscription manager)
+  private handleUnitSelection(unitId: string | null) {
     actions.selectUnit(unitId);
-    
-    // If we're selecting a unit and have coordinates, show selection indicator
-    if (unitId && showSelectionAt) {
-      this.selectionRenderer.showSelectionAt(showSelectionAt.x, showSelectionAt.y);
-    } else {
-      // Otherwise hide it (when deselecting)
-      this.selectionRenderer.hideSelection();
-    }
   }
 
   // Update method called each frame

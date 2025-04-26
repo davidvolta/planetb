@@ -51,6 +51,7 @@ export class StateSubscriptionManager {
   private resourceRenderer!: ResourceRenderer;
   private moveRangeRenderer!: MoveRangeRenderer;
   private tileRenderer!: TileRenderer;
+  private selectionRenderer!: SelectionRenderer;
   
   // Track initialization and subscription state
   private initialized: boolean = false;
@@ -71,7 +72,7 @@ export class StateSubscriptionManager {
     DISPLACEMENT: 'StateSubscriptionManager.displacement',
     SPAWN: 'StateSubscriptionManager.spawn',
     BIOME_CAPTURE: 'StateSubscriptionManager.biomeCapture',
-    
+    SELECTION: 'StateSubscriptionManager.selection',
   };
   
   // Create a new StateSubscriptionManager
@@ -86,12 +87,14 @@ export class StateSubscriptionManager {
     moveRangeRenderer: MoveRangeRenderer;
     tileRenderer: TileRenderer;
     resourceRenderer: ResourceRenderer;
+    selectionRenderer: SelectionRenderer;
   }): void {
     this.animalRenderer = renderers.animalRenderer;
     this.biomeRenderer = renderers.biomeRenderer;
     this.moveRangeRenderer = renderers.moveRangeRenderer;
     this.tileRenderer = renderers.tileRenderer; 
     this.resourceRenderer = renderers.resourceRenderer;
+    this.selectionRenderer = renderers.selectionRenderer;
     
     // Mark as initialized
     this.initialized = true;
@@ -116,6 +119,7 @@ export class StateSubscriptionManager {
     this.setupBiomeSubscriptions();
     this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
+    this.setupSelectionSubscriptions();
     this.subscriptionsSetup = true;  // Mark subscriptions as set up
   }
   
@@ -345,6 +349,50 @@ export class StateSubscriptionManager {
           actions.clearBiomeCaptureEvent();
         }
       }
+    );
+  }
+  
+  // Centralize selection UI based on store state
+  private setupSelectionSubscriptions(): void {
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.SELECTION,
+      (state) => ({
+        unitId: state.selectedUnitId,
+        unitDormant: state.selectedUnitIsDormant,
+        resource: state.selectedResource,
+        biomeId: state.selectedBiomeId
+      }),
+      (sel) => {
+        // Clear existing selection visuals
+        this.selectionRenderer.hideSelection();
+        // Priority: unit, resource, biome
+        if (sel.unitId) {
+          const unit = actions.getAnimals().find(a => a.id === sel.unitId);
+          if (unit) {
+            const x = unit.position.x;
+            const y = unit.position.y;
+            if (sel.unitDormant) this.selectionRenderer.showRedSelectionAt(x, y);
+            else this.selectionRenderer.showSelectionAt(x, y);
+          }
+          return;
+        }
+        // Clear move highlights when not selecting a unit
+        this.moveRangeRenderer.clearMoveHighlights();
+        if (sel.resource) {
+          this.selectionRenderer.showRedSelectionAt(sel.resource.x, sel.resource.y);
+          return;
+        }
+        if (sel.biomeId) {
+          const biome = actions.getBiomes().get(sel.biomeId);
+          if (biome) {
+            const { x, y } = biome.habitat.position;
+            this.selectionRenderer.showRedSelectionAt(x, y);
+          }
+          return;
+        }
+        // No selection: nothing to do (already cleared)
+      },
+      { immediate: true, debug: false }
     );
   }
   

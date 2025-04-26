@@ -63,7 +63,7 @@ export class TileInteractionController {
     if (activeUnits.length > 0 && !activeUnits[0].hasMoved) {
       handlers.push((x, y) => {
         actions.selectUnit(activeUnits[0].id);
-        this.scene.selectionRenderer.showSelectionAt(x, y);
+        // Selection UI handled by StateSubscriptionManager
       });
     }
 
@@ -71,7 +71,7 @@ export class TileInteractionController {
     if (dormantUnits.length > 0) {
       handlers.push((x, y) => {
         actions.selectUnit(dormantUnits[0].id);
-        this.scene.selectionRenderer.showRedSelectionAt(x, y);
+        // Selection UI handled by StateSubscriptionManager
       });
     }
 
@@ -80,7 +80,7 @@ export class TileInteractionController {
       const biome = biomesAtLocation[0];
       handlers.push((x, y) => {
         actions.selectBiome(biome.id);
-        this.scene.selectionRenderer.showRedSelectionAt(x, y);
+        // Selection UI handled by StateSubscriptionManager
       });
     }
 
@@ -94,7 +94,7 @@ export class TileInteractionController {
         handlers.push((x, y) => {
           actions.selectResourceTile({ x, y });
           actions.selectBiome(null);
-          this.scene.selectionRenderer.showRedSelectionAt(x, y);
+          // Selection UI handled by StateSubscriptionManager
         });
       }
     }
@@ -104,7 +104,7 @@ export class TileInteractionController {
       actions.selectUnit(null);
       actions.selectBiome(null);
       actions.selectResourceTile(null);
-      this.scene.selectionRenderer.hideSelection();
+      // Selection UI handled by StateSubscriptionManager
     });
 
     // Cycle through handlers on repeated clicks
