@@ -1,6 +1,5 @@
 import { StateObserver } from '../utils/stateObserver';
-import { Animal, GameState, ValidMove, Habitat, Biome, Board } from '../store/gameStore';
-import { useGameStore } from '../store/gameStore';
+import { Animal, ValidMove, Biome } from '../store/gameStore';
 import * as actions from '../store/actions';
 import BoardScene from '../scenes/BoardScene';
 import { SelectionRenderer } from '../renderers/SelectionRenderer';
@@ -10,7 +9,6 @@ import { BiomeRenderer } from '../renderers/BiomeRenderer';
 import { ResourceRenderer } from '../renderers/ResourceRenderer';
 import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
 import Phaser from "phaser";
-import * as CoordinateUtils from "../utils/CoordinateUtils";
 
 // Component interfaces: These define the contracts that components must fulfill to receive state updates
 

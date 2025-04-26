@@ -5,7 +5,8 @@ import { BaseRenderer } from './BaseRenderer';
 
 // Responsible for rendering and managing selection indicators and hover effects
 export class SelectionRenderer extends BaseRenderer {
-  
+  private static readonly INDICATOR_SCALE = 0.85;
+
   private selectionIndicator: Phaser.GameObjects.Graphics | null = null; // Selection indicator for showing selected tiles
   private hoverIndicator: Phaser.GameObjects.Graphics | null = null;   // Hover indicator for showing mouse hover
   private hoveredGridPosition: { x: number, y: number } | null = null;  // Track currently hovered grid position
@@ -20,87 +21,63 @@ export class SelectionRenderer extends BaseRenderer {
     super(scene, layerManager, tileSize, tileHeight);
   }
   
+  // Helper to draw a diamond on a graphics object with given style
+  private drawDiamond(
+    graphics: Phaser.GameObjects.Graphics,
+    lineWidth: number,
+    color: number,
+    alpha: number
+  ): void {
+    const points = CoordinateUtils.createIsoDiamondPoints(
+      this.tileSize,
+      this.tileHeight,
+      SelectionRenderer.INDICATOR_SCALE
+    );
+    graphics.lineStyle(lineWidth, color, alpha);
+    graphics.beginPath();
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      graphics.lineTo(points[i].x, points[i].y);
+    }
+    graphics.closePath();
+    graphics.strokePath();
+  }
+  
+  // Create a reusable indicator graphic with given style
+  private createIndicator(
+    lineWidth: number,
+    color: number,
+    alpha: number
+  ): Phaser.GameObjects.Graphics | null {
+    const selectionLayer = this.layerManager.getSelectionLayer();
+    if (!selectionLayer) {
+      console.warn("selectionLayer not available, cannot create indicator");
+      return null;
+    }
+    const graphics = this.scene.add.graphics();
+    this.drawDiamond(graphics, lineWidth, color, alpha);
+    graphics.setVisible(false);
+    this.layerManager.addToLayer('selection', graphics);
+    return graphics;
+  }
+  
   // Creates the selection indicator graphics
   private createSelectionIndicator(): Phaser.GameObjects.Graphics | null {
-    // Destroy existing selection indicator if it exists
     if (this.selectionIndicator) {
       this.selectionIndicator.destroy();
       this.selectionIndicator = null;
     }
-    
-    // Check if selectionLayer exists using layer manager
-    const selectionLayer = this.layerManager.getSelectionLayer();
-    if (!selectionLayer) {
-      console.warn("selectionLayer not available, cannot create selection indicator");
-      return null;
-    }
-  
-    this.selectionIndicator = this.scene.add.graphics();     // Create a new graphics object for the selection indicator
-    const scaleFactor = 0.85;    // Apply scaling factor to match move indicators
-    
-    // Diamond shape for the selection indicator with scaling to match move indicators
-    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
-      this.tileSize, 
-      this.tileHeight,
-      scaleFactor
-    );
-    
-    // Draw the selection indicator
-    this.selectionIndicator.lineStyle(3, 0xFFFFFF, 0.8); // 3px white line with 80% opacity
-    this.selectionIndicator.beginPath();
-    this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      this.selectionIndicator.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    this.selectionIndicator.closePath();
-    this.selectionIndicator.strokePath();
-    
-    // Hide the selection indicator initially
-    this.selectionIndicator.setVisible(false);
-    
-    // Add selection indicator to selection layer using layer manager
-    this.layerManager.addToLayer('selection', this.selectionIndicator);
-    
+    this.selectionIndicator = this.createIndicator(3, 0xFFFFFF, 0.8);
     return this.selectionIndicator;
   }
   
   //Creates the hover indicator graphics
   private createHoverIndicator(): Phaser.GameObjects.Graphics | null {
-    // Destroy existing hover indicator if it exists
     if (this.hoverIndicator) {
       this.hoverIndicator.destroy();
       this.hoverIndicator = null;
     }
-    
-    // Check if selectionLayer exists using layer manager
-    const selectionLayer = this.layerManager.getSelectionLayer();
-    if (!selectionLayer) {
-      console.warn("selectionLayer not available, cannot create hover indicator");
-      return null;
-    }
-    
-    this.hoverIndicator = this.scene.add.graphics();   // Create a new graphics object for the hover indicator
-    const scaleFactor = 0.85;     // Apply scaling factor to match move indicators
-    
-    // Diamond shape for the hover indicator with scaling to match move indicators
-    const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
-      this.tileSize, 
-      this.tileHeight,
-      scaleFactor
-    );
-    
-    // Draw the hover indicator with same style as move indicators
-    this.hoverIndicator.lineStyle(2, 0x999999, 0.7); // Match move indicator style
-    this.hoverIndicator.beginPath();
-    this.hoverIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    for (let i = 1; i < diamondPoints.length; i++) {
-      this.hoverIndicator.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    this.hoverIndicator.closePath();
-    this.hoverIndicator.strokePath();
-    this.hoverIndicator.setVisible(false);     // Hide the hover indicator initially
-    this.layerManager.addToLayer('selection', this.hoverIndicator); // Add hover indicator to selection layer using layer manager
-    
+    this.hoverIndicator = this.createIndicator(2, 0x999999, 0.7);
     return this.hoverIndicator;
   }
   
@@ -123,31 +100,11 @@ export class SelectionRenderer extends BaseRenderer {
         x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
       
-      // Position the indicator
+      // Position the indicator and redraw
       this.selectionIndicator.setPosition(worldPosition.x, worldPosition.y);
-      
-      // Clear previous graphics
       this.selectionIndicator.clear();
+      this.drawDiamond(this.selectionIndicator, 3, color, 0.8);
       
-      // Apply scaling factor to match move indicators
-      const scaleFactor = 0.85;
-      
-      // Redraw with the specified color
-      const diamondPoints = CoordinateUtils.createIsoDiamondPoints(
-        this.tileSize, 
-        this.tileHeight,
-        scaleFactor
-      );
-      this.selectionIndicator.lineStyle(3, color, 0.8); // 3px line with 80% opacity
-      this.selectionIndicator.beginPath();
-      this.selectionIndicator.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-      for (let i = 1; i < diamondPoints.length; i++) {
-        this.selectionIndicator.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-      }
-      this.selectionIndicator.closePath();
-      this.selectionIndicator.strokePath();
-      
-      // Make the indicator visible
       this.selectionIndicator.setVisible(true);
       
       // Ensure it's at the top of its layer
