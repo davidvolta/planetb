@@ -88,7 +88,9 @@ export class TileInteractionController {
     const tile = board.tiles[y][x];
     if (tile.active && tile.resourceType !== null && tile.biomeId) {
       const biome = actions.getBiomes().get(tile.biomeId);
-      if (biome && biome.ownerId === playerId) {
+      // Only allow harvesting if an active unit owned by current player is on this tile
+      const unitHere = activeUnits.find(u => u.ownerId === playerId);
+      if (biome && biome.ownerId === playerId && unitHere) {
         handlers.push((x, y) => {
           actions.selectResourceTile({ x, y });
           actions.selectBiome(null);

@@ -495,7 +495,25 @@ export function harvestTileResource(amount: number): void {
   // At this point, board is initialized and a resource tile is selected
   const coord = state.selectedResource!;
   const board = state.board!;
-
+  // Only allow harvesting if an active, owned unit that hasn't moved is on the tile
+  const unitHere = state.animals.find(a =>
+    a.position.x === coord.x && a.position.y === coord.y &&
+    a.state === AnimalState.ACTIVE &&
+    a.ownerId === state.currentPlayerId &&
+    !a.hasMoved
+  );
+  if (!unitHere) {
+    console.warn(`Cannot harvest: no eligible (active, owned, unmoved) unit on tile (${coord.x},${coord.y})`);
+    return;
+  }
+  // Guard: require the biome at this tile to be owned by current player
+  const tile = board.tiles[coord.y][coord.x];
+  const biomeId = tile.biomeId;
+  if (!biomeId || state.biomes.get(biomeId)?.ownerId !== state.currentPlayerId) {
+    console.warn(`Cannot harvest: tile (${coord.x},${coord.y}) not in owned biome`);
+    return;
+  }
+   
   // Compute new state via pure controller logic
   const { board: newBoard, players: newPlayers, biomes: newBiomes } =
     EcosystemController.computeHarvest(
@@ -506,10 +524,19 @@ export function harvestTileResource(amount: number): void {
       state.biomes,
       amount
     );
-  // Commit updated state
-  useGameStore.setState({ board: newBoard, players: newPlayers, biomes: newBiomes });
+  // Only mark hasMoved if the tile is now depleted (no more resources)
+  const tileAfter = newBoard.tiles[coord.y][coord.x];
+  let updatedAnimals = state.animals;
+  if (!tileAfter.active) {
+    updatedAnimals = state.animals.map(a =>
+      a.id === unitHere.id
+        ? { ...a, hasMoved: true }
+        : a
+    );
+  }
+  // Commit updated state (including updated animals if any)
+  useGameStore.setState({ board: newBoard, players: newPlayers, biomes: newBiomes, animals: updatedAnimals });
   // Refresh lushness for this biome
-  const tile = newBoard.tiles[coord.y][coord.x];
   if (tile.biomeId) {
     updateBiomeLushness(tile.biomeId);
   }

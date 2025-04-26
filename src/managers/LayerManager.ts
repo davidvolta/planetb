@@ -8,6 +8,7 @@ export class LayerManager {
   private selectionLayer: Phaser.GameObjects.Layer | null = null;
   private moveRangeLayer: Phaser.GameObjects.Layer | null = null;
   private staticObjectsLayer: Phaser.GameObjects.Layer | null = null;
+  private eggsLayer: Phaser.GameObjects.Layer | null = null;
   private unitsLayer: Phaser.GameObjects.Layer | null = null;
   private fogOfWarLayer: Phaser.GameObjects.Layer | null = null;
   private uiLayer: Phaser.GameObjects.Layer | null = null;
@@ -40,7 +41,8 @@ export class LayerManager {
     this.moveRangeLayer = this.scene.add.layer().setDepth(3);
     this.staticObjectsLayer = this.scene.add.layer().setDepth(4);
     this.fogOfWarLayer = this.scene.add.layer().setDepth(5);
-    this.unitsLayer = this.scene.add.layer().setDepth(6);
+    this.eggsLayer = this.scene.add.layer().setDepth(6);
+    this.unitsLayer = this.scene.add.layer().setDepth(7);
     this.uiLayer = this.scene.add.layer().setDepth(10);
     
     // Mark layers as initialized
@@ -62,6 +64,7 @@ export class LayerManager {
     this.selectionLayer = null;
     this.moveRangeLayer = null;
     this.staticObjectsLayer = null;
+    this.eggsLayer = null;
     this.unitsLayer = null;
     this.fogOfWarLayer = null;
     this.uiLayer = null;
@@ -76,8 +79,9 @@ export class LayerManager {
     this.clearLayer('selection', destroyChildren);
     this.clearLayer('moveRange', destroyChildren);
     this.clearLayer('staticObjects', destroyChildren);
-    this.clearLayer('units', destroyChildren);
     this.clearLayer('fogOfWar', destroyChildren);
+    this.clearLayer('eggs', destroyChildren);
+    this.clearLayer('units', destroyChildren);
     this.clearLayer('ui', destroyChildren);
   }
   
@@ -102,6 +106,8 @@ export class LayerManager {
         return this.moveRangeLayer;
       case 'staticobjects':
         return this.staticObjectsLayer;
+      case 'eggs':
+        return this.eggsLayer;
       case 'units':
         return this.unitsLayer;
       case 'fogofwar':
@@ -147,6 +153,11 @@ export class LayerManager {
   getUILayer(): Phaser.GameObjects.Layer | null {
     return this.uiLayer;
   }
+
+  getEggsLayer(): Phaser.GameObjects.Layer | null {
+    return this.eggsLayer;
+  }
+
   
   // Adds a game object to a specific layer
   addToLayer(layerName: string, gameObject: Phaser.GameObjects.GameObject): Phaser.GameObjects.GameObject {
@@ -166,4 +177,5 @@ export class LayerManager {
       layer.remove(gameObject, destroy);
     }
   }
+
 }

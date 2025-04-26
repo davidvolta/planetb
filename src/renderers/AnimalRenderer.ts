@@ -37,9 +37,10 @@ export class AnimalRenderer extends BaseRenderer {
    * @param onUnitClicked Callback function when a unit is clicked
    */
   renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
+    const eggsLayer = this.layerManager.getEggsLayer();
     const unitsLayer = this.layerManager.getUnitsLayer();
-    if (!unitsLayer) {
-      console.warn("Cannot render animal sprites - unitsLayer not available");
+    if (!eggsLayer || !unitsLayer) {
+      console.warn("Cannot render animal sprites - eggs or units layer not available");
       return;
     }
     
@@ -64,6 +65,8 @@ export class AnimalRenderer extends BaseRenderer {
       
       // Determine if the unit is active (for depth calculation)
       const isActive = animal.state === AnimalState.ACTIVE;
+      // Choose layer based on animal state (dormant eggs vs active units)
+      const layerName = animal.state === AnimalState.DORMANT ? 'eggs' : 'units';
       
       // Try to find existing sprite by ID
       const sprite = this.unitSprites.get(animal.id);
@@ -76,11 +79,14 @@ export class AnimalRenderer extends BaseRenderer {
           sprite.setTexture(textureKey);
         }
         this.updateSpriteInteractivity(sprite, animal);
+        // Move sprite into correct layer
+        this.layerManager.removeFromLayer('units', sprite);
+        this.layerManager.removeFromLayer('eggs', sprite);
+        this.layerManager.addToLayer(layerName, sprite);
       } else {
         // Create a new sprite for this animal with the correct texture
         const animalSprite = this.scene.add.sprite(worldX, worldY, textureKey);
         
-     
         // Set appropriate scale
         animalSprite.setScale(0.3333);
         
@@ -96,8 +102,8 @@ export class AnimalRenderer extends BaseRenderer {
         // Handle interactivity based on state
         this.updateSpriteInteractivity(animalSprite, animal);
         
-        // Add the new sprite to the units layer
-        this.layerManager.addToLayer('units', animalSprite);
+        // Add the new sprite to the correct layer
+        this.layerManager.addToLayer(layerName, animalSprite);
         
         // Cache sprite for future lookups
         this.unitSprites.set(animal.id, animalSprite);
