@@ -352,18 +352,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   // INITIALIZATION METHODS
   initializeBoard: (width, height) =>
     set((state) => {
+      // Pass number of players into board initialization
+      const numPlayers = state.players.length;
       const { board, animals, biomes } = initGameBoard(
         width,
         height,
-        state.currentPlayerId
+        numPlayers
       );
-    return {
+      return {
         board,
         animals,
         biomes,
         isInitialized: true
-    };
-  }),
+      };
+    }),
 
   addPlayer: (name: string, color: string) => 
     set((state) => {

@@ -32,9 +32,10 @@ let gameInstance: Phaser.Game | null = null;
  * Set up the initial game state with default settings
  */
 function setupGameState() {
-  const gameState = useGameStore.getState();
-  if (gameState.players.length === 0) {
+  // Ensure two players exist by default (batch add)
+  if (useGameStore.getState().players.length === 0) {
     actions.addPlayer('Player 1', '#3498db');
+    actions.addPlayer('Player 2', '#e74c3c');
   }
   
   // Set up the game board

@@ -1,7 +1,7 @@
-import { Board, Tile, Animal, Biome, Habitat, TerrainType, AnimalState } from '../store/gameStore';
+import { Board, Tile, Animal, Biome, TerrainType, AnimalState } from '../store/gameStore';
 import { generateIslandTerrain } from '../utils/TerrainGenerator';
 import { VoronoiNode, isNodeOverlapping, generateVoronoiBiomes } from '../utils/BiomeGenerator';
-import { BIOME_TERRAIN_ORDER, TERRAIN_ANIMAL_MAP } from '../store/gameStore';
+import { BIOME_TERRAIN_ORDER } from '../store/gameStore';
 
 interface InitResult {
   board: Board;
@@ -15,7 +15,7 @@ interface InitResult {
 export function initializeBoard(
   width: number,
   height: number,
-  currentPlayerId: number
+  numPlayers: number
 ): InitResult {
   // Generate terrain data
   const terrainData = generateIslandTerrain(width, height);
@@ -94,14 +94,11 @@ export function initializeBoard(
   const biomeMap = biomeResult.biomeMap;
   const biomes = new Map<string, Biome>();
 
-  let playerBeachAssigned = false;
+  // Initialize all biomes with no owner; assign habitats later
   voronoiNodes.forEach(node => {
     const id = node.id;
     const pos = node.position;
     const color = biomeResult.biomeColors.get(id) || 0x000000;
-    const isBeach = terrainData[pos.y][pos.x] === TerrainType.BEACH;
-    const ownerId = isBeach && !playerBeachAssigned ? currentPlayerId : null;
-    if (ownerId === currentPlayerId) playerBeachAssigned = true;
     biomes.set(id, {
       id,
       color,
@@ -112,7 +109,7 @@ export function initializeBoard(
       nonDepletedCount: 0,
       totalHarvested: 0,
       eggCount: 0,
-      ownerId,
+      ownerId: null,
       productionRate: 1,
       lastProductionTurn: 0,
       habitat: { id: `habitat-${id.substring(6)}`, position: pos }
@@ -130,9 +127,18 @@ export function initializeBoard(
     board.tiles[y][x].isHabitat = true;
   });
 
-  // Place initial player unit adjacent to the starting habitat
-  const startingBiome = Array.from(biomes.values()).find(b => b.ownerId === currentPlayerId);
-  if (startingBiome) {
+  // Assign first numPlayers beach biomes as starting regions for players 0..numPlayers-1
+  const beachBiomes = Array.from(biomes.values()).filter(b =>
+    terrainData[b.habitat.position.y][b.habitat.position.x] === TerrainType.BEACH
+  );
+  for (let i = 0; i < numPlayers && i < beachBiomes.length; i++) {
+    beachBiomes[i].ownerId = i;
+  }
+
+  // Place initial player unit(s) adjacent to each starting habitat
+  for (let playerId = 0; playerId < numPlayers; playerId++) {
+    const startingBiome = Array.from(biomes.values()).find(b => b.ownerId === playerId);
+    if (!startingBiome) continue;
     const habitatPos = startingBiome.habitat.position;
     const dirs = [
       { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
@@ -158,7 +164,7 @@ export function initializeBoard(
         position: choice,
         previousPosition: null,
         hasMoved: false,
-        ownerId: currentPlayerId
+        ownerId: playerId
       };
       animals.push(newAnimal);
     }

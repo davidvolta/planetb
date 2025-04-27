@@ -66,13 +66,15 @@ export class TurnController {
    */
   private async handleHumanTurn(): Promise<void> {
     return new Promise(resolve => {
-      const off = StateObserver.subscribe(
+      let off: () => void;
+      off = StateObserver.subscribe(
         'ui-turn',
         (_state) => ({}),
         () => {
           off();
           resolve();
-        }
+        },
+        { immediate: false }
       );
     });
   }
