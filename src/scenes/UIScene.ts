@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import { GameState, Biome } from '../store/gameStore';
+import type BoardScene from './BoardScene';
+import { GameController } from '../controllers/GameController';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -13,6 +15,7 @@ export default class UIScene extends Phaser.Scene {
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
   private harvestButton: Phaser.GameObjects.Container | null = null;
   private energyText: Phaser.GameObjects.Text | null = null;
+  private gameController!: GameController;
   
   // Biome info panel properties
   private biomeInfoPanel: Phaser.GameObjects.Container | null = null;
@@ -142,6 +145,9 @@ export default class UIScene extends Phaser.Scene {
   create() {
     // Create a container for UI elements that will be positioned in the top left
     this.container = this.add.container(0, 0);
+    // Instantiate GameController facade
+    const boardScene = this.scene.get('BoardScene') as BoardScene;
+    this.gameController = new GameController(boardScene);
     
     // Add a semi-transparent black background
     const uiBackground = this.add.rectangle(0, 0, 200, 100, 0x000000, 0.5);
@@ -312,31 +318,31 @@ export default class UIScene extends Phaser.Scene {
     this.harvestButton.setVisible(false);
   }
 
-  handleNextTurn() {
-    const nextTurn = actions.getNextTurn();
-    nextTurn();
+  async handleNextTurn(): Promise<void> {
+    await this.gameController.nextTurn();
   }
 
-  handleSpawnUnit() {
+  async handleSpawnUnit() {
     if (this.selectedUnitId) {
       const id = this.selectedUnitId;
-      actions.evolveAnimal(id);
-      actions.recordSpawnEvent(id);
-      actions.deselectUnit();
+      await this.gameController.evolveAnimal(id);
+      await actions.recordSpawnEvent(id);
+      await actions.deselectUnit();
     }
   }
 
-  handleCaptureBiome() {
+  async handleCaptureBiome() {
     const selectedBiomeId = actions.getSelectedBiomeId();
     if (selectedBiomeId) {
-      actions.captureBiome(selectedBiomeId);
-      actions.selectBiome(null);
+      await this.gameController.captureBiome(selectedBiomeId);
+      await actions.selectBiome(null);
     }
   }
 
-  handleHarvest() {
-    actions.harvestTileResource(3);
-    actions.selectResourceTile(null);
+  async handleHarvest() {
+    const coord = actions.getSelectedResource();
+    if (!coord) return;
+    await this.gameController.harvestTile(coord, 3);
   }
 
   updateBackgroundSize() {

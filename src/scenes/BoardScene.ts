@@ -518,4 +518,18 @@ export default class BoardScene extends Phaser.Scene {
     this.controlsSetup = false;
     this.subscriptionsSetup = false;
   }
+
+  /**
+   * Expose the animation controller for external use (e.g. GameController)
+   */
+  public getAnimationController(): AnimationController {
+    return this.animationController;
+  }
+
+  /**
+   * Expose the animal renderer for external use (e.g. GameController)
+   */
+  public getAnimalRenderer(): AnimalRenderer {
+    return this.animalRenderer;
+  }
 }

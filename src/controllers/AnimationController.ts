@@ -203,6 +203,23 @@ export class AnimationController {
   }
   
   /**
+   * Waits for all active animations to complete using requestAnimationFrame to align with frame draws.
+   * @returns Promise that resolves when no animations are active
+   */
+  public waitForAllAnimationsComplete(): Promise<void> {
+    return new Promise(resolve => {
+      const step = () => {
+        if (this.activeTweens.length === 0) {
+          resolve();
+        } else {
+          requestAnimationFrame(step);
+        }
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  
+  /**
    * Returns whether any animations are currently active
    */
   public hasActiveAnimations(): boolean {

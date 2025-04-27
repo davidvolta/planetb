@@ -101,14 +101,16 @@ export function getAnimals(): any[] {
 /**
  * Evolve an animal by ID
  */
-export function evolveAnimal(id: string): void {
+export async function evolveAnimal(id: string): Promise<void> {
   const state = useGameStore.getState();
   const unit = state.animals.find(a => a.id === id);
-  if (!unit || unit.state !== AnimalState.DORMANT) {
-    console.warn(`Cannot evolve animal ${id}: not a dormant egg`);
-    return;
+  if (!unit) {
+    throw new Error(`EvolveAnimal failed: animal ${id} not found`);
   }
-  useGameStore.getState().evolveAnimal(id);
+  if (unit.state !== AnimalState.DORMANT) {
+    throw new Error(`EvolveAnimal failed: animal ${id} is not dormant`);
+  }
+  state.evolveAnimal(id);
 }
 
 /**
@@ -139,7 +141,7 @@ export function isSelectedUnitDormant(): boolean {
  * Add a new animal to the game state
  * @param animal The animal to add
  */
-export function addAnimal(animal: Animal): void {
+export async function addAnimal(animal: Animal): Promise<void> {
   const animals = [...useGameStore.getState().animals, animal];
   
   useGameStore.setState({
@@ -154,14 +156,18 @@ export function addAnimal(animal: Animal): void {
 /**
  * Select a unit and calculate its valid moves
  */
-export function selectUnit(unitId: string | null): void {
+export async function selectUnit(unitId: string | null): Promise<void> {
+  const state = useGameStore.getState();
+  if (unitId !== null && !state.animals.some(a => a.id === unitId)) {
+    throw new Error(`SelectUnit failed: animal ${unitId} not found`);
+  }
   useGameStore.getState().selectUnit(unitId);
 }
 
 /**
  * Deselect the currently selected unit
  */
-export function deselectUnit(): void {
+export async function deselectUnit(): Promise<void> {
   useGameStore.getState().selectUnit(null);
 }
 
@@ -171,7 +177,18 @@ export function deselectUnit(): void {
  * @param x X coordinate
  * @param y Y coordinate
  */
-export function moveUnit(id: string, x: number, y: number): void {
+export async function moveUnit(id: string, x: number, y: number): Promise<void> {
+  const state = useGameStore.getState();
+  const unit = state.animals.find(a => a.id === id);
+  if (!unit) {
+    throw new Error(`MoveUnit failed: animal ${id} not found`);
+  }
+  if (unit.hasMoved) {
+    throw new Error(`MoveUnit failed: animal ${id} has already moved`);
+  }
+  if (!state.validMoves.some(m => m.x === x && m.y === y)) {
+    throw new Error(`MoveUnit failed: invalid move to (${x},${y})`);
+  }
   useGameStore.getState().moveUnit(id, x, y);
 }
 
@@ -182,20 +199,14 @@ export function moveUnit(id: string, x: number, y: number): void {
  * @param x X coordinate
  * @param y Y coordinate
  */
-export function moveDisplacedUnit(id: string, x: number, y: number): void {
-  // Get current state
+export async function moveDisplacedUnit(id: string, x: number, y: number): Promise<void> {
   const state = useGameStore.getState();
-  
-  // Find the unit to move
   const unit = state.animals.find(animal => animal.id === id);
   if (!unit) {
-    console.warn(`Cannot move displaced unit ${id}: not found`);
-    return;
+    throw new Error(`MoveDisplacedUnit failed: animal ${id} not found`);
   }
-  
   // Save the original hasMoved state to preserve it
   const originalHasMoved = unit.hasMoved;
-  
   // Update the unit's position in state while preserving its hasMoved state
   useGameStore.setState({
     animals: state.animals.map(animal => 
@@ -258,7 +269,11 @@ export function isSelectedBiomeAvailableForCapture(): boolean {
  * Select a biome by ID
  * @param biomeId ID of the biome to select, or null to deselect
  */
-export function selectBiome(biomeId: string | null): void {
+export async function selectBiome(biomeId: string | null): Promise<void> {
+  const state = useGameStore.getState();
+  if (biomeId !== null && !state.biomes.has(biomeId)) {
+    throw new Error(`SelectBiome failed: biome ${biomeId} not found`);
+  }
   useGameStore.getState().selectBiome(biomeId);
 }
 
@@ -283,10 +298,9 @@ export function canCaptureBiome(biomeId: string): boolean {
  * Capture a biome by setting its owner via pure compute and state commit
  * @param biomeId ID of the biome to capture
  */
-export function captureBiome(biomeId: string): void {
-  // Only proceed if capture is valid
+export async function captureBiome(biomeId: string): Promise<void> {
   if (!canCaptureBiome(biomeId)) {
-    return;
+    throw new Error(`CaptureBiome failed: cannot capture biome ${biomeId}`);
   }
   const state = useGameStore.getState();
   // Compute capture effects purely
@@ -308,7 +322,7 @@ export function captureBiome(biomeId: string): void {
   // Commit updated state
   useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: updatedAnimals });
   // Recalculate lushness for this biome
-  updateBiomeLushness(biomeId);
+  await updateBiomeLushness(biomeId);
   console.log(`Updated lushness for biome ${biomeId} after capture`);
 }
 
@@ -349,15 +363,14 @@ export function calculateBiomeLushness(biomeId: string): {
 /**
  * Delegate lushness update to the EcosystemController.
  */
-export function updateBiomeLushness(biomeId: string): void {
+export async function updateBiomeLushness(biomeId: string): Promise<void> {
   const state = useGameStore.getState();
-  // Calculate new lushness values using the existing action helper
-  const { baseLushness, lushnessBoost, totalLushness } = calculateBiomeLushness(biomeId);
   const biome = state.biomes.get(biomeId);
   if (!biome) {
-    console.warn(`Biome ${biomeId} not found, cannot update lushness`);
-    return;
+    throw new Error(`UpdateBiomeLushness failed: biome ${biomeId} not found`);
   }
+  // Calculate new lushness values using the existing action helper
+  const { baseLushness, lushnessBoost, totalLushness } = calculateBiomeLushness(biomeId);
   // Prepare updated biome object
   const updatedBiome: Biome = {
     ...biome,
@@ -501,13 +514,12 @@ export function getResourceTiles(): TileResult[] {
  * Delegate harvesting logic to the EcosystemController.
  * @param amount Number of resource units to harvest
  */
-export function harvestTileResource(amount: number): void {
+export async function harvestTileResource(amount: number): Promise<void> {
   const state = useGameStore.getState();
   // Only proceed if a resource tile is selected
   const coord = state.selectedResource;
   if (!coord) {
-    console.warn(`Cannot harvest: no resource selected`);
-    return;
+    throw new Error(`HarvestTileResource failed: no resource selected`);
   }
   const board = state.board!;
   // Only allow harvesting if an active, owned unit that hasn't moved is on the tile
@@ -518,15 +530,13 @@ export function harvestTileResource(amount: number): void {
     !a.hasMoved
   );
   if (!unitHere) {
-    console.warn(`Cannot harvest: no eligible (active, owned, unmoved) unit on tile (${coord.x},${coord.y})`);
-    return;
+    throw new Error(`HarvestTileResource failed: no eligible unit on tile (${coord.x},${coord.y})`);
   }
   // Guard: require the biome at this tile to be owned by current player
   const tile = board.tiles[coord.y][coord.x];
   const biomeId = tile.biomeId;
   if (!biomeId || state.biomes.get(biomeId)?.ownerId !== state.currentPlayerId) {
-    console.warn(`Cannot harvest: tile (${coord.x},${coord.y}) not in owned biome`);
-    return;
+    throw new Error(`HarvestTileResource failed: tile (${coord.x},${coord.y}) not in owned biome`);
   }
    
   // Compute new state via pure controller logic
@@ -549,7 +559,7 @@ export function harvestTileResource(amount: number): void {
   useGameStore.setState({ board: newBoard, players: newPlayers, biomes: newBiomes, animals: updatedAnimals });
   // Refresh lushness for this biome
   if (tile.biomeId) {
-    updateBiomeLushness(tile.biomeId);
+    await updateBiomeLushness(tile.biomeId);
   }
 }
 
@@ -557,7 +567,14 @@ export function harvestTileResource(amount: number): void {
  * Select a resource tile for harvesting
  * @param coord Coordinates of the resource tile or null to clear selection
  */
-export function selectResourceTile(coord: Coordinate | null): void {
+export async function selectResourceTile(coord: Coordinate | null): Promise<void> {
+  const state = useGameStore.getState();
+  if (coord !== null) {
+    const board = state.board;
+    if (!board || coord.x < 0 || coord.x >= board.width || coord.y < 0 || coord.y >= board.height) {
+      throw new Error(`SelectResourceTile failed: invalid coordinate (${coord.x},${coord.y})`);
+    }
+  }
   useGameStore.getState().selectResource(coord);
 }
 
@@ -631,7 +648,7 @@ export function resetResources(
 /**
  * Clear the current displacement event
  */
-export function clearDisplacementEvent(): void {
+export async function clearDisplacementEvent(): Promise<void> {
   useGameStore.setState({
     displacementEvent: {
       occurred: false,
@@ -649,7 +666,11 @@ export function clearDisplacementEvent(): void {
  * Record a spawn event in the state
  * @param unitId ID of the unit that was spawned
  */
-export function recordSpawnEvent(unitId: string): void {
+export async function recordSpawnEvent(unitId: string): Promise<void> {
+  const state = useGameStore.getState();
+  if (!state.animals.some(a => a.id === unitId)) {
+    throw new Error(`RecordSpawnEvent failed: animal ${unitId} not found`);
+  }
   useGameStore.setState({
     spawnEvent: {
       occurred: true,
@@ -662,7 +683,7 @@ export function recordSpawnEvent(unitId: string): void {
 /**
  * Clear the current spawn event
  */
-export function clearSpawnEvent(): void {
+export async function clearSpawnEvent(): Promise<void> {
   useGameStore.setState({
     spawnEvent: {
       occurred: false,
@@ -676,10 +697,14 @@ export function clearSpawnEvent(): void {
  * Update multiple tiles' visibility states in a single operation
  * @param tiles Array of tile positions with visibility states to update
  */
-export function updateTilesVisibility(tiles: { x: number, y: number, visible: boolean }[]): void {
+export async function updateTilesVisibility(tiles: { x: number, y: number, visible: boolean }[]): Promise<void> {
   const state = useGameStore.getState();
-  if (!state.board || tiles.length === 0) return;
-
+  if (!state.board) {
+    throw new Error(`UpdateTilesVisibility failed: board not initialized`);
+  }
+  if (tiles.length === 0) {
+    return;
+  }
   useGameStore.setState(state => {
     const board = state.board!;    // assert non-null
     const updatedTiles = board.tiles.map((row, rowIndex) =>
