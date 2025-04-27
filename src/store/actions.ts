@@ -293,8 +293,14 @@ export function captureBiome(biomeId: string): void {
       state.currentPlayerId,
       state.turn
     );
-  // Commit world changes
-  useGameStore.setState({ animals: newAnimals, biomes: newBiomes });
+  // Always mark the harvesting unit as having moved
+  const updatedAnimals = state.animals.map(a =>
+    a.id === newAnimals.find(animal => animal.state === AnimalState.ACTIVE)?.id
+      ? { ...a, hasMoved: true }
+      : a
+  );
+  // Commit updated state
+  useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: updatedAnimals });
   // Recalculate lushness for this biome
   updateBiomeLushness(biomeId);
   console.log(`Updated lushness for biome ${biomeId} after capture`);
@@ -525,17 +531,13 @@ export function harvestTileResource(amount: number): void {
       state.biomes,
       amount
     );
-  // Only mark hasMoved if the tile is now depleted (no more resources)
-  const tileAfter = newBoard.tiles[coord.y][coord.x];
-  let updatedAnimals = state.animals;
-  if (!tileAfter.active) {
-    updatedAnimals = state.animals.map(a =>
-      a.id === unitHere.id
-        ? { ...a, hasMoved: true }
-        : a
-    );
-  }
-  // Commit updated state (including updated animals if any)
+  // Always mark the harvesting unit as having moved
+  const updatedAnimals = state.animals.map(a =>
+    a.id === unitHere.id
+      ? { ...a, hasMoved: true }
+      : a
+  );
+  // Commit updated state
   useGameStore.setState({ board: newBoard, players: newPlayers, biomes: newBiomes, animals: updatedAnimals });
   // Refresh lushness for this biome
   if (tile.biomeId) {

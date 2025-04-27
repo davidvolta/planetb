@@ -334,13 +334,13 @@ export default class UIScene extends Phaser.Scene {
     if (selectedBiomeId && actions.canCaptureBiome(selectedBiomeId)) {
       // Call the capture biome action
       actions.captureBiome(selectedBiomeId);
-      
       actions.selectBiome(null); // Deselect the biome after capturing
     }
   }
 
   handleHarvest() {
     actions.harvestTileResource(3);
+    actions.selectResourceTile(null);
   }
 
   updateBackgroundSize() {
