@@ -1,4 +1,3 @@
-import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import type BoardScene from '../scenes/BoardScene';
 import { GameController } from './GameController';
@@ -6,85 +5,47 @@ import { GameController } from './GameController';
 export type GameMode = 'pvp' | 'pve' | 'sim';
 
 /**
- * Service to manage turn sequencing for human and AI (or network) players.
+ * Service to manage turn sequencing for human and AI players.
  */
 export class TurnController {
   private gameController: GameController;
-  private running = false;
   private mode: GameMode;
 
-  constructor(boardScene: BoardScene, mode: GameMode = 'pve') {
-    // Initialize facade for game commands
+  constructor(boardScene: BoardScene, mode: GameMode = 'pvp') {
     this.gameController = new GameController(boardScene);
     this.mode = mode;
   }
 
   /**
-   * Start the turn loop. Each iteration handles one player's turn then advances.
+   * Execute one full turn: commit current player's actions, then if in PVE run AI and commit again.
    */
-  public async start(): Promise<void> {
-    this.running = true;
-    while (this.running) {
-      const playerId = actions.getCurrentPlayerId();
-      console.log(`Starting turn for player ${playerId}`);
+  public async next(): Promise<void> {
+    // Commit end of current player's turn
+    await this.gameController.nextTurn();
+    const playerId = actions.getCurrentPlayerId();
 
-      if (this.isHuman(playerId)) {
-        await this.handleHumanTurn();
-      } else {
-        await this.handleAITurn(playerId);
-      }
-
-      // Advance state and UI to next turn
+    // If in PVE mode and next player is AI, execute AI actions and commit again
+    if (this.mode === 'pve' && !this.isHuman(playerId)) {
+      await this.handleAITurn(playerId);
       await this.gameController.nextTurn();
     }
   }
 
   /**
-   * Stop the turn loop (e.g. when game ends).
-   */
-  public stop(): void {
-    this.running = false;
-  }
-
-  /**
-   * Determine if the given player ID represents a human-controlled player based on mode.
+   * Determine if the given player ID should be human-controlled.
    */
   private isHuman(playerId: number): boolean {
     switch (this.mode) {
-      case 'pvp':
-        return true;
-      case 'pve':
-        return playerId === 0;
-      case 'sim':
-        return false;
+      case 'pvp': return true;
+      case 'pve': return playerId === 0;
+      case 'sim': return false;
     }
   }
 
   /**
-   * Wait for UI or network to signal end of human turn.
-   * Current implementation resolves once nextTurn() is called by UI.
-   */
-  private async handleHumanTurn(): Promise<void> {
-    return new Promise(resolve => {
-      let off: () => void;
-      off = StateObserver.subscribe(
-        'ui-turn',
-        (_state) => ({}),
-        () => {
-          off();
-          resolve();
-        },
-        { immediate: false }
-      );
-    });
-  }
-
-  /**
    * Compute and execute AI commands for the given player.
-   * TODO: integrate AI agent to emit and execute game commands via gameController.
    */
   private async handleAITurn(playerId: number): Promise<void> {
-    // Placeholder for AI logic
     console.log(`AI turn logic not yet implemented for player ${playerId}`);
   }
 } 

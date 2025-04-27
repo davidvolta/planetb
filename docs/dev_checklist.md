@@ -8,7 +8,7 @@
 - [X] Create TurnController service to sequence human and AI turns
 - [X] Refactor TurnController.handleHumanTurn to use an explicit end-turn API instead of the StateObserver hack
 - [ ] Extend AnimationController to expose completion hooks/promises for mastering timing
-- [ ] Build second player model
+- [X] Build second player model
 - [ ] Write headless unit tests for GameController command methods
 - [ ] Build a basic AI agent that emits JSON commands (unit, action, target)
 - [ ] Integrate AI agent into TurnController loop

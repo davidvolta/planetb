@@ -4,6 +4,7 @@ import * as actions from '../store/actions';
 import { GameState, Biome } from '../store/gameStore';
 import type BoardScene from './BoardScene';
 import { GameController } from '../controllers/GameController';
+import { TurnController } from '../controllers/TurnController';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -16,6 +17,7 @@ export default class UIScene extends Phaser.Scene {
   private harvestButton: Phaser.GameObjects.Container | null = null;
   private energyText: Phaser.GameObjects.Text | null = null;
   private gameController!: GameController;
+  private turnController!: TurnController;
   
   // Biome info panel properties
   private biomeInfoPanel: Phaser.GameObjects.Container | null = null;
@@ -183,6 +185,8 @@ export default class UIScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-S', this.handleSpawnUnit, this);
     this.input.keyboard?.on('keydown-N', this.handleNextTurn, this);
     this.input.keyboard?.on('keydown-C', this.handleCaptureBiome, this);
+
+    this.turnController = new TurnController(boardScene, 'pvp');
   }
 
   createNextTurnButton() {
@@ -319,7 +323,8 @@ export default class UIScene extends Phaser.Scene {
   }
 
   async handleNextTurn(): Promise<void> {
-    await this.gameController.nextTurn();
+    // Execute one full turn (human and optional AI)
+    await this.turnController.next();
   }
 
   async handleSpawnUnit() {
