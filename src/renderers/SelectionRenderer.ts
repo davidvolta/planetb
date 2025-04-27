@@ -3,6 +3,12 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
 
+// Types of selection states to differentiate behavior
+export enum SelectionType {
+  Move   = 'move',
+  Action = 'action'
+}
+
 // Responsible for rendering and managing selection indicators and hover effects
 export class SelectionRenderer extends BaseRenderer {
   private static readonly INDICATOR_SCALE = 0.85;
@@ -196,26 +202,17 @@ export class SelectionRenderer extends BaseRenderer {
     }
   }
   
-  //Show the selection indicator at a specific grid position
-  showSelectionAt(x: number, y: number, color?: number): void {
+  // Show a selection indicator at a specific grid position with a type
+  public showSelection(x: number, y: number, type: SelectionType = SelectionType.Move): void {
+    // Map selection type to indicator color
+    const color = type === SelectionType.Move ? 0xFFFFFF : 0xFF0000;
     this.updateSelectionIndicator(true, x, y, color);
   }
-  
-  // Show a red selection indicator at a specific grid position
-  showRedSelectionAt(x: number, y: number): void {
-    this.showSelectionAt(x, y, 0xFF0000);
-  }
-  
+
   //Hide the selection indicator
-  hideSelection(): void {
+  public hideSelection(): void {
     this.updateSelectionIndicator(false);
   }
-  
-  //Get the currently hovered grid position
-  getHoveredPosition(): { x: number, y: number } | null {
-    return this.hoveredGridPosition;
-  }
-  
   //Clean up resources when destroying this renderer
   override destroy(): void {
     super.destroy();

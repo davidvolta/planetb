@@ -80,7 +80,7 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize the state subscription manager (now with simplified constructor)
     this.subscriptionManager = new StateSubscriptionManager(this);
     // Instantiate TileInteractionController
-    this.tileInteractionController = new TileInteractionController(this, this.inputManager);
+    this.tileInteractionController = new TileInteractionController(this);
   }
 
   // Preload assets needed for the scene

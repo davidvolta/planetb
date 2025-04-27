@@ -2,13 +2,11 @@ import * as actions from '../store/actions';
 
 export class TileInteractionController {
   private scene: any;
-  private inputManager: any;
   private toggleState: Record<string, number> = {};
   private lastClickedKey: string | null = null;
 
-  constructor(scene: any, inputManager: any) {
+  constructor(scene: any) {
     this.scene = scene;
-    this.inputManager = inputManager;
   }
 
   /**

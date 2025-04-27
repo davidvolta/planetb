@@ -2,7 +2,7 @@ import { StateObserver } from '../utils/stateObserver';
 import { Animal, ValidMove, Biome } from '../store/gameStore';
 import * as actions from '../store/actions';
 import BoardScene from '../scenes/BoardScene';
-import { SelectionRenderer } from '../renderers/SelectionRenderer';
+import { SelectionRenderer, SelectionType } from '../renderers/SelectionRenderer';
 import { TileRenderer } from '../renderers/TileRenderer';
 import { AnimalRenderer } from '../renderers/AnimalRenderer';
 import { BiomeRenderer } from '../renderers/BiomeRenderer';
@@ -369,22 +369,22 @@ export class StateSubscriptionManager {
           if (unit) {
             const x = unit.position.x;
             const y = unit.position.y;
-            if (sel.unitDormant) this.selectionRenderer.showRedSelectionAt(x, y);
-            else this.selectionRenderer.showSelectionAt(x, y);
+            const type = sel.unitDormant ? SelectionType.Action : SelectionType.Move;
+            this.selectionRenderer.showSelection(x, y, type);
           }
           return;
         }
         // Clear move highlights when not selecting a unit
         this.moveRangeRenderer.clearMoveHighlights();
         if (sel.resource) {
-          this.selectionRenderer.showRedSelectionAt(sel.resource.x, sel.resource.y);
+          this.selectionRenderer.showSelection(sel.resource.x, sel.resource.y, SelectionType.Action);
           return;
         }
         if (sel.biomeId) {
           const biome = actions.getBiomes().get(sel.biomeId);
           if (biome) {
             const { x, y } = biome.habitat.position;
-            this.selectionRenderer.showRedSelectionAt(x, y);
+            this.selectionRenderer.showSelection(x, y, SelectionType.Action);
           }
           return;
         }

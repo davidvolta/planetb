@@ -566,66 +566,45 @@ export function resetResources(
   terrainData: TerrainType[][]
 ): void {
   const state = useGameStore.getState();
-  
-  if (!state.board) {
+  const board = state.board;
+  if (!board) {
     console.warn("Board not initialized, cannot reset resources");
     return;
   }
-  
-  const updatedBoard = { ...state.board };
-  
-  // Reset resource properties across the board first
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const tile = updatedBoard.tiles[y][x];
-      
-      // Skip habitat tiles
-      if (tile.isHabitat) continue;
-      
-      // Reset resource properties
-      updatedBoard.tiles[y][x] = {
-        ...tile,
-        active: false,
-        resourceType: null,
-        resourceValue: 0
-      };
-    }
-  }
-  
-  // Reset resource counts in biomes
-  const resetBiomes = new Map<string, Biome>();
-  state.biomes.forEach((biome, biomeId) => {
-    resetBiomes.set(biomeId, {
-      ...biome,
-      initialResourceCount: 0,
-      nonDepletedCount: 0
-    });
-  });
-  
-  // Update state with cleared resources and reset counts
-  useGameStore.setState({
-    board: updatedBoard,
-    biomes: resetBiomes
-  });
-  
-  // Generate resources by setting tile properties directly
-  // This will also update initialResourceCount and nonDepletedCount
-  EcosystemController.resetResources(
-    width,
-    height,
-    terrainData,
-    updatedBoard, // Use the updated board we just cleared
-    resetBiomes
+
+  // Shallow-copy each tile, only overriding resource fields as needed
+  const clonedTiles = board.tiles.map(row =>
+    row.map(tile => ({
+      ...tile,
+      active: tile.isHabitat ? tile.active : false,
+      resourceType: tile.isHabitat ? tile.resourceType : null,
+      resourceValue: tile.isHabitat ? tile.resourceValue : 0,
+    }))
   );
-  
-  // Update the board and biomes in the store since tile properties have changed
-  useGameStore.setState({
-    board: { ...updatedBoard },
-    biomes: resetBiomes
+  const newBoard: Board = { ...board, tiles: clonedTiles };
+
+  // Reset existing biome counts in place
+  const biomesMap = state.biomes;
+  biomesMap.forEach(biome => {
+    biome.initialResourceCount = 0;
+    biome.nonDepletedCount = 0;
+    biome.totalHarvested = 0;
   });
-  
-  // Update lushness for all biomes based on their new resource states
-  resetBiomes.forEach((biome, biomeId) => {
+
+  // Delegate resource generation to controller (mutates newBoard & biomesMap)
+  EcosystemController.resetResources(
+    newBoard.width,
+    newBoard.height,
+    terrainData,
+    newBoard,
+    biomesMap
+  );
+
+  // Commit new board and biomes together
+  useGameStore.setState({ board: newBoard, biomes: biomesMap });
+
+  // Update lushness for each biome
+  biomesMap.forEach((_b, biomeId) => {
     updateBiomeLushness(biomeId);
   });
 }
@@ -716,42 +695,21 @@ export function clearBiomeCaptureEvent(): void {
 export function updateTilesVisibility(tiles: { x: number, y: number, visible: boolean }[]): void {
   const state = useGameStore.getState();
   if (!state.board || tiles.length === 0) return;
-  
-  // Update all the specified tiles in a single state update
+
   useGameStore.setState(state => {
-    // Return if no board
-    if (!state.board) return state;
-    
-    // Create a deep copy of the board to avoid mutating it directly
-    const newBoard = {
-      ...state.board,
-      tiles: state.board.tiles.map((row, rowIndex) => {
-        // Check if this row contains any tiles we need to update
-        const anyUpdatesInRow = tiles.some(tile => tile.y === rowIndex);
-        
-        // If no updates in this row, return it unchanged
-        if (!anyUpdatesInRow) return row;
-        
-        // Otherwise process the row to update specific tiles
-        return row.map((tile, colIndex) => {
-          // Find if this tile position should be updated
-          const tileUpdate = tiles.find(t => 
-            t.y === rowIndex && t.x === colIndex
-          );
-          
-          // If this tile doesn't need an update, return it unchanged
-          if (!tileUpdate) return tile;
-          
-          // Otherwise update the tile
-          return {
-            ...tile,
-            explored: true, // Once a tile is explored, it stays explored
-            visible: tileUpdate.visible
-          };
-        });
+    const board = state.board!;    // assert non-null
+    const updatedTiles = board.tiles.map((row, rowIndex) =>
+      row.map((tile, colIndex) => {
+        const tileUpdate = tiles.find(t => t.x === colIndex && t.y === rowIndex);
+        if (!tileUpdate) return tile;
+        return { ...tile, explored: true, visible: tileUpdate.visible };
       })
+    );
+    const newBoard: Board = {
+      width: board.width,
+      height: board.height,
+      tiles: updatedTiles
     };
-    
     return { board: newBoard };
   });
 }
