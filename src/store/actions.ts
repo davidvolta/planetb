@@ -1,5 +1,6 @@
 import { useGameStore, Animal, AnimalState, Board, Biome, TerrainType, Coordinate } from "./gameStore";
 import { EcosystemController } from "../controllers/EcosystemController";
+import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 
 /**
  * Action dispatchers for React components
@@ -561,9 +562,10 @@ export function getSelectedResource(): Coordinate | null {
  * Reset resources with the current settings
  */
 export function resetResources(
-  width: number, 
-  height: number, 
-  terrainData: TerrainType[][]
+  width: number,
+  height: number,
+  terrainData: TerrainType[][],
+  resourceChance: number = RESOURCE_GENERATION_PERCENTAGE
 ): void {
   const state = useGameStore.getState();
   const board = state.board;
@@ -597,7 +599,8 @@ export function resetResources(
     newBoard.height,
     terrainData,
     newBoard,
-    biomesMap
+    biomesMap,
+    resourceChance
   );
 
   // Commit new board and biomes together

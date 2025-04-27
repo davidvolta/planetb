@@ -31,10 +31,7 @@ export class LayerManager {
       console.log("Layers already initialized, skipping setupLayers()");
       return;
     }
-    
-    console.log("LayerManager: Setting up layers with proper depth order");
-    
-    // Initialize each layer with its appropriate depth
+        // Initialize each layer with its appropriate depth
     this.backgroundLayer = this.scene.add.layer().setDepth(0);
     this.terrainLayer = this.scene.add.layer().setDepth(1);
     this.selectionLayer = this.scene.add.layer().setDepth(2);

@@ -87,21 +87,20 @@ export class EcosystemController {
    * @param terrainData Array of terrain types for each tile
    * @param board The current game board
    * @param biomes Map of all biomes
+   * @param resourceChance Decimal 0–1 of resource density (defaults to constant)
    */
   public static resetResources(
-    width: number, 
-    height: number, 
+    width: number,
+    height: number,
     terrainData: TerrainType[][],
     board: Board,
-    biomes: Map<string, Biome>
+    biomes: Map<string, Biome>,
+    resourceChance: number = RESOURCE_GENERATION_PERCENTAGE
   ): void {
     if (!board) {
       console.warn("Board not initialized, cannot reset resources");
       return;
     }
-
-    const resourceChance = RESOURCE_GENERATION_PERCENTAGE;
-    console.log(`Resetting resources with ${resourceChance * 100}% density per biome`);
 
     const updatedBiomes = new Map(biomes);
 

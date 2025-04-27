@@ -45,7 +45,6 @@ Renderers are responsible for visualizing game elements:
 #### Managers
 Managers handle system-level concerns:
 - **LayerManager**: Manages the various display layers in the scene
-- **InputManager**: Processes user input (mouse/touch events)
 - **CameraManager**: Controls camera movement, zoom, and positioning
 - **StateSubscriptionManager**: Centralizes state subscription and implements state diffing
 

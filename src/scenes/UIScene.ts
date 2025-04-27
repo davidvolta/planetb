@@ -16,10 +16,7 @@ export default class UIScene extends Phaser.Scene {
   
   // Biome info panel properties
   private biomeInfoPanel: Phaser.GameObjects.Container | null = null;
-  private biomeInfoBackground: Phaser.GameObjects.Rectangle | null = null;
   private biomeInfoTexts: { [key: string]: Phaser.GameObjects.Text } = {};
-  private selectedBiomeId: string | null = null;
-  
 
   constructor() {
     super({ key: 'UIScene', active: true });
@@ -160,21 +157,11 @@ export default class UIScene extends Phaser.Scene {
     this.container.add(this.turnText);
 
     // Position the UI in the top left corner
-    this.container.setPosition(10, 10);
-    
-    // Create next turn button
-    this.createNextTurnButton();
-    
-    // Create spawn button (initially hidden)
-    this.createSpawnButton();
-    
-    // Create capture biome button (initially hidden)
-    this.createCaptureBiomeButton();
-    
-    // Create biome info panel (initially hidden)
-    this.createBiomeInfoPanel();
-    
-    // Create energy display and harvest button
+    this.container.setPosition(10, 10);    
+    this.createNextTurnButton();    
+    this.createSpawnButton();    
+    this.createCaptureBiomeButton();    
+    this.createBiomeInfoPanel();    
     this.createEnergyText();
     this.createHarvestButton();
     
@@ -183,6 +170,10 @@ export default class UIScene extends Phaser.Scene {
     
     // Add input listener to hide biome info when clicking elsewhere
     //this.input.on('pointerdown', this.hideBiomeInfoIfClickedOutside, this);
+    this.input.keyboard?.on('keydown-H', this.handleHarvest, this);
+    this.input.keyboard?.on('keydown-S', this.handleSpawnUnit, this);
+    this.input.keyboard?.on('keydown-N', this.handleNextTurn, this);
+    this.input.keyboard?.on('keydown-C', this.handleCaptureBiome, this);
   }
 
   createNextTurnButton() {
@@ -345,7 +336,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   handleHarvest() {
-    actions.harvestTileResource(1);
+    actions.harvestTileResource(3);
   }
 
   updateBackgroundSize() {

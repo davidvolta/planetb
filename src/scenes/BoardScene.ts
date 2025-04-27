@@ -3,6 +3,7 @@ import { TerrainType } from "../store/gameStore";
 import { StateObserver } from "../utils/stateObserver";
 import { AnimalState } from "../store/gameStore";
 import * as actions from "../store/actions";
+import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import * as CoordinateUtils from "../utils/CoordinateUtils";
 import { LayerManager } from "../managers/LayerManager";
 import { TileRenderer } from "../renderers/TileRenderer";
@@ -11,7 +12,6 @@ import { MoveRangeRenderer } from "../renderers/MoveRangeRenderer";
 import { BiomeRenderer } from "../renderers/BiomeRenderer";
 import { AnimalRenderer } from "../renderers/AnimalRenderer";
 import { ResourceRenderer } from "../renderers/ResourceRenderer";
-import { InputManager } from "../managers/InputManager";
 import { AnimationController } from "../controllers/AnimationController";
 import { CameraManager } from "../managers/CameraManager";
 import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
@@ -53,7 +53,6 @@ export default class BoardScene extends Phaser.Scene {
   
   // Managers and controllers
   private layerManager: LayerManager;
-  private inputManager: InputManager;
   private animationController: AnimationController;
   private cameraManager: CameraManager;
   private subscriptionManager: StateSubscriptionManager;
@@ -62,12 +61,13 @@ export default class BoardScene extends Phaser.Scene {
   constructor() {
     super({ key: "BoardScene" });
     
-    // Initialize managers
+    // Initialize managers and controllers
     this.layerManager = new LayerManager(this);
-    this.inputManager = new InputManager(this, this.tileSize, this.tileHeight);
     this.animationController = new AnimationController(this, this.tileSize, this.tileHeight);
     this.cameraManager = new CameraManager(this);
-    
+    this.subscriptionManager = new StateSubscriptionManager(this);
+    this.tileInteractionController = new TileInteractionController(this);
+
     // Initialize renderers
     this.tileRenderer = new TileRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.selectionRenderer = new SelectionRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
@@ -76,11 +76,6 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.resourceRenderer = new ResourceRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    
-    // Initialize the state subscription manager (now with simplified constructor)
-    this.subscriptionManager = new StateSubscriptionManager(this);
-    // Instantiate TileInteractionController
-    this.tileInteractionController = new TileInteractionController(this);
   }
 
   // Preload assets needed for the scene
@@ -136,7 +131,7 @@ export default class BoardScene extends Phaser.Scene {
     this.anchorX = anchorX;
     this.anchorY = anchorY;
     
-    // Initialize all renderers with anchor coordinates
+    // Initialize all renderers and controllers with anchor coordinates
     this.tileRenderer.initialize(anchorX, anchorY);
     this.selectionRenderer.initialize(anchorX, anchorY);
     this.moveRangeRenderer.initialize(anchorX, anchorY);
@@ -144,9 +139,6 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer.initialize(anchorX, anchorY);
     this.resourceRenderer.initialize(anchorX, anchorY);
     this.fogOfWarRenderer.initialize(anchorX, anchorY);
-    
-    // Initialize managers with anchor coordinates
-    this.inputManager.initialize(anchorX, anchorY);
     this.animationController.initialize(anchorX, anchorY);
   }
   
@@ -349,27 +341,19 @@ export default class BoardScene extends Phaser.Scene {
 
   // Set up input handlers for clicks and keyboard
   private setupInputHandlers(): void {
-    // Initialize input manager with current anchor values
-    this.inputManager.initialize(this.anchorX, this.anchorY);
-    
-    // Set up keyboard shortcuts
-    this.inputManager.setupKeyboardControls();
-    
-    // Set up click delegation
-    this.inputManager.setupClickEventDelegation();
-    
-    // Register tile click callback for all clickable objects (tiles and habitats)
-    this.inputManager.onTileClick((gameObject) => {
-      // Ignore clicks while animations are running
-      if (this.animationController.hasActiveAnimations()) {
-        return;
+    // Handle clicks on tiles and habitats directly
+    this.input.on(
+      'gameobjectdown',
+      (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+        // Ignore clicks while animations are running
+        if (this.animationController.hasActiveAnimations()) return;
+        const gridX = gameObject.getData('gridX');
+        const gridY = gameObject.getData('gridY');
+        if (gridX !== undefined && gridY !== undefined) {
+          this.tileInteractionController.handleClick(gridX, gridY);
+        }
       }
-      const gridX = gameObject.getData('gridX');
-      const gridY = gameObject.getData('gridY');
-      if (gridX !== undefined && gridY !== undefined) {
-        this.tileInteractionController.handleClick(gridX, gridY);
-      }
-    });
+    );
     
     // Mark controls as set up
     this.controlsSetup = true;
@@ -484,49 +468,35 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Public method to reset resources with current settings
-  public resetResources(): void {
-    
-    // Get the current board data
-    const board = actions.getBoard();
-    if (!board) {
-      console.warn("Cannot reset resources: No board data available");
-      return;
-    }
-    
-    // Get all biomes for per-biome resource distribution
-    const biomes = actions.getBiomes();
-    if (!biomes || biomes.size === 0) {
-      console.warn("Cannot reset resources: No biomes available");
-      return;
-    }
-    
-    // Create terrain data array from board tiles
-    const terrainData: TerrainType[][] = Array(board.height)
-      .fill(null)
-      .map((_, y) => 
-        Array(board.width)
-          .fill(null)
-          .map((_, x) => board.tiles[y][x].terrain)
-      );
-    
-    // First, clear all visualizations to prevent any visual overlap
-    this.resourceRenderer.clearResources();
-    this.resourceRenderer.clearBlankTileMarkers();
-    
-    // Call the reset action to update the game state
-    actions.resetResources(board.width, board.height, terrainData);
-    
-    // Fetch the updated resource tiles using the tile interface
-    const resourceTiles = actions.getResourceTiles();
-    console.log(`Reset ${resourceTiles.length} resource tiles`);
-    
-    // Render the updated resource tiles
-    this.resourceRenderer.renderResourceTiles(resourceTiles.map(({ tile, x, y }) => ({ tile, x, y })));
-    
-    // Visualize blank tiles after all resource tiles are rendered
-    this.resourceRenderer.visualizeBlankTiles();
+  // Public method to reset resources with current settings (accepts override)
+  public resetResources(resourceChance: number = RESOURCE_GENERATION_PERCENTAGE): void {
+  // Get current board and biomes data
+  const board = actions.getBoard();
+  const biomes = actions.getBiomes();
+
+  // Early exit if board or biomes are missing
+  if (!board || !biomes || biomes.size === 0) {
+    console.warn("Cannot reset resources: Board or biomes data is missing");
+    return;
   }
+
+  // Generate terrain data array from board tiles more efficiently
+  const terrainData: TerrainType[][] = board.tiles.map(row => row.map(tile => tile.terrain));
+
+  // Clear previous visualizations
+  this.resourceRenderer.clearResources();
+  this.resourceRenderer.clearBlankTileMarkers();
+
+  // Update game state by resetting resources
+  actions.resetResources(board.width, board.height, terrainData, resourceChance);
+
+  // Fetch updated resource tiles and log the reset count
+  const resourceTiles = actions.getResourceTiles();
+  this.resourceRenderer.renderResourceTiles(resourceTiles); // Directly render resource tiles
+
+  // Visualize blank tiles after rendering resource tiles
+  this.resourceRenderer.visualizeBlankTiles();
+}
 
   // Scene shutdown handler
   shutdown() {
@@ -544,7 +514,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Clean up managers
     this.layerManager.clearAllLayers(true);
-    this.inputManager.destroy();
     this.cameraManager.destroy();
     this.animationController.destroy();
     this.subscriptionManager.destroy();

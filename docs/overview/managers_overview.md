@@ -55,50 +55,6 @@ The LayerManager manages the following layers (from bottom to top):
 6. **unitsLayer** (depth 5): Units and animals
 7. **uiLayer** (depth 10): UI elements that appear above the game
 
-## InputManager
-
-The InputManager handles user input processing and delegation to the appropriate handlers.
-
-### API
-
-```typescript
-class InputManager {
-  constructor(
-    scene: Phaser.Scene,
-    tileSize?: number = 64,
-    tileHeight?: number = 32,
-    anchorX?: number = 0,
-    anchorY?: number = 0
-  );
-  
-  // Initialization
-  initialize(anchorX: number, anchorY: number): void;
-  
-  // Input setup
-  setupControls(): void;          // camera panning and zooming
-  setupKeyboardControls(): void;  // keyboard shortcuts
-  setupClickEventDelegation(): void; // click event delegation
-  
-  // Click handlers
-  onTileClick(callback: (gameObject: Phaser.GameObjects.GameObject) => void): void;
-  onPointerMove(callback: (worldX: number, worldY: number, pointer: Phaser.Input.Pointer) => void): void;
-  
-  // Coordinate utilities
-  getGridPositionAt(screenX: number, screenY: number): { x: number, y: number } | null;
-  
-  // Cleanup
-  destroy(): void;
-}
-```
-
-### Responsibilities
-
-- Setting up camera panning on pointer drag and wheel zoom
-- Setting up keyboard shortcuts and handling key events
-- Delegating click events for grid-based game objects via onTileClick
-- Managing pointer movement and hover callbacks via onPointerMove
-- Converting screen coordinates to grid coordinates
-- Cleaning up input event listeners and keyboard shortcuts
 
 ## CameraManager
 

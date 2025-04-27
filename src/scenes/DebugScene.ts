@@ -204,7 +204,7 @@ export default class DebugScene extends Phaser.Scene {
     
     // Reset resources if board scene exists
     if (this.boardScene && typeof this.boardScene.resetResources === 'function') {
-      this.boardScene.resetResources();
+      this.boardScene.resetResources(percentage);
     }
   }
 
