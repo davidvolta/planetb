@@ -16,7 +16,10 @@ export default class UIScene extends Phaser.Scene {
   
   // Biome info panel properties
   private biomeInfoPanel: Phaser.GameObjects.Container | null = null;
+  private biomeInfoBackground: Phaser.GameObjects.Rectangle | null = null;
   private biomeInfoTexts: { [key: string]: Phaser.GameObjects.Text } = {};
+  private selectedBiomeId: string | null = null;
+  
 
   constructor() {
     super({ key: 'UIScene', active: true });
@@ -316,11 +319,12 @@ export default class UIScene extends Phaser.Scene {
 
   handleSpawnUnit() {
     if (this.selectedUnitId) {
-      actions.evolveAnimal(this.selectedUnitId);
-      actions.deselectUnit();
-      
+      const id = this.selectedUnitId;
+      actions.evolveAnimal(id);
       // Record the spawn event in state instead of emitting a direct event
-      actions.recordSpawnEvent(this.selectedUnitId);
+      actions.recordSpawnEvent(id);
+      // Now deselect the unit
+      actions.deselectUnit();
     }
   }
 

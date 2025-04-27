@@ -302,15 +302,12 @@ export default class BoardScene extends Phaser.Scene {
 
   // Handle unit spawned events
   private handleUnitSpawned(unitId: string) {
-    console.log('Unit spawned, updating UI');
-    this.moveRangeRenderer.clearMoveHighlights();
     if (this.fogOfWarEnabled && unitId) {
       const unit = actions.getAnimals().find(a => a.id === unitId);
       if (unit) {
         this.revealFogAt(unit.position.x, unit.position.y);
       }
     }
-    // Clear the spawn event; displacement (if any) is handled via subscriptions
     actions.clearSpawnEvent();
   }
 

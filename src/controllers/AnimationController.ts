@@ -113,7 +113,7 @@ export class AnimationController {
         (endPos.y - startPos.y) ** 2
       ) * (75 / this.tileSize);
       // DEBUG: slow down animation for timing introspection
-      duration *= 4;
+      duration *= 1;
 
       // Create and track tween
       const tween = this.scene.tweens.add({

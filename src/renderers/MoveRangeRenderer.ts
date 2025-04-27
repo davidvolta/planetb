@@ -44,8 +44,6 @@ export class MoveRangeRenderer extends BaseRenderer {
       return;
     }
     
-    console.log(`Rendering ${validMoves.length} valid move highlights`);
-    
     // Create highlight for each valid move
     validMoves.forEach(move => {
       const highlight = this.createMoveHighlight(move.x, move.y);
