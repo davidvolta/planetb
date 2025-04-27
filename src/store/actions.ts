@@ -102,6 +102,12 @@ export function getAnimals(): any[] {
  * Evolve an animal by ID
  */
 export function evolveAnimal(id: string): void {
+  const state = useGameStore.getState();
+  const unit = state.animals.find(a => a.id === id);
+  if (!unit || unit.state !== AnimalState.DORMANT) {
+    console.warn(`Cannot evolve animal ${id}: not a dormant egg`);
+    return;
+  }
   useGameStore.getState().evolveAnimal(id);
 }
 
@@ -304,8 +310,6 @@ export function captureBiome(biomeId: string): void {
   // Recalculate lushness for this biome
   updateBiomeLushness(biomeId);
   console.log(`Updated lushness for biome ${biomeId} after capture`);
-  // Emit capture event
-  recordBiomeCaptureEvent(biomeId);
 }
 
 /**
@@ -499,8 +503,12 @@ export function getResourceTiles(): TileResult[] {
  */
 export function harvestTileResource(amount: number): void {
   const state = useGameStore.getState();
-  // At this point, board is initialized and a resource tile is selected
-  const coord = state.selectedResource!;
+  // Only proceed if a resource tile is selected
+  const coord = state.selectedResource;
+  if (!coord) {
+    console.warn(`Cannot harvest: no resource selected`);
+    return;
+  }
   const board = state.board!;
   // Only allow harvesting if an active, owned unit that hasn't moved is on the tile
   const unitHere = state.animals.find(a =>
@@ -665,36 +673,7 @@ export function clearSpawnEvent(): void {
 }
 
 /**
- * Records a biome capture event in the state
- * This will trigger animations and effects when a biome is captured
- */
-export function recordBiomeCaptureEvent(biomeId: string): void {
-  useGameStore.setState({
-    biomeCaptureEvent: {
-      occurred: true,
-      biomeId: biomeId,
-      timestamp: Date.now()
-    }
-  });
-}
-
-/**
- * Clears the biome capture event from the state
- * Called after the event has been processed by subscriptions
- */
-export function clearBiomeCaptureEvent(): void {
-  useGameStore.setState({
-    biomeCaptureEvent: {
-      occurred: false,
-      biomeId: null,
-      timestamp: null
-    }
-  });
-}
-
-/**
  * Update multiple tiles' visibility states in a single operation
- * This is much more efficient than calling updateTileVisibility multiple times
  * @param tiles Array of tile positions with visibility states to update
  */
 export function updateTilesVisibility(tiles: { x: number, y: number, visible: boolean }[]): void {

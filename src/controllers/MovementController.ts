@@ -148,8 +148,10 @@ export class MovementController {
       if (!isTerrainCompatible(activeUnit.species, tile.terrain)) return false;
       return !animalsList.some(a => a.state === AnimalState.ACTIVE && a.position.x === pos.x && a.position.y === pos.y);
     });
-    let dispPos = activeUnit.hasMoved
-      ? this.findContinuationTile(activeUnit, validDisp, this.determinePreviousDirection(activeUnit))
+    // Determine displacement tile: use previous direction if available, otherwise random
+    const prevDir = this.determinePreviousDirection(activeUnit);
+    let dispPos = prevDir
+      ? this.findContinuationTile(activeUnit, validDisp, prevDir)
       : this.randomTile(validDisp);
     if (!dispPos && validDisp.length > 0) {
       dispPos = validDisp[Math.floor(Math.random() * validDisp.length)];

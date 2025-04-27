@@ -69,7 +69,6 @@ export class StateSubscriptionManager {
     VALID_MOVES: 'StateSubscriptionManager.validMoves',
     DISPLACEMENT: 'StateSubscriptionManager.displacement',
     SPAWN: 'StateSubscriptionManager.spawn',
-    BIOME_CAPTURE: 'StateSubscriptionManager.biomeCapture',
     SELECTION: 'StateSubscriptionManager.selection',
   };
   
@@ -162,47 +161,52 @@ export class StateSubscriptionManager {
   // Set up subscriptions related to biomes - a fundamental game construct
   private setupBiomeSubscriptions(): void {
     // Subscribe to biome changes
-    StateObserver.subscribe(
+    StateObserver.subscribe<Map<string, Biome>>(
       StateSubscriptionManager.SUBSCRIPTIONS.BIOMES,
       (state) => state.biomes,
       (biomes, previousBiomes) => {
         if (!biomes) return;
         
-        // Check if this is the first render (previous state is undefined)
         if (!previousBiomes) {
           // Initial render - render all biomes at once
           const biomesArray = Array.from(biomes.values());
           console.log(`Initial render of ${biomesArray.length} biomes`);
           this.biomeRenderer.renderBiomes(biomesArray);
         } else {
-          // Subsequent update - find which biomes have lushness changes and only update those
+          // Subsequent updates: collapse duplicate calls for owner & lushness changes
           for (const [id, biome] of biomes.entries()) {
-            const prevBiome = previousBiomes.get(id);
-            if (prevBiome && biome.totalLushness !== prevBiome.totalLushness) {
-              // Only update individual biomes that changed
+            const prev = previousBiomes.get(id);
+            if (!prev) continue;
+            const ownerChanged = biome.ownerId !== prev.ownerId;
+            const lushnessChanged = biome.totalLushness !== prev.totalLushness;
+            if (ownerChanged) {
+              // Reveal fog on capture
+              if (this.scene instanceof BoardScene) {
+                this.scene.revealBiomeTiles(id);
+              }
+              this.biomeRenderer.updateBiomeOwnership(id);
+            } else if (lushnessChanged) {
               this.biomeRenderer.updateBiomeOwnership(id);
             }
           }
         }
       },
-      { 
-        immediate: true, // Use immediate:true to handle initial rendering here
+      {
+        immediate: true,
         debug: false,
-        // Custom equality function that focuses on lushness changes
-        equalityFn: (a, b) => {
-          if (!(a instanceof Map) || !(b instanceof Map)) return a === b;
-          if (a.size !== b.size) return false;
-          
-          // Compare each biome's totalLushness value
-          for (const [id, biomeA] of a.entries()) {
-            const biomeB = b.get(id);
-            // If biome doesn't exist in both maps or lushness changed
-            if (!biomeB || biomeA.totalLushness !== biomeB.totalLushness) {
-              // Trigger update
-              return false; // Trigger update
+        // Only trigger when ownerId or totalLushness changes
+        equalityFn: <S>(a: S, b: S): boolean => {
+          const mapA = a as Map<string, Biome>;
+          const mapB = b as Map<string, Biome>;
+          if (mapA.size !== mapB.size) return false;
+          for (const [id, biomeA] of mapA.entries()) {
+            const biomeB = mapB.get(id);
+            if (!biomeB) return false;
+            if (biomeA.ownerId !== biomeB.ownerId || biomeA.totalLushness !== biomeB.totalLushness) {
+              return false;
             }
           }
-          return true; // No lushness changes, don't update
+          return true;
         }
       }
     );
@@ -321,30 +325,6 @@ export class StateSubscriptionManager {
         if (spawnEvent && spawnEvent.occurred) {
           this.scene.events.emit('unit_spawned', spawnEvent.unitId!);
           actions.clearSpawnEvent();
-        }
-      }
-    );
-    
-    // Subscribe to biome capture events
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.BIOME_CAPTURE,
-      (state) => state.biomeCaptureEvent,
-      (biomeCaptureEvent) => {
-        // Handle biome capture events
-        if (biomeCaptureEvent && biomeCaptureEvent.occurred) {
-          // Reveal the biome tiles for the captured biome
-          if (biomeCaptureEvent.biomeId) {
-            if (this.scene instanceof BoardScene) {
-              this.scene.revealBiomeTiles(biomeCaptureEvent.biomeId);
-              
-              // Update just the captured biome's ownership status
-              // This is more efficient than re-rendering all biomes
-              this.biomeRenderer.updateBiomeOwnership(biomeCaptureEvent.biomeId);
-            }
-          }
-          
-          // Clear the biome capture event after handling it
-          actions.clearBiomeCaptureEvent();
         }
       }
     );

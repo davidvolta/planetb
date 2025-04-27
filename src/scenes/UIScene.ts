@@ -321,20 +321,16 @@ export default class UIScene extends Phaser.Scene {
     if (this.selectedUnitId) {
       const id = this.selectedUnitId;
       actions.evolveAnimal(id);
-      // Record the spawn event in state instead of emitting a direct event
       actions.recordSpawnEvent(id);
-      // Now deselect the unit
       actions.deselectUnit();
     }
   }
 
   handleCaptureBiome() {
     const selectedBiomeId = actions.getSelectedBiomeId();
-    
-    if (selectedBiomeId && actions.canCaptureBiome(selectedBiomeId)) {
-      // Call the capture biome action
+    if (selectedBiomeId) {
       actions.captureBiome(selectedBiomeId);
-      actions.selectBiome(null); // Deselect the biome after capturing
+      actions.selectBiome(null);
     }
   }
 

@@ -368,8 +368,6 @@ export default class BoardScene extends Phaser.Scene {
 
   // Handle displacement events for animals
   async handleDisplacementEvent(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
-    console.log(`Handling displacement for unit ${unitId} from (${fromX},${fromY}) to (${toX},${toY})`);
-    
     // Lookup the unit sprite directly
     const unitSprite = this.getUnitSprite(unitId);
     if (!unitSprite) {
