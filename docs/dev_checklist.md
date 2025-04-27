@@ -6,6 +6,7 @@
 - [x] Refactor UIScene to dispatch through GameController instead of raw actions
 - [X] Create TurnController service to sequence human and AI turns
 - [X] Extend AnimationController to expose completion hooks/promises for mastering timing
+- [ ] Build second player model
 - [ ] Write headless unit tests for GameController command methods
 - [ ] Build a basic AI agent that emits JSON commands (unit, action, target)
 - [ ] Integrate AI agent into TurnController loop
