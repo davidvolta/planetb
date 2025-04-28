@@ -21,29 +21,34 @@ export class TurnController {
    * Advance to next player's move, or start a new round if all players have acted.
    */
   public async next(): Promise<void> {
-    // Commit the current player's turn
-    await this.gameController.endCurrentPlayerTurn();
+  const players = actions.getPlayers();
+  const currentPlayerId = actions.getActivePlayerId(); // ✅ Grab the ID BEFORE finalizing
+  const currentIndex = players.findIndex(p => p.id === currentPlayerId);
 
-    const players = actions.getPlayers();
-    const currentPlayerId = actions.getActivePlayerId();
-    const currentIndex = players.findIndex(p => p.id === currentPlayerId);
+  if (currentIndex === -1) {
+    console.error('[TurnController] Current player ID not found in players list.');
+    return;
+  }
 
-    if (currentIndex === players.length - 1) {
-      // End of round: all players have moved
-      RoundController.startNewRound();
-    } else {
-      // Move to next player
-      const nextPlayerId = players[currentIndex + 1].id;
-      actions.setActivePlayer(nextPlayerId);
+  // Now finalize current player's actions
+  await this.gameController.endCurrentPlayerTurn();
+  console.log('[TurnController] Finished player:', currentPlayerId);
 
-      // Handle AI player if necessary
-      if (!this.isHuman(nextPlayerId)) {
-        await this.handleAITurn(nextPlayerId);
-        // After AI acts, immediately move on
-        await this.next();
-      }
+  if (currentIndex === players.length - 1) {
+    console.log('[TurnController] All players finished. Starting new round...');
+    RoundController.startNewRound();
+  } else {
+    const nextPlayerId = players[currentIndex + 1].id;
+    actions.setActivePlayer(nextPlayerId);
+    console.log('[TurnController] Now active player:', nextPlayerId);
+
+    if (!this.isHuman(nextPlayerId)) {
+      console.log('[TurnController] AI moving for Player', nextPlayerId);
+      await this.handleAITurn(nextPlayerId);
+      await this.next();
     }
   }
+}
 
   /**
    * Determine if a player is human-controlled.
