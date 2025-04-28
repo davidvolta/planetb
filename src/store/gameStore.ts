@@ -181,6 +181,8 @@ interface Player {
   color: string;
   isActive: boolean;
   energy: number; // Amount of resources collected by this player
+  exploredTiles: Set<string>; // Tiles that this player has explored
+  visibleTiles: Set<string>; // Tiles currently visible to this player
 }
 
 // Animal states
@@ -374,7 +376,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         name,
         color,
         isActive: state.players.length === 0, // First player starts active
-        energy: 0
+        energy: 0,
+        exploredTiles: new Set<string>(),
+        visibleTiles: new Set<string>()
       };
       return { players: [...state.players, newPlayer] };
     }),
