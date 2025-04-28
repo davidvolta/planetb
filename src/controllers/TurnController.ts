@@ -1,6 +1,7 @@
 import * as actions from '../store/actions';
-import type BoardScene from '../scenes/BoardScene';
+import { RoundController } from './RoundController';
 import { GameController } from './GameController';
+import type BoardScene from '../scenes/BoardScene';
 
 export type GameMode = 'pvp' | 'pve' | 'sim';
 
@@ -17,35 +18,51 @@ export class TurnController {
   }
 
   /**
-   * Execute one full turn: commit current player's actions, then if in PVE run AI and commit again.
+   * Advance to next player's move, or start a new round if all players have acted.
    */
   public async next(): Promise<void> {
-    // Commit end of current player's turn
-    await this.gameController.nextTurn();
-    const playerId = actions.getCurrentPlayerId();
+    // Commit the current player's turn
+    await this.gameController.endCurrentPlayerTurn();
 
-    // If in PVE mode and next player is AI, execute AI actions and commit again
-    if (this.mode === 'pve' && !this.isHuman(playerId)) {
-      await this.handleAITurn(playerId);
-      await this.gameController.nextTurn();
+    const players = actions.getPlayers();
+    const currentPlayerId = actions.getActivePlayerId();
+    const currentIndex = players.findIndex(p => p.id === currentPlayerId);
+
+    if (currentIndex === players.length - 1) {
+      // End of round: all players have moved
+      RoundController.startNewRound();
+    } else {
+      // Move to next player
+      const nextPlayerId = players[currentIndex + 1].id;
+      actions.setActivePlayer(nextPlayerId);
+
+      // Handle AI player if necessary
+      if (!this.isHuman(nextPlayerId)) {
+        await this.handleAITurn(nextPlayerId);
+        // After AI acts, immediately move on
+        await this.next();
+      }
     }
   }
 
   /**
-   * Determine if the given player ID should be human-controlled.
+   * Determine if a player is human-controlled.
    */
   private isHuman(playerId: number): boolean {
     switch (this.mode) {
       case 'pvp': return true;
       case 'pve': return playerId === 0;
       case 'sim': return false;
+      default: return false;
     }
   }
 
   /**
-   * Compute and execute AI commands for the given player.
+   * Execute AI actions for a player.
    */
   private async handleAITurn(playerId: number): Promise<void> {
-    console.log(`AI turn logic not yet implemented for player ${playerId}`);
+    console.log(`AI is thinking hard for player ${playerId}... or at least pretending to.`);
+    // TODO: Implement AI turn logic
+    await this.gameController.endCurrentPlayerTurn();
   }
 } 

@@ -24,7 +24,7 @@ validateMove(animalId: string, targetX: number, targetY: number): boolean; // Va
 createHabitat(x: number, y: number, biomeType: BiomeType): void; // Create a new habitat
 improveHabitat(habitatId: string): void; // Upgrade an existing habitat
 endTurn(): void; // End the current player's turn
-getCurrentPlayer(): PlayerId; // Get the current player
+getActivePlayer(): PlayerId; // Get the active player
 
 // Event callbacks
 onTileSelected(x: number, y: number): void; // Handle tile selection
@@ -58,14 +58,14 @@ Handles all biome-centric ecology logic, from resource resets to egg production,
 // Reset and regeneration
 resetResources(width: number, height: number, terrainData: TerrainType[][], board: Board, biomes: Map<string,Biome>): void;
 // Pure harvest computation
-computeHarvest(coord: Coordinate, board: Board, players: any[], currentPlayerId: number, biomes: Map<string,Biome>, amount: number): { board: Board; players: any[]; biomes: Map<string,Biome> };
+computeHarvest(coord: Coordinate, board: Board, players: any[], activePlayerId: number, biomes: Map<string,Biome>, amount: number): { board: Board; players: any[]; biomes: Map<string,Biome> };
 // Egg production logic
 biomeEggProduction(turn: number, animals: Animal[], biomes: Map<string,Biome>, board: Board): BiomeProductionResult;
 getValidEggPlacementTiles(biomeId: string, state: ValidEggPlacementState, biomes: Map<string,Biome>): Coordinate[];
 // Lushness and capture
 calculateBiomeLushness(biomeId: string, board: Board, biomes: Map<string,Biome>): { baseLushness: number; lushnessBoost: number; totalLushness: number };
-computeCapture(biomeId: string, animals: Animal[], biomes: Map<string,Biome>, board: Board, currentPlayerId: number, turn: number): { animals: Animal[]; biomes: Map<string,Biome> };
-computeCanCapture(biomeId: string, board: Board, animals: Animal[], biomes: Map<string,Biome>, currentPlayerId: number): boolean;
+computeCapture(biomeId: string, animals: Animal[], biomes: Map<string,Biome>, board: Board, activePlayerId: number, turn: number): { animals: Animal[]; biomes: Map<string,Biome> };
+computeCanCapture(biomeId: string, board: Board, animals: Animal[], biomes: Map<string,Biome>, activePlayerId: number): boolean;
 ```
 
 ### Biome-Centric Integration

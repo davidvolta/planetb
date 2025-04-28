@@ -360,11 +360,6 @@ export default class BoardScene extends Phaser.Scene {
   isInMoveMode(): boolean {
     return actions.isMoveMode();
   }
-  
-  // Check if the game is initialized
-  isGameInitialized(): boolean {
-    return actions.isInitialized();
-  }
 
   // Handle displacement events for animals
   async handleDisplacementEvent(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
@@ -392,17 +387,17 @@ export default class BoardScene extends Phaser.Scene {
     const board = actions.getBoard();
     if (!board) return;
 
-    const currentPlayerId = actions.getCurrentPlayerId();
+    const activePlayerId = actions.getActivePlayerId();
 
     // Adjacent tiles around active player units
     const unitAdjacents = actions.getAnimals()
-      .filter(a => a.ownerId === currentPlayerId && a.state === AnimalState.ACTIVE)
+      .filter(a => a.ownerId === activePlayerId && a.state === AnimalState.ACTIVE)
       .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, board.width, board.height));
     const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
 
     // All tiles of owned biomes
     const biomeTiles = Array.from(actions.getBiomes().entries())
-      .filter(([_, b]) => b.ownerId === currentPlayerId)
+      .filter(([_, b]) => b.ownerId === activePlayerId)
       .flatMap(([id]) => actions.getTilesForBiome(id).map(({ x, y }) => ({ x, y })));
     const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
 

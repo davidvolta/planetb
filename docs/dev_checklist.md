@@ -24,14 +24,14 @@ Phase 1: Lift FOW state into the store
 
 Phase 2: Build the `VisibilityManager` service
 - [ ] Create `src/managers/VisibilityManager.ts` that:
-  - Subscribes to `currentPlayerId` changes via the store or `StateObserver`
+  - Subscribes to `activePlayerId` changes via the store or `StateObserver`
   - Calls `clearPlayerVisible` then `revealPlayerTiles` based on unit positions, habitats, etc.
   - Uses public getters on `BoardScene` to update tile and unit sprite visibility/alpha
 - [ ] Expose necessary public APIs on `BoardScene` (e.g. `getTileSprite(x, y)`, `getUnitSpriteById(id)`, `setTileVisibility`, etc.)
 - [ ] Remove residual fog logic from `FogOfWarRenderer` and related renderers
 
 Phase 3: Wire in visibility updates
-- [ ] Hook `VisibilityManager.updateVisibilityForPlayer(currentPlayerId)` into key events:
+- [ ] Hook `VisibilityManager.updateVisibilityForPlayer(activePlayerId)` into key events:
   - End of turn (after `nextTurn()` completes in UI)
   - Unit movement and displacement completions
   - Biome capture (`captureBiome`)

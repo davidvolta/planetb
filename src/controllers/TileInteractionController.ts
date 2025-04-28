@@ -52,7 +52,7 @@ export class TileInteractionController {
     const biomesAtLocation = habitatTiles
       .map(({ tile }) => actions.getBiomes().get(tile.biomeId!))
       .filter((b): b is any => !!b);
-    const playerId = actions.getCurrentPlayerId();
+    const playerId = actions.getActivePlayerId();
 
     // Build list of handlers in priority order
     const handlers: ((x: number, y: number) => void)[] = [];

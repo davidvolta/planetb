@@ -3,7 +3,7 @@ import * as actions from '../store/actions';
 import type { Coordinate } from '../store/gameStore';
 
 /**
- * Facade for executing game commands (AI or UI) with animation and state updates.
+ * Facade for executing game commands (player actions) with animation and state updates.
  */
 export class GameController {
   private boardScene: BoardScene;
@@ -13,7 +13,7 @@ export class GameController {
   }
 
   /**
-   * Move a unit with full animation and state update.
+   * Move a unit with full animation and update game state.
    * @param unitId ID of the unit to move
    * @param x Destination X coordinate
    * @param y Destination Y coordinate
@@ -24,7 +24,11 @@ export class GameController {
     const fromX = unit.position.x;
     const fromY = unit.position.y;
     const anim = this.boardScene.getAnimationController();
+
     await anim.moveUnit(unitId, sprite, fromX, fromY, x, y);
+
+    // Update unit position in game state after moving
+    actions.moveUnit(unitId, x, y);
   }
 
   /**
@@ -41,11 +45,9 @@ export class GameController {
    * @param amount Amount to harvest (default 3)
    */
   harvestTile(coord: Coordinate, amount: number = 3): void {
-    // Select target tile and harvest
     actions.selectResourceTile(coord);
     actions.harvestTileResource(amount);
-    // Clear selection
-    actions.selectResourceTile(null);
+    actions.selectResourceTile(null); // Clear selection after harvesting
   }
 
   /**
@@ -57,10 +59,12 @@ export class GameController {
   }
 
   /**
-   * Advance to the next turn.
+   * Finalize the current player's turn: wait for animations and commit end-of-turn.
    */
-  async nextTurn(): Promise<void> {
-    const next = actions.getNextTurn();
-    next();
+  public async endCurrentPlayerTurn(): Promise<void> {
+    console.log('Finalizing current player turn...');
+
+    // Wait for all animations to complete before ending turn
+    await this.boardScene.getAnimationController().waitForAllAnimationsComplete();
   }
 } 

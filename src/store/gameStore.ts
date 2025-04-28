@@ -175,7 +175,7 @@ export interface Board {
   tiles: Tile[][];
 }
 
-interface Player {
+export interface Player {
   id: number;
   name: string;
   color: string;
@@ -209,11 +209,10 @@ export interface Resource {
 export interface GameState {
   turn: number;
   players: Player[];
-  currentPlayerId: number;
+  activePlayerId: number;
   board: Board | null;
   animals: Animal[];
   biomes: Map<string, Biome>; // Track biomes by ID
-  isInitialized: boolean;  // Flag to track if the game has been initialized
   
   // Movement state
   selectedUnitId: string | null;
@@ -310,11 +309,10 @@ function resetMovementAndEvents(
 export const useGameStore = create<GameState>((set, get) => ({
   turn: 1,
   players: [],
-  currentPlayerId: 0,
+  activePlayerId: 0,
   board: null,
   animals: [],
   biomes: new Map(),
-  isInitialized: false,
   
   // Initialize movement state
   selectedUnitId: null,
@@ -361,11 +359,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         height,
         numPlayers
       );
+      console.log(`[${new Date().toISOString()}] Board initialized with ${numPlayers} players. Player state:`, 
+        state.players.map(p => ({ id: p.id, name: p.name, isActive: p.isActive })));
       return {
         board,
         animals,
-        biomes,
-        isInitialized: true
+        biomes
       };
     }),
 
@@ -380,6 +379,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         exploredTiles: new Set<string>(),
         visibleTiles: new Set<string>()
       };
+      console.log(`[${new Date().toISOString()}] Player created: ${name} (ID: ${newPlayer.id})`);
       return { players: [...state.players, newPlayer] };
     }),
 
@@ -389,7 +389,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         ...player,
         isActive: player.id === playerId
       }));
-      return { players: updatedPlayers, currentPlayerId: playerId };
+      return { players: updatedPlayers, activePlayerId: playerId };
     }),
 
   // GETTERS / SELECTORS

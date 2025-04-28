@@ -74,7 +74,7 @@ export default class UIScene extends Phaser.Scene {
     // Subscribe to energy updates (no immediate initial callback)
     StateObserver.subscribe(
       'ui-energy',
-      (state: GameState) => ({ energy: state.players[state.currentPlayerId]?.energy ?? 0 }),
+      (state: GameState) => ({ energy: state.players[state.activePlayerId]?.energy ?? 0 }),
       (data) => {
         this.energyText?.setText(`Energy: ${data.energy}`);
       },

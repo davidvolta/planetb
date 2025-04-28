@@ -1,4 +1,4 @@
-import { useGameStore, Animal, AnimalState, Board, Biome, TerrainType, Coordinate } from "./gameStore";
+import { useGameStore, Animal, AnimalState, Board, Biome, TerrainType, Coordinate, Player } from "./gameStore";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 
@@ -36,19 +36,6 @@ export type TileFilterFn = (tile: any, x: number, y: number) => boolean;
 // GAME STATE MANAGEMENT
 // =============================================================================
 
-/**
- * Get the current turn number
- */
-export function getTurn(): number {
-  return useGameStore.getState().turn;
-}
-
-/**
- * Get the function to advance to the next turn
- */
-export function getNextTurn(): () => void {
-  return useGameStore.getState().nextTurn;
-}
 
 /**
  * Set up the game board with the specified dimensions and options
@@ -65,17 +52,41 @@ export function getBoard(): Board | null {
 }
 
 /**
- * Check if the game is initialized
+ * Get the function to advance to the next turn
  */
-export function isInitialized(): boolean {
-  return !!useGameStore.getState().isInitialized;
+export function getNextTurn(): () => void {
+  return useGameStore.getState().nextTurn;
+}
+
+/**
+ * Increment the current turn number
+ */
+export function incrementTurn(): void {
+  useGameStore.setState((state) => ({
+    turn: state.turn + 1
+  }));
 }
 
 /**
  * Get the current player's ID
  */
-export function getCurrentPlayerId(): number {
-  return useGameStore.getState().currentPlayerId;
+export function getActivePlayerId(): number {
+  return useGameStore.getState().activePlayerId;
+}
+
+/**
+ * Get all players in the game
+ */
+export function getPlayers(): Player[] {
+  return useGameStore.getState().players;
+}
+
+/**
+ * Set the active player by ID
+ * @param playerId The ID of the player to set as active
+ */
+export function setActivePlayer(playerId: number): void {
+  useGameStore.getState().setActivePlayer(playerId);
 }
 
 /**
@@ -261,7 +272,7 @@ export function isSelectedBiomeAvailableForCapture(): boolean {
     state.board,
     state.animals,
     state.biomes,
-    state.currentPlayerId
+    state.activePlayerId
   );
 }
 
@@ -290,7 +301,7 @@ export function canCaptureBiome(biomeId: string): boolean {
     state.board!,
     state.animals,
     state.biomes,
-    state.currentPlayerId
+    state.activePlayerId
   );
 }
 
@@ -310,7 +321,7 @@ export async function captureBiome(biomeId: string): Promise<void> {
       state.animals,
       state.biomes,
       state.board!,
-      state.currentPlayerId,
+      state.activePlayerId,
       state.turn
     );
   // Always mark the harvesting unit as having moved
@@ -526,7 +537,7 @@ export async function harvestTileResource(amount: number): Promise<void> {
   const unitHere = state.animals.find(a =>
     a.position.x === coord.x && a.position.y === coord.y &&
     a.state === AnimalState.ACTIVE &&
-    a.ownerId === state.currentPlayerId &&
+    a.ownerId === state.activePlayerId &&
     !a.hasMoved
   );
   if (!unitHere) {
@@ -535,7 +546,7 @@ export async function harvestTileResource(amount: number): Promise<void> {
   // Guard: require the biome at this tile to be owned by current player
   const tile = board.tiles[coord.y][coord.x];
   const biomeId = tile.biomeId;
-  if (!biomeId || state.biomes.get(biomeId)?.ownerId !== state.currentPlayerId) {
+  if (!biomeId || state.biomes.get(biomeId)?.ownerId !== state.activePlayerId) {
     throw new Error(`HarvestTileResource failed: tile (${coord.x},${coord.y}) not in owned biome`);
   }
    
@@ -545,7 +556,7 @@ export async function harvestTileResource(amount: number): Promise<void> {
       coord,
       board,
       state.players,
-      state.currentPlayerId,
+      state.activePlayerId,
       state.biomes,
       amount
     );

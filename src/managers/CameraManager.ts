@@ -184,11 +184,11 @@ export class CameraManager {
   //Finds the first unit owned by the player
   private findPlayerFirstUnit(): { x: number, y: number } | null {
     const animals = actions.getAnimals();
-    const currentPlayerId = actions.getCurrentPlayerId();
+    const activePlayerId = actions.getActivePlayerId();
     
     // Find the first active unit owned by the current player
     const playerUnit = animals.find((animal: any) => 
-      animal.ownerId === currentPlayerId && 
+      animal.ownerId === activePlayerId && 
       animal.state === AnimalState.ACTIVE
     );
     
