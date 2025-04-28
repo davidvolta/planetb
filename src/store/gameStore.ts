@@ -411,21 +411,16 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // TURN PROGRESSION
   nextTurn: () => set((state) => {
-    const newBoard = EcosystemController.regenerateResourcesState(state);
-    const { animals: postEggAnimals, biomes: postEggBiomes } = EcosystemController.produceEggsState(state, newBoard);
-    const newBiomes = EcosystemController.recalcLushnessState(newBoard, postEggBiomes);
     const { animals: resetAnimals, displacementEvent, spawnEvent, biomeCaptureEvent } =
-      resetMovementAndEvents(postEggAnimals);
-      return { 
-      board: newBoard,
+      resetMovementAndEvents(state.animals);
+    return {
       animals: resetAnimals,
-      biomes: newBiomes,
       turn: state.turn + 1,
-        displacementEvent,
+      displacementEvent,
       spawnEvent,
       biomeCaptureEvent
-      };
-    }),
+    };
+  }),
 
   // MOVEMENT
   selectUnit: (id: string | null) => 

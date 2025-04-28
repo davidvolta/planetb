@@ -1,0 +1,20 @@
+THE TRUTH
+
+Yes—that distinction makes total sense. Right now your `nextTurn()` in the store is a “global round‐advance” (resource regen + egg production + turn count bump for the *entire* map), and you’re only ever calling it (or planning to call it) once per full cycle of all players. What you really want, though, is:
+
+1. **A per‐player update step** that runs *just* on the currently active player’s biomes when their turn begins.  
+2. **A global round advance** only after *all* players have gone (if you still need a turn counter).
+
+So the flow in a two-player PvP game would be:
+
+• Player A’s turn starts → run *“update my biomes”* (resource regen + eggs for Player A only) → let Player A take actions → end Player A →  
+• Player B’s turn starts → run *“update my biomes”* (resource regen + eggs for Player B only) → let Player B take actions → end Player B →  
+• Both players have acted → run the *global round advance* (`nextTurn()`) once to increment the turn counter and clean up/reset any round‐wide state.
+
+By splitting “update just this player’s biomes” out of `nextTurn()`, you avoid regenerating resources twice or for the wrong owner. In practice that means:
+
+- *Don’t* call the store’s `nextTurn()` at the start of each player’s turn.  
+- Instead, call a new “update‐player‐biomes” routine (or action) right when you flip `activePlayerId`.  
+- Reserve `nextTurn()` strictly for after all players have completed their turns (to bump the round counter, reset events, etc).
+
+Does that model match what you had in mind?

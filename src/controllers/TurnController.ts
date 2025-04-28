@@ -21,34 +21,34 @@ export class TurnController {
    * Advance to next player's move, or start a new round if all players have acted.
    */
   public async next(): Promise<void> {
-  const players = actions.getPlayers();
-  const currentPlayerId = actions.getActivePlayerId(); // ✅ Grab the ID BEFORE finalizing
-  const currentIndex = players.findIndex(p => p.id === currentPlayerId);
+    const currentPlayerId = actions.getActivePlayerId();
+    // At the very start of the game loop, update the current player's biomes
+    await actions.updatePlayerBiomes(currentPlayerId);
+    const players = actions.getPlayers();
+    const currentIndex = players.findIndex(p => p.id === currentPlayerId);
 
-  if (currentIndex === -1) {
-    console.error('[TurnController] Current player ID not found in players list.');
-    return;
-  }
+    if (currentIndex === -1) {
+      return;
+    }
 
-  // Now finalize current player's actions
-  await this.gameController.endCurrentPlayerTurn();
-  console.log('[TurnController] Finished player:', currentPlayerId);
+    // Now finalize current player's actions
+    await this.gameController.endCurrentPlayerTurn();
 
-  if (currentIndex === players.length - 1) {
-    console.log('[TurnController] All players finished. Starting new round...');
-    RoundController.startNewRound();
-  } else {
-    const nextPlayerId = players[currentIndex + 1].id;
-    actions.setActivePlayer(nextPlayerId);
-    console.log('[TurnController] Now active player:', nextPlayerId);
+    if (currentIndex === players.length - 1) {
+      RoundController.startNewRound();
+    } else {
+      const nextPlayerId = players[currentIndex + 1].id;
+      actions.setActivePlayer(nextPlayerId);
 
-    if (!this.isHuman(nextPlayerId)) {
-      console.log('[TurnController] AI moving for Player', nextPlayerId);
-      await this.handleAITurn(nextPlayerId);
-      await this.next();
+      // Regenerate resources and produce eggs for this player's owned biomes
+      await actions.updatePlayerBiomes(nextPlayerId);
+      
+      if (!this.isHuman(nextPlayerId)) {
+        await this.handleAITurn(nextPlayerId);
+        await this.next();
+      }
     }
   }
-}
 
   /**
    * Determine if a player is human-controlled.
@@ -66,7 +66,6 @@ export class TurnController {
    * Execute AI actions for a player.
    */
   private async handleAITurn(playerId: number): Promise<void> {
-    console.log(`AI is thinking hard for player ${playerId}... or at least pretending to.`);
     // TODO: Implement AI turn logic
     await this.gameController.endCurrentPlayerTurn();
   }

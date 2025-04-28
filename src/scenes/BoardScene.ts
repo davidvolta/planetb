@@ -49,7 +49,7 @@ export default class BoardScene extends Phaser.Scene {
   // Setup tracking
   private controlsSetup = false;
   private subscriptionsSetup = false;
-  private fogOfWarEnabled = true;
+  private fogOfWarEnabled = false;
   
   // Managers and controllers
   private layerManager: LayerManager;

@@ -17,28 +17,26 @@ export function initializeBoard(
   height: number,
   numPlayers: number
 ): InitResult {
-  // Generate terrain data
-  const terrainData = generateIslandTerrain(width, height);
-
-  // Initialize tiles
   const tiles: Tile[][] = [];
+  const terrainData = generateIslandTerrain(width, height);
+  
   for (let y = 0; y < height; y++) {
-    const row: Tile[] = [];
+    tiles[y] = [];
     for (let x = 0; x < width; x++) {
-      row.push({
+      tiles[y][x] = {
         coordinate: { x, y },
         terrain: terrainData[y][x],
-        explored: false,
-        visible: false,
+        explored: true,
+        visible: true,
         biomeId: null,
         resourceType: null,
         resourceValue: 0,
         active: false,
         isHabitat: false,
         hasEgg: false
-      });
+      };
     }
-    tiles.push(row);
+   // tiles.push(row);
   }
   const board: Board = { width, height, tiles };
 

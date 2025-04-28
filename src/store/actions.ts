@@ -59,15 +59,6 @@ export function getNextTurn(): () => void {
 }
 
 /**
- * Increment the current turn number
- */
-export function incrementTurn(): void {
-  useGameStore.setState((state) => ({
-    turn: state.turn + 1
-  }));
-}
-
-/**
  * Get the current player's ID
  */
 export function getActivePlayerId(): number {
@@ -755,4 +746,49 @@ export function getActiveUnitsAt(x: number, y: number): Animal[] {
  */
 export function getDormantUnitsAt(x: number, y: number): Animal[] {
   return getUnitsAt(x, y).filter(a => a.state === AnimalState.DORMANT);
-} 
+}
+
+/**
+ * Update resources and egg production for a single player's owned biomes at the start of their turn.
+ * @param playerId The ID of the player whose biomes to update.
+ */
+export async function updatePlayerBiomes(playerId: number): Promise<void> {
+  const state = useGameStore.getState();
+  const turn = state.turn;
+  const board = state.board!;
+  const allBiomes = state.biomes;
+  const animals = state.animals;
+
+  // Filter to only this player's biomes
+  const playerBiomes = new Map<string, Biome>();
+  allBiomes.forEach((b, id) => {
+    if (b.ownerId === playerId) {
+      playerBiomes.set(id, b);
+    }
+  });
+
+  // Regenerate resources only for these biomes
+  const newBoard = EcosystemController.regenerateResources(board, playerBiomes);
+  
+  // Produce eggs only for these biomes
+  const { animals: postEggAnimals, biomes: postEggBiomes } = EcosystemController.biomeEggProduction(
+    turn,
+    animals,
+    playerBiomes,
+    newBoard
+  );
+
+  // Merge updated biomes back into full map
+  const mergedBiomes = new Map(allBiomes);
+  postEggBiomes.forEach((b, id) => mergedBiomes.set(id, b));
+
+  // Recalculate lushness for all biomes
+  const newBiomes = EcosystemController.recalcLushnessState(newBoard, mergedBiomes);
+
+  // Commit the partial update
+  useGameStore.setState({
+    board: newBoard,
+    animals: postEggAnimals,
+    biomes: newBiomes
+  });
+}

@@ -202,7 +202,7 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
     // Create button text with keyboard shortcut
-    const buttonText = this.add.text(75, 20, 'Next Turn', {
+    const buttonText = this.add.text(75, 20, 'End Turn', {
       fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
