@@ -144,17 +144,23 @@ export class StateSubscriptionManager {
   
   // Set up subscriptions related to animals
   private setupAnimalSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
-    // Subscribe to animal changes
+    // Subscribe to animal changes and filter by fog-of-war visibility for active player
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.ANIMALS,
-      (state) => state.animals,
-      (animals) => {
-        if (animals) {
-          // Render animals using animal renderer
-          this.animalRenderer.renderAnimals(animals, onUnitClicked);
-        }
+      (state) => ({ animals: state.animals, activePlayerId: state.activePlayerId }),
+      ({ animals, activePlayerId }) => {
+        if (!animals) return;
+        // Get visible coords for the active player
+        const visibleSet = new Set(
+          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
+        );
+        // Only render animals whose positions are visible
+        const visibleAnimals = animals.filter(a =>
+          visibleSet.has(`${a.position.x},${a.position.y}`)
+        );
+        this.animalRenderer.renderAnimals(visibleAnimals, onUnitClicked);
       },
-      { immediate: true, debug: false } // Set immediate: true to render on subscription
+      { immediate: true, debug: false }
     );
   }
   
