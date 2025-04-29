@@ -147,9 +147,14 @@ export class StateSubscriptionManager {
     // Subscribe to animal changes and filter by fog-of-war visibility for active player
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.ANIMALS,
-      (state) => ({ animals: state.animals, activePlayerId: state.activePlayerId }),
-      ({ animals, activePlayerId }) => {
+      (state) => ({ animals: state.animals, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
+      ({ animals, activePlayerId, fogOfWarEnabled }) => {
         if (!animals) return;
+        if (!fogOfWarEnabled) {
+          // FOW disabled: render all animals
+          this.animalRenderer.renderAnimals(animals, onUnitClicked);
+          return;
+        }
         // Get visible coords for the active player
         const visibleSet = new Set(
           actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)

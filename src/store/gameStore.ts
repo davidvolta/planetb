@@ -246,6 +246,10 @@ export interface GameState {
     timestamp: number | null; // When the capture occurred
   };
   
+  // FOG OF WAR
+  fogOfWarEnabled: boolean;
+  toggleFogOfWar: (enabled: boolean) => void;
+  
   nextTurn: () => void;
   resetMovementFlags: () => void; // Reset hasMoved flags for all animals
   addPlayer: (name: string, color: string) => void;
@@ -344,6 +348,69 @@ export const useGameStore = create<GameState>((set, get) => ({
     biomeId: null,
     timestamp: null
   } as GameState['biomeCaptureEvent'], // Force type alignment
+
+  // FOG OF WAR
+  fogOfWarEnabled: true,
+  toggleFogOfWar: (enabled: boolean) => {
+    set((state) => {
+      if (enabled) {
+        // Re-seed visibility/exploration as per normal rules
+        if (!state.board) return { fogOfWarEnabled: true };
+        const board = state.board;
+        const animals = state.animals;
+        const biomes = state.biomes;
+        const seededPlayers = state.players.map(player => {
+          const coordSet = new Set<string>();
+          animals
+            .filter(a => a.ownerId === player.id && a.state === AnimalState.ACTIVE)
+            .forEach(a => {
+              for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                  const x = a.position.x + dx;
+                  const y = a.position.y + dy;
+                  if (x >= 0 && x < board.width && y >= 0 && y < board.height) {
+                    coordSet.add(`${x},${y}`);
+                  }
+                }
+              }
+            });
+          biomes.forEach((b, id) => {
+            if (b.ownerId === player.id) {
+              for (let yy = 0; yy < board.height; yy++) {
+                for (let xx = 0; xx < board.width; xx++) {
+                  if (board.tiles[yy][xx].biomeId === id) {
+                    coordSet.add(`${xx},${yy}`);
+                  }
+                }
+              }
+            }
+          });
+          return {
+            ...player,
+            exploredTiles: new Set(coordSet),
+            visibleTiles: new Set(coordSet)
+          };
+        });
+        return { fogOfWarEnabled: true, players: seededPlayers };
+      } else {
+        // Reveal the whole board for all players
+        if (!state.board) return { fogOfWarEnabled: false };
+        const board = state.board;
+        const allCoords = new Set<string>();
+        for (let y = 0; y < board.height; y++) {
+          for (let x = 0; x < board.width; x++) {
+            allCoords.add(`${x},${y}`);
+          }
+        }
+        const updatedPlayers = state.players.map(player => ({
+          ...player,
+          exploredTiles: new Set(allCoords),
+          visibleTiles: new Set(allCoords)
+        }));
+        return { fogOfWarEnabled: false, players: updatedPlayers };
+      }
+    });
+  },
 
   // INITIALIZATION METHODS
   initializeBoard: (width, height) =>

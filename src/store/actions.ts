@@ -808,10 +808,22 @@ export function markPlayerUnitsMoved(playerId: number): void {
  * Get all tiles currently visible to the given player
  */
 export function getVisibleTilesForPlayer(playerId: number): { x: number; y: number }[] {
-  const player = useGameStore.getState().players.find(p => p.id === playerId);
+  const state = useGameStore.getState();
+  if (!state.board) return [];
+  if (!state.fogOfWarEnabled) {
+    // FOW disabled: all tiles are visible
+    const tiles: { x: number; y: number }[] = [];
+    for (let y = 0; y < state.board.height; y++) {
+      for (let x = 0; x < state.board.width; x++) {
+        tiles.push({ x, y });
+      }
+    }
+    return tiles;
+  }
+  const player = state.players.find(p => p.id === playerId);
   if (!player) return [];
-  return Array.from(player.visibleTiles).map(key => {
-    const [x, y] = key.split(',').map(Number);
+  return Array.from(player.visibleTiles).map(str => {
+    const [x, y] = str.split(',').map(Number);
     return { x, y };
   });
 }
@@ -820,10 +832,36 @@ export function getVisibleTilesForPlayer(playerId: number): { x: number; y: numb
  * Get all tiles explored by the given player
  */
 export function getExploredTilesForPlayer(playerId: number): { x: number; y: number }[] {
-  const player = useGameStore.getState().players.find(p => p.id === playerId);
+  const state = useGameStore.getState();
+  if (!state.board) return [];
+  if (!state.fogOfWarEnabled) {
+    // FOW disabled: all tiles are explored
+    const tiles: { x: number; y: number }[] = [];
+    for (let y = 0; y < state.board.height; y++) {
+      for (let x = 0; x < state.board.width; x++) {
+        tiles.push({ x, y });
+      }
+    }
+    return tiles;
+  }
+  const player = state.players.find(p => p.id === playerId);
   if (!player) return [];
-  return Array.from(player.exploredTiles).map(key => {
-    const [x, y] = key.split(',').map(Number);
+  return Array.from(player.exploredTiles).map(str => {
+    const [x, y] = str.split(',').map(Number);
     return { x, y };
   });
+}
+
+/**
+ * Set the global fog of war enabled/disabled state
+ */
+export function setFogOfWarEnabled(enabled: boolean): void {
+  useGameStore.getState().toggleFogOfWar(enabled);
+}
+
+/**
+ * Get the current fog of war enabled/disabled state
+ */
+export function getFogOfWarEnabled(): boolean {
+  return useGameStore.getState().fogOfWarEnabled;
 }

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import BoardScene from "./BoardScene";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
+import { useGameStore } from "../store/gameStore";
 
 export default class DebugScene extends Phaser.Scene {
   
@@ -301,11 +302,8 @@ export default class DebugScene extends Phaser.Scene {
   private toggleFow(): void {
     this.fowEnabled = !this.fowEnabled;
     this.fowCheckboxInner.setVisible(this.fowEnabled);
-    
-    // Call BoardScene's toggleFogOfWar method
-    if (this.boardScene) {
-      this.boardScene.toggleFogOfWar(this.fowEnabled);
-    }
+    // Call Zustand's toggleFogOfWar action
+    useGameStore.getState().toggleFogOfWar(this.fowEnabled);
   }
 
   update() {

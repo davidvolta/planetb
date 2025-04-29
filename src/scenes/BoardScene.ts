@@ -49,14 +49,15 @@ export default class BoardScene extends Phaser.Scene {
   // Setup tracking
   private controlsSetup = false;
   private subscriptionsSetup = false;
-  private fogOfWarEnabled = true;
-  
+
   // Managers and controllers
   private layerManager: LayerManager;
   private animationController: AnimationController;
   private cameraManager: CameraManager;
   private subscriptionManager: StateSubscriptionManager;
   private tileInteractionController: TileInteractionController;
+
+  private fogOfWarEnabled = true;
 
   constructor() {
     super({ key: "BoardScene" });
