@@ -148,8 +148,6 @@ export interface Tile {
   explored: boolean;
   visible: boolean;
   biomeId: string | null; // Track which biome this tile belongs to
-  
-  // Resource properties
   resourceType: ResourceType | null; // Type of resource (FOREST, KELP, etc.) or null if none
   resourceValue: number; // Value from 0-10, where 0 means depleted
   active: boolean; // Whether this tile has an active resource
@@ -411,15 +409,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // TURN PROGRESSION
   nextTurn: () => set((state) => {
-    const { animals: resetAnimals, displacementEvent, spawnEvent, biomeCaptureEvent } =
-      resetMovementAndEvents(state.animals);
-    return {
-      animals: resetAnimals,
-      turn: state.turn + 1,
-      displacementEvent,
-      spawnEvent,
-      biomeCaptureEvent
-    };
+    // Only increment the round counter; per-player resets happen at turn start
+    return { turn: state.turn + 1 };
   }),
 
   // MOVEMENT

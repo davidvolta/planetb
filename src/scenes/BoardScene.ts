@@ -527,4 +527,29 @@ export default class BoardScene extends Phaser.Scene {
   public getAnimalRenderer(): AnimalRenderer {
     return this.animalRenderer;
   }
+
+  /** Expose the camera manager for external use (e.g. UI camera pans) */
+  public getCameraManager(): CameraManager {
+    return this.cameraManager;
+  }
+
+  /** Get tile size for grid-to-world calculations */
+  public getTileSize(): number {
+    return this.tileSize;
+  }
+
+  /** Get tile height for grid-to-world calculations */
+  public getTileHeight(): number {
+    return this.tileHeight;
+  }
+
+  /** Get current anchor X coordinate */
+  public getAnchorX(): number {
+    return this.anchorX;
+  }
+
+  /** Get current anchor Y coordinate */
+  public getAnchorY(): number {
+    return this.anchorY;
+  }
 }

@@ -199,6 +199,40 @@ export class CameraManager {
     return null;
   }
   
+  /**
+   * Center the camera on the closest active unit owned by the player.
+   */
+  public centerCameraOnClosestPlayerUnit(
+    tileSize: number,
+    tileHeight: number,
+    anchorX: number,
+    anchorY: number,
+    playerId: number = actions.getActivePlayerId(),
+    duration: number = 500
+  ): void {
+    // Filter active units by player
+    const animals = actions.getAnimals().filter(a => a.ownerId === playerId && a.state === AnimalState.ACTIVE);
+    if (animals.length === 0) return;
+    const camera = this.getCamera();
+    const centerX = camera.midPoint.x;
+    const centerY = camera.midPoint.y;
+    
+    // Compute world positions for each unit
+    const worldPoints = animals.map(a =>
+      CoordinateUtils.gridToWorld(a.position.x, a.position.y, tileSize, tileHeight, anchorX, anchorY)
+    );
+    
+    // Find the closest point to current camera center
+    const closest = worldPoints.reduce((prev, cur) => {
+      const dPrev = Phaser.Math.Distance.Between(prev.x, prev.y, centerX, centerY);
+      const dCur = Phaser.Math.Distance.Between(cur.x, cur.y, centerX, centerY);
+      return dCur < dPrev ? cur : prev;
+    }, worldPoints[0]);
+    
+    // Pan to that position smoothly
+    this.centerOn(closest.x, closest.y, duration);
+  }
+  
   // Clean up any resources used by the camera manager
   destroy(): void {
     // Remove any input handlers we set up

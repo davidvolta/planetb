@@ -231,10 +231,6 @@ export class EcosystemController {
     biomes: Map<string, Biome>,
     board: Board
   ): BiomeProductionResult {
-    // Early exit on non-egg turns
-    if (turn % 2 !== 0) {
-      return { animals: [...animals], biomes: new Map(biomes) };
-    }
 
     const newAnimals: Animal[] = [...animals];
     const updatedBiomes: Map<string, Biome> = new Map(biomes);

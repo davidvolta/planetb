@@ -792,3 +792,24 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
     biomes: newBiomes
   });
 }
+
+// Add a new action to reset movement flags and clear events for a single player's turn
+export function resetPlayerMovementAndEvents(playerId: number): void {
+  useGameStore.setState((state) => ({
+    animals: state.animals.map(a =>
+      a.ownerId === playerId ? { ...a, hasMoved: false } : a
+    ),
+    displacementEvent: { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null },
+    spawnEvent: { occurred: false, unitId: null, timestamp: null },
+    biomeCaptureEvent: { occurred: false, biomeId: null, timestamp: null }
+  }));
+}
+
+// Add a new action to mark all units of the given player as moved
+export function markPlayerUnitsMoved(playerId: number): void {
+  useGameStore.setState((state) => ({
+    animals: state.animals.map(a =>
+      a.ownerId === playerId ? { ...a, hasMoved: true } : a
+    )
+  }));
+}

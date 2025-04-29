@@ -12,6 +12,7 @@ export default class UIScene extends Phaser.Scene {
   private background: Phaser.GameObjects.Rectangle | null = null;
   private spawnButton: Phaser.GameObjects.Container | null = null;
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
+  private nextTurnText: Phaser.GameObjects.Text | null = null;
   private selectedUnitId: string | null = null;
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
   private harvestButton: Phaser.GameObjects.Container | null = null;
@@ -35,17 +36,24 @@ export default class UIScene extends Phaser.Scene {
     StateObserver.subscribe(
       'ui-turn',
       (state: GameState) => {
-        return { 
+        const player = state.players.find(p => p.id === state.activePlayerId);
+        return {
           turn: state.turn,
           selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
           selectedIsDormant: state.selectedUnitIsDormant,
-          selectedBiomeId: state.selectedBiomeId
+          selectedBiomeId: state.selectedBiomeId,
+          activePlayerName: player ? player.name : `Player ${state.activePlayerId}`
         };
       },
       (data) => {
         // Update turn display
         if (this.turnText) {
           this.turnText.setText(`Turn: ${data.turn}`);
+        }
+        
+        // Update End Turn button label
+        if (this.nextTurnText) {
+          this.nextTurnText.setText(`End ${data.activePlayerName} Turn`);
         }
         
         // Update selected unit details
@@ -152,7 +160,7 @@ export default class UIScene extends Phaser.Scene {
     this.gameController = new GameController(boardScene);
     
     // Add a semi-transparent black background
-    const uiBackground = this.add.rectangle(0, 0, 200, 100, 0x000000, 0.5);
+    const uiBackground = this.add.rectangle(0, 0, 275, 100, 0x000000, 0.5);
     uiBackground.setOrigin(0, 0);
     this.container.add(uiBackground);
     
@@ -201,13 +209,18 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerover', () => buttonBg.setFillStyle(0xA0A0A0))
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
-    // Create button text with keyboard shortcut
-    const buttonText = this.add.text(75, 20, 'End Turn', {
+    // Create button text with keyboard shortcut and active player
+    const players = actions.getPlayers();
+    const currentId = actions.getActivePlayerId();
+    const currentPlayer = players.find(p => p.id === currentId);
+    const currentName = currentPlayer ? currentPlayer.name : `Player ${currentId}`;
+    const buttonText = this.add.text(75, 20, `End ${currentName} Turn`, {
       fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
     });
     buttonText.setOrigin(0.5);
+    this.nextTurnText = buttonText;
     
     // Add to container
     this.nextTurnButton.add(buttonBg);
@@ -323,8 +336,23 @@ export default class UIScene extends Phaser.Scene {
   }
 
   async handleNextTurn(): Promise<void> {
+    // Capture the player whose turn is ending
+    const prevPlayerId = actions.getActivePlayerId();
     // Execute one full turn (human and optional AI)
     await this.turnController.next();
+    // Mark all units of the outgoing player as moved
+    actions.markPlayerUnitsMoved(prevPlayerId);
+    // Reset movement flags and clear events for the now-active player
+    actions.resetPlayerMovementAndEvents(actions.getActivePlayerId());
+    // Pan camera to the next active player's closest active unit
+    const boardScene = this.scene.get('BoardScene') as BoardScene;
+    const camMgr = boardScene.getCameraManager();
+    camMgr.centerCameraOnClosestPlayerUnit(
+      boardScene.getTileSize(),
+      boardScene.getTileHeight(),
+      boardScene.getAnchorX(),
+      boardScene.getAnchorY()
+    );
   }
 
   async handleSpawnUnit() {
