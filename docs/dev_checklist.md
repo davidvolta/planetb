@@ -2,7 +2,7 @@
 
 ## Next up: Add second player as AI
 - [x] Define GameController facade with command methods (move, evolve, harvest, capture)
-- [ ] Add explicit state update for unit movement (actions.moveUnit) in GameController.moveUnit so the state change isn't buried in AnimationController
+- [X] Add explicit state update for unit movement (actions.moveUnit) in GameController.moveUnit so the state change isn't buried in AnimationController
 - [x] Refactor actions to enforce validation and return Promises for each command
 - [x] Refactor UIScene to dispatch through GameController instead of raw actions
 - [X] Create TurnController service to sequence human and AI turns
