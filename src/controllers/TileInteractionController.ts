@@ -1,4 +1,5 @@
 import * as actions from '../store/actions';
+import { Biome } from '../store/gameStore';
 
 export class TileInteractionController {
   private scene: any;
@@ -20,6 +21,7 @@ export class TileInteractionController {
    * Case 8: clear selection
    */
   public handleClick(x: number, y: number) {
+    const playerId = actions.getActivePlayerId();
     const board = actions.getBoard();
     if (!board || !board.tiles[y] || !board.tiles[y][x].visible) {
       // Case 7: ignore clicks on hidden or out-of-bounds tiles
@@ -46,13 +48,12 @@ export class TileInteractionController {
     }
 
     // Build content arrays for selection cases using store helpers
-    const activeUnits = actions.getActiveUnitsAt(x, y);
-    const dormantUnits = actions.getDormantUnitsAt(x, y);
+    const activeUnits = actions.getActiveUnitsAt(x, y).filter(a => a.ownerId === playerId);
+    const dormantUnits = actions.getDormantUnitsAt(x, y).filter(a => a.ownerId === playerId);
     const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
     const biomesAtLocation = habitatTiles
       .map(({ tile }) => actions.getBiomes().get(tile.biomeId!))
-      .filter((b): b is any => !!b);
-    const playerId = actions.getActivePlayerId();
+      .filter((b): b is Biome => !!b && (b.ownerId === playerId || b.ownerId === null));
 
     // Build list of handlers in priority order
     const handlers: ((x: number, y: number) => void)[] = [];
