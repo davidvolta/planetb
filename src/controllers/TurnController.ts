@@ -9,6 +9,7 @@ export type GameMode = 'pvp' | 'pve' | 'sim';
  * Service to manage turn sequencing for human and AI players.
  */
 export class TurnController {
+  private skipInitialUpdate: boolean = true;
   private gameController: GameController;
   private mode: GameMode;
 
@@ -21,27 +22,35 @@ export class TurnController {
    * Advance to next player's move, or start a new round if all players have acted.
    */
   public async next(): Promise<void> {
-    const currentPlayerId = actions.getActivePlayerId();
-    // At the very start of the game loop, update the current player's biomes
-    await actions.updatePlayerBiomes(currentPlayerId);
+    // End current player's turn animations
+    await this.gameController.endCurrentPlayerTurn();
     const players = actions.getPlayers();
+    const currentPlayerId = actions.getActivePlayerId();
     const currentIndex = players.findIndex(p => p.id === currentPlayerId);
 
-    if (currentIndex === -1) {
-      return;
-    }
-
-    // Now finalize current player's actions
-    await this.gameController.endCurrentPlayerTurn();
+    if (currentIndex === -1) return;
 
     if (currentIndex === players.length - 1) {
       RoundController.startNewRound();
+      // Determine nextPlayerId after round reset
+      const nextPlayerId = actions.getPlayers()[0].id;
+      actions.setActivePlayer(nextPlayerId);
+      // Skip first update (already seeded in initializeBoard)
+      if (this.skipInitialUpdate) {
+        this.skipInitialUpdate = false;
+      } else {
+        await actions.updatePlayerBiomes(nextPlayerId);
+      }
     } else {
       const nextPlayerId = players[currentIndex + 1].id;
       actions.setActivePlayer(nextPlayerId);
+      if (this.skipInitialUpdate) {
+        this.skipInitialUpdate = false;
+      } else {
+        await actions.updatePlayerBiomes(nextPlayerId);
+      }
 
       // Regenerate resources and produce eggs for this player's owned biomes
-
       
       if (!this.isHuman(nextPlayerId)) {
         await this.handleAITurn(nextPlayerId);
