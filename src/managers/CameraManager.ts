@@ -121,6 +121,21 @@ export class CameraManager {
     }
   }
 
+  /**
+   * Asynchronously center the camera on a world position with smooth pan.
+   */
+  public centerOnAsync(x: number, y: number, duration: number = 0): Promise<void> {
+    const camera = this.getCamera();
+    if (duration <= 0) {
+      camera.centerOn(x, y);
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      camera.once(Phaser.Cameras.Scene2D.Events.PAN_COMPLETE, resolve);
+      camera.pan(x, y, duration, 'Power2');
+    });
+  }
+
   // Pan the camera by the specified amount
   pan(deltaX: number, deltaY: number): void {
     const camera = this.getCamera();
@@ -202,14 +217,14 @@ export class CameraManager {
   /**
    * Center the camera on the closest active unit owned by the player.
    */
-  public centerCameraOnClosestPlayerUnit(
+  public async centerCameraOnClosestPlayerUnit(
     tileSize: number,
     tileHeight: number,
     anchorX: number,
     anchorY: number,
     playerId: number = actions.getActivePlayerId(),
     duration: number = 500
-  ): void {
+  ): Promise<void> {
     // Filter active units by player
     const animals = actions.getAnimals().filter(a => a.ownerId === playerId && a.state === AnimalState.ACTIVE);
     if (animals.length === 0) return;
@@ -230,7 +245,7 @@ export class CameraManager {
     }, worldPoints[0]);
     
     // Pan to that position smoothly
-    this.centerOn(closest.x, closest.y, duration);
+    await this.centerOnAsync(closest.x, closest.y, duration);
   }
   
   // Clean up any resources used by the camera manager

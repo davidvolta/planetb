@@ -13,12 +13,14 @@ export default class UIScene extends Phaser.Scene {
   private spawnButton: Phaser.GameObjects.Container | null = null;
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private nextTurnText: Phaser.GameObjects.Text | null = null;
+  private nextTurnButtonBg: Phaser.GameObjects.Rectangle | null = null;
   private selectedUnitId: string | null = null;
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
   private harvestButton: Phaser.GameObjects.Container | null = null;
   private energyText: Phaser.GameObjects.Text | null = null;
   private gameController!: GameController;
   private turnController!: TurnController;
+  private isProcessingNextTurn: boolean = false;
   
   // Biome info panel properties
   private biomeInfoPanel: Phaser.GameObjects.Container | null = null;
@@ -203,6 +205,7 @@ export default class UIScene extends Phaser.Scene {
     
     // Create button background - changed to medium gray
     const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x808080, 1);
+    this.nextTurnButtonBg = buttonBg;
     buttonBg.setOrigin(0);
     buttonBg.setInteractive({ useHandCursor: true })
       .on('pointerdown', this.handleNextTurn, this)
@@ -336,6 +339,9 @@ export default class UIScene extends Phaser.Scene {
   }
 
   async handleNextTurn(): Promise<void> {
+    if (this.isProcessingNextTurn) return;
+    this.isProcessingNextTurn = true;
+    this.nextTurnButtonBg?.disableInteractive();
     // Capture the player whose turn is ending
     const prevPlayerId = actions.getActivePlayerId();
     // Execute one full turn (human and optional AI)
@@ -347,12 +353,14 @@ export default class UIScene extends Phaser.Scene {
     // Pan camera to the next active player's closest active unit
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     const camMgr = boardScene.getCameraManager();
-    camMgr.centerCameraOnClosestPlayerUnit(
+    await camMgr.centerCameraOnClosestPlayerUnit(
       boardScene.getTileSize(),
       boardScene.getTileHeight(),
       boardScene.getAnchorX(),
       boardScene.getAnchorY()
     );
+    this.nextTurnButtonBg?.setInteractive({ useHandCursor: true });
+    this.isProcessingNextTurn = false;
   }
 
   async handleSpawnUnit() {
