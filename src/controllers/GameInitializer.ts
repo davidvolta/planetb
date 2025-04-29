@@ -26,8 +26,6 @@ export function initializeBoard(
       tiles[y][x] = {
         coordinate: { x, y },
         terrain: terrainData[y][x],
-        explored: true,
-        visible: true,
         biomeId: null,
         resourceType: null,
         resourceValue: 0,

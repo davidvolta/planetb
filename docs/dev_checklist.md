@@ -13,32 +13,6 @@
 - [ ] Integrate AI agent into TurnController loop
 - [ ] Validate end-to-end command execution pipeline
 
-## Visibility & Fog of War Refactor
-
-Phase 1: Lift FOW state into the store
-- [ ] Add new actions in s`src/store/actions.ts`:
-  - `revealPlayerTiles(playerId: number, coords: { x: number; y: number }[])`
-  - `clearPlayerVisible(playerId: number)`
-- [ ] Add corresponding setters in `gameStore.ts`, populating each `Player`'s `visibleTiles` and `exploredTiles` sets
-- [ ] Update `addPlayer` and `initializeBoard` to initialize and seed these sets for each player's starting regions
-
-Phase 2: Build the `VisibilityManager` service
-- [ ] Create `src/managers/VisibilityManager.ts` that:
-  - Subscribes to `activePlayerId` changes via the store or `StateObserver`
-  - Calls `clearPlayerVisible` then `revealPlayerTiles` based on unit positions, habitats, etc.
-  - Uses public getters on `BoardScene` to update tile and unit sprite visibility/alpha
-- [ ] Expose necessary public APIs on `BoardScene` (e.g. `getTileSprite(x, y)`, `getUnitSpriteById(id)`, `setTileVisibility`, etc.)
-- [ ] Remove residual fog logic from `FogOfWarRenderer` and related renderers
-
-Phase 3: Wire in visibility updates
-- [ ] Hook `VisibilityManager.updateVisibilityForPlayer(activePlayerId)` into key events:
-  - End of turn (after `nextTurn()` completes in UI)
-  - Unit movement and displacement completions
-  - Biome capture (`captureBiome`)
-  - Egg spawning (`evolveAnimal` + `recordSpawnEvent`)
-- [ ] Adjust input handlers and controllers to only allow interactions on tiles in the `visibleTiles` set
-- [ ] Migrate or remove legacy per-tile `visible` and `explored` fields in the store and renderers
-- [ ] Write unit and integration tests for `VisibilityManager` covering edge cases (reveal, hide, exploration persistence, multi-player scenarios)
 
 ## Future Tasks
 

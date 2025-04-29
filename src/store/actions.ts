@@ -2,12 +2,6 @@ import { useGameStore, Animal, AnimalState, Board, Biome, TerrainType, Coordinat
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 
-/**
- * Action dispatchers for React components
- * 
- * These functions provide a centralized way to dispatch actions to the store
- * instead of having components directly call services like GameInitializer.
- */
 
 // =============================================================================
 // DATA TYPES & INTERFACES
@@ -699,29 +693,25 @@ export async function clearSpawnEvent(): Promise<void> {
  * Update multiple tiles' visibility states in a single operation
  * @param tiles Array of tile positions with visibility states to update
  */
-export async function updateTilesVisibility(tiles: { x: number, y: number, visible: boolean }[]): Promise<void> {
-  const state = useGameStore.getState();
-  if (!state.board) {
-    throw new Error(`UpdateTilesVisibility failed: board not initialized`);
-  }
-  if (tiles.length === 0) {
-    return;
-  }
+export async function updateTilesVisibility(tiles: { x: number; y: number; visible: boolean }[]): Promise<void> {
+  // No work if nothing changed
+  if (tiles.length === 0) return;
   useGameStore.setState(state => {
-    const board = state.board!;    // assert non-null
-    const updatedTiles = board.tiles.map((row, rowIndex) =>
-      row.map((tile, colIndex) => {
-        const tileUpdate = tiles.find(t => t.x === colIndex && t.y === rowIndex);
-        if (!tileUpdate) return tile;
-        return { ...tile, explored: true, visible: tileUpdate.visible };
-      })
-    );
-    const newBoard: Board = {
-      width: board.width,
-      height: board.height,
-      tiles: updatedTiles
-    };
-    return { board: newBoard };
+    const activePlayerId = state.activePlayerId;
+    // Update only the active player's fog-of-war sets
+    const updatedPlayers = state.players.map(player => {
+      if (player.id !== activePlayerId) return player;
+      const newExplored = new Set(player.exploredTiles);
+      const newVisible = new Set(player.visibleTiles);
+      for (const { x, y, visible } of tiles) {
+        const key = `${x},${y}`;
+        newExplored.add(key);
+        if (visible) newVisible.add(key);
+        else newVisible.delete(key);
+      }
+      return { ...player, exploredTiles: newExplored, visibleTiles: newVisible };
+    });
+    return { players: updatedPlayers };
   });
 }
 
@@ -812,4 +802,28 @@ export function markPlayerUnitsMoved(playerId: number): void {
       a.ownerId === playerId ? { ...a, hasMoved: true } : a
     )
   }));
+}
+
+/**
+ * Get all tiles currently visible to the given player
+ */
+export function getVisibleTilesForPlayer(playerId: number): { x: number; y: number }[] {
+  const player = useGameStore.getState().players.find(p => p.id === playerId);
+  if (!player) return [];
+  return Array.from(player.visibleTiles).map(key => {
+    const [x, y] = key.split(',').map(Number);
+    return { x, y };
+  });
+}
+
+/**
+ * Get all tiles explored by the given player
+ */
+export function getExploredTilesForPlayer(playerId: number): { x: number; y: number }[] {
+  const player = useGameStore.getState().players.find(p => p.id === playerId);
+  if (!player) return [];
+  return Array.from(player.exploredTiles).map(key => {
+    const [x, y] = key.split(',').map(Number);
+    return { x, y };
+  });
 }

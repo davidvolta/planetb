@@ -62,8 +62,6 @@ export class GameController {
    * Finalize the current player's turn: wait for animations and commit end-of-turn.
    */
   public async endCurrentPlayerTurn(): Promise<void> {
-    console.log('Finalizing current player turn...');
-
     // Wait for all animations to complete before ending turn
     await this.boardScene.getAnimationController().waitForAllAnimationsComplete();
   }

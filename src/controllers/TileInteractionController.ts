@@ -23,8 +23,11 @@ export class TileInteractionController {
   public handleClick(x: number, y: number) {
     const playerId = actions.getActivePlayerId();
     const board = actions.getBoard();
-    if (!board || !board.tiles[y] || !board.tiles[y][x].visible) {
-      // Case 7: ignore clicks on hidden or out-of-bounds tiles
+    if (!board || !board.tiles[y] || !board.tiles[y][x]) {
+      return;
+    }
+    const visibleCoords = actions.getVisibleTilesForPlayer(playerId);
+    if (!visibleCoords.some(coord => coord.x === x && coord.y === y)) {
       return;
     }
 

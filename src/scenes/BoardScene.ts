@@ -49,7 +49,7 @@ export default class BoardScene extends Phaser.Scene {
   // Setup tracking
   private controlsSetup = false;
   private subscriptionsSetup = false;
-  private fogOfWarEnabled = false;
+  private fogOfWarEnabled = true;
   
   // Managers and controllers
   private layerManager: LayerManager;
@@ -187,6 +187,26 @@ export default class BoardScene extends Phaser.Scene {
     
     // Listen for spawn events from the state
     this.events.on('unit_spawned', this.handleUnitSpawned, this);
+    
+    // Update fog-of-war visuals whenever the active player changes
+    StateObserver.subscribe(
+      'BoardScene.activePlayerFOW',
+      (state) => state.activePlayerId,
+      (playerId: number) => {
+        if (!this.fogOfWarEnabled) return;
+        const board = actions.getBoard();
+        if (!board) return;
+        // Reset fog layer
+        this.fogOfWarRenderer.clearFogOfWar();
+        this.fogOfWarRenderer.createFogOfWar(board);
+        // Reveal previously visible tiles for this player
+        const coords = actions.getVisibleTilesForPlayer(playerId);
+        if (coords.length) {
+          this.fogOfWarRenderer.revealTiles(coords);
+        }
+      },
+      { immediate: true }
+    );
     
     // Mark as set up
     this.subscriptionsSetup = true;

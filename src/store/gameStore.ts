@@ -145,8 +145,6 @@ export interface Habitat {
 export interface Tile {
   coordinate: Coordinate;
   terrain: TerrainType;
-  explored: boolean;
-  visible: boolean;
   biomeId: string | null; // Track which biome this tile belongs to
   resourceType: ResourceType | null; // Type of resource (FOREST, KELP, etc.) or null if none
   resourceValue: number; // Value from 0-10, where 0 means depleted
@@ -350,19 +348,52 @@ export const useGameStore = create<GameState>((set, get) => ({
   // INITIALIZATION METHODS
   initializeBoard: (width, height) =>
     set((state) => {
-      // Pass number of players into board initialization
       const numPlayers = state.players.length;
       const { board, animals, biomes } = initGameBoard(
         width,
         height,
         numPlayers
       );
-      console.log(`[${new Date().toISOString()}] Board initialized with ${numPlayers} players. Player state:`, 
-        state.players.map(p => ({ id: p.id, name: p.name, isActive: p.isActive })));
+      // Seed initial fog-of-war for each player
+      const seededPlayers = state.players.map(player => {
+        const coordSet = new Set<string>();
+        // Reveal tiles around any active starting units for this player
+        animals
+          .filter(a => a.ownerId === player.id && a.state === AnimalState.ACTIVE)
+          .forEach(a => {
+            for (let dx = -1; dx <= 1; dx++) {
+              for (let dy = -1; dy <= 1; dy++) {
+                const x = a.position.x + dx;
+                const y = a.position.y + dy;
+                if (x >= 0 && x < board.width && y >= 0 && y < board.height) {
+                  coordSet.add(`${x},${y}`);
+                }
+              }
+            }
+          });
+        // Reveal all tiles in owned biomes
+        biomes.forEach((b, id) => {
+          if (b.ownerId === player.id) {
+            for (let yy = 0; yy < board.height; yy++) {
+              for (let xx = 0; xx < board.width; xx++) {
+                if (board.tiles[yy][xx].biomeId === id) {
+                  coordSet.add(`${xx},${yy}`);
+                }
+              }
+            }
+          }
+        });
+        return {
+          ...player,
+          exploredTiles: new Set(coordSet),
+          visibleTiles: new Set(coordSet)
+        };
+      });
       return {
         board,
         animals,
-        biomes
+        biomes,
+        players: seededPlayers
       };
     }),
 
