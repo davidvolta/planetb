@@ -5,6 +5,7 @@ import { GameState, Biome } from '../store/gameStore';
 import type BoardScene from './BoardScene';
 import { TurnController } from '../controllers/TurnController';
 import type { GameController } from '../controllers/GameController';
+import { CommandExecutor } from '../controllers/CommandExecutor';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -158,9 +159,7 @@ export default class UIScene extends Phaser.Scene {
     // Create a container for UI elements that will be positioned in the top left
     this.container = this.add.container(0, 0);
     // Instantiate GameController facade
-    const boardScene = this.scene.get('BoardScene') as BoardScene;
-    // Use the GameController instance that BoardScene created internally
-    this.gameController = boardScene.getGameController();
+    const boardScene = this.scene.get('BoardScene') as BoardScene;    
     
     // Add a semi-transparent black background
     const uiBackground = this.add.rectangle(0, 0, 275, 100, 0x000000, 0.5);
@@ -197,7 +196,7 @@ export default class UIScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-N', this.handleNextTurn, this);
     this.input.keyboard?.on('keydown-C', this.handleCaptureBiome, this);
 
-    this.turnController = new TurnController(boardScene, 'sim');
+    this.turnController = new TurnController(boardScene, 'pvp');
   }
 
   createNextTurnButton() {
@@ -360,27 +359,51 @@ export default class UIScene extends Phaser.Scene {
     this.isProcessingNextTurn = false;
   }
 
-  async handleSpawnUnit() {
-    if (this.selectedUnitId) {
-      const id = this.selectedUnitId;
-      await this.gameController.evolveAnimal(id);
-      await actions.recordSpawnEvent(id);
-      await actions.deselectUnit();
-    }
+  public async handleSpawnUnit(): Promise<void> {
+    if (!this.selectedUnitId) return;
+  
+    const boardScene = this.scene.get('BoardScene') as BoardScene;
+    const gameController = boardScene.getGameController();
+    const executor = new CommandExecutor(gameController);
+  
+    await executor.execute({
+      type: 'evolve',
+      unitId: this.selectedUnitId,
+    });
   }
 
-  async handleCaptureBiome() {
+  public async handleCaptureBiome(): Promise<void> {
     const selectedBiomeId = actions.getSelectedBiomeId();
-    if (selectedBiomeId) {
-      await this.gameController.captureBiome(selectedBiomeId);
-      await actions.selectBiome(null);
-    }
+    if (!selectedBiomeId) return;
+  
+    const boardScene = this.scene.get('BoardScene') as BoardScene;
+    const gameController = boardScene.getGameController();
+    const executor = new CommandExecutor(gameController);
+  
+    await executor.execute({
+      type: 'capture',
+      biomeId: selectedBiomeId,
+    });
   }
 
-  async handleHarvest() {
+  public async handleHarvest(): Promise<void> {
     const coord = actions.getSelectedResource();
     if (!coord) return;
-    await this.gameController.harvestTile(coord, 3);
+  
+    const boardScene = this.scene.get('BoardScene') as BoardScene;
+    const gameController = boardScene.getGameController();
+    if (!gameController) {
+      console.warn('[UIScene] GameController not available yet');
+      return;
+    }
+  
+    const executor = new CommandExecutor(gameController);
+    await executor.execute({
+      type: 'harvest',
+      x: coord.x,
+      y: coord.y,
+      amount: 3,
+    });
   }
 
   updateBackgroundSize() {

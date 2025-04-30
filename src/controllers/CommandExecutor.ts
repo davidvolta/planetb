@@ -7,7 +7,9 @@ import * as actions from '../store/actions';
 export type GameCommand =
   | { type: 'move';   unitId: string; x: number; y: number }
   | { type: 'capture'; biomeId: string }
-  // Extend with more command types as needed, e.g. harvest, evolve, etc.
+  | { type: 'evolve';  unitId: string }
+  | { type: 'harvest'; x: number; y: number; amount?: number };
+
 ;
 
 /**
@@ -27,6 +29,18 @@ export class CommandExecutor {
         break;
       case 'capture':
         this.gc.captureBiome(cmd.biomeId);
+        actions.selectBiome(null); // clear selection afterward
+        break;
+      case 'evolve':
+        // Evolve a dormant unit
+        this.gc.evolveAnimal(cmd.unitId);
+        actions.recordSpawnEvent(cmd.unitId);
+        actions.deselectUnit();
+        break;
+      case 'harvest':
+        // Harvest resource at tile with optional amount
+        const { x, y, amount = 3 } = cmd;
+        this.gc.harvestTile({ x, y }, amount);
         break;
       default:
         throw new Error(`CommandExecutor: unknown command type '${(cmd as any).type}'`);

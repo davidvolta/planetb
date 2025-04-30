@@ -65,8 +65,6 @@ export class TurnController {
       } else {
         await actions.updatePlayerBiomes(nextPlayerId);
       }
-
-      // Regenerate resources and produce eggs for this player's owned biomes
       
       if (!this.isHuman(nextPlayerId)) {
         await this.handleAITurn(nextPlayerId);

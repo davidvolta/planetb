@@ -149,11 +149,12 @@ export default class BoardScene extends Phaser.Scene {
   create() {
     console.log("BoardScene create() called", this.scene.key);
     
+    // Initialize the GameController for scene-driven actions
+    this.gameController = new GameController(this);
     this.cameraManager.initialize();   // Initialize camera manager
     this.setupInputHandlers();  // Set up input handlers
     const board = actions.getBoard(); // Get board data
     
-    // If we have board data, create the board
     if (board) {
       this.createTiles();    // Create board tiles    
       this.setupSubscriptions();   // Set up state subscriptions
@@ -165,9 +166,6 @@ export default class BoardScene extends Phaser.Scene {
         this.anchorX,
         this.anchorY
       );
-      
-      // Instantiate GameController facade for this scene
-      this.gameController = new GameController(this);
     }
   }
   
@@ -579,7 +577,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   /**
-   * Provide access to the GameController facade created in create().
+   * Expose the GameController facade created in create().
    */
   public getGameController(): GameController {
     return this.gameController;
