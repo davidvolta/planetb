@@ -165,8 +165,6 @@ export class AnimationController {
   ): Promise<void> {
     // Animate movement
     await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
-    // Update game state
-    actions.moveUnit(unitId, toX, toY);
   }
   
   /**

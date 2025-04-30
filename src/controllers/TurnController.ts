@@ -2,6 +2,8 @@ import * as actions from '../store/actions';
 import { RoundController } from './RoundController';
 import { GameController } from './GameController';
 import type BoardScene from '../scenes/BoardScene';
+import { AIController } from './AIController';
+import { CommandExecutor } from './CommandExecutor';
 
 export type GameMode = 'pvp' | 'pve' | 'sim';
 
@@ -13,7 +15,7 @@ export class TurnController {
   private gameController: GameController;
   private mode: GameMode;
 
-  constructor(boardScene: BoardScene, mode: GameMode = 'pvp') {
+  constructor(boardScene: BoardScene, mode: GameMode = 'pve') {
     this.gameController = new GameController(boardScene);
     this.mode = mode;
   }
@@ -23,18 +25,24 @@ export class TurnController {
    */
   public async next(): Promise<void> {
     // End current player's turn animations
+    const prevPlayerId = actions.getActivePlayerId();
     await this.gameController.endCurrentPlayerTurn();
+    // Mark outgoing player's units as moved
+    actions.markPlayerUnitsMoved(prevPlayerId);
+
     const players = actions.getPlayers();
-    const currentPlayerId = actions.getActivePlayerId();
-    const currentIndex = players.findIndex(p => p.id === currentPlayerId);
+    const currentIndex = players.findIndex(p => p.id === prevPlayerId);
 
     if (currentIndex === -1) return;
 
+     //  If it's the last player, start a new round
     if (currentIndex === players.length - 1) {
       RoundController.startNewRound();
       // Determine nextPlayerId after round reset
       const nextPlayerId = actions.getPlayers()[0].id;
       actions.setActivePlayer(nextPlayerId);
+      // Reset movement flags and clear events for the new player
+      actions.resetPlayerMovementAndEvents(nextPlayerId);
       // Skip first update (already seeded in initializeBoard)
       if (this.skipInitialUpdate) {
         this.skipInitialUpdate = false;
@@ -42,8 +50,11 @@ export class TurnController {
         await actions.updatePlayerBiomes(nextPlayerId);
       }
     } else {
+      //  If there are more players, move to the next
       const nextPlayerId = players[currentIndex + 1].id;
       actions.setActivePlayer(nextPlayerId);
+      // Reset movement flags and clear events for the new player
+      actions.resetPlayerMovementAndEvents(nextPlayerId);
       if (this.skipInitialUpdate) {
         this.skipInitialUpdate = false;
       } else {
@@ -75,7 +86,17 @@ export class TurnController {
    * Execute AI actions for a player.
    */
   private async handleAITurn(playerId: number): Promise<void> {
-    // TODO: Implement AI turn logic
+    console.log(`Starting AI turn for player ${playerId}`);
+    const board = actions.getBoard();
+    const animals = actions.getAnimals();
+    const biomes = actions.getBiomes();
+    const gameState = { board, animals, biomes } as any;
+    const ai = new AIController(gameState, playerId);
+    const commands = ai.generateCommands();
+    console.log('AI generated commands:', commands);
+    const executor = new CommandExecutor(this.gameController);
+    await executor.runAll(commands);
     await this.gameController.endCurrentPlayerTurn();
+    console.log(`Ended AI turn for player ${playerId}`);
   }
 } 

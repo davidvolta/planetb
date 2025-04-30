@@ -3,8 +3,8 @@ import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import { GameState, Biome } from '../store/gameStore';
 import type BoardScene from './BoardScene';
-import { GameController } from '../controllers/GameController';
 import { TurnController } from '../controllers/TurnController';
+import type { GameController } from '../controllers/GameController';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;
@@ -159,7 +159,8 @@ export default class UIScene extends Phaser.Scene {
     this.container = this.add.container(0, 0);
     // Instantiate GameController facade
     const boardScene = this.scene.get('BoardScene') as BoardScene;
-    this.gameController = new GameController(boardScene);
+    // Use the GameController instance that BoardScene created internally
+    this.gameController = boardScene.getGameController();
     
     // Add a semi-transparent black background
     const uiBackground = this.add.rectangle(0, 0, 275, 100, 0x000000, 0.5);
@@ -196,7 +197,7 @@ export default class UIScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-N', this.handleNextTurn, this);
     this.input.keyboard?.on('keydown-C', this.handleCaptureBiome, this);
 
-    this.turnController = new TurnController(boardScene, 'pvp');
+    this.turnController = new TurnController(boardScene, 'pve');
   }
 
   createNextTurnButton() {
@@ -346,10 +347,6 @@ export default class UIScene extends Phaser.Scene {
     const prevPlayerId = actions.getActivePlayerId();
     // Execute one full turn (human and optional AI)
     await this.turnController.next();
-    // Mark all units of the outgoing player as moved
-    actions.markPlayerUnitsMoved(prevPlayerId);
-    // Reset movement flags and clear events for the now-active player
-    actions.resetPlayerMovementAndEvents(actions.getActivePlayerId());
     // Pan camera to the next active player's closest active unit
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     const camMgr = boardScene.getCameraManager();

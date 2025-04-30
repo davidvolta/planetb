@@ -18,6 +18,7 @@ import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
 import { FogOfWarRenderer } from '../renderers/FogOfWarRenderer';
 import { TILE_SIZE, TILE_HEIGHT } from '../constants/gameConfig';
 import { TileInteractionController } from "../controllers/TileInteractionController";
+import { GameController } from '../controllers/GameController';
 
 // Custom event names
 export const EVENTS = {
@@ -56,6 +57,7 @@ export default class BoardScene extends Phaser.Scene {
   private cameraManager: CameraManager;
   private subscriptionManager: StateSubscriptionManager;
   private tileInteractionController: TileInteractionController;
+  private gameController!: GameController;
 
   private fogOfWarEnabled = true;
 
@@ -164,6 +166,8 @@ export default class BoardScene extends Phaser.Scene {
         this.anchorY
       );
       
+      // Instantiate GameController facade for this scene
+      this.gameController = new GameController(this);
     }
   }
   
@@ -317,8 +321,8 @@ export default class BoardScene extends Phaser.Scene {
       this.revealFogAt(toX, toY);
     }
     
-    // Animate and update state
-    await this.animationController.moveUnit(unitId, unitSprite, fromX, fromY, toX, toY);
+    // Execute movement with animation and state update via GameController
+    await this.gameController.moveUnit(unitId, toX, toY);
   }
 
   // Handle unit spawned events
@@ -572,5 +576,12 @@ export default class BoardScene extends Phaser.Scene {
   /** Get current anchor Y coordinate */
   public getAnchorY(): number {
     return this.anchorY;
+  }
+
+  /**
+   * Provide access to the GameController facade created in create().
+   */
+  public getGameController(): GameController {
+    return this.gameController;
   }
 }

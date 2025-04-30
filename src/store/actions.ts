@@ -1,6 +1,7 @@
 import { useGameStore, Animal, AnimalState, Board, Biome, TerrainType, Coordinate, Player } from "./gameStore";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
+import { MovementController } from '../controllers/MovementController';
 
 
 // =============================================================================
@@ -182,7 +183,12 @@ export async function moveUnit(id: string, x: number, y: number): Promise<void> 
   if (unit.hasMoved) {
     throw new Error(`MoveUnit failed: animal ${id} has already moved`);
   }
-  if (!state.validMoves.some(m => m.x === x && m.y === y)) {
+  if (!state.board) {
+    throw new Error(`MoveUnit failed: board not initialized`);
+  }
+  // Recalculate legal moves directly for validation
+  const legalMoves = MovementController.calculateValidMoves(unit, state.board, state.animals);
+  if (!legalMoves.some(m => m.x === x && m.y === y)) {
     throw new Error(`MoveUnit failed: invalid move to (${x},${y})`);
   }
   useGameStore.getState().moveUnit(id, x, y);

@@ -1,3 +1,4 @@
+
 //Converts grid coordinates to isometric screen coordinates (without anchor offset)
 export function gridToIso(gridX: number, gridY: number, tileSize: number, tileHeight: number): { x: number, y: number } {
   const isoX = (gridX - gridY) * tileSize / 2;
