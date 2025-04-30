@@ -304,6 +304,18 @@ export default class DebugScene extends Phaser.Scene {
     this.fowCheckboxInner.setVisible(this.fowEnabled);
     // Call Zustand's toggleFogOfWar action
     useGameStore.getState().toggleFogOfWar(this.fowEnabled);
+    // Reflect FOW change immediately in the board scene
+    const boardScene = this.scene.get('BoardScene') as BoardScene;
+    boardScene.toggleFogOfWar(this.fowEnabled);
+
+    // Log AI player's fog-of-war data after toggle
+    const players = useGameStore.getState().players;
+    players.forEach(player => {
+      if (player.id !== 0) {
+        console.log(`Post-FOW toggle AI Player ${player.id} visible tiles:`, Array.from(player.visibleTiles));
+        console.log(`Post-FOW toggle AI Player ${player.id} explored tiles:`, Array.from(player.exploredTiles));
+      }
+    });
   }
 
   update() {
