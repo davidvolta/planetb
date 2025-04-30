@@ -49,6 +49,11 @@ export class TurnController {
       } else {
         await actions.updatePlayerBiomes(nextPlayerId);
       }
+      // In sim mode, trigger AI for the new player as well
+      if (!this.isHuman(nextPlayerId)) {
+        await this.handleAITurn(nextPlayerId);
+        await this.next();
+      }
     } else {
       //  If there are more players, move to the next
       const nextPlayerId = players[currentIndex + 1].id;
