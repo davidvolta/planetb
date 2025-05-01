@@ -17,9 +17,29 @@ export class AIController {
     const board = this.gameState.board;
     if (!board) return commands;
 
-    const animals = this.gameState.animals;
+    // Work on a local copy of animals so we can update positions/states as commands are generated
+    let workingAnimals = this.gameState.animals.map(a => ({ ...a }));
+
+    // Spawn eggs only from biomes with total lushness >= 9.0
+    const eggs = workingAnimals.filter(a => {
+      if (a.ownerId !== this.playerId || a.state !== AnimalState.DORMANT) return false;
+      const board = this.gameState.board;
+      if (!board) return false;
+      const tile = board.tiles[a.position.y]?.[a.position.x];
+      if (!tile?.biomeId) return false;
+      const biome = this.gameState.biomes.get(tile.biomeId);
+      return biome !== undefined && biome.totalLushness >= 9.0;
+    });
+    eggs.forEach(egg => {
+      commands.push({ type: 'evolve', unitId: egg.id });
+      // Update working copy: egg becomes active and flagged moved
+      workingAnimals = workingAnimals.map(a =>
+        a.id === egg.id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
+      );
+    });
+
     // Eligible units: active, owned by this AI, and not moved yet
-    const units = animals.filter(a => a.ownerId === this.playerId && a.state === AnimalState.ACTIVE && !a.hasMoved);
+    const units = workingAnimals.filter(a => a.ownerId === this.playerId && a.state === AnimalState.ACTIVE && !a.hasMoved);
     // Biomes that can be captured (ownerId === null)
     const capturable = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId === null);
 
@@ -45,7 +65,7 @@ export class AIController {
       if (!nearest) continue;
 
       // Choose the valid move that gets closer to that biome's habitat
-      const legal = MovementController.calculateValidMoves(unit, board, animals);
+      const legal = MovementController.calculateValidMoves(unit, board, workingAnimals);
       let moveTarget = null;
       let moveDist = bestDist;
       for (const m of legal) {
@@ -57,6 +77,10 @@ export class AIController {
       }
       if (moveTarget) {
         commands.push({ type: 'move', unitId: unit.id, x: moveTarget.x, y: moveTarget.y });
+        // Update working copy to prevent later collisions
+        workingAnimals = workingAnimals.map(a =>
+          a.id === unit.id ? { ...a, position: { x: moveTarget.x, y: moveTarget.y }, hasMoved: true } : a
+        );
       }
     }
 
