@@ -87,7 +87,7 @@ export default class UIScene extends Phaser.Scene {
       'ui-energy',
       (state: GameState) => ({ energy: state.players[state.activePlayerId]?.energy ?? 0 }),
       (data) => {
-        this.energyText?.setText(`Energy: ${data.energy}`);
+        this.energyText?.setText(`Energy: ${Math.floor(data.energy)}`);
       },
       { immediate: false }
     );

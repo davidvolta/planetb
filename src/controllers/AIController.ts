@@ -60,27 +60,46 @@ export class AIController {
     const units = workingAnimals.filter(a => a.ownerId === this.playerId && a.state === AnimalState.ACTIVE && !a.hasMoved);
 
     // --- MULTI-SEEKER ASSIGNMENT ---
-    // For each capturable biome, assign the closest compatible unit (not already assigned as a seeker)
+    // For each eligible unit, assign the nearest capturable biome (no duplicates unless forced)
     this.seekerAssignments = {};
-    const assignedUnits = new Set<string>();
-    for (const b of capturable) {
-      let bestUnit: Animal | null = null;
+    const capturableBiomes = capturable.slice();
+    const unassignedUnits = units.slice();
+    const assignedBiomes = new Set<string>();
+    // 1. First, assign units already standing on a capturable biome's habitat
+    for (const unit of unassignedUnits) {
+      for (const b of capturableBiomes) {
+        if (assignedBiomes.has(b.id) && assignedBiomes.size < capturableBiomes.length) continue;
+        const { x: ux, y: uy } = unit.position;
+        const { x: bx, y: by } = b.habitat.position;
+        const habitatTile = board.tiles[by][bx];
+        if (!habitatTile) continue;
+        if (!isTerrainCompatible(unit.species, habitatTile.terrain)) continue;
+        if (ux === bx && uy === by) {
+          this.seekerAssignments[unit.id] = b.id;
+          assignedBiomes.add(b.id);
+          break; // Don't assign this unit to any other biome
+        }
+      }
+    }
+    // 2. Then, assign remaining units to their nearest capturable biome
+    for (const unit of unassignedUnits) {
+      if (this.seekerAssignments[unit.id]) continue; // Already assigned above
+      let bestBiome: Biome | null = null;
       let bestDist = Infinity;
-      for (const unit of units) {
-        if (assignedUnits.has(unit.id)) continue;
-        // Check if the unit's species is compatible with the biome's habitat terrain
+      for (const b of capturableBiomes) {
+        if (assignedBiomes.has(b.id) && assignedBiomes.size < capturableBiomes.length) continue;
         const habitatTile = board.tiles[b.habitat.position.y][b.habitat.position.x];
         if (!habitatTile) continue;
         if (!isTerrainCompatible(unit.species, habitatTile.terrain)) continue;
         const dist = Math.abs(unit.position.x - b.habitat.position.x) + Math.abs(unit.position.y - b.habitat.position.y);
         if (dist < bestDist) {
           bestDist = dist;
-          bestUnit = unit;
+          bestBiome = b;
         }
       }
-      if (bestUnit) {
-        this.seekerAssignments[bestUnit.id] = b.id;
-        assignedUnits.add(bestUnit.id);
+      if (bestBiome) {
+        this.seekerAssignments[unit.id] = bestBiome.id;
+        assignedBiomes.add(bestBiome.id);
       }
     }
 
