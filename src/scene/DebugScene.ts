@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import BoardScene from "./BoardScene";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
-import { useGameStore } from "../store/gameStore";
+import { setFogOfWarEnabled, getFogOfWarEnabled } from "../store/actions";
 
 export default class DebugScene extends Phaser.Scene {
   
@@ -50,6 +50,9 @@ export default class DebugScene extends Phaser.Scene {
     
     // Get the board scene
     this.boardScene = this.scene.get('BoardScene') as BoardScene;
+    
+    // Initialize FOW toggle from store
+    this.fowEnabled = getFogOfWarEnabled();
     
     // Create UI elements stacked from bottom to top
     this.createFowCheckbox(leftX, bottomY - 30);
@@ -302,20 +305,11 @@ export default class DebugScene extends Phaser.Scene {
   private toggleFow(): void {
     this.fowEnabled = !this.fowEnabled;
     this.fowCheckboxInner.setVisible(this.fowEnabled);
-    // Call Zustand's toggleFogOfWar action
-    useGameStore.getState().toggleFogOfWar(this.fowEnabled);
-    // Reflect FOW change immediately in the board scene
+    // Update fog-of-war state via actions
+    setFogOfWarEnabled(this.fowEnabled);
+    // Reflect change immediately in the board scene
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     boardScene.toggleFogOfWar(this.fowEnabled);
-
-    // Log AI player's fog-of-war data after toggle
-    const players = useGameStore.getState().players;
-    players.forEach(player => {
-      if (player.id !== 0) {
-        console.log(`Post-FOW toggle AI Player ${player.id} visible tiles:`, Array.from(player.visibleTiles));
-        console.log(`Post-FOW toggle AI Player ${player.id} explored tiles:`, Array.from(player.exploredTiles));
-      }
-    });
   }
 
   update() {
