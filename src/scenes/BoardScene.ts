@@ -95,10 +95,15 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("insects", "assets/resources/insects.png");
     this.load.image("plankton", "assets/resources/plankton.png");
     this.load.image("blank", "assets/blank.png");
+    this.load.image("beach", "assets/beach.png");
+    this.load.image("grass", "assets/grass.png");
+    this.load.image("water", "assets/water.png");
+    this.load.image("mountain", "assets/mountain.png");
+    this.load.image("underwater", "assets/underwater.png");
 
     this.load.on('complete', () => {
       // Set nearest filter on all loaded textures to preserve pixel-art for sprites
-      const keys = ['egg','buffalo','bird','snake','octopus','turtle','forest','kelp','insects','plankton','blank'];
+      const keys = ['egg','buffalo','bird','snake','octopus','turtle','forest','kelp','insects','plankton','blank','beach','grass','water','mountain','underwater'];
       keys.forEach(key => {
         const tex = this.textures.get(key);
         if (tex) {

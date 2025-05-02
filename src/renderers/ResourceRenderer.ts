@@ -193,25 +193,18 @@ export class ResourceRenderer extends BaseRenderer {
         const worldPosition = CoordinateUtils.gridToWorld(
           x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
         );
-        
         const worldX = worldPosition.x;
         const worldY = worldPosition.y;
-        
-        // Create a sprite to indicate blank tile
-        const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
-        
-        // Apply consistent styling
-        blankSprite.setScale(0.25);
-        blankSprite.setDepth(5);
-        blankSprite.setData('blankTileMarker', true);
-        blankSprite.setData('gridX', x);
-        blankSprite.setData('gridY', y);
-        
-        // Add to layer and to our tracking map
-        this.layerManager.addToLayer('staticObjects', blankSprite);
-        this.blankTileSprites.set(posKey, blankSprite);
-        
-        addedCount++;
+        // Commented out: visualization of blank tile sprite
+        // const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
+        // blankSprite.setScale(0.25);
+        // blankSprite.setDepth(5);
+        // blankSprite.setData('blankTileMarker', true);
+        // blankSprite.setData('gridX', x);
+        // blankSprite.setData('gridY', y);
+        // this.layerManager.addToLayer('staticObjects', blankSprite);
+        // this.blankTileSprites.set(posKey, blankSprite);
+        // addedCount++;
       }
     });
     
@@ -270,18 +263,16 @@ export class ResourceRenderer extends BaseRenderer {
         const worldPosition = CoordinateUtils.gridToWorld(
           x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
         );
-        
-        const blankSprite = this.scene.add.sprite(worldPosition.x, worldPosition.y, 'blank');
-        blankSprite.setScale(0.25);
-        blankSprite.setDepth(5);
-        blankSprite.setData('blankTileMarker', true);
-        blankSprite.setData('gridX', x);
-        blankSprite.setData('gridY', y);
-        
-        this.layerManager.addToLayer('staticObjects', blankSprite);
-        this.blankTileSprites.set(posKey, blankSprite);
-        
-        addedCount++;
+        // Commented out: visualization of blank tile sprite
+        // const blankSprite = this.scene.add.sprite(worldPosition.x, worldPosition.y, 'blank');
+        // blankSprite.setScale(0.25);
+        // blankSprite.setDepth(5);
+        // blankSprite.setData('blankTileMarker', true);
+        // blankSprite.setData('gridX', x);
+        // blankSprite.setData('gridY', y);
+        // this.layerManager.addToLayer('staticObjects', blankSprite);
+        // this.blankTileSprites.set(posKey, blankSprite);
+        // addedCount++;
       } else if (!isBlank && hasSprite) {
         // Need to remove a blank tile marker
         const sprite = this.blankTileSprites.get(posKey);

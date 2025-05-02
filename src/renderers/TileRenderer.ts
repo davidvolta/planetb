@@ -70,6 +70,95 @@ export class TileRenderer extends BaseRenderer {
         
         // Add interaction data to the tile
         this.setupTileInteraction(tile, x, y);
+
+        // --- BEACH SPRITE OVERLAY ---
+        if (terrain === TerrainType.BEACH) {
+          // Add a sprite using the 'beach' asset, centered and scaled
+          const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, 'beach');
+          // Center the sprite on the tile
+          sprite.setOrigin(0.5, 0.5);
+          // Scale the sprite to fit tileSize x tileHeight (preserve aspect ratio)
+          const nativeWidth = 192;
+          const nativeHeight = 96;
+          const scaleX = this.tileSize / nativeWidth;
+          const scaleY = this.tileHeight / nativeHeight;
+          // Use the smaller scale to fit within the tile
+          const scale = Math.min(scaleX, scaleY);
+          sprite.setScale(scale);
+          // Set depth to 1.5 (between ground and units)
+          sprite.setDepth(1.5);
+          // Add to the terrain layer
+          this.layerManager.addToLayer('terrain', sprite);
+        }
+
+        // --- GRASS SPRITE OVERLAY ---
+        if (terrain === TerrainType.GRASS) {
+          // Add a sprite using the 'grass' asset, centered and scaled
+          const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, 'grass');
+          // Center the sprite on the tile
+          sprite.setOrigin(0.5, 0.5);
+          // Scale the sprite to fit tileSize x tileHeight (preserve aspect ratio)
+          const nativeWidth = 192;
+          const nativeHeight = 96;
+          const scaleX = this.tileSize / nativeWidth;
+          const scaleY = this.tileHeight / nativeHeight;
+          // Use the smaller scale to fit within the tile
+          const scale = Math.min(scaleX, scaleY);
+          sprite.setScale(scale);
+          // Set depth to 1.5 (between ground and units)
+          sprite.setDepth(1.5);
+          // Add to the terrain layer
+          this.layerManager.addToLayer('terrain', sprite);
+        }
+
+        // --- WATER SPRITE OVERLAY ---
+        if (terrain === TerrainType.WATER) {
+          // Add a sprite using the 'water' asset, centered and scaled
+          const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, 'water');
+          // Center the sprite on the tile
+          sprite.setOrigin(0.5, 0.5);
+          // Scale the sprite to fit tileSize x tileHeight (preserve aspect ratio)
+          const nativeWidth = 192;
+          const nativeHeight = 96;
+          const scaleX = this.tileSize / nativeWidth;
+          const scaleY = this.tileHeight / nativeHeight;
+          // Use the smaller scale to fit within the tile
+          const scale = Math.min(scaleX, scaleY);
+          sprite.setScale(scale);
+          // Set depth to 1.5 (between ground and units)
+          sprite.setDepth(1.5);
+          // Add to the terrain layer
+          this.layerManager.addToLayer('terrain', sprite);
+        }
+
+        // --- MOUNTAIN SPRITE OVERLAY ---
+        if (terrain === TerrainType.MOUNTAIN) {
+          // Add a sprite using the 'mountain' asset, centered and scaled
+          const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, 'mountain');
+          sprite.setOrigin(0.5, 0.5);
+          const nativeWidth = 192;
+          const nativeHeight = 96;
+          const scaleX = this.tileSize / nativeWidth;
+          const scaleY = this.tileHeight / nativeHeight;
+          const scale = Math.min(scaleX, scaleY);
+          sprite.setScale(scale);
+          sprite.setDepth(1.5);
+          this.layerManager.addToLayer('terrain', sprite);
+        }
+        // --- UNDERWATER SPRITE OVERLAY ---
+        if (terrain === TerrainType.UNDERWATER) {
+          // Add a sprite using the 'underwater' asset, centered and scaled
+          const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, 'underwater');
+          sprite.setOrigin(0.5, 0.5);
+          const nativeWidth = 192;
+          const nativeHeight = 96;
+          const scaleX = this.tileSize / nativeWidth;
+          const scaleY = this.tileHeight / nativeHeight;
+          const scale = Math.min(scaleX, scaleY);
+          sprite.setScale(scale);
+          sprite.setDepth(1.5);
+          this.layerManager.addToLayer('terrain', sprite);
+        }
       }
     }
     
