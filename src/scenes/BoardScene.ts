@@ -101,9 +101,22 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("mountain", "assets/mountain.png");
     this.load.image("underwater", "assets/underwater.png");
 
+    // Preload colored animal sprites for both players
+    this.load.image("snake-red", "assets/animals/snake/snake-red.png");
+    this.load.image("snake-blue", "assets/animals/snake/snake-blue.png");
+    this.load.image("bird-red", "assets/animals/bird/bird-red.png");
+    this.load.image("bird-blue", "assets/animals/bird/bird-blue.png");
+    this.load.image("buffalo-red", "assets/animals/buffalo/buffalo-red.png");
+    this.load.image("buffalo-blue", "assets/animals/buffalo/buffalo-blue.png");
+    this.load.image("octopus-red", "assets/animals/octopus/octopus-red.png");
+    this.load.image("octopus-blue", "assets/animals/octopus/octopus-blue.png");
+    this.load.image("turtle-red", "assets/animals/turtle/turtle-red.png");
+    this.load.image("turtle-blue", "assets/animals/turtle/turtle-blue.png");
+
     this.load.on('complete', () => {
       // Set nearest filter on all loaded textures to preserve pixel-art for sprites
-      const keys = ['egg','buffalo','bird','snake','octopus','turtle','forest','kelp','insects','plankton','blank','beach','grass','water','mountain','underwater'];
+      const keys = ['egg','buffalo','bird','snake','octopus','turtle','forest','kelp','insects','plankton','blank','beach','grass','water','mountain','underwater',
+        'snake-red','snake-blue','bird-red','bird-blue','buffalo-red','buffalo-blue','octopus-red','octopus-blue','turtle-red','turtle-blue'];
       keys.forEach(key => {
         const tex = this.textures.get(key);
         if (tex) {

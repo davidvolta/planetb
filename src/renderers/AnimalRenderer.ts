@@ -60,8 +60,24 @@ export class AnimalRenderer extends BaseRenderer {
       const worldX = worldPosition.x;
       const worldY = worldPosition.y + this.verticalOffset;
       
-      // Determine the texture based on animal state
-      const textureKey = animal.state === AnimalState.DORMANT ? 'egg' : animal.species;
+      // Determine the texture based on animal state and player
+      let textureKey: string;
+      if (animal.state === AnimalState.DORMANT) {
+        textureKey = 'egg';
+      } else {
+        // Use colored sprite based on ownerId
+        if (animal.ownerId === 0) {
+          textureKey = `${animal.species}-red`;
+        } else if (animal.ownerId === 1) {
+          textureKey = `${animal.species}-blue`;
+        } else {
+          textureKey = animal.species; // fallback to flat asset
+        }
+        // Fallback: if the texture is not loaded, use the flat asset
+        if (!this.scene.textures.exists(textureKey)) {
+          textureKey = animal.species;
+        }
+      }
       
       // Determine if the unit is active (for depth calculation)
       const isActive = animal.state === AnimalState.ACTIVE;
