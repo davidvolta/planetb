@@ -471,7 +471,7 @@ export class EcosystemController {
   ): { animals: Animal[]; biomes: Map<string, Biome> } {
     // Check existence and ownership
     const biome = biomes.get(biomeId);
-    if (!biome || biome.ownerId !== null) {
+    if (!biome || biome.ownerId === currentPlayerId) {
       return { animals: [...animals], biomes: new Map(biomes) };
     }
     // Update biome ownership and timing
@@ -502,6 +502,19 @@ export class EcosystemController {
         a.id === unitId ? { ...a, hasMoved: true } : a
       );
     }
+    // Transfer ownership of all dormant units (eggs) in this biome to the new owner
+    newAnimals = newAnimals.map(a => {
+      const tile = board.tiles[a.position.y]?.[a.position.x];
+      if (
+        tile &&
+        tile.biomeId === biomeId &&
+        a.state === AnimalState.DORMANT &&
+        a.ownerId !== currentPlayerId
+      ) {
+        return { ...a, ownerId: currentPlayerId };
+      }
+      return a;
+    });
     return { animals: newAnimals, biomes: newBiomes };
   }
 
@@ -520,9 +533,9 @@ export class EcosystemController {
     biomes: Map<string, Biome>,
     currentPlayerId: number
   ): boolean {
-    // Can't capture if nonexistent or already owned
+    // Can't capture if nonexistent or already owned by this player
     const biome = biomes.get(biomeId);
-    if (!biome || biome.ownerId !== null) {
+    if (!biome || biome.ownerId === currentPlayerId) {
       return false;
     }
     // Is there an alive, active unit of the current player on that habitat?

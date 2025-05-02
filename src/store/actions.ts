@@ -315,14 +315,8 @@ export async function captureBiome(biomeId: string): Promise<void> {
       state.activePlayerId,
       state.turn
     );
-  // Always mark the harvesting unit as having moved
-  const updatedAnimals = state.animals.map(a =>
-    a.id === newAnimals.find(animal => animal.state === AnimalState.ACTIVE)?.id
-      ? { ...a, hasMoved: true }
-      : a
-  );
-  // Commit updated state
-  useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: updatedAnimals });
+  // Commit updated state with new animal list (capture effects and egg ownership transfers)
+  useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: newAnimals });
   // Recalculate lushness for this biome
   await updateBiomeLushness(biomeId);
   console.log(`Updated lushness for biome ${biomeId} after capture`);

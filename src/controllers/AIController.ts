@@ -26,7 +26,7 @@ export class AIController {
     // Helper: Get all biomes owned by this player
     const ownedBiomes = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId === this.playerId);
     // Helper: Get all capturable biomes
-    const capturable = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId === null);
+    const capturable = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId !== this.playerId);
 
     // Helper: Track egg production per biome (dormant units in biome)
     const biomeHasEgg = new Map<string, boolean>();

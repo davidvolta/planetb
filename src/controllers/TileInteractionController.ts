@@ -56,7 +56,7 @@ export class TileInteractionController {
     const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
     const biomesAtLocation = habitatTiles
       .map(({ tile }) => actions.getBiomes().get(tile.biomeId!))
-      .filter((b): b is Biome => !!b && (b.ownerId === playerId || b.ownerId === null));
+      .filter((b): b is Biome => !!b);
 
     // Build list of handlers in priority order
     const handlers: ((x: number, y: number) => void)[] = [];
