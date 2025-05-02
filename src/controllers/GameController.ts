@@ -1,15 +1,18 @@
 import type BoardScene from '../scenes/BoardScene';
 import * as actions from '../store/actions';
 import type { Coordinate } from '../store/gameStore';
+import { VisibilityController } from './VisibilityController';
 
 /**
  * Facade for executing game commands (player actions) with animation and state updates.
  */
 export class GameController {
   private boardScene: BoardScene;
+  private visibilityController: VisibilityController;
 
-  constructor(boardScene: BoardScene) {
+  constructor(boardScene: BoardScene, visibilityController: VisibilityController) {
     this.boardScene = boardScene;
+    this.visibilityController = visibilityController;
   }
 
   /**
@@ -29,6 +32,11 @@ export class GameController {
 
     // Update unit position in game state after moving
     actions.moveUnit(unitId, x, y);
+
+    // Reveal fog-of-war around the destination
+    if (actions.getFogOfWarEnabled()) {
+      this.visibilityController.revealAround(x, y);
+    }
   }
 
   /**

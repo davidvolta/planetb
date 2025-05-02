@@ -16,7 +16,10 @@ export class TurnController {
   private mode: GameMode;
 
   constructor(boardScene: BoardScene, mode: GameMode = 'pve') {
-    this.gameController = new GameController(boardScene);
+    this.gameController = new GameController(
+      boardScene,
+      boardScene.getVisibilityController()
+    );
     this.mode = mode;
   }
 
@@ -89,17 +92,14 @@ export class TurnController {
    * Execute AI actions for a player.
    */
   private async handleAITurn(playerId: number): Promise<void> {
-    console.log(`Starting AI turn for player ${playerId}`);
     const board = actions.getBoard();
     const animals = actions.getAnimals();
     const biomes = actions.getBiomes();
     const gameState = { board, animals, biomes } as any;
     const ai = new AIController(gameState, playerId);
     const commands = ai.generateCommands();
-    console.log('AI generated commands:', commands);
     const executor = new CommandExecutor(this.gameController);
     await executor.runAll(commands);
     await this.gameController.endCurrentPlayerTurn();
-    console.log(`Ended AI turn for player ${playerId}`);
   }
 } 

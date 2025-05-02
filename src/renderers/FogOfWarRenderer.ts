@@ -14,7 +14,7 @@ export class FogOfWarRenderer extends BaseRenderer {
   private readonly fogColor: number = 0x000000;
   private readonly fogStrokeColor: number = 0x222222;
   private readonly fogStrokeWidth: number = 1;
-  private readonly fadeAnimationDuration: number = 150; // ms
+  private readonly fadeAnimationDuration: number = 50; // ms (faster fade)
   
   // Callback for when tile visibility changes
   private onTileVisibilityChange: ((x: number, y: number, isVisible: boolean) => void) | null = null;

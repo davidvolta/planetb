@@ -53,6 +53,8 @@ export class CommandExecutor {
   public async runAll(cmds: GameCommand[]): Promise<void> {
     for (const cmd of cmds) {
       await this.execute(cmd);
+      // Debug: pause between AI commands to visually confirm fog updates
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
 } 

@@ -319,7 +319,6 @@ export async function captureBiome(biomeId: string): Promise<void> {
   useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: newAnimals });
   // Recalculate lushness for this biome
   await updateBiomeLushness(biomeId);
-  console.log(`Updated lushness for biome ${biomeId} after capture`);
 }
 
 /**

@@ -19,6 +19,7 @@ import { FogOfWarRenderer } from '../renderers/FogOfWarRenderer';
 import { TILE_SIZE, TILE_HEIGHT } from '../constants/gameConfig';
 import { TileInteractionController } from "../controllers/TileInteractionController";
 import { GameController } from '../controllers/GameController';
+import { VisibilityController } from '../controllers/VisibilityController';
 
 // Custom event names
 export const EVENTS = {
@@ -61,6 +62,9 @@ export default class BoardScene extends Phaser.Scene {
 
   private fogOfWarEnabled = true;
 
+  // New visibility controller
+  private visibilityController: VisibilityController;
+
   constructor() {
     super({ key: "BoardScene" });
     
@@ -79,6 +83,8 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.resourceRenderer = new ResourceRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    // Initialize visibility controller for fog-of-war
+    this.visibilityController = new VisibilityController(this.fogOfWarRenderer);
   }
 
   // Preload assets needed for the scene
@@ -168,7 +174,7 @@ export default class BoardScene extends Phaser.Scene {
     console.log("BoardScene create() called", this.scene.key);
     
     // Initialize the GameController for scene-driven actions
-    this.gameController = new GameController(this);
+    this.gameController = new GameController(this, this.visibilityController);
     this.cameraManager.initialize();   // Initialize camera manager
     this.setupInputHandlers();  // Set up input handlers
     const board = actions.getBoard(); // Get board data
@@ -304,21 +310,6 @@ export default class BoardScene extends Phaser.Scene {
     return this.animalRenderer.getSpriteById(unitId);
   }
 
-  // Helper to reveal fog of war around a given tile
-  private revealFogAt(x: number, y: number): void {
-    const board = actions.getBoard();
-    if (!board) return;
-    const tilesToReveal = CoordinateUtils.getAdjacentTiles(x, y, board.width, board.height);
-    actions.updateTilesVisibility(tilesToReveal.map(tile => ({ x: tile.x, y: tile.y, visible: true })));
-    const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tilesToReveal);
-    this.fogOfWarRenderer.revealTiles(uniqueTiles);
-  }
-
-  // Clear all move highlights
-  clearMoveHighlights() {
-    this.moveRangeRenderer.clearMoveHighlights();     // Delegate to the move range renderer
-  }
-
   // Start movement animation of a unit
   private async startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
     // Lookup the unit sprite directly
@@ -332,9 +323,9 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.clearMoveHighlights();
     this.selectionRenderer.hideSelection();
     
-    // If fog of war is enabled, reveal around the destination
+    // If fog of war is enabled, reveal around the destination via VisibilityController
     if (this.fogOfWarEnabled) {
-      this.revealFogAt(toX, toY);
+      this.visibilityController.revealAround(toX, toY);
     }
     
     // Execute movement with animation and state update via GameController
@@ -346,7 +337,7 @@ export default class BoardScene extends Phaser.Scene {
     if (this.fogOfWarEnabled && unitId) {
       const unit = actions.getAnimals().find(a => a.id === unitId);
       if (unit) {
-        this.revealFogAt(unit.position.x, unit.position.y);
+        this.visibilityController.revealAround(unit.position.x, unit.position.y);
       }
     }
     actions.clearSpawnEvent();
@@ -412,9 +403,9 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
-    // If fog of war is enabled, reveal around the destination
+    // If fog of war is enabled, reveal around the destination via VisibilityController
     if (this.fogOfWarEnabled) {
-      this.revealFogAt(toX, toY);
+      this.visibilityController.revealAround(toX, toY);
     }
     
     // Animate displacement and update state
@@ -599,5 +590,12 @@ export default class BoardScene extends Phaser.Scene {
    */
   public getGameController(): GameController {
     return this.gameController;
+  }
+
+  /**
+   * Get the visibility controller for fog-of-war operations.
+   */
+  public getVisibilityController(): VisibilityController {
+    return this.visibilityController;
   }
 }
