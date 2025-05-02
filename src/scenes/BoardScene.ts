@@ -85,11 +85,11 @@ export default class BoardScene extends Phaser.Scene {
   preload() {
     // Load all animal sprites
     this.load.image("egg", "assets/egg.png");  
-    this.load.image("buffalo", "assets/buffalo.png");
-    this.load.image("bird", "assets/bird.png"); 
-    this.load.image("snake", "assets/snake.png");
-    this.load.image("octopus", "assets/octopus.png");
-    this.load.image("turtle", "assets/turtle.png");
+    this.load.image("buffalo", "assets/animals/buffalo/buffalo.png");
+    this.load.image("bird", "assets/animals/bird/bird.png"); 
+    this.load.image("snake", "assets/animals/snake/snake.png");
+    this.load.image("octopus", "assets/animals/octopus/octopus.png");
+    this.load.image("turtle", "assets/animals/turtle/turtle.png");
     this.load.image("forest", "assets/resources/forest.png");
     this.load.image("kelp", "assets/resources/kelp.png");
     this.load.image("insects", "assets/resources/insects.png");

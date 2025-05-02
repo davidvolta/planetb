@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
-import { getBoard, getBiomes } from '../store/actions';
+import { getBoard, getBiomes, getPlayers } from '../store/actions';
 import type { Biome } from '../store/gameStore';
 
 /**
@@ -62,9 +62,10 @@ export class BiomeRenderer extends BaseRenderer {
    * @param gridY Grid Y coordinate (not world coordinate)
    * @param isCaptured Whether the biome is captured (has an owner)
    * @param lushness The lushness value of the biome (0-10)
+   * @param biomeId ID of the biome
    * @returns A container with the biome graphic
    */
-  private createBiomeGraphic(gridX: number, gridY: number, isCaptured: boolean, lushness: number): Phaser.GameObjects.Container {
+  private createBiomeGraphic(gridX: number, gridY: number, isCaptured: boolean, lushness: number, biomeId?: string): Phaser.GameObjects.Container {
     // Convert grid coordinates to world coordinates
     const worldPosition = CoordinateUtils.gridToWorld(
       gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
@@ -111,6 +112,27 @@ export class BiomeRenderer extends BaseRenderer {
     }
     graphics.closePath();
     graphics.fillPath();
+    
+    // --- PLAYER COLOR STROKE FOR OWNED HABITATS ---
+    if (isCaptured && biomeId !== undefined) {
+      // Get the player color from the game state
+      const players = getPlayers();
+      const biome = getBiomes().get(biomeId);
+      const ownerId = biome?.ownerId;
+      const player = players.find(p => p.id === ownerId);
+      if (player && player.color) {
+        // Convert hex color string to number
+        const colorNum = parseInt(player.color.replace('#', ''), 16);
+        graphics.lineStyle(1, colorNum, 1);
+        graphics.beginPath();
+        graphics.moveTo(diamondPoints[0].x, diamondPoints[0].y);
+        for (let i = 1; i < diamondPoints.length; i++) {
+          graphics.lineTo(diamondPoints[i].x, diamondPoints[i].y);
+        }
+        graphics.closePath();
+        graphics.strokePath();
+      }
+    }
     
     // Add the graphics to the container
     container.add(graphics);
@@ -186,7 +208,7 @@ export class BiomeRenderer extends BaseRenderer {
    * Render a single biome with its properties
    */
   private drawBiome(id: string, x: number, y: number, isCaptured: boolean, lushness: number): void {
-    const graphic = this.createBiomeGraphic(x, y, isCaptured, lushness);
+    const graphic = this.createBiomeGraphic(x, y, isCaptured, lushness, id);
     graphic.setData('biomeId', id);
     graphic.setData('gridX', x);
     graphic.setData('gridY', y);
