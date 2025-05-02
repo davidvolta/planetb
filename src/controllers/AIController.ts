@@ -59,47 +59,78 @@ export class AIController {
     // Eligible units: active, owned by this AI, and not moved yet
     const units = workingAnimals.filter(a => a.ownerId === this.playerId && a.state === AnimalState.ACTIVE && !a.hasMoved);
 
+    // --- DEFENSE ASSIGNMENT ---
+    const defenderAssignments: Record<string, string> = {};
+    const defenderAssignedUnits = new Set<string>();
+    const aiOwnedBiomes = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId === this.playerId);
+    for (const b of aiOwnedBiomes) {
+      const hx = b.habitat.position.x;
+      const hy = b.habitat.position.y;
+      // Threat if any enemy unit within 2 tiles
+      const threat = workingAnimals.some(a => a.ownerId !== this.playerId && Math.abs(a.position.x - hx) + Math.abs(a.position.y - hy) <= 2);
+      if (!threat) continue;
+      let bestUnit: Animal | null = null;
+      let bestDist = Infinity;
+      for (const unit of units) {
+        if (defenderAssignedUnits.has(unit.id)) continue;
+        const dist = Math.abs(unit.position.x - hx) + Math.abs(unit.position.y - hy);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestUnit = unit;
+        }
+      }
+      if (bestUnit) {
+        defenderAssignments[bestUnit.id] = b.id;
+        defenderAssignedUnits.add(bestUnit.id);
+      }
+    }
+
     // --- MULTI-SEEKER ASSIGNMENT ---
-    // For each eligible unit, assign the nearest capturable biome (no duplicates unless forced)
     this.seekerAssignments = {};
     const capturableBiomes = capturable.slice();
-    const unassignedUnits = units.slice();
+    const unassignedUnits = units.filter(u => !defenderAssignedUnits.has(u.id));
+    const assignedUnits = new Set<string>(defenderAssignedUnits);
     const assignedBiomes = new Set<string>();
-    // 1. First, assign units already standing on a capturable biome's habitat
+    const occupancyPenalty = 2;
+    // 1. Units already on target habitat (seeker)
     for (const unit of unassignedUnits) {
       for (const b of capturableBiomes) {
-        if (assignedBiomes.has(b.id) && assignedBiomes.size < capturableBiomes.length) continue;
+        if (assignedBiomes.has(b.id)) continue;
         const { x: ux, y: uy } = unit.position;
         const { x: bx, y: by } = b.habitat.position;
-        const habitatTile = board.tiles[by][bx];
-        if (!habitatTile) continue;
-        if (!isTerrainCompatible(unit.species, habitatTile.terrain)) continue;
         if (ux === bx && uy === by) {
           this.seekerAssignments[unit.id] = b.id;
+          assignedUnits.add(unit.id);
           assignedBiomes.add(b.id);
-          break; // Don't assign this unit to any other biome
+          break;
         }
       }
     }
-    // 2. Then, assign remaining units to their nearest capturable biome
+    // 2. Weighted occupancy seekers
+    const targets = capturableBiomes.map(b => {
+      const hx = b.habitat.position.x;
+      const hy = b.habitat.position.y;
+      const occupied = workingAnimals.some(a => a.position.x === hx && a.position.y === hy);
+      return { biome: b, hx, hy, occupied };
+    });
     for (const unit of unassignedUnits) {
-      if (this.seekerAssignments[unit.id]) continue; // Already assigned above
-      let bestBiome: Biome | null = null;
-      let bestDist = Infinity;
-      for (const b of capturableBiomes) {
-        if (assignedBiomes.has(b.id) && assignedBiomes.size < capturableBiomes.length) continue;
-        const habitatTile = board.tiles[b.habitat.position.y][b.habitat.position.x];
-        if (!habitatTile) continue;
-        if (!isTerrainCompatible(unit.species, habitatTile.terrain)) continue;
-        const dist = Math.abs(unit.position.x - b.habitat.position.x) + Math.abs(unit.position.y - b.habitat.position.y);
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestBiome = b;
+      if (assignedUnits.has(unit.id)) continue;
+      let bestTarget: { biome: Biome; hx: number; hy: number; occupied: boolean } | null = null;
+      let bestScore = Infinity;
+      for (const t of targets) {
+        if (assignedBiomes.has(t.biome.id)) continue;
+        if (!isTerrainCompatible(unit.species, board.tiles[t.hy][t.hx].terrain)) continue;
+        const dist = Math.abs(unit.position.x - t.hx) + Math.abs(unit.position.y - t.hy);
+        const score = dist + (t.occupied ? 0 : occupancyPenalty);
+        if (score < bestScore) {
+          bestScore = score;
+          bestTarget = t;
         }
       }
-      if (bestBiome) {
-        this.seekerAssignments[unit.id] = bestBiome.id;
-        assignedBiomes.add(bestBiome.id);
+      if (bestTarget) {
+        this.seekerAssignments[unit.id] = bestTarget.biome.id;
+        assignedUnits.add(unit.id);
+        assignedBiomes.add(bestTarget.biome.id);
       }
     }
 
@@ -107,6 +138,32 @@ export class AIController {
     for (const unit of units) {
       const { x: ux, y: uy } = unit.position;
       const tile = board.tiles[uy]?.[ux];
+      // Defense override
+      const defendTarget = defenderAssignments[unit.id];
+      if (defendTarget) {
+        const { x: bx, y: by } = this.gameState.biomes.get(defendTarget)!.habitat.position;
+        // Move back to habitat if not already there
+        if (ux !== bx || uy !== by) {
+          const legal = MovementController.calculateValidMoves(unit, board, workingAnimals);
+          let moveTarget = null;
+          let bestDist = Math.abs(ux - bx) + Math.abs(uy - by);
+          for (const m of legal) {
+            const dist = Math.abs(m.x - bx) + Math.abs(m.y - by);
+            if (dist < bestDist) {
+              bestDist = dist;
+              moveTarget = m;
+            }
+          }
+          if (moveTarget) {
+            commands.push({ type: 'move', unitId: unit.id, x: moveTarget.x, y: moveTarget.y });
+            workingAnimals = workingAnimals.map(a =>
+              a.id === unit.id ? { ...a, position: { x: moveTarget.x, y: moveTarget.y }, hasMoved: true } : a
+            );
+          }
+        }
+        continue;
+      }
+
       const biomeId = tile?.biomeId;
       const seekerTargetBiomeId = this.seekerAssignments[unit.id];
       const isSeeker = !!seekerTargetBiomeId;
