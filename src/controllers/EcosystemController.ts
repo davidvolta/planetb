@@ -232,6 +232,16 @@ export class EcosystemController {
     board: Board
   ): BiomeProductionResult {
 
+    // Only produce eggs on even turns
+    if (turn % 2 !== 0) {
+      // Just update lastProductionTurn for all biomes and return
+      const updatedBiomes: Map<string, Biome> = new Map(biomes);
+      biomes.forEach((biome, biomeId) => {
+        updatedBiomes.set(biomeId, { ...biome, lastProductionTurn: turn });
+      });
+      return { animals: [...animals], biomes: updatedBiomes };
+    }
+
     const newAnimals: Animal[] = [...animals];
     const updatedBiomes: Map<string, Biome> = new Map(biomes);
 
