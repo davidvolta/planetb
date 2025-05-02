@@ -1,7 +1,7 @@
 import { StateObserver } from '../utils/stateObserver';
 import { Animal, ValidMove, Biome } from '../store/gameStore';
 import * as actions from '../store/actions';
-import BoardScene from '../scenes/BoardScene';
+import BoardScene from '../scene/BoardScene';
 import { SelectionRenderer, SelectionType } from '../renderers/SelectionRenderer';
 import { TileRenderer } from '../renderers/TileRenderer';
 import { AnimalRenderer } from '../renderers/AnimalRenderer';

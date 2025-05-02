@@ -1,7 +1,7 @@
-import type BoardScene from '../scenes/BoardScene';
+import type BoardScene from '../scene/BoardScene';
 import * as actions from '../store/actions';
 import type { Coordinate } from '../store/gameStore';
-import { VisibilityController } from './VisibilityController';
+import { VisibilityController } from '../controllers/VisibilityController';
 
 /**
  * Facade for executing game commands (player actions) with animation and state updates.

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import BoardScene, { EVENTS } from './scenes/BoardScene';
-import DebugScene from './scenes/DebugScene';
-import UIScene from './scenes/UIScene';
+import BoardScene, { EVENTS } from './scene/BoardScene';
+import DebugScene from './scene/DebugScene';
+import UIScene from './scene/UIScene';
 import { useGameStore } from './store/gameStore';
 import * as actions from './store/actions';
 import { GAME_WIDTH, GAME_HEIGHT, BOARD_WIDTH_TILES, BOARD_HEIGHT_TILES } from './constants/gameConfig';

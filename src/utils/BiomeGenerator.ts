@@ -1,4 +1,4 @@
-import { Habitat, TerrainType } from "../store/gameStore";
+import { TerrainType } from "../store/gameStore";
 import { calculateManhattanDistance } from "./CoordinateUtils";
 
 /**

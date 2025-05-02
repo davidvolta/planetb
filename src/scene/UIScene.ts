@@ -3,9 +3,9 @@ import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import { GameState, Biome } from '../store/gameStore';
 import type BoardScene from './BoardScene';
-import { TurnController } from '../controllers/TurnController';
-import type { GameController } from '../controllers/GameController';
-import { CommandExecutor } from '../controllers/CommandExecutor';
+import { TurnController } from '../game/TurnController';
+import type { GameController } from '../game/GameController';
+import { CommandExecutor } from '../game/CommandExecutor';
 
 export default class UIScene extends Phaser.Scene {
   private turnText: Phaser.GameObjects.Text | null = null;

@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { TerrainType, Biome } from '../store/gameStore';
+import { TerrainType } from '../store/gameStore';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';

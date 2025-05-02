@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { EcosystemController } from "../controllers/EcosystemController";
-import { initializeBoard as initGameBoard } from '../controllers/GameInitializer';
+import { initializeBoard as initGameBoard } from '../game/GameInitializer';
 import { MovementController } from "../controllers/MovementController";
 
 // Coordinate system for tiles

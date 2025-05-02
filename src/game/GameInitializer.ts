@@ -34,16 +34,13 @@ export function initializeBoard(
         hasEgg: false
       };
     }
-   // tiles.push(row);
   }
   const board: Board = { width, height, tiles };
 
-  // Prepare for biome generation
   let animals: Animal[] = [];
   const voronoiNodes: VoronoiNode[] = [];
   const terrainTypesWithNodes = new Set<TerrainType>();
 
-  // Place one node for each biome type
   for (const terrainType of BIOME_TERRAIN_ORDER) {
     if (terrainTypesWithNodes.has(terrainType)) continue;
     const candidates: { x: number; y: number }[] = [];
@@ -60,7 +57,6 @@ export function initializeBoard(
     terrainTypesWithNodes.add(terrainType);
   }
 
-  // Place additional nodes until no more can fit
   let placed = true;
   let iterations = 0;
   while (placed && iterations < 100) {
@@ -85,12 +81,10 @@ export function initializeBoard(
     }
   }
 
-  // Generate biomes
   const biomeResult = generateVoronoiBiomes(width, height, voronoiNodes, terrainData);
   const biomeMap = biomeResult.biomeMap;
   const biomes = new Map<string, Biome>();
 
-  // Initialize all biomes with no owner; assign habitats later
   voronoiNodes.forEach(node => {
     const id = node.id;
     const pos = node.position;
@@ -112,7 +106,6 @@ export function initializeBoard(
     });
   });
 
-  // Assign biomes to tiles and mark habitats
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       board.tiles[y][x].biomeId = biomeMap[y][x];
@@ -123,7 +116,6 @@ export function initializeBoard(
     board.tiles[y][x].isHabitat = true;
   });
 
-  // Assign first numPlayers beach biomes as starting regions for players 0..numPlayers-1
   const beachBiomes = Array.from(biomes.values()).filter(b =>
     terrainData[b.habitat.position.y][b.habitat.position.x] === TerrainType.BEACH
   );
@@ -131,7 +123,6 @@ export function initializeBoard(
     beachBiomes[i].ownerId = i;
   }
 
-  // Place initial player unit(s) adjacent to each starting habitat
   for (let playerId = 0; playerId < numPlayers; playerId++) {
     const startingBiome = Array.from(biomes.values()).find(b => b.ownerId === playerId);
     if (!startingBiome) continue;
@@ -167,4 +158,4 @@ export function initializeBoard(
   }
 
   return { board, animals, biomes };
-} 
+}

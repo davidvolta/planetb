@@ -18,8 +18,12 @@ import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
 import { FogOfWarRenderer } from '../renderers/FogOfWarRenderer';
 import { TILE_SIZE, TILE_HEIGHT } from '../constants/gameConfig';
 import { TileInteractionController } from "../controllers/TileInteractionController";
-import { GameController } from '../controllers/GameController';
 import { VisibilityController } from '../controllers/VisibilityController';
+import { GameController } from '../game/GameController';
+import { SceneInitializer } from './init/SceneInitializer';
+import { SubscriptionBinder } from './setup/SubscriptionBinder';
+import { InputBinder } from './setup/InputBinder';
+import { CommandExecutor } from '../game/CommandExecutor';
 
 // Custom event names
 export const EVENTS = {
@@ -170,20 +174,25 @@ export default class BoardScene extends Phaser.Scene {
   }
   
   // Create and set up the scene
-  create() {
+  public create(): void {
     console.log("BoardScene create() called", this.scene.key);
-    
-    // Initialize the GameController for scene-driven actions
-    this.gameController = new GameController(this, this.visibilityController);
-    this.cameraManager.initialize();   // Initialize camera manager
-    this.setupInputHandlers();  // Set up input handlers
-    const board = actions.getBoard(); // Get board data
-    
+
+    // Step 1: Initialize GameController and animation/camera systems
+    const initializer = new SceneInitializer(this);
+    this.gameController = initializer.run();
+
+    // Step 2: Setup state subscriptions
+    const subscriptions = new SubscriptionBinder(this);
+    subscriptions.bind();
+
+    // Step 3: Bind user input
+    const input = new InputBinder(this);
+    input.bind();
+
+    // Step 4: Create board tiles
+    const board = actions.getBoard();
     if (board) {
-      this.createTiles();    // Create board tiles    
-      this.setupSubscriptions();   // Set up state subscriptions
-      
-      // Center camera on player's first unit
+      this.createTiles();
       this.cameraManager.centerCameraOnPlayerUnit(
         this.tileSize,
         this.tileHeight,
@@ -191,6 +200,11 @@ export default class BoardScene extends Phaser.Scene {
         this.anchorY
       );
     }
+
+    // Step 5: Launch overlays
+    const executor = new CommandExecutor(this.gameController);
+    this.scene.launch('UIScene', { executor });
+    this.scene.launch('DebugScene', { debugConfig: { showFps: true } });
   }
   
   // Set up subscriptions to state changes
@@ -333,7 +347,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Handle unit spawned events
-  private handleUnitSpawned(unitId: string) {
+  public handleUnitSpawned(unitId: string) {
     if (this.fogOfWarEnabled && unitId) {
       const unit = actions.getAnimals().find(a => a.id === unitId);
       if (unit) {
@@ -344,7 +358,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Handle unit selection (UI now via subscription manager)
-  private handleUnitSelection(unitId: string | null) {
+  public handleUnitSelection(unitId: string | null) {
     actions.selectUnit(unitId);
   }
 
@@ -597,5 +611,77 @@ export default class BoardScene extends Phaser.Scene {
    */
   public getVisibilityController(): VisibilityController {
     return this.visibilityController;
+  }
+
+  /**
+   * Get the LayerManager instance.
+   */
+  public getLayerManager(): LayerManager {
+    return this.layerManager;
+  }
+
+  /**
+   * Get the StateSubscriptionManager instance.
+   */
+  public getSubscriptionManager(): StateSubscriptionManager {
+    return this.subscriptionManager;
+  }
+
+  /**
+   * Get the TileRenderer instance.
+   */
+  public getTileRenderer(): TileRenderer {
+    return this.tileRenderer;
+  }
+
+  /**
+   * Get the MoveRangeRenderer instance.
+   */
+  public getMoveRangeRenderer(): MoveRangeRenderer {
+    return this.moveRangeRenderer;
+  }
+
+  /**
+   * Get the BiomeRenderer instance.
+   */
+  public getBiomeRenderer(): BiomeRenderer {
+    return this.biomeRenderer;
+  }
+
+  /**
+   * Get the ResourceRenderer instance.
+   */
+  public getResourceRenderer(): ResourceRenderer {
+    return this.resourceRenderer;
+  }
+
+  /**
+   * Get the SelectionRenderer instance.
+   */
+  public getSelectionRenderer(): SelectionRenderer {
+    return this.selectionRenderer;
+  }
+
+  /**
+   * Updates the fog-of-war visuals when the active player changes.
+   * This is called by SubscriptionBinder.
+   */
+  public updateFogForPlayer(playerId: number): void {
+    if (!this.fogOfWarEnabled) return;
+    const board = actions.getBoard();
+    if (!board) return;
+    this.fogOfWarRenderer.clearFogOfWar();
+    this.fogOfWarRenderer.createFogOfWar(board);
+    const coords = actions.getVisibleTilesForPlayer(playerId);
+    if (coords.length) {
+      this.fogOfWarRenderer.revealTiles(coords);
+    }
+  }
+
+  /**
+   * Get the TileInteractionController instance for input handling.
+   */
+  public getTileInteractionController(): TileInteractionController {
+    return this.tileInteractionController;
   }
 }

@@ -1,8 +1,8 @@
 import * as actions from '../store/actions';
-import { RoundController } from './RoundController';
+import { RoundController } from '../controllers/RoundController';
 import { GameController } from './GameController';
-import type BoardScene from '../scenes/BoardScene';
-import { AIController } from './AIController';
+import type BoardScene from '../scene/BoardScene';
+import { AIController } from '../controllers/AIController';
 import { CommandExecutor } from './CommandExecutor';
 
 export type GameMode = 'pvp' | 'pve' | 'sim';
