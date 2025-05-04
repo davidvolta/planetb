@@ -23,4 +23,3 @@ export const BIOME_TERRAIN_ORDER: TerrainType[] = [ ... ]
 
 - [ ] Move this into a gamconfig (from gamestore)
 export const NODE_DISTANCE_THRESHOLD = 3;
-move config from UIScene for game mode 
