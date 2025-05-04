@@ -275,7 +275,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Start movement animation of a unit
-  private async startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+  public async startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
     // Lookup the unit sprite directly
     const unitSprite = this.getUnitSprite(unitId);
     if (!unitSprite) {
@@ -304,7 +304,6 @@ export default class BoardScene extends Phaser.Scene {
         this.visibilityController.revealAround(unit.position.x, unit.position.y);
       }
     }
-    actions.clearSpawnEvent();
   }
 
   // Handle unit selection (UI now via subscription manager)

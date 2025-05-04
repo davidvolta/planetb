@@ -11,11 +11,6 @@
 
 - [ ] Rewrite TileInteractionController to fully route all click handling through the GameController facade
 
-- [ ] setupSubscriptions() is now likely redundant if you're fully using SubscriptionBinder. You can safely delete it unless you're still calling it from somewhere else.
-
-- [ ] private subscriptionsSetup = false;
-
---
 
 - [ ]Move these into a gamedata.ts (from gamestore)
 export enum TerrainType { ... }

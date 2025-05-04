@@ -1,12 +1,13 @@
 import * as actions from '../store/actions';
 import { Biome } from '../store/gameStore';
+import type BoardScene from '../scene/BoardScene';
 
 export class TileInteractionController {
-  private scene: any;
+  private scene: BoardScene;
   private toggleState: Record<string, number> = {};
   private lastClickedKey: string | null = null;
 
-  constructor(scene: any) {
+  constructor(scene: BoardScene) {
     this.scene = scene;
   }
 
@@ -38,7 +39,7 @@ export class TileInteractionController {
     }
 
     // Case 2: valid move target has priority over selection
-    if (this.scene.moveRangeRenderer.isValidMoveTarget(x, y)) {
+    if (this.scene.getMoveRangeRenderer().isValidMoveTarget(x, y)) {
       const selectedUnitId = actions.getSelectedUnitId();
       const animals = actions.getAnimals();
       const selectedAnimal = animals.find((a: any) => a.id === selectedUnitId);

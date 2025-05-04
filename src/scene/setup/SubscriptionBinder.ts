@@ -21,8 +21,6 @@ export class SubscriptionBinder {
       this.scene.handleUnitSelection(animalId);
     });
 
-    this.scene.events.on('unit_spawned', this.scene.handleUnitSpawned, this);
-
     StateObserver.subscribe(
       'BoardScene.activePlayerFOW',
       state => state.activePlayerId,
