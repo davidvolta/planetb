@@ -53,7 +53,6 @@ export default class BoardScene extends Phaser.Scene {
   
   // Setup tracking
   private controlsSetup = false;
-  private subscriptionsSetup = false;
 
   // Managers and controllers
   private layerManager: LayerManager;
@@ -144,7 +143,6 @@ export default class BoardScene extends Phaser.Scene {
     this.unsubscribeAll();  // Ensure all old subscriptions are cleaned up before creating new ones
     
     // Reset setup flags
-    this.subscriptionsSetup = false;
     this.controlsSetup = false;
     
     this.layerManager.setupLayers(); // Set up layers FIRST
@@ -203,52 +201,6 @@ export default class BoardScene extends Phaser.Scene {
     const executor = new CommandExecutor(this.gameController);
     this.scene.launch('UIScene', { executor });
     this.scene.launch('DebugScene', { debugConfig: { showFps: true } });
-  }
-  
-  // Set up subscriptions to state changes
-  private setupSubscriptions() {
-    if (this.subscriptionsSetup) return;
-    
-    // Initialize the subscription manager with all renderers
-    this.subscriptionManager.initialize({
-      animalRenderer: this.animalRenderer,
-      biomeRenderer: this.biomeRenderer,
-      moveRangeRenderer: this.moveRangeRenderer,
-      tileRenderer: this.tileRenderer,
-      resourceRenderer: this.resourceRenderer,
-      selectionRenderer: this.selectionRenderer
-    });
-    
-    // Set up subscriptions to state changes
-    this.subscriptionManager.setupSubscriptions((animalId, gridX, gridY) => {
-      this.handleUnitSelection(animalId);
-    });
-    
-    // Listen for spawn events from the state
-    this.events.on('unit_spawned', this.handleUnitSpawned, this);
-    
-    // Update fog-of-war visuals whenever the active player changes
-    StateObserver.subscribe(
-      'BoardScene.activePlayerFOW',
-      (state) => state.activePlayerId,
-      (playerId: number) => {
-        if (!this.fogOfWarEnabled) return;
-        const board = actions.getBoard();
-        if (!board) return;
-        // Reset fog layer
-        this.fogOfWarRenderer.clearFogOfWar();
-        this.fogOfWarRenderer.createFogOfWar(board);
-        // Reveal previously visible tiles for this player
-        const coords = actions.getVisibleTilesForPlayer(playerId);
-        if (coords.length) {
-          this.fogOfWarRenderer.revealTiles(coords);
-        }
-      },
-      { immediate: true }
-    );
-    
-    // Mark as set up
-    this.subscriptionsSetup = true;
   }
   
   // Clean up all subscriptions to prevent memory leak
@@ -555,7 +507,6 @@ export default class BoardScene extends Phaser.Scene {
     // Reset variables
     this.tiles = [];
     this.controlsSetup = false;
-    this.subscriptionsSetup = false;
   }
 
   /**
