@@ -2,10 +2,14 @@ import Phaser from 'phaser';
 import BoardScene, { EVENTS } from './scene/BoardScene';
 import DebugScene from './scene/DebugScene';
 import UIScene from './scene/UIScene';
-import { useGameStore } from './store/gameStore';
 import * as actions from './store/actions';
-import { GAME_WIDTH, GAME_HEIGHT, BOARD_WIDTH_TILES, BOARD_HEIGHT_TILES } from './constants/gameConfig';
+import { TILE_SIZE, TILE_HEIGHT } from './constants/gameConfig';
 import { StateObserver } from './utils/stateObserver';
+import { GameEnvironment } from './env/GameEnvironment';
+
+// Compute game dimensions based on tile size and board dimensions
+const GAME_WIDTH = TILE_SIZE * GameEnvironment.boardWidth;
+const GAME_HEIGHT = TILE_HEIGHT * (GameEnvironment.boardHeight + 10); // Add padding for UI elements
 
 // Game configuration
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
@@ -32,17 +36,21 @@ let gameInstance: Phaser.Game | null = null;
  * Set up the initial game state with default settings
  */
 function setupGameState() {
-  // Ensure two players exist by default (batch add)
-  if (useGameStore.getState().players.length === 0) {
-    actions.addPlayer('Player 1', '#db3007'); // red
-    actions.addPlayer('Player 2', '#12bff2'); // blue
+  // Add players based on GameEnvironment config
+  for (const player of GameEnvironment.playerConfigs) {
+    actions.addPlayer(player.name, player.color);
   }
-  
-  // Set up the game board
+
+  // Set up the board with configured dimensions
   actions.setupGameBoard({
-    width: BOARD_WIDTH_TILES,
-    height: BOARD_HEIGHT_TILES
+    width: GameEnvironment.boardWidth,
+    height: GameEnvironment.boardHeight
   });
+
+  // Set fog-of-war mode if needed
+  if (!GameEnvironment.fogOfWarEnabled) {
+    actions.setFogOfWarEnabled(false);
+  }
 }
 
 /**

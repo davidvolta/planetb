@@ -23,6 +23,8 @@ import { GameController } from '../game/GameController';
 import { SceneInitializer } from './init/SceneInitializer';
 import { SubscriptionBinder } from './setup/SubscriptionBinder';
 import { CommandExecutor } from '../game/CommandExecutor';
+import { GameEnvironment } from '../env/GameEnvironment';
+import { TurnController } from '../game/TurnController';
 
 // Custom event names
 export const EVENTS = {
@@ -61,6 +63,7 @@ export default class BoardScene extends Phaser.Scene {
   private subscriptionManager: StateSubscriptionManager;
   private tileInteractionController: TileInteractionController;
   private gameController!: GameController;
+  private turnController!: TurnController;
 
   private fogOfWarEnabled = true;
 
@@ -178,14 +181,17 @@ export default class BoardScene extends Phaser.Scene {
     const initializer = new SceneInitializer(this);
     this.gameController = initializer.run();
 
-    // Step 2: Setup state subscriptions
+    // Step 2: Initialize TurnController  
+    this.turnController = new TurnController(this.gameController, GameEnvironment.mode);
+
+    // Step 3: Setup state subscriptions
     const subscriptions = new SubscriptionBinder(this);
     subscriptions.bind();
 
-    // Step 3: Bind user input
+    // Step 4: Bind user input
     this.setupInputHandlers();
 
-    // Step 4: Create board tiles
+    // Step 5: Create board tiles
     const board = actions.getBoard();
     if (board) {
       this.createTiles();
@@ -197,9 +203,9 @@ export default class BoardScene extends Phaser.Scene {
       );
     }
 
-    // Step 5: Launch overlays
+    // Step 6: Launch overlays
     const executor = new CommandExecutor(this.gameController);
-    this.scene.launch('UIScene', { executor });
+    this.scene.launch('UIScene', { executor, turnController: this.turnController });
     this.scene.launch('DebugScene', { debugConfig: { showFps: true } });
   }
   
@@ -609,6 +615,11 @@ export default class BoardScene extends Phaser.Scene {
   public getSelectionRenderer(): SelectionRenderer {
     return this.selectionRenderer;
   }
+
+  public getTurnController(): TurnController {
+    return this.turnController;
+  }
+  
 
   /**
    * Updates the fog-of-war visuals when the active player changes.

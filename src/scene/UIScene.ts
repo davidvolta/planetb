@@ -34,7 +34,8 @@ export default class UIScene extends Phaser.Scene {
     super({ key: 'UIScene', active: true });
   }
 
-  init() {  
+  init(data: { turnController: TurnController }) {
+    this.turnController = data.turnController;
     // Subscribe to state changes
     StateObserver.subscribe(
       'ui-turn',
@@ -196,7 +197,6 @@ export default class UIScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-N', this.handleNextTurn, this);
     this.input.keyboard?.on('keydown-C', this.handleCaptureBiome, this);
 
-    this.turnController = new TurnController(boardScene, 'pvp');
   }
 
   createNextTurnButton() {
