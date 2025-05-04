@@ -22,7 +22,6 @@ import { VisibilityController } from '../controllers/VisibilityController';
 import { GameController } from '../game/GameController';
 import { SceneInitializer } from './init/SceneInitializer';
 import { SubscriptionBinder } from './setup/SubscriptionBinder';
-import { InputBinder } from './setup/InputBinder';
 import { CommandExecutor } from '../game/CommandExecutor';
 
 // Custom event names
@@ -186,8 +185,7 @@ export default class BoardScene extends Phaser.Scene {
     subscriptions.bind();
 
     // Step 3: Bind user input
-    const input = new InputBinder(this);
-    input.bind();
+    this.setupInputHandlers();
 
     // Step 4: Create board tiles
     const board = actions.getBoard();
