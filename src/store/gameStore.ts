@@ -2,121 +2,13 @@ import { create } from "zustand";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { initializeBoard as initGameBoard } from '../game/GameInitializer';
 import { MovementController } from "../controllers/MovementController";
+import { TerrainType, ResourceType } from '../types/gameTypes';
 
 // Coordinate system for tiles
 export interface Coordinate {
   x: number;
   y: number;
 }
-
-// Terrain types
-export enum TerrainType {
-  WATER = 'water',
-  GRASS = 'grass',
-  BEACH = 'beach',
-  MOUNTAIN = 'mountain',
-  UNDERWATER = 'underwater',
-}
-
-// Resource types
-export enum ResourceType {
-  FOREST = 'forest',
-  KELP = 'kelp',
-  INSECTS = 'insects',
-  PLANKTON = 'plankton',
-  NONE = 'none' // Represents no resource (e.g. BEACH)
-}
-
-// Define the core interface for animal abilities
-export interface AnimalAbilities {
-  moveRange: number;
-  compatibleTerrains: TerrainType[];
-  // Extensible for future abilities
-}
-
-// Create the species registry with abilities for each animal type - THESE KEYS MUST MATCH SPRITE NAMES
-export const SPECIES_REGISTRY: Record<string, AnimalAbilities> = {
-  'buffalo': {
-    moveRange: 1,
-    compatibleTerrains: [TerrainType.GRASS, TerrainType.MOUNTAIN]
-  },
-  'bird': {
-    moveRange: 4,
-    compatibleTerrains: [TerrainType.MOUNTAIN, TerrainType.GRASS, TerrainType.BEACH, TerrainType.WATER, TerrainType.UNDERWATER]
-  },
-  'snake': {
-    moveRange: 2,
-    compatibleTerrains: [TerrainType.BEACH, TerrainType.GRASS]
-  },
-  'octopus': {
-    moveRange: 3,
-    compatibleTerrains: [TerrainType.UNDERWATER, TerrainType.WATER]
-  },
-  'turtle': {
-    moveRange: 1,
-    compatibleTerrains: [TerrainType.WATER, TerrainType.BEACH, TerrainType.UNDERWATER, TerrainType.GRASS]
-  }
-};
-
-// Map terrain types to animal types - KEEP THIS FOR COMPATIBILITY WITH SPRITE SYSTEM
-export const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
-  [TerrainType.GRASS]: 'buffalo',
-  [TerrainType.MOUNTAIN]: 'bird',
-  [TerrainType.WATER]: 'turtle',
-  [TerrainType.UNDERWATER]: 'octopus',
-  [TerrainType.BEACH]: 'snake',
-};
-
-// Default abilities for fallback
-const DEFAULT_ABILITIES: AnimalAbilities = {
-  moveRange: 1,
-  compatibleTerrains: [TerrainType.GRASS]
-};
-
-// Helper functions to access species abilities
-export function getSpeciesAbilities(species: string): AnimalAbilities {
-  return SPECIES_REGISTRY[species] || DEFAULT_ABILITIES;
-}
-
-export function isTerrainCompatible(species: string, terrain: TerrainType): boolean {
-  const abilities = getSpeciesAbilities(species);
-  return abilities.compatibleTerrains.includes(terrain);
-}
-
-export function getSpeciesMoveRange(species: string): number {
-  return getSpeciesAbilities(species).moveRange;
-}
-
-// Get all species compatible with a given terrain type
-export function getCompatibleSpeciesForTerrain(terrain: TerrainType): string[] {
-  return Object.entries(SPECIES_REGISTRY)
-    .filter(([_, abilities]) => abilities.compatibleTerrains.includes(terrain))
-    .map(([species, _]) => species);
-}
-
-// Function to randomly select a compatible species for a terrain
-export function getRandomCompatibleSpecies(terrain: TerrainType): string {
-  const compatibleSpecies = getCompatibleSpeciesForTerrain(terrain);
-  if (compatibleSpecies.length === 0) {
-    console.warn(`No compatible species found for terrain ${terrain}`);
-    return 'snake'; // Default fallback
-  }
-  const randomIndex = Math.floor(Math.random() * compatibleSpecies.length);
-  return compatibleSpecies[randomIndex];
-}
-
-// Order of terrain types for habitat placement
-// Start with beaches, then move inward (grass, mountain), then outward (water, underwater)
-export const BIOME_TERRAIN_ORDER: TerrainType[] = [
-  TerrainType.BEACH,    // Start with beaches as the foundation
-  TerrainType.GRASS,    // Move inward to grass
-  TerrainType.MOUNTAIN, // Continue inward to mountains
-  TerrainType.WATER,    // Move outward to water
-  TerrainType.UNDERWATER // Finally to underwater
-];
-
-// Distance threshold for Voronoi node placement
-const NODE_DISTANCE_THRESHOLD = 3;
 
 // Biome structure
 export interface Biome {
@@ -156,7 +48,7 @@ export interface Tile {
 // Base animal structure
 export interface Animal {
   id: string;
-  species: string; // Renamed from 'type'
+  species: string; 
   state: AnimalState;
   position: Coordinate;
   previousPosition: Coordinate | null; // Track previous position for direction calculation
@@ -219,7 +111,6 @@ export interface GameState {
   // Selection state
   selectedBiomeId: string | null; // ID of the currently selected biome
   selectedResource: Coordinate | null; // Currently selected resource tile
-  selectResource: (coord: Coordinate | null) => void;
   
   // Displacement tracking (for animation and UI feedback)
   displacementEvent: {
@@ -246,10 +137,10 @@ export interface GameState {
     timestamp: number | null; // When the capture occurred
   };
   
-  // FOG OF WAR
+
   fogOfWarEnabled: boolean;
   toggleFogOfWar: (enabled: boolean) => void;
-  
+  selectResource: (coord: Coordinate | null) => void;
   nextTurn: () => void;
   resetMovementFlags: () => void; // Reset hasMoved flags for all animals
   addPlayer: (name: string, color: string) => void;

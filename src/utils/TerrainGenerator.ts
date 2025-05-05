@@ -1,66 +1,36 @@
-import { TerrainType } from "../store/gameStore";
+import { TerrainType } from "../types/gameTypes";
+
+// Default parameters for terrain generation
+const WATER_RATIO = 0.4;
+const MOUNTAIN_RATIO = 0.05;
+const BEACH_WIDTH = 2;
+const SMOOTHING_PASSES = 3;
 
 /**
- * Interface for terrain generation options
+ * Generate island terrain (heightmap, smoothing, beaches, underwater) for a board.
+ * @param width Board width in tiles
+ * @param height Board height in tiles
+ * @returns A 2D array of TerrainType values representing the generated map
  */
-interface TerrainGenerationOptions {
-  seed?: number;
-  waterRatio?: number;     // 0-1: how much water to include
-  mountainRatio?: number;  // 0-1: how many mountains to include
-  beachWidth?: number;     // Width of beaches around water
-  smoothingPasses?: number; // How many smoothing passes to apply
-}
+export function generateIslandTerrain(width: number, height: number): TerrainType[][] {
+  // Random seed for noise (not logged)
+  const seed = Math.random() * 10000;
 
-/**
- * Default terrain generation options
- */
-const defaultOptions: TerrainGenerationOptions = {
-  seed: undefined, // This will be randomized for each call
-  waterRatio: 0.4,
-  mountainRatio: 0.05,
-  beachWidth: 2,
-  smoothingPasses: 3,
-};
+  // Heightmap generation
+  const heightMap = generateIslandHeightMap(width, height, seed);
 
-/**
- * Generate island terrain for a game board
- * @param width Board width
- * @param height Board height  
- * @param options Generation options
- * @returns 2D array of terrain types
- */
-export function generateIslandTerrain(
-  width: number, 
-  height: number, 
-  options: TerrainGenerationOptions = {}
-): TerrainType[][] {
-  // Merge default options with provided options
-  const opts = { ...defaultOptions, ...options };
-  
-  // Ensure we have a random seed if none was provided
-  if (opts.seed === undefined) {
-    opts.seed = Math.random() * 10000;
-  }
-  
-  console.log(`Generating terrain with seed: ${opts.seed}`);
-  
-  // Initialize with a heightmap that favors water at edges
-  const heightMap = generateIslandHeightMap(width, height, opts.seed);
-  
   // Convert heightmap to terrain types
-  const terrain = heightMapToTerrain(heightMap, width, height, opts);
-  
-  // Apply smoothing passes to make terrain more natural
-  for (let i = 0; i < opts.smoothingPasses!; i++) {
+  const terrain = heightMapToTerrain(heightMap, width, height);
+
+  // Smooth terrain for natural look
+  for (let i = 0; i < SMOOTHING_PASSES; i++) {
     smoothTerrain(terrain, width, height);
   }
-  
-  // Add beach tiles around water
-  addBeaches(terrain, width, height, opts.beachWidth!);
-  
-  // Add underwater tiles adjacent to water
+
+  // Add beaches and underwater tiles
+  addBeaches(terrain, width, height, BEACH_WIDTH);
   addUnderwaterTiles(terrain, width, height);
-  
+
   return terrain;
 }
 
@@ -115,22 +85,22 @@ function generateIslandHeightMap(width: number, height: number, seed: number): n
 }
 
 /**
- * Convert a heightmap to terrain types
+ * Convert a heightmap (elevation data) to terrain types based on thresholds
+ * @param heightMap 2D array of elevation values (0-1)
+ * @param width Number of columns in the map
+ * @param height Number of rows in the map
+ * @returns A 2D array of TerrainType values based on elevation thresholds
  */
 function heightMapToTerrain(
-  heightMap: number[][], 
-  width: number, 
-  height: number, 
-  options: TerrainGenerationOptions
+  heightMap: number[][],
+  width: number,
+  height: number
 ): TerrainType[][] {
   const terrain: TerrainType[][] = [];
-  
-  // Water threshold based on waterRatio
-  const waterThreshold = options.waterRatio!;
-  
-  // Mountain threshold based on mountainRatio
-  const mountainThreshold = 1 - options.mountainRatio!;
-  
+  // Water and mountain thresholds from constants
+  const waterThreshold = WATER_RATIO;
+  const mountainThreshold = 1 - MOUNTAIN_RATIO;
+
   for (let y = 0; y < height; y++) {
     const row: TerrainType[] = [];
     for (let x = 0; x < width; x++) {

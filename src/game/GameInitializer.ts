@@ -1,7 +1,7 @@
-import { Board, Tile, Animal, Biome, TerrainType, AnimalState } from '../store/gameStore';
+import { Board, Tile, Animal, Biome, AnimalState } from '../store/gameStore';
+import { TerrainType, BIOME_TERRAIN_ORDER } from '../types/gameTypes';
 import { generateIslandTerrain } from '../utils/TerrainGenerator';
 import { VoronoiNode, isNodeOverlapping, generateVoronoiBiomes } from '../utils/BiomeGenerator';
-import { BIOME_TERRAIN_ORDER } from '../store/gameStore';
 
 interface InitResult {
   board: Board;

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import * as actions from '../store/actions';
 import { computeDepth } from '../utils/DepthUtils';
+import { AnimalRenderer } from '../renderers/AnimalRenderer';
 
 /**
  * Controls and manages all animations in the board scene, including:
@@ -12,6 +13,8 @@ import { computeDepth } from '../utils/DepthUtils';
 export class AnimationController {
   // Reference to the scene for accessing tweens
   private scene: Phaser.Scene;
+  private animalRenderer: AnimalRenderer;
+
   
   // Board properties needed for coordinate conversion
   private tileSize: number;
@@ -37,14 +40,17 @@ export class AnimationController {
     scene: Phaser.Scene,
     tileSize: number = 64,
     tileHeight: number = 32,
+    animalRenderer: AnimalRenderer,
     anchorX: number = 0,
     anchorY: number = 0
-  ) {
+  ) 
+  {
     this.scene = scene;
     this.tileSize = tileSize;
     this.tileHeight = tileHeight;
     this.anchorX = anchorX;
     this.anchorY = anchorY;
+    this.animalRenderer = animalRenderer;
   }
   
   /**
@@ -148,7 +154,6 @@ export class AnimationController {
   /**
    * Handle unit movement from one position to another, including game state updates
    * @param unitId ID of the unit to move
-   * @param sprite The sprite to animate
    * @param fromX Starting X grid coordinate
    * @param fromY Starting Y grid coordinate
    * @param toX Destination X grid coordinate
@@ -157,13 +162,18 @@ export class AnimationController {
    */
   async moveUnit(
     unitId: string,
-    sprite: Phaser.GameObjects.Sprite,
     fromX: number,
     fromY: number,
     toX: number,
     toY: number
   ): Promise<void> {
-    // Animate movement
+    const sprite = this.animalRenderer.getSpriteById(unitId);
+  
+    if (!sprite) {
+      console.error(`[AnimationController] Could not find sprite for unitId ${unitId}`);
+      return;
+    }
+  
     await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
   }
   

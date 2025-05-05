@@ -1,8 +1,10 @@
-import { ResourceType, Coordinate, TerrainType, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
+import { Coordinate, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
+import { TerrainType, ResourceType } from "../types/gameTypes";
 import { getEggPlacementTiles, getTilesForBiome } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import type { GameState } from "../store/gameStore";
 import { MovementController } from "./MovementController";
+import { useGameStore } from "../store/gameStore";
 
 /**
  * Interface for egg placement validation

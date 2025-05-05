@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { TerrainType } from "../store/gameStore";
+import { TerrainType } from "../types/gameTypes";
 import { StateObserver } from "../utils/stateObserver";
 import { AnimalState } from "../store/gameStore";
 import * as actions from "../store/actions";
@@ -75,7 +75,6 @@ export default class BoardScene extends Phaser.Scene {
     
     // Initialize managers and controllers
     this.layerManager = new LayerManager(this);
-    this.animationController = new AnimationController(this, this.tileSize, this.tileHeight);
     this.cameraManager = new CameraManager(this);
     this.subscriptionManager = new StateSubscriptionManager(this);
     this.tileInteractionController = new TileInteractionController(this);
@@ -88,7 +87,9 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.resourceRenderer = new ResourceRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
-    // Initialize visibility controller for fog-of-war
+    
+    // Initialize controllers that depend on renderers
+    this.animationController = new AnimationController(this, this.tileSize, this.tileHeight, this.animalRenderer);
     this.visibilityController = new VisibilityController(this.fogOfWarRenderer);
   }
 
@@ -202,11 +203,6 @@ export default class BoardScene extends Phaser.Scene {
         this.anchorY
       );
     }
-
-    // Step 6: Launch overlays
-    const executor = new CommandExecutor(this.gameController);
-    this.scene.launch('UIScene', { executor, turnController: this.turnController });
-    this.scene.launch('DebugScene', { debugConfig: { showFps: true } });
   }
   
   // Clean up all subscriptions to prevent memory leak

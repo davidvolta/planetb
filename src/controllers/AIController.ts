@@ -1,5 +1,6 @@
 import type { GameState, Animal, Biome, Board } from '../store/gameStore';
-import { AnimalState, isTerrainCompatible } from '../store/gameStore';
+import { AnimalState } from '../store/gameStore';
+import { isTerrainCompatible } from '../utils/SpeciesUtils';
 import type { GameCommand } from '../game/CommandExecutor';
 import { MovementController } from './MovementController';
 

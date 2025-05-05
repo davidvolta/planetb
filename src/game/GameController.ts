@@ -1,19 +1,12 @@
-import type BoardScene from '../scene/BoardScene';
 import * as actions from '../store/actions';
 import type { Coordinate } from '../store/gameStore';
-import { VisibilityController } from '../controllers/VisibilityController';
+import { AnimationController } from '../controllers/AnimationController';
 
 /**
  * Facade for executing game commands (player actions) with animation and state updates.
  */
 export class GameController {
-  private boardScene: BoardScene;
-  private visibilityController: VisibilityController;
-
-  constructor(boardScene: BoardScene, visibilityController: VisibilityController) {
-    this.boardScene = boardScene;
-    this.visibilityController = visibilityController;
-  }
+  constructor(private animationController: AnimationController) {}
 
   /**
    * Move a unit with full animation and update game state.
@@ -22,21 +15,11 @@ export class GameController {
    * @param y Destination Y coordinate
    */
   async moveUnit(unitId: string, x: number, y: number): Promise<void> {
-    const sprite = this.boardScene.getAnimalRenderer().getSpriteById(unitId)!;
     const unit = actions.getAnimals().find(a => a.id === unitId)!;
     const fromX = unit.position.x;
     const fromY = unit.position.y;
-    const anim = this.boardScene.getAnimationController();
-
-    await anim.moveUnit(unitId, sprite, fromX, fromY, x, y);
-
-    // Update unit position in game state after moving
+    await this.animationController.moveUnit(unitId, fromX, fromY, x, y);
     actions.moveUnit(unitId, x, y);
-
-    // Reveal fog-of-war around the destination
-    if (actions.getFogOfWarEnabled()) {
-      this.visibilityController.revealAround(x, y);
-    }
   }
 
   /**
@@ -53,9 +36,7 @@ export class GameController {
    * @param amount Amount to harvest (default 3)
    */
   harvestTile(coord: Coordinate, amount: number = 3): void {
-    actions.selectResourceTile(coord);
     actions.harvestTileResource(amount);
-    actions.selectResourceTile(null); // Clear selection after harvesting
   }
 
   /**
@@ -71,6 +52,6 @@ export class GameController {
    */
   public async endCurrentPlayerTurn(): Promise<void> {
     // Wait for all animations to complete before ending turn
-    await this.boardScene.getAnimationController().waitForAllAnimationsComplete();
+    await this.animationController.waitForAllAnimationsComplete();
   }
 } 

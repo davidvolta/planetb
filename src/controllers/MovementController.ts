@@ -1,5 +1,5 @@
 import { Animal, Board, Coordinate, AnimalState } from "../store/gameStore";
-import { isTerrainCompatible, getSpeciesMoveRange } from "../store/gameStore";
+import { isTerrainCompatible, getSpeciesMoveRange } from "../utils/SpeciesUtils";
 
 export class MovementController {
   /**

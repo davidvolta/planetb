@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
-import { ResourceType } from '../store/gameStore';
+import { ResourceType } from '../types/gameTypes';
 import { BaseRenderer } from './BaseRenderer';
 import * as actions from '../store/actions';
 import { TileResult } from '../store/actions';

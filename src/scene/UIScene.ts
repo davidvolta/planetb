@@ -34,8 +34,12 @@ export default class UIScene extends Phaser.Scene {
     super({ key: 'UIScene', active: true });
   }
 
-  init(data: { turnController: TurnController }) {
-    this.turnController = data.turnController;
+  init() {
+    // Grab controllers from the BoardScene
+    const boardScene = this.scene.get('BoardScene') as BoardScene;
+    this.gameController = boardScene.getGameController();
+    this.turnController = boardScene.getTurnController();
+
     // Subscribe to state changes
     StateObserver.subscribe(
       'ui-turn',
@@ -196,7 +200,6 @@ export default class UIScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-S', this.handleSpawnUnit, this);
     this.input.keyboard?.on('keydown-N', this.handleNextTurn, this);
     this.input.keyboard?.on('keydown-C', this.handleCaptureBiome, this);
-
   }
 
   createNextTurnButton() {
@@ -345,9 +348,10 @@ export default class UIScene extends Phaser.Scene {
     // Capture the player whose turn is ending
     const prevPlayerId = actions.getActivePlayerId();
     // Execute one full turn (human and optional AI)
-    await this.turnController.next();
-    // Pan camera to the next active player's closest active unit
     const boardScene = this.scene.get('BoardScene') as BoardScene;
+    await boardScene.getTurnController().next();
+
+    // Pan camera to the next active player's closest active unit
     const camMgr = boardScene.getCameraManager();
     await camMgr.centerCameraOnClosestPlayerUnit(
       boardScene.getTileSize(),

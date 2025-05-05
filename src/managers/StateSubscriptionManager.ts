@@ -250,14 +250,22 @@ export class StateSubscriptionManager {
         return resourceData;
       },
       (resourceData, prevResourceData) => {
-        // Only update on initial render or when resources actually change
         if (!resourceData) return;
         
-        if (!prevResourceData || this.hasResourceChanges(resourceData, prevResourceData)) {
+        if (!prevResourceData) {
+          // Initial render
           const resourceTiles = actions.getResourceTiles();
           if (this.resourceRenderer) {
             this.resourceRenderer.renderResourceTiles(resourceTiles);
           }
+        } else if (this.hasResourceChanges(resourceData, prevResourceData)) {
+          // On actual resource changes (e.g., harvest)
+          const resourceTiles = actions.getResourceTiles();
+          if (this.resourceRenderer) {
+            this.resourceRenderer.renderResourceTiles(resourceTiles);
+          }
+          // Clear selected resource after harvest
+          actions.selectResourceTile(null);
         }
       },
       { immediate: true, debug: false }
