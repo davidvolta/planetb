@@ -124,7 +124,6 @@ export async function evolveAnimal(id: string): Promise<void> {
   }
   state.evolveAnimal(id);
   // Remove the egg from state now that it has evolved
-  removeEgg(id);
 }
 
 /**
@@ -169,6 +168,13 @@ export function removeEgg(id: string): void {
     const { [id]: _, ...remaining } = state.eggs;
     return { eggs: remaining };
   });
+}
+
+/**
+ * Select an egg by ID or clear the selection.
+ */
+export function selectEgg(id: string | null): void {
+  useGameStore.getState().selectEgg(id);
 }
 
 // =============================================================================

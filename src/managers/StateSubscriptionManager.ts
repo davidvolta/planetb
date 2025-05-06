@@ -41,7 +41,7 @@ interface ITileRenderer {
 // This manager centralizes all state subscriptions for the BoardScene and its components.
 export class StateSubscriptionManager {
   // Scene reference
-  private scene: Phaser.Scene;
+  private scene: BoardScene;
   
   // Renderers and controllers
   private animalRenderer!: AnimalRenderer;
@@ -74,7 +74,7 @@ export class StateSubscriptionManager {
   };
   
   // Create a new StateSubscriptionManager
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: BoardScene) {
     this.scene = scene;
   }
   
@@ -99,7 +99,10 @@ export class StateSubscriptionManager {
   }
   
   // Set up all state subscriptions
-  setupSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
+  setupSubscriptions(
+    onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void,
+    onEggClicked?: (eggId: string, gridX: number, gridY: number) => void
+  ): void {
     // Check if properly initialized
     if (!this.initialized) {
       console.error("Cannot set up subscriptions: renderers not initialized");
@@ -114,6 +117,7 @@ export class StateSubscriptionManager {
     
     this.setupBoardSubscriptions();
     this.setupAnimalSubscriptions(onUnitClicked);
+    this.setupEggSubscriptions(onEggClicked);
     this.setupBiomeSubscriptions();
     this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
@@ -445,7 +449,7 @@ export class StateSubscriptionManager {
         const eggArray = Object.values(eggs);
         if (!fogOfWarEnabled) {
           // FOW disabled: render all eggs
-          this.scene.getAnimalRenderer().renderEggs(eggArray, onEggClicked);
+          this.animalRenderer.renderEggs(eggArray, onEggClicked);
           return;
         }
 
@@ -458,7 +462,7 @@ export class StateSubscriptionManager {
           visibleSet.has(`${e.position.x},${e.position.y}`)
         );
 
-        this.scene.getAnimalRenderer().renderEggs(visibleEggs, onEggClicked);
+        this.animalRenderer.renderEggs(visibleEggs, onEggClicked);
       },
       { immediate: true, debug: false }
     );

@@ -308,6 +308,12 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
+  // Handle egg selection (called from SubscriptionBinder)
+  public handleEggSelection(eggId: string | null): void {
+    actions.selectEgg(eggId);
+  }
+  
+  
   // Handle unit selection (UI now via subscription manager)
   public handleUnitSelection(unitId: string | null) {
     actions.selectUnit(unitId);

@@ -35,109 +35,85 @@ export class AnimalRenderer extends BaseRenderer {
   }
   
   /**
-   * Render all animals based on the provided animal data
-   * @param animals Array of animal objects from the game state
-   * @param onUnitClicked Callback function when a unit is clicked
-   */
-  renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
-    const eggsLayer = this.layerManager.getEggsLayer();
-    const unitsLayer = this.layerManager.getUnitsLayer();
-    if (!eggsLayer || !unitsLayer) {
-      console.warn("Cannot render animal sprites - eggs or units layer not available");
-      return;
-    }
-    
-    // Track which unit IDs are still present
-    const usedIds = new Set<string>();
-    
-    // Process each animal - create new or update existing
-    animals.forEach(animal => {
-      // Calculate position using coordinate utility
-      const gridX = animal.position.x;
-      const gridY = animal.position.y;
-      const worldPosition = CoordinateUtils.gridToWorld(
-        gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
-      
-      // Apply vertical offset to raise the sprite above the tile
-      const worldX = worldPosition.x;
-      const worldY = worldPosition.y + this.verticalOffset;
-      
-      // Determine the texture based on animal state and player
-      let textureKey: string;
-      if (animal.state === AnimalState.DORMANT) {
-        textureKey = 'egg';
-      } else {
-        // Use colored sprite based on ownerId
-        if (animal.ownerId === 0) {
-          textureKey = `${animal.species}-red`;
-        } else if (animal.ownerId === 1) {
-          textureKey = `${animal.species}-blue`;
-        } else {
-          textureKey = animal.species; // fallback to flat asset
-        }
-        // Fallback: if the texture is not loaded, use the flat asset
-        if (!this.scene.textures.exists(textureKey)) {
-          textureKey = animal.species;
-        }
-      }
-      
-      // Determine if the unit is active (for depth calculation)
-      const isActive = animal.state === AnimalState.ACTIVE;
-      // Choose layer based on animal state (dormant eggs vs active units)
-      const layerName = animal.state === AnimalState.DORMANT ? 'eggs' : 'units';
-      
-      // Try to find existing sprite by ID
-      const sprite = this.unitSprites.get(animal.id);
-      if (sprite) {
-        usedIds.add(animal.id);
-        sprite.setPosition(worldX, worldY);
-        sprite.setScale(0.3333);
-        sprite.setDepth(computeDepth(gridX, gridY, isActive));
-        if (sprite.texture.key !== textureKey) {
-          sprite.setTexture(textureKey);
-        }
-        this.updateSpriteInteractivity(sprite, animal);
-        // Move sprite into correct layer
-        this.layerManager.removeFromLayer('units', sprite);
-        this.layerManager.removeFromLayer('eggs', sprite);
-        this.layerManager.addToLayer(layerName, sprite);
-      } else {
-        // Create a new sprite for this animal with the correct texture
-        const animalSprite = this.scene.add.sprite(worldX, worldY, textureKey);
-        
-        // Set appropriate scale
-        animalSprite.setScale(0.3333);
-        
-        // Set depth based on position and state
-        animalSprite.setDepth(computeDepth(gridX, gridY, isActive));
-        
-        // Store the animal ID and type on the sprite
-        animalSprite.setData('animalId', animal.id);
-        animalSprite.setData('animalType', animal.species);
-        animalSprite.setData('gridX', gridX);
-        animalSprite.setData('gridY', gridY);
-        
-        // Handle interactivity based on state
-        this.updateSpriteInteractivity(animalSprite, animal);
-        
-        // Add the new sprite to the correct layer
-        this.layerManager.addToLayer(layerName, animalSprite);
-        
-        // Cache sprite for future lookups
-        this.unitSprites.set(animal.id, animalSprite);
-        usedIds.add(animal.id);
-      }
-    });
-    
-    // Remove sprites for animals that no longer exist
-    this.unitSprites.forEach((sprite, id) => {
-      if (!usedIds.has(id)) {
-        sprite.destroy();
-        this.unitSprites.delete(id);
-      }
-    });
+ * Render all animals based on the provided animal data
+ * @param animals Array of animal objects from the game state
+ * @param onUnitClicked Callback function when a unit is clicked
+ */
+renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
+  const eggsLayer = this.layerManager.getEggsLayer();
+  const unitsLayer = this.layerManager.getUnitsLayer();
+  if (!eggsLayer || !unitsLayer) {
+    console.warn("Cannot render animal sprites - eggs or units layer not available");
+    return;
   }
+
+  const usedIds = new Set<string>();
+
+  animals.forEach(animal => {
+    // ❌ TEMPORARY: Skip dormant animals (eggs)
+    // TODO [egg-refactor]: Remove this check once DORMANT is fully removed
+    if (animal.state === AnimalState.DORMANT) return;
+
+    const gridX = animal.position.x;
+    const gridY = animal.position.y;
+    const worldPosition = CoordinateUtils.gridToWorld(
+      gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+    );
+
+    const worldX = worldPosition.x;
+    const worldY = worldPosition.y + this.verticalOffset;
+
+    // Determine sprite key based on species and owner
+    let textureKey: string;
+    if (animal.ownerId === 0) {
+      textureKey = `${animal.species}-red`;
+    } else if (animal.ownerId === 1) {
+      textureKey = `${animal.species}-blue`;
+    } else {
+      textureKey = animal.species;
+    }
+
+    if (!this.scene.textures.exists(textureKey)) {
+      textureKey = animal.species;
+    }
+
+    const sprite = this.unitSprites.get(animal.id);
+    const isActive = animal.state === AnimalState.ACTIVE;
+
+    if (sprite) {
+      usedIds.add(animal.id);
+      sprite.setPosition(worldX, worldY);
+      sprite.setScale(0.3333);
+      sprite.setDepth(computeDepth(gridX, gridY, isActive));
+      if (sprite.texture.key !== textureKey) {
+        sprite.setTexture(textureKey);
+      }
+      this.updateSpriteInteractivity(sprite, animal);
+      this.layerManager.removeFromLayer('units', sprite);
+      this.layerManager.addToLayer('units', sprite);
+    } else {
+      const animalSprite = this.scene.add.sprite(worldX, worldY, textureKey);
+      animalSprite.setScale(0.3333);
+      animalSprite.setDepth(computeDepth(gridX, gridY, isActive));
+      animalSprite.setData('animalId', animal.id);
+      animalSprite.setData('animalType', animal.species);
+      animalSprite.setData('gridX', gridX);
+      animalSprite.setData('gridY', gridY);
+      this.updateSpriteInteractivity(animalSprite, animal);
+      this.layerManager.addToLayer('units', animalSprite);
+      this.unitSprites.set(animal.id, animalSprite);
+      usedIds.add(animal.id);
+    }
+  });
+
+  this.unitSprites.forEach((sprite, id) => {
+    if (!usedIds.has(id)) {
+      sprite.destroy();
+      this.unitSprites.delete(id);
+    }
+  });
+}
+
   
   /**
    * Update sprite interactivity and appearance based on animal state
@@ -189,33 +165,42 @@ export class AnimalRenderer extends BaseRenderer {
     this.eggSprites.clear();
   }
   
-  /**
-   * Render all eggs based on the provided egg data.
-   */
-  public renderEggs(
+  renderEggs(
     eggs: Egg[],
     onEggClicked?: (eggId: string, gridX: number, gridY: number) => void
   ): void {
     this.clearEggs();
+  
+    const eggsLayer = this.layerManager.getEggsLayer();
+    if (!eggsLayer) {
+      console.warn("EggRenderer: missing eggs layer");
+      return;
+    }
+  
     for (const egg of eggs) {
-      const { id, position, ownerId } = egg;
+      const { id, position } = egg;
       const { x, y } = position;
-      const worldPos = CoordinateUtils.gridToWorld(
+      const world = CoordinateUtils.gridToWorld(
         x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
-      const spriteKey = 'egg';
-      const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, spriteKey);
+  
+      const sprite = this.scene.add.sprite(world.x, world.y, 'egg');
       sprite.setOrigin(0.5, 1);
-      sprite.setDepth(worldPos.y);
-     
+      sprite.setScale(0.3333);
+      sprite.setDepth(world.y); // matches active unit logic
+  
       sprite.setInteractive({ useHandCursor: true });
       sprite.on('pointerdown', () => {
         if (onEggClicked) onEggClicked(id, x, y);
       });
+  
       sprite.setData('eggId', id);
       sprite.setData('gridX', x);
       sprite.setData('gridY', y);
+  
+      this.layerManager.addToLayer('eggs', sprite);
       this.eggSprites.set(id, sprite);
     }
   }
+  
 } 

@@ -1,6 +1,5 @@
 import type BoardScene from '../BoardScene';
 import { StateObserver } from '../../utils/stateObserver';
-import * as actions from '../../store/actions';
 
 export class SubscriptionBinder {
   constructor(private scene: BoardScene) {}

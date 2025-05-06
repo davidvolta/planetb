@@ -517,7 +517,5 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Egg actions for Animal/Egg refactor Phase 1
   addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
   selectEgg: (id: string | null) => set(() => ({ selectedEggId: id })),
-
-  // Animal actions for spawning/evolution
   addAnimal: (animal: Animal) => set((state) => ({ animals: [...state.animals, animal] })),
 }));
