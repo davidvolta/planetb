@@ -1,8 +1,8 @@
 import { Coordinate, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
 import { TerrainType, ResourceType } from "../types/gameTypes";
 import { getEggPlacementTiles, getTilesForBiome, getEggCountForBiome } from "../store/actions";
-import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
-import type { GameState } from "../store/gameStore";
+import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
+import type { GameState, Egg } from "../store/gameStore";
 import { MovementController } from "./MovementController";
 
 /**
@@ -642,6 +642,7 @@ export class EcosystemController {
     board: Board;
     biomes: Map<string, Biome>;
     displacementEvent: GameState['displacementEvent'];
+    eggs: Record<string, Egg>;
   } {
     // Find the egg
     const egg = this.getEggById(state, id);
@@ -651,7 +652,8 @@ export class EcosystemController {
         animals: state.animals,
         board: state.board!,
         biomes: state.biomes,
-        displacementEvent: { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null } as GameState['displacementEvent']
+        displacementEvent: { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null } as GameState['displacementEvent'],
+        eggs: state.eggs
       };
     }
     // Prepare initial state
@@ -682,7 +684,6 @@ export class EcosystemController {
         timestamp: Date.now()
       };
     }
-    // Use existing board; egg removal is managed by the central store
 
     // Update biomes
     const tile = board.tiles[eggPos.y][eggPos.x];
@@ -694,6 +695,7 @@ export class EcosystemController {
     const finalAnimals = animals.map(a =>
       a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
     );
-    return { animals: finalAnimals, board, biomes: newBiomes, displacementEvent };
+    const { [id]: _, ...remainingEggs } = state.eggs;
+    return { animals: finalAnimals, board, biomes: newBiomes, displacementEvent, eggs: remainingEggs };
   }
 }

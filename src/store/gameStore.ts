@@ -498,21 +498,29 @@ export const useGameStore = create<GameState>((set, get) => ({
     }),
 
   // EVOLUTION
-  evolveAnimal: (id: string) =>
-    set((state) => {
-      const { board: newBoard, biomes: newBiomes, displacementEvent } =
-        EcosystemController.evolveAnimalState(state, id);
-      // Only activate the egg here; let displacement animation handle others
-      const activatedAnimals = state.animals.map(a =>
-        a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
-      );
-      return {
-        animals: activatedAnimals,
-        board: newBoard,
-        biomes: newBiomes,
-        displacementEvent
-      };
-    }),
+evolveAnimal: (id: string) =>
+  set((state) => {
+    const {
+      board: newBoard,
+      biomes: newBiomes,
+      displacementEvent,
+      eggs: updatedEggs // ✅ pulled from logic result
+    } = EcosystemController.evolveAnimalState(state, id);
+
+    // Activate the egg by updating its state in the animals list
+    const activatedAnimals = state.animals.map(a =>
+      a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
+    );
+
+    return {
+      animals: activatedAnimals,
+      board: newBoard,
+      biomes: newBiomes,
+      displacementEvent,
+      eggs: updatedEggs // ✅ apply new eggs object (without the evolved egg)
+    };
+  }),
+
 
   // Egg actions for Animal/Egg refactor Phase 1
   addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
