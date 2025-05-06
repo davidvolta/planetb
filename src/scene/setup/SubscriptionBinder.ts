@@ -17,9 +17,15 @@ export class SubscriptionBinder {
       selectionRenderer: this.scene.getSelectionRenderer(),
     });
 
-    subscriptionManager.setupSubscriptions((animalId, x, y) => {
-      this.scene.handleUnitSelection(animalId);
-    });
+    subscriptionManager.setupSubscriptions(
+      (animalId, x, y) => {
+        this.scene.handleUnitSelection(animalId);
+      },
+      (eggId, x, y) => {
+        // Handle egg selection
+        this.scene.handleEggSelection(eggId);
+      }
+    );
 
     StateObserver.subscribe(
       'BoardScene.activePlayerFOW',

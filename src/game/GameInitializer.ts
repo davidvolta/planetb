@@ -31,7 +31,6 @@ export function initializeBoard(
         resourceValue: 0,
         active: false,
         isHabitat: false,
-        hasEgg: false
       };
     }
   }

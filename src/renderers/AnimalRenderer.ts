@@ -207,9 +207,7 @@ export class AnimalRenderer extends BaseRenderer {
       const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, spriteKey);
       sprite.setOrigin(0.5, 1);
       sprite.setDepth(worldPos.y);
-      // Tint by owner
-      if (ownerId === 0) sprite.setTint(0x3aafff);
-      else if (ownerId === 1) sprite.setTint(0xff6961);
+     
       sprite.setInteractive({ useHandCursor: true });
       sprite.on('pointerdown', () => {
         if (onEggClicked) onEggClicked(id, x, y);

@@ -4,7 +4,6 @@ import { getEggPlacementTiles, getTilesForBiome, getEggCountForBiome } from "../
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import type { GameState } from "../store/gameStore";
 import { MovementController } from "./MovementController";
-import { useGameStore } from "../store/gameStore";
 
 /**
  * Interface for egg placement validation
@@ -275,7 +274,6 @@ export class EcosystemController {
 
       // Create new egg animals
       const newEggs = validTiles.slice(0, eggsToPlace).map((tile, idx) => {
-        board.tiles[tile.y][tile.x].hasEgg = true;
         return {
           id: `animal-${startIndex + idx}`,
           species: this.getSpeciesForTerrain(board.tiles[tile.y][tile.x].terrain),
@@ -608,16 +606,8 @@ export class EcosystemController {
    * Remove egg flag from the board at a coordinate
    */
   public static removeEggFromPosition(board: Board, coord: Coordinate): Board {
-    return {
-      ...board,
-      tiles: board.tiles.map((row, y) =>
-        row.map((tile, x) => (
-          x === coord.x && y === coord.y
-            ? { ...tile, hasEgg: false }
-            : tile
-        ))
-      )
-    };
+    // Tile-level egg flag is deprecated; no-op here
+    return board;
   }
 
   /**
@@ -643,6 +633,7 @@ export class EcosystemController {
   /**
    * Evolve an egg into an active animal, handling displacement, board updates, and lushness.
    */
+  // TODO: Revist this method - consider moving evolveAnimalState logic into the store action and decoupling pure computation from state management
   public static evolveAnimalState(
     state: GameState,
     id: string
@@ -691,18 +682,18 @@ export class EcosystemController {
         timestamp: Date.now()
       };
     }
-    // Remove egg from board
-    const newBoard = this.removeEggFromPosition(board, eggPos);
+    // Use existing board; egg removal is managed by the central store
+
     // Update biomes
     const tile = board.tiles[eggPos.y][eggPos.x];
     const biomeId = tile.biomeId;
     const newBiomes = biomeId
-      ? this.recalcBiomeLushness(state.biomes, biomeId, newBoard)
+      ? this.recalcBiomeLushness(state.biomes, biomeId, board)
       : state.biomes;
     // Activate the egg
     const finalAnimals = animals.map(a =>
       a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
     );
-    return { animals: finalAnimals, board: newBoard, biomes: newBiomes, displacementEvent };
+    return { animals: finalAnimals, board, biomes: newBiomes, displacementEvent };
   }
 }

@@ -41,7 +41,6 @@ export interface Tile {
   resourceValue: number; // Value from 0-10, where 0 means depleted
   active: boolean; // Whether this tile has an active resource
   isHabitat: boolean; // Whether this tile is a habitat
-  hasEgg: boolean; // Whether this tile currently has an egg on it
 }
 
 // Base animal structure
@@ -117,7 +116,8 @@ export interface GameState {
   validMoves: ValidMove[];
   moveMode: boolean;
   selectedUnitIsDormant: boolean; // Flag to track if the selected unit is dormant
-  
+  fogOfWarEnabled: boolean;
+
   // Selection state
   selectedBiomeId: string | null; // ID of the currently selected biome
   selectedResource: Coordinate | null; // Currently selected resource tile
@@ -150,8 +150,6 @@ export interface GameState {
   // Egg state
   addEgg: (egg: Egg) => void;
   selectEgg: (id: string | null) => void;
-
-  fogOfWarEnabled: boolean;
   toggleFogOfWar: (enabled: boolean) => void;
   selectResource: (coord: Coordinate | null) => void;
   nextTurn: () => void;

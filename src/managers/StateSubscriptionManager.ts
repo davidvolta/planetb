@@ -62,6 +62,7 @@ export class StateSubscriptionManager {
     
     // Entity state subscriptions
     ANIMALS: 'StateSubscriptionManager.animals',
+    EGGS: 'StateSubscriptionManager.eggs',
     BIOMES: 'StateSubscriptionManager.biomes',
     RESOURCE_TILES: 'StateSubscriptionManager.resourceTiles',
     
@@ -427,5 +428,31 @@ export class StateSubscriptionManager {
   destroy(): void {
     this.unsubscribeAll();
     this.initialized = false;
+  }
+
+  /**
+   * Subscribe to egg state changes for rendering.
+   */
+  public setupEggSubscriptions(
+    onEggClicked?: (eggId: string, gridX: number, gridY: number) => void
+  ): void {
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
+      (state) => ({ eggs: state.eggs, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
+      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
+        if (!eggs) return;
+        const eggArray = Object.values(eggs);
+        if (!fogOfWarEnabled) {
+          this.scene.getAnimalRenderer().renderEggs(eggArray, onEggClicked);
+          return;
+        }
+        const visibleSet = new Set(
+          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
+        );
+        const visibleEggs = eggArray.filter(e => visibleSet.has(`${e.position.x},${e.position.y}`));
+        this.scene.getAnimalRenderer().renderEggs(visibleEggs, onEggClicked);
+      },
+      { immediate: true, debug: false }
+    );
   }
 } 

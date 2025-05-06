@@ -47,15 +47,6 @@ export const SPECIES_REGISTRY: Record<string, AnimalAbilities> = {
   }
 };
 
-// Map terrain types to animal types - KEEP THIS FOR COMPATIBILITY WITH SPRITE SYSTEM
-export const TERRAIN_ANIMAL_MAP: Record<TerrainType, string> = {
-  [TerrainType.GRASS]: 'buffalo',
-  [TerrainType.MOUNTAIN]: 'bird',
-  [TerrainType.WATER]: 'turtle',
-  [TerrainType.UNDERWATER]: 'octopus',
-  [TerrainType.BEACH]: 'snake',
-};
-
 // Default abilities for fallback
 export const DEFAULT_ABILITIES: AnimalAbilities = {
   moveRange: 1,

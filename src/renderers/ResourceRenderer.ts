@@ -159,7 +159,7 @@ export class ResourceRenderer extends BaseRenderer {
   }
   
   /**
-   * Visualize blank tiles (tiles with hasEgg=false and no resources or habitats)
+   * Visualize blank tiles
    * This performs an incremental update rather than clearing and recreating all markers
    */
   visualizeBlankTiles(): void {
