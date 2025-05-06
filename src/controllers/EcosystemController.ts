@@ -1,6 +1,6 @@
 import { Coordinate, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
 import { TerrainType, ResourceType } from "../types/gameTypes";
-import { getEggPlacementTiles, getTilesForBiome } from "../store/actions";
+import { getEggPlacementTiles, getTilesForBiome, getEggCountForBiome } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, MAX_LUSHNESS_BOOST, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import type { GameState } from "../store/gameStore";
 import { MovementController } from "./MovementController";
@@ -20,6 +20,7 @@ interface ValidEggPlacementState {
 interface BiomeProductionResult {
   animals: Animal[];
   biomes: Map<string, Biome>;
+  eggs: Animal[];
 }
 
 /**
@@ -241,11 +242,12 @@ export class EcosystemController {
       biomes.forEach((biome, biomeId) => {
         updatedBiomes.set(biomeId, { ...biome, lastProductionTurn: turn });
       });
-      return { animals: [...animals], biomes: updatedBiomes };
+      return { animals: [...animals], biomes: updatedBiomes, eggs: [] };
     }
 
     const newAnimals: Animal[] = [...animals];
     const updatedBiomes: Map<string, Biome> = new Map(biomes);
+    const allNewEggs: Animal[] = [];
 
     biomes.forEach((biome, biomeId) => {
       // Skip biomes without owner or already processed
@@ -285,16 +287,15 @@ export class EcosystemController {
         } as Animal;
       });
 
+      // Append new eggs to animals list and tracking
       newAnimals.push(...newEggs);
+      allNewEggs.push(...newEggs);
 
-      // Update eggCount and lastProductionTurn
-      updatedBiomes.set(biomeId, {
-        ...baseUpdatedBiome,
-        eggCount: biome.eggCount + newEggs.length,
-      });
+      // Only update lastProductionTurn for this biome
+      updatedBiomes.set(biomeId, baseUpdatedBiome);
     });
 
-    return { animals: newAnimals, biomes: updatedBiomes };
+    return { animals: newAnimals, biomes: updatedBiomes, eggs: allNewEggs };
   }
 
   /**
@@ -350,8 +351,8 @@ export class EcosystemController {
       return 0;
     }
     
-    // Use the biome's eggCount which is kept in sync with state changes
-    const eggCount = biome.eggCount;
+    // Derive current egg count using the action helper
+    const eggCount = getEggCountForBiome(biomeId);
     
     // Calculate and return percentage
     return eggCount / blankTiles.length;
@@ -568,12 +569,14 @@ export class EcosystemController {
     state: GameState,
     board: Board
   ): { animals: Animal[]; biomes: Map<string, Biome> } {
-    return this.biomeEggProduction(
+    // Destructure only animals and biomes, ignore eggs
+    const { animals, biomes } = this.biomeEggProduction(
       state.turn,
       state.animals,
       state.biomes,
       board
     );
+    return { animals, biomes };
   }
 
   /**
@@ -618,9 +621,9 @@ export class EcosystemController {
   }
 
   /**
-   * Decrement egg count and recalc lushness for a biome after egg evolution
+   * Recalculate lushness for a specific biome (single-biome update)
    */
-  public static updateEggCountAndLushness(
+  public static recalcBiomeLushness(
     biomes: Map<string, Biome>,
     biomeId: string,
     board: Board
@@ -628,12 +631,11 @@ export class EcosystemController {
     const newBiomes = new Map(biomes);
     const biome = newBiomes.get(biomeId);
     if (!biome) return newBiomes;
-    const updatedCount = Math.max(0, biome.eggCount - 1);
-    newBiomes.set(biomeId, { ...biome, eggCount: updatedCount });
+    // Recalculate lushness only; egg count is maintained in the eggs store
     if (biome.ownerId !== null) {
       const { baseLushness, lushnessBoost, totalLushness } =
         this.calculateBiomeLushness(biomeId, board, newBiomes);
-      newBiomes.set(biomeId, { ...newBiomes.get(biomeId)!, baseLushness, lushnessBoost, totalLushness });
+      newBiomes.set(biomeId, { ...biome, baseLushness, lushnessBoost, totalLushness });
     }
     return newBiomes;
   }
@@ -695,7 +697,7 @@ export class EcosystemController {
     const tile = board.tiles[eggPos.y][eggPos.x];
     const biomeId = tile.biomeId;
     const newBiomes = biomeId
-      ? this.updateEggCountAndLushness(state.biomes, biomeId, newBoard)
+      ? this.recalcBiomeLushness(state.biomes, biomeId, newBoard)
       : state.biomes;
     // Activate the egg
     const finalAnimals = animals.map(a =>

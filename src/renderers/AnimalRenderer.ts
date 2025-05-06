@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
-import { Animal, AnimalState } from '../store/gameStore';
+import { Animal, AnimalState, Egg } from '../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
 
@@ -14,6 +14,9 @@ export class AnimalRenderer extends BaseRenderer {
   
   // Map from unit ID to sprite for O(1) sprite lookup
   private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  
+  // Map from egg ID to sprite for eggs rendering
+  private eggSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   
   /**
    * Creates a new AnimalRenderer
@@ -176,5 +179,45 @@ export class AnimalRenderer extends BaseRenderer {
    */
   public getSpriteById(id: string): Phaser.GameObjects.Sprite | undefined {
     return this.unitSprites.get(id);
+  }
+  
+  /**
+   * Clear all egg sprites.
+   */
+  public clearEggs(): void {
+    this.eggSprites.forEach(sprite => sprite.destroy());
+    this.eggSprites.clear();
+  }
+  
+  /**
+   * Render all eggs based on the provided egg data.
+   */
+  public renderEggs(
+    eggs: Egg[],
+    onEggClicked?: (eggId: string, gridX: number, gridY: number) => void
+  ): void {
+    this.clearEggs();
+    for (const egg of eggs) {
+      const { id, position, ownerId } = egg;
+      const { x, y } = position;
+      const worldPos = CoordinateUtils.gridToWorld(
+        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
+      );
+      const spriteKey = 'egg';
+      const sprite = this.scene.add.sprite(worldPos.x, worldPos.y, spriteKey);
+      sprite.setOrigin(0.5, 1);
+      sprite.setDepth(worldPos.y);
+      // Tint by owner
+      if (ownerId === 0) sprite.setTint(0x3aafff);
+      else if (ownerId === 1) sprite.setTint(0xff6961);
+      sprite.setInteractive({ useHandCursor: true });
+      sprite.on('pointerdown', () => {
+        if (onEggClicked) onEggClicked(id, x, y);
+      });
+      sprite.setData('eggId', id);
+      sprite.setData('gridX', x);
+      sprite.setData('gridY', y);
+      this.eggSprites.set(id, sprite);
+    }
   }
 } 

@@ -581,7 +581,7 @@ export default class UIScene extends Phaser.Scene {
     
     // Egg count
     if (this.biomeInfoTexts['eggCount']) {
-      this.biomeInfoTexts['eggCount'].setText(biome.eggCount.toString());
+      this.biomeInfoTexts['eggCount'].setText(actions.getEggCountForBiome(biome.id).toString());
     }
     
     // Owner info

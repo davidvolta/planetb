@@ -1,4 +1,5 @@
-import { useGameStore, Animal, AnimalState, Board, Biome, TerrainType, Coordinate, Player } from "./gameStore";
+import { useGameStore, Animal, AnimalState, Board, Biome, Coordinate, Player, Egg } from "./gameStore";
+import { TerrainType } from "../types/gameTypes";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { MovementController } from '../controllers/MovementController';
@@ -108,6 +109,8 @@ export async function evolveAnimal(id: string): Promise<void> {
     throw new Error(`EvolveAnimal failed: animal ${id} is not dormant`);
   }
   state.evolveAnimal(id);
+  // Remove the egg from state now that it has evolved
+  removeEgg(id);
 }
 
 /**
@@ -117,32 +120,40 @@ export function getSelectedUnitId(): string | null {
   return useGameStore.getState().selectedUnitId;
 }
 
+// =============================================================================
+// EGG MANAGEMENT
+// =============================================================================
+
 /**
- * Get the selected animal object
+ * Get the number of eggs in a specific biome.
  */
-export function getSelectedAnimal(): any | null {
-  const id = useGameStore.getState().selectedUnitId;
-  if (!id) return null;
-  
-  return useGameStore.getState().animals.find(a => a.id === id);
+export function getEggCountForBiome(biomeId: string): number {
+  const eggs = useGameStore.getState().eggs;
+  return Object.values(eggs).filter(e => e.biomeId === biomeId).length;
 }
 
 /**
- * Check if the selected unit is a dormant unit (egg)
+ * Check if a tile has an egg.
  */
-export function isSelectedUnitDormant(): boolean {
-  return useGameStore.getState().selectedUnitIsDormant;
+export function tileHasEgg(x: number, y: number): boolean {
+  const eggs = useGameStore.getState().eggs;
+  return Object.values(eggs).some(e => e.position.x === x && e.position.y === y);
 }
 
 /**
- * Add a new animal to the game state
- * @param animal The animal to add
+ * Add an egg to the game state.
  */
-export async function addAnimal(animal: Animal): Promise<void> {
-  const animals = [...useGameStore.getState().animals, animal];
-  
-  useGameStore.setState({
-    animals
+export function addEgg(egg: Egg): void {
+  useGameStore.getState().addEgg(egg);
+}
+
+/**
+ * Remove an egg from the game state by ID.
+ */
+export function removeEgg(id: string): void {
+  useGameStore.setState(state => {
+    const { [id]: _, ...remaining } = state.eggs;
+    return { eggs: remaining };
   });
 }
 
@@ -366,13 +377,12 @@ export async function updateBiomeLushness(biomeId: string): Promise<void> {
   }
   // Calculate new lushness values using the existing action helper
   const { baseLushness, lushnessBoost, totalLushness } = calculateBiomeLushness(biomeId);
-  // Prepare updated biome object
+  // Prepare updated biome object without eggCount
   const updatedBiome: Biome = {
     ...biome,
     baseLushness,
     lushnessBoost,
     totalLushness,
-    eggCount: biome.eggCount,
   };
   // Commit updated biomes map in one state update
   const updatedBiomes = new Map(state.biomes);
@@ -443,8 +453,8 @@ export function getTilesByFilter(filterFn: TileFilterFn): TileResult[] {
  * @returns Array of blank tiles with their positions
  */
 export function getBlankTiles(): TileResult[] {
-  return getTilesByFilter((tile) => 
-    !tile.active && !tile.isHabitat && !tile.hasEgg
+  return getTilesByFilter((tile, x, y) =>
+    !tile.active && !tile.isHabitat && !tileHasEgg(x, y)
   );
 }
 
@@ -453,7 +463,7 @@ export function getBlankTiles(): TileResult[] {
  * @returns Array of egg tiles with their positions
  */
 export function getEggTiles(): TileResult[] {
-  return getTilesByFilter((tile) => tile.hasEgg);
+  return getTilesByFilter((tile, x, y) => tileHasEgg(x, y));
 }
 
 /**
@@ -488,11 +498,11 @@ export function getTilesByTerrain(terrainType: TerrainType): TileResult[] {
  * @returns Array of blank tiles in the biome suitable for egg placement
  */
 export function getEggPlacementTiles(biomeId: string): TileResult[] {
-  return getTilesByFilter((tile) => 
-    tile.biomeId === biomeId && 
-    !tile.active && 
-    !tile.isHabitat && 
-    !tile.hasEgg
+  return getTilesByFilter((tile, x, y) =>
+    tile.biomeId === biomeId &&
+    !tile.active &&
+    !tile.isHabitat &&
+    !tileHasEgg(x, y)
   );
 }
 
@@ -760,12 +770,26 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
   const newBoard = EcosystemController.regenerateResources(board, playerBiomes);
   
   // Produce eggs only for these biomes
-  const { animals: postEggAnimals, biomes: postEggBiomes } = EcosystemController.biomeEggProduction(
+  const { animals: postEggAnimals, biomes: postEggBiomes, eggs: newEggs } = EcosystemController.biomeEggProduction(
     turn,
     animals,
     playerBiomes,
     newBoard
   );
+
+  // Add newly produced eggs to state
+  newEggs.forEach(animal => {
+    // Derive biomeId from the new board
+    const tile = newBoard.tiles[animal.position.y][animal.position.x];
+    const egg: Egg = {
+      id: animal.id,
+      ownerId: animal.ownerId!,
+      position: animal.position,
+      biomeId: tile.biomeId!,
+      createdAtTurn: turn,
+    };
+    addEgg(egg);
+  });
 
   // Merge updated biomes back into full map
   const mergedBiomes = new Map(allBiomes);

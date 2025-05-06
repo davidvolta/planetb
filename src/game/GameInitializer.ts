@@ -98,7 +98,6 @@ export function initializeBoard(
       initialResourceCount: 0,
       nonDepletedCount: 0,
       totalHarvested: 0,
-      eggCount: 0,
       ownerId: null,
       productionRate: 1,
       lastProductionTurn: 0,

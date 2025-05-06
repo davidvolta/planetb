@@ -20,7 +20,6 @@ export interface Biome {
   initialResourceCount: number; // Initial count of resources when the biome was created
   nonDepletedCount: number; // Count of non-depleted resources
   totalHarvested: number; // Total resources harvested from this biome
-  eggCount: number; // Current number of eggs in this biome
   ownerId: number | null; // Player ID that owns this biome
   productionRate: number; // Number of eggs produced per turn
   lastProductionTurn: number; // Track when we last produced eggs
@@ -93,6 +92,15 @@ export interface Resource {
   biomeId: string | null; // Add biome ID to track which biome each resource belongs to
 }
 
+// Egg structure for Animal/Egg refactor Phase 1
+export interface Egg {
+  id: string;
+  ownerId: number;
+  position: Coordinate;
+  biomeId: string;
+  createdAtTurn: number;
+}
+
 // Game state interface
 export interface GameState {
   turn: number;
@@ -101,6 +109,8 @@ export interface GameState {
   board: Board | null;
   animals: Animal[];
   biomes: Map<string, Biome>; // Track biomes by ID
+  eggs: Record<string, Egg>;
+  selectedEggId: string | null;
   
   // Movement state
   selectedUnitId: string | null;
@@ -137,6 +147,9 @@ export interface GameState {
     timestamp: number | null; // When the capture occurred
   };
   
+  // Egg state
+  addEgg: (egg: Egg) => void;
+  selectEgg: (id: string | null) => void;
 
   fogOfWarEnabled: boolean;
   toggleFogOfWar: (enabled: boolean) => void;
@@ -204,6 +217,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   board: null,
   animals: [],
   biomes: new Map(),
+  eggs: {},
+  selectedEggId: null,
   
   // Initialize movement state
   selectedUnitId: null,
@@ -516,4 +531,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         displacementEvent
       };
     }),
+
+  // Egg actions for Animal/Egg refactor Phase 1
+  addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
+  selectEgg: (id: string | null) => set(() => ({ selectedEggId: id })),
 }));
