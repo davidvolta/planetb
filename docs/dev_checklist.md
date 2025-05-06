@@ -3,12 +3,6 @@
 
 ## The Great Animal/Egg Refactor
 
-- [ ] Remove hasEgg property
-function tileHasEgg(x: number, y: number): boolean {
-  const eggs = get().eggs;
-  return Object.values(eggs).some(e => e.position.x === x && e.position.y === y);
-}
-
 - [ ] Keep dormant animals for now, but mark them deprecated
 export function getAnimals(): Animal[] {
   return useGameStore.getState().animals; // TODO: still includes dormant eggs (migrating soon)
@@ -23,11 +17,6 @@ When spawning an egg:
 - Add only to eggs (not animals)
 
 
-Wherever you’re using:
-
-tile.hasEgg = true;
-Replace with:
-const hasEgg = tileHasEgg(x, y);
 
 Then remove those fields from the data models once nothing references them.
 
@@ -80,7 +69,7 @@ Case 5 DormantUnit Selction needs to be selectedEggID
 
 
   - [ ] Remove `AnimalState` enum and `state` field.
-  - [ ] Add `selectEgg(id: string | null)` action; update `evolveAnimal(id)` to remove egg and create Animal.
+  - [ ] update `evolveAnimal(id)` to remove egg and create Animal.
   - [ ] Replace all `AnimalState.DORMANT` checks with egg lookups; swap `selectedUnitIsDormant` for `selectedEggId`; update renderers, controllers, UI, and subscriptions.
   - [ ] The big issue is that the Subscription for Animals can't be used by Eggs so we need to cerate a new one just for eggs. Which seems strange. I still want to get away from therse.
 
@@ -102,9 +91,13 @@ Case 5 DormantUnit Selction needs to be selectedEggID
 
 - [ ] Rewrite TileInteractionController to fully route all click handling through the GameController facade
 
+- [ ] Refactor namespace so that Unit = Animal
+- [ ] Refactor namespace to that Spawn = Evolve
+
 - [ ] Combat
 - [ ] Evolution
 - [ ] LLM 
+
 
 Bridge step towards refactoring Animals will be that I can do this because no DORMANT exists
 export function getActiveAnimals(): Animal[] {

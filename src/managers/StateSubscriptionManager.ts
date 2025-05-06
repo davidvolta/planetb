@@ -441,15 +441,23 @@ export class StateSubscriptionManager {
       (state) => ({ eggs: state.eggs, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
       ({ eggs, activePlayerId, fogOfWarEnabled }) => {
         if (!eggs) return;
+
         const eggArray = Object.values(eggs);
         if (!fogOfWarEnabled) {
+          // FOW disabled: render all eggs
           this.scene.getAnimalRenderer().renderEggs(eggArray, onEggClicked);
           return;
         }
+
+        // With FOW: only render visible eggs
         const visibleSet = new Set(
           actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
         );
-        const visibleEggs = eggArray.filter(e => visibleSet.has(`${e.position.x},${e.position.y}`));
+
+        const visibleEggs = eggArray.filter(e =>
+          visibleSet.has(`${e.position.x},${e.position.y}`)
+        );
+
         this.scene.getAnimalRenderer().renderEggs(visibleEggs, onEggClicked);
       },
       { immediate: true, debug: false }

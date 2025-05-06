@@ -147,7 +147,7 @@ export interface GameState {
     timestamp: number | null; // When the capture occurred
   };
   
-  // Egg state
+  // Actions
   addEgg: (egg: Egg) => void;
   selectEgg: (id: string | null) => void;
   toggleFogOfWar: (enabled: boolean) => void;
@@ -163,6 +163,7 @@ export interface GameState {
   moveUnit: (id: string, x: number, y: number) => void;
   getValidMoves: (id: string) => ValidMove[];
   selectBiome: (id: string | null) => void;
+  addAnimal: (animal: Animal) => void;
 }
 
 // Default displacement event for animations
@@ -190,23 +191,6 @@ const DEFAULT_BIOME_CAPTURE_EVENT: GameState['biomeCaptureEvent'] = {
   timestamp: null
 };
 
-// Pure helper to reset movement flags and clear events
-function resetMovementAndEvents(
-  animals: Animal[]
-): {
-  animals: Animal[];
-  displacementEvent: GameState['displacementEvent'];
-  spawnEvent: GameState['spawnEvent'];
-  biomeCaptureEvent: GameState['biomeCaptureEvent'];
-} {
-  const resetAnimals = animals.map(a => ({ ...a, hasMoved: false }));
-  return {
-    animals: resetAnimals,
-    displacementEvent: DEFAULT_DISPLACEMENT_EVENT,
-    spawnEvent: DEFAULT_SPAWN_EVENT,
-    biomeCaptureEvent: DEFAULT_BIOME_CAPTURE_EVENT
-  };
-}
 
 export const useGameStore = create<GameState>((set, get) => ({
   turn: 1,
@@ -533,4 +517,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Egg actions for Animal/Egg refactor Phase 1
   addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
   selectEgg: (id: string | null) => set(() => ({ selectedEggId: id })),
+
+  // Animal actions for spawning/evolution
+  addAnimal: (animal: Animal) => set((state) => ({ animals: [...state.animals, animal] })),
 }));

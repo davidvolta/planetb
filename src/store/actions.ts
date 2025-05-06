@@ -97,6 +97,20 @@ export function getAnimals(): any[] {
 }
 
 /**
+ * Remove an animal from the game state by ID.
+ */
+export function removeAnimal(id: string): void {
+  useGameStore.setState(state => ({ animals: state.animals.filter(a => a.id !== id) }));
+}
+
+/**
+ * Add a new animal to the game state.
+ */
+export function addAnimal(animal: Animal): void {
+  useGameStore.getState().addAnimal(animal);
+}
+
+/**
  * Evolve an animal by ID
  */
 export async function evolveAnimal(id: string): Promise<void> {
