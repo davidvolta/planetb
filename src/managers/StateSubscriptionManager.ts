@@ -1,5 +1,5 @@
 import { StateObserver } from '../utils/stateObserver';
-import { Biome } from '../store/gameStore';
+import { Biome, Egg } from '../store/gameStore';
 import * as actions from '../store/actions';
 import BoardScene from '../scene/BoardScene';
 import { SelectionRenderer, SelectionType } from '../renderers/SelectionRenderer';
@@ -121,37 +121,31 @@ export class StateSubscriptionManager {
     );
   }
   
-/**
+  /**
    * Subscribe to egg state changes for rendering.
    */
-public setupEggSubscriptions(): void {
-  StateObserver.subscribe(
-    StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
-    (state) => ({ eggs: state.eggs, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
-    ({ eggs, activePlayerId, fogOfWarEnabled }) => {
-      if (!eggs) return;
-
-      const eggArray = Object.values(eggs);
-      if (!fogOfWarEnabled) {
-        // FOW disabled: render all eggs
-        this.eggRenderer.renderEggs(eggArray);
-        return;
-      }
-
-      // With FOW: only render visible eggs
-      const visibleSet = new Set(
-        actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
-      );
-
-      const visibleEggs = eggArray.filter(e =>
-        visibleSet.has(`${e.position.x},${e.position.y}`)
-      );
-
-      this.eggRenderer.renderEggs(visibleEggs);
-    },
-    { immediate: true, debug: false }
-  );
-}
+  public setupEggSubscriptions(): void {
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
+      (state) => Object.values(state.eggs),
+      (eggArray: Egg[]) => {
+        const fowEnabled = actions.getFogOfWarEnabled();
+        if (!fowEnabled) {
+          this.eggRenderer.renderEggs(eggArray);
+        } else {
+          const activePlayerId = actions.getActivePlayerId();
+          const visibleSet = new Set(
+            actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
+          );
+          const visibleEggs = eggArray.filter(e =>
+            visibleSet.has(`${e.position.x},${e.position.y}`)
+          );
+          this.eggRenderer.renderEggs(visibleEggs);
+        }
+      },
+      { immediate: true, debug: false }
+    );
+  }
 
   // Set up subscriptions related to animals
   private setupAnimalSubscriptions(): void {
@@ -428,16 +422,6 @@ public setupEggSubscriptions(): void {
     console.log("All StateSubscriptionManager subscriptions unsubscribed");
   }
 
-   
-  // Check if manager is properly initialized
-  isInitialized(): boolean {
-    return this.initialized;
-  }
-  
-  // Check if subscriptions are currently set up
-  isSubscribed(): boolean {
-    return this.subscriptionsSetup;
-  }
   
   // Get a list of active subscription keys for debugging
   getActiveSubscriptions(): string[] {

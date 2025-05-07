@@ -184,6 +184,14 @@ export function getEggs(): Record<string, Egg> {
   return useGameStore.getState().eggs;
 }
 
+/**
+ * Get all eggs at a given tile coordinate.
+ */
+export function getEggsAt(x: number, y: number): Egg[] {
+  const eggs = useGameStore.getState().eggs;
+  return Object.values(eggs).filter(e => e.position.x === x && e.position.y === y);
+}
+
 // =============================================================================
 // UNIT MOVEMENT
 // =============================================================================
