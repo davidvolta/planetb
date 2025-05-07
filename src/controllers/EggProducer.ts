@@ -1,7 +1,7 @@
 // EggProducer: pure helper to generate eggs each turn
 import { Board, Biome, Egg } from '../store/gameStore';
-import { TerrainType } from '../types/gameTypes';
 import { getEggPlacementTiles } from '../store/actions';
+import { generateEggId } from '../utils/IdGenerator';
 import { EGG_PRODUCTION_THRESHOLD } from '../constants/gameConfig';
 
 interface ProduceResult {
@@ -42,7 +42,7 @@ export class EggProducer {
 
       for (let i = 0; i < eggsToPlace; i++) {
         const tile = blankTiles[i];
-        const eggId = `egg-${Object.keys(existingEggs).length + newEggs.length}`;
+        const eggId = generateEggId(biomeId);
         const egg: Egg = {
           id: eggId,
           ownerId: playerId,

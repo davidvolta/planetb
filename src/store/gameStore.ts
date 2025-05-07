@@ -495,19 +495,27 @@ export const useGameStore = create<GameState>((set, get) => ({
         board: newBoard,
         biomes: newBiomes,
         displacementEvent,
-        eggs: updatedEggs // ✅ pulled from logic result
+        eggs: updatedEggs,
+        newAnimalId
       } = EcosystemController.evolveAnimalState(state, id);
 
-      // Use animals array returned by controller (already contains the new active unit)
+      console.log(`[SpawnEvent] New animal ${newAnimalId} spawned from egg ${id}`);
+      // Trigger spawn event for animation layer
+      const spawnEvent = {
+        occurred: true,
+        unitId: newAnimalId,
+        timestamp: Date.now()
+      } as GameState['spawnEvent'];
 
       return {
         animals: animalsFromController,
         board: newBoard,
         biomes: newBiomes,
         displacementEvent,
-        eggs: updatedEggs, // ✅ apply new eggs object (without the evolved egg)
-        selectedEggId: null, // Clear egg selection after evolution
-        selectedUnitId: id, // Optionally auto-select the new unit
+        eggs: updatedEggs,
+        selectedEggId: null,
+        selectedUnitId: newAnimalId,
+        spawnEvent,
         moveMode: false,
         validMoves: []
       };

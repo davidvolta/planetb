@@ -24,7 +24,6 @@ export class CommandExecutor {
   public async execute(cmd: GameCommand): Promise<void> {
     switch (cmd.type) {
       case 'move':
-        // Execute move using GameController (validation is built-in)
         await this.gc.moveUnit(cmd.unitId, cmd.x, cmd.y);
         break;
       case 'capture':
@@ -32,13 +31,10 @@ export class CommandExecutor {
         actions.selectBiome(null); // clear selection afterward
         break;
       case 'evolve':
-        // Evolve a dormant unit
         this.gc.evolveAnimal(cmd.unitId);
-        actions.recordSpawnEvent(cmd.unitId);
         actions.deselectUnit();
         break;
       case 'harvest':
-        // Harvest resource at tile with optional amount
         const { x, y, amount = 3 } = cmd;
         this.gc.harvestTile({ x, y }, amount);
         break;

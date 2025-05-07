@@ -2,6 +2,7 @@ import { Board, Tile, Animal, Biome } from '../store/gameStore';
 import { TerrainType, BIOME_TERRAIN_ORDER } from '../types/gameTypes';
 import { generateIslandTerrain } from '../utils/TerrainGenerator';
 import { VoronoiNode, isNodeOverlapping, generateVoronoiBiomes } from '../utils/BiomeGenerator';
+import { generateAnimalId } from '../utils/IdGenerator';
 
 interface InitResult {
   board: Board;
@@ -143,7 +144,7 @@ export function initializeBoard(
       const choice = adjacent[Math.floor(Math.random() * adjacent.length)];
       const species = 'turtle';
       const newAnimal: Animal = {
-        id: `animal-${animals.length}`,
+        id: generateAnimalId(species),
         species,
         position: choice,
         previousPosition: null,

@@ -4,6 +4,7 @@ import { getEggPlacementTiles, getTilesForBiome, getEggCountForBiome } from "../
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { MovementController } from "./MovementController";
 import type { GameState, Egg } from "../store/gameStore";
+import { generateAnimalId } from "../utils/IdGenerator";
 
 /**
  * Interface for egg placement validation
@@ -526,7 +527,6 @@ export class EcosystemController {
   /**
    * Evolve an egg into an active animal, handling displacement, board updates, and lushness.
    */
-  // TODO: Revist this method - consider moving evolveAnimalState logic into the store action and decoupling pure computation from state management
   public static evolveAnimalState(
     state: GameState,
     id: string
@@ -536,6 +536,7 @@ export class EcosystemController {
     biomes: Map<string, Biome>;
     displacementEvent: GameState['displacementEvent'];
     eggs: Record<string, Egg>;
+    newAnimalId: string;
   } {
     // Find the egg
     const egg = this.getEggById(state, id);
@@ -546,7 +547,8 @@ export class EcosystemController {
         board: state.board!,
         biomes: state.biomes,
         displacementEvent: { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null } as GameState['displacementEvent'],
-        eggs: state.eggs
+        eggs: state.eggs,
+        newAnimalId: ''
       };
     }
     // Prepare initial state
@@ -588,7 +590,7 @@ export class EcosystemController {
     const species = this.getSpeciesForTerrain(board.tiles[eggPos.y][eggPos.x].terrain);
     console.log(`[EggHatch] Egg ${id} hatched into ${species} owner=${egg.ownerId} at (${eggPos.x},${eggPos.y})`);
     const newAnimal: Animal = {
-      id,
+      id: generateAnimalId(species),
       species,
       position: { ...eggPos },
       previousPosition: null,
@@ -597,6 +599,6 @@ export class EcosystemController {
     };
     const finalAnimals = [...animals, newAnimal];
     const { [id]: _, ...remainingEggs } = state.eggs;
-    return { animals: finalAnimals, board, biomes: newBiomes, displacementEvent, eggs: remainingEggs };
+    return { animals: finalAnimals, board, biomes: newBiomes, displacementEvent, eggs: remainingEggs, newAnimalId: newAnimal.id };
   }
 }
