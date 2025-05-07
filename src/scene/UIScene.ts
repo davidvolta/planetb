@@ -16,6 +16,7 @@ export default class UIScene extends Phaser.Scene {
   private nextTurnText: Phaser.GameObjects.Text | null = null;
   private nextTurnButtonBg: Phaser.GameObjects.Rectangle | null = null;
   private selectedUnitId: string | null = null;
+  private selectedEggId: string | null = null;
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
   private harvestButton: Phaser.GameObjects.Container | null = null;
   private energyText: Phaser.GameObjects.Text | null = null;
@@ -48,7 +49,7 @@ export default class UIScene extends Phaser.Scene {
         return {
           turn: state.turn,
           selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
-          selectedIsDormant: state.selectedUnitIsDormant,
+          selectedEggId: state.selectedEggId,
           selectedBiomeId: state.selectedBiomeId,
           activePlayerName: player ? player.name : `Player ${state.activePlayerId}`
         };
@@ -66,10 +67,11 @@ export default class UIScene extends Phaser.Scene {
         
         // Update selected unit details
         this.selectedUnitId = data.selectedUnit?.id || null;
+        this.selectedEggId = data.selectedEggId || null;
         
         // Show/hide spawn button based on selection
         if (this.spawnButton) {
-          this.spawnButton.setVisible(data.selectedUnit !== null && data.selectedIsDormant);
+          this.spawnButton.setVisible(!!data.selectedEggId);
           // Update background size when button visibility changes
           this.updateBackgroundSize();
         }
@@ -251,7 +253,7 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
     // Create button text with shortcut hint
-    const buttonText = this.add.text(75, 20, 'Spawn Unit', {
+    const buttonText = this.add.text(75, 20, 'Hatch Egg', {
       fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
@@ -364,7 +366,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   public async handleSpawnUnit(): Promise<void> {
-    if (!this.selectedUnitId) return;
+    if (!this.selectedEggId) return;
   
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     const gameController = boardScene.getGameController();
@@ -372,7 +374,7 @@ export default class UIScene extends Phaser.Scene {
   
     await executor.execute({
       type: 'evolve',
-      unitId: this.selectedUnitId,
+      unitId: this.selectedEggId,
     });
   }
 
@@ -642,6 +644,7 @@ export default class UIScene extends Phaser.Scene {
     
     this.turnText = null;
     this.selectedUnitId = null;
+    this.selectedEggId = null;
     this.selectedBiomeId = null;
   }
   

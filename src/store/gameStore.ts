@@ -115,7 +115,6 @@ export interface GameState {
   selectedUnitId: string | null;
   validMoves: ValidMove[];
   moveMode: boolean;
-  selectedUnitIsDormant: boolean; // Flag to track if the selected unit is dormant
   fogOfWarEnabled: boolean;
 
   // Selection state
@@ -206,7 +205,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectedUnitId: null,
   validMoves: [],
   moveMode: false,
-  selectedUnitIsDormant: false,
   
   // Initialize selection state
   selectedBiomeId: null,
@@ -400,43 +398,50 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   // MOVEMENT
-  selectUnit: (id: string | null) => 
+  selectUnit: (id: string | null) =>
     set((state) => {
       if (!id) {
-        return { 
+        return {
           selectedUnitId: null,
           validMoves: [],
           moveMode: false,
-          selectedUnitIsDormant: true,
-          selectedResource: null  // clear resource selection
+          selectedEggId: null,
+          selectedResource: null
         };
       }
-      
-      // Check if the unit has already moved this turn
+
       const unit = state.animals.find(a => a.id === id);
+      if (unit && unit.state === AnimalState.DORMANT) {
+        return {
+          selectedUnitId: null,
+          validMoves: [],
+          moveMode: false,
+          selectedEggId: id,
+          selectedResource: null
+        };
+      }
+
       if (unit && unit.hasMoved) {
         console.log(`Cannot select unit ${id} for movement - it has already moved this turn`);
-        // We don't prevent selection entirely, but we don't enter move mode
         return {
           selectedUnitId: id,
           validMoves: [],
           moveMode: false,
-          selectedUnitIsDormant: unit.state === AnimalState.DORMANT,
-          selectedResource: null  // clear resource selection
+          selectedEggId: null,
+          selectedResource: null
         };
       }
-      
-      // Select the unit and calculate valid moves via MovementController
+
       const validMoves = unit && state.board
         ? MovementController.calculateValidMoves(unit, state.board, state.animals)
         : [];
-      
+
       return {
         selectedUnitId: id,
         validMoves,
         moveMode: true,
-        selectedUnitIsDormant: unit?.state === AnimalState.DORMANT,
-        selectedResource: null  // clear resource selection
+        selectedEggId: null,
+        selectedResource: null
       };
     }),
     
@@ -481,20 +486,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     selectedResource: coord,
     selectedUnitId: null,
     validMoves: [],
-    moveMode: false,
-    selectedUnitIsDormant: false
+    moveMode: false
   }),
 
   selectBiome: (id: string | null) => 
     set(state => {
       if (id === null) {
-        return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
+        return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false };
       }
       const biome = state.biomes.get(id);
       if (biome) {
-        return { selectedBiomeId: id, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
+        return { selectedBiomeId: id, selectedUnitId: null, validMoves: [], moveMode: false };
       }
-      return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false, selectedUnitIsDormant: false };
+      return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false };
     }),
 
   // EVOLUTION

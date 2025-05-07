@@ -362,7 +362,6 @@ export class StateSubscriptionManager {
       StateSubscriptionManager.SUBSCRIPTIONS.SELECTION,
       (state) => ({
         unitId: state.selectedUnitId,
-        unitDormant: state.selectedUnitIsDormant,
         resource: state.selectedResource,
         biomeId: state.selectedBiomeId
       }),
@@ -375,13 +374,10 @@ export class StateSubscriptionManager {
           if (unit) {
             const x = unit.position.x;
             const y = unit.position.y;
-            const type = sel.unitDormant ? SelectionType.Action : SelectionType.Move;
-            this.selectionRenderer.showSelection(x, y, type);
+            this.selectionRenderer.showSelection(x, y, SelectionType.Move);
           }
           return;
         }
-        // Clear move highlights when not selecting a unit
-        this.moveRangeRenderer.clearMoveHighlights();
         if (sel.resource) {
           this.selectionRenderer.showSelection(sel.resource.x, sel.resource.y, SelectionType.Action);
           return;
