@@ -9,6 +9,7 @@ export class SubscriptionBinder {
 
     subscriptionManager.initialize({
       animalRenderer: this.scene.getAnimalRenderer(),
+      eggRenderer: this.scene.getEggRenderer(),
       biomeRenderer: this.scene.getBiomeRenderer(),
       moveRangeRenderer: this.scene.getMoveRangeRenderer(),
       tileRenderer: this.scene.getTileRenderer(),
@@ -16,15 +17,8 @@ export class SubscriptionBinder {
       selectionRenderer: this.scene.getSelectionRenderer(),
     });
 
-    subscriptionManager.setupSubscriptions(
-      (animalId, x, y) => {
-        this.scene.handleUnitSelection(animalId);
-      },
-      (eggId, x, y) => {
-        // Handle egg selection
-        this.scene.handleEggSelection(eggId);
-      }
-    );
+    // No explicit callbacks needed for selection; handled by TileInteractionController and subscription manager
+    subscriptionManager.setupSubscriptions();
 
     StateObserver.subscribe(
       'BoardScene.activePlayerFOW',

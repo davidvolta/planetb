@@ -11,6 +11,7 @@ import { SelectionRenderer } from "../renderers/SelectionRenderer";
 import { MoveRangeRenderer } from "../renderers/MoveRangeRenderer";
 import { BiomeRenderer } from "../renderers/BiomeRenderer";
 import { AnimalRenderer } from "../renderers/AnimalRenderer";
+import { EggRenderer } from "../renderers/EggRenderer";
 import { ResourceRenderer } from "../renderers/ResourceRenderer";
 import { AnimationController } from "../controllers/AnimationController";
 import { CameraManager } from "../managers/CameraManager";
@@ -50,6 +51,7 @@ export default class BoardScene extends Phaser.Scene {
   private moveRangeRenderer: MoveRangeRenderer;
   private biomeRenderer: BiomeRenderer;
   private animalRenderer: AnimalRenderer;
+  private eggRenderer: EggRenderer;
   private resourceRenderer: ResourceRenderer;
   private fogOfWarRenderer: FogOfWarRenderer;
   
@@ -85,6 +87,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer = new MoveRangeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.biomeRenderer = new BiomeRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.animalRenderer = new AnimalRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
+    this.eggRenderer = new EggRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.resourceRenderer = new ResourceRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     this.fogOfWarRenderer = new FogOfWarRenderer(this, this.layerManager, this.tileSize, this.tileHeight);
     
@@ -169,6 +172,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.initialize(anchorX, anchorY);
     this.biomeRenderer.initialize(anchorX, anchorY);
     this.animalRenderer.initialize(anchorX, anchorY);
+    this.eggRenderer.initialize(anchorX, anchorY);
     this.resourceRenderer.initialize(anchorX, anchorY);
     this.fogOfWarRenderer.initialize(anchorX, anchorY);
     this.animationController.initialize(anchorX, anchorY);
@@ -339,6 +343,7 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
+  
   // Set up input handlers for clicks and keyboard
   private setupInputHandlers(): void {
     // Handle clicks on tiles and habitats directly
@@ -359,6 +364,8 @@ export default class BoardScene extends Phaser.Scene {
     this.controlsSetup = true;
   }
 
+
+  
   //Get the current input mode
   isInMoveMode(): boolean {
     return actions.isMoveMode();
@@ -449,6 +456,21 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
   
+ /**
+   * Updates the fog-of-war visuals when the active player changes.
+   * This is called by SubscriptionBinder.
+   */
+ public updateFogForPlayer(playerId: number): void {
+  if (!this.fogOfWarEnabled) return;
+  const board = actions.getBoard();
+  if (!board) return;
+  this.fogOfWarRenderer.clearFogOfWar();
+  this.fogOfWarRenderer.createFogOfWar(board);
+  const coords = actions.getVisibleTilesForPlayer(playerId);
+  if (coords.length) {
+    this.fogOfWarRenderer.revealTiles(coords);
+  }
+}
 
   // Toggle biome visualization mode on/off
   public toggleBiomeVisualization(enabled: boolean): void {
@@ -502,6 +524,7 @@ export default class BoardScene extends Phaser.Scene {
     this.moveRangeRenderer.destroy();
     this.biomeRenderer.destroy();
     this.animalRenderer.destroy();
+    this.eggRenderer.destroy();
     this.resourceRenderer.destroy();
     this.fogOfWarRenderer.destroy();
     
@@ -622,22 +645,12 @@ export default class BoardScene extends Phaser.Scene {
     return this.turnController;
   }
   
-
-  /**
-   * Updates the fog-of-war visuals when the active player changes.
-   * This is called by SubscriptionBinder.
-   */
-  public updateFogForPlayer(playerId: number): void {
-    if (!this.fogOfWarEnabled) return;
-    const board = actions.getBoard();
-    if (!board) return;
-    this.fogOfWarRenderer.clearFogOfWar();
-    this.fogOfWarRenderer.createFogOfWar(board);
-    const coords = actions.getVisibleTilesForPlayer(playerId);
-    if (coords.length) {
-      this.fogOfWarRenderer.revealTiles(coords);
-    }
+  public getEggRenderer(): EggRenderer {
+      return this.eggRenderer;
   }
+  
+
+ 
 
   /**
    * Get the TileInteractionController instance for input handling.

@@ -73,7 +73,8 @@ export class TileInteractionController {
     // Case 5: dormant unit selection
     if (dormantUnits.length > 0) {
       handlers.push((x, y) => {
-        actions.selectUnit(dormantUnits[0].id);
+        // Treat dormant animal as an egg selection
+        actions.selectEgg(dormantUnits[0].id);
         // Selection UI handled by StateSubscriptionManager
       });
     }

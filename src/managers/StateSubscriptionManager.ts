@@ -8,35 +8,10 @@ import { AnimalRenderer } from '../renderers/AnimalRenderer';
 import { BiomeRenderer } from '../renderers/BiomeRenderer';
 import { ResourceRenderer } from '../renderers/ResourceRenderer';
 import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
+import { EggRenderer } from '../renderers/EggRenderer';
 import Phaser from "phaser";
 
 // Component interfaces: These define the contracts that components must fulfill to receive state updates
-
-// Interface for a component that can render animals
-interface IAnimalRenderer {
-  renderAnimals(animals: Animal[], onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void;
-}
-
-// Interface for a component that can render biomes
-interface IBiomeRenderer {
-  renderBiomes(biomes: Biome[]): void;
-  updateBiomeOwnership(biomeId: string): void;
-}
-
-// Interface for a component that can render move ranges
-interface IMoveRangeRenderer {
-  showMoveRange(validMoves: ValidMove[], moveMode: boolean): void;
-  clearMoveHighlights(): void;
-}
-
-// Interface for a component that can update the board
-interface ITileRenderer {
-  createBoardTiles(
-    board: { width: number, height: number, tiles: any[][] },
-    centerX?: number, 
-    centerY?: number
-  ): Phaser.GameObjects.GameObject[];
-}
 
 // This manager centralizes all state subscriptions for the BoardScene and its components.
 export class StateSubscriptionManager {
@@ -45,6 +20,7 @@ export class StateSubscriptionManager {
   
   // Renderers and controllers
   private animalRenderer!: AnimalRenderer;
+  private eggRenderer!: EggRenderer;
   private biomeRenderer!: BiomeRenderer;
   private resourceRenderer!: ResourceRenderer;
   private moveRangeRenderer!: MoveRangeRenderer;
@@ -81,6 +57,7 @@ export class StateSubscriptionManager {
   // Initialize all renderers and controllers
   public initialize(renderers: {
     animalRenderer: AnimalRenderer;
+    eggRenderer: EggRenderer;
     biomeRenderer: BiomeRenderer;
     moveRangeRenderer: MoveRangeRenderer;
     tileRenderer: TileRenderer;
@@ -88,6 +65,7 @@ export class StateSubscriptionManager {
     selectionRenderer: SelectionRenderer;
   }): void {
     this.animalRenderer = renderers.animalRenderer;
+    this.eggRenderer = renderers.eggRenderer;
     this.biomeRenderer = renderers.biomeRenderer;
     this.moveRangeRenderer = renderers.moveRangeRenderer;
     this.tileRenderer = renderers.tileRenderer; 
@@ -99,10 +77,7 @@ export class StateSubscriptionManager {
   }
   
   // Set up all state subscriptions
-  setupSubscriptions(
-    onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void,
-    onEggClicked?: (eggId: string, gridX: number, gridY: number) => void
-  ): void {
+  setupSubscriptions(): void {
     // Check if properly initialized
     if (!this.initialized) {
       console.error("Cannot set up subscriptions: renderers not initialized");
@@ -116,8 +91,8 @@ export class StateSubscriptionManager {
     }
     
     this.setupBoardSubscriptions();
-    this.setupAnimalSubscriptions(onUnitClicked);
-    this.setupEggSubscriptions(onEggClicked);
+    this.setupAnimalSubscriptions();
+    this.setupEggSubscriptions();
     this.setupBiomeSubscriptions();
     this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
@@ -148,7 +123,7 @@ export class StateSubscriptionManager {
   }
   
   // Set up subscriptions related to animals
-  private setupAnimalSubscriptions(onUnitClicked?: (animalId: string, gridX: number, gridY: number) => void): void {
+  private setupAnimalSubscriptions(): void {
     // Subscribe to animal changes and filter by fog-of-war visibility for active player
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.ANIMALS,
@@ -157,7 +132,7 @@ export class StateSubscriptionManager {
         if (!animals) return;
         if (!fogOfWarEnabled) {
           // FOW disabled: render all animals
-          this.animalRenderer.renderAnimals(animals, onUnitClicked);
+          this.animalRenderer.renderAnimals(animals);
           return;
         }
         // Get visible coords for the active player
@@ -168,7 +143,7 @@ export class StateSubscriptionManager {
         const visibleAnimals = animals.filter(a =>
           visibleSet.has(`${a.position.x},${a.position.y}`)
         );
-        this.animalRenderer.renderAnimals(visibleAnimals, onUnitClicked);
+        this.animalRenderer.renderAnimals(visibleAnimals);
       },
       { immediate: true, debug: false }
     );
@@ -408,7 +383,40 @@ export class StateSubscriptionManager {
     
     console.log("All StateSubscriptionManager subscriptions unsubscribed");
   }
-  
+ 
+  /**
+   * Subscribe to egg state changes for rendering.
+   */
+  public setupEggSubscriptions(): void {
+    StateObserver.subscribe(
+      StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
+      (state) => ({ eggs: state.eggs, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
+      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
+        if (!eggs) return;
+
+        const eggArray = Object.values(eggs);
+        if (!fogOfWarEnabled) {
+          // FOW disabled: render all eggs
+          this.eggRenderer.renderEggs(eggArray);
+          return;
+        }
+
+        // With FOW: only render visible eggs
+        const visibleSet = new Set(
+          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
+        );
+
+        const visibleEggs = eggArray.filter(e =>
+          visibleSet.has(`${e.position.x},${e.position.y}`)
+        );
+
+        this.eggRenderer.renderEggs(visibleEggs);
+      },
+      { immediate: true, debug: false }
+    );
+  }
+
+   
   // Check if manager is properly initialized
   isInitialized(): boolean {
     return this.initialized;
@@ -430,37 +438,4 @@ export class StateSubscriptionManager {
     this.initialized = false;
   }
 
-  /**
-   * Subscribe to egg state changes for rendering.
-   */
-  public setupEggSubscriptions(
-    onEggClicked?: (eggId: string, gridX: number, gridY: number) => void
-  ): void {
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
-      (state) => ({ eggs: state.eggs, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
-      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
-        if (!eggs) return;
-
-        const eggArray = Object.values(eggs);
-        if (!fogOfWarEnabled) {
-          // FOW disabled: render all eggs
-          this.animalRenderer.renderEggs(eggArray, onEggClicked);
-          return;
-        }
-
-        // With FOW: only render visible eggs
-        const visibleSet = new Set(
-          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
-        );
-
-        const visibleEggs = eggArray.filter(e =>
-          visibleSet.has(`${e.position.x},${e.position.y}`)
-        );
-
-        this.animalRenderer.renderEggs(visibleEggs, onEggClicked);
-      },
-      { immediate: true, debug: false }
-    );
-  }
 } 
