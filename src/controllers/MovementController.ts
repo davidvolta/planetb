@@ -168,4 +168,65 @@ export class MovementController {
         : a
     );
   }
+
+  /**
+   * Resolve collision at spawn time. If another animal already occupies the spawn
+   * tile, it will be displaced using the same rules as handleDisplacement. A
+   * displacementEvent object is returned alongside the updated animal list so
+   * UI layers can animate the nudge.
+   */
+  public static resolveSpawnCollision(
+    x: number,
+    y: number,
+    animals: Animal[],
+    board: Board
+  ): {
+    animals: Animal[];
+    displacementEvent: {
+      occurred: boolean;
+      unitId: string | null;
+      fromX: number | null;
+      fromY: number | null;
+      toX: number | null;
+      toY: number | null;
+      timestamp: number | null;
+    };
+  } {
+    // Default no-op event structure
+    const dispEvent = {
+      occurred: false,
+      unitId: null,
+      fromX: null,
+      fromY: null,
+      toX: null,
+      toY: null,
+      timestamp: null,
+    };
+
+    // Look for an occupying animal
+    const collider = animals.find(a => a.position.x === x && a.position.y === y);
+    if (!collider) {
+      return { animals, displacementEvent: dispEvent };
+    }
+
+    const movedAnimals = MovementController.handleDisplacement(
+      x,
+      y,
+      collider,
+      animals,
+      board
+    );
+
+    const displaced = movedAnimals.find(a => a.id === collider.id)!;
+    const event = {
+      occurred: true,
+      unitId: collider.id,
+      fromX: collider.position.x,
+      fromY: collider.position.y,
+      toX: displaced.position.x,
+      toY: displaced.position.y,
+      timestamp: Date.now(),
+    };
+    return { animals: movedAnimals, displacementEvent: event };
+  }
 } 

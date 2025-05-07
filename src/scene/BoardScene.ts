@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import { TerrainType } from "../types/gameTypes";
 import { StateObserver } from "../utils/stateObserver";
 import * as actions from "../store/actions";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
@@ -484,33 +483,30 @@ export default class BoardScene extends Phaser.Scene {
 
   // Public method to reset resources with current settings (accepts override)
   public resetResources(resourceChance: number = RESOURCE_GENERATION_PERCENTAGE): void {
-  // Get current board and biomes data
-  const board = actions.getBoard();
-  const biomes = actions.getBiomes();
+    // Get current board and biomes data
+    const board = actions.getBoard();
+    const biomes = actions.getBiomes();
 
-  // Early exit if board or biomes are missing
-  if (!board || !biomes || biomes.size === 0) {
-    console.warn("Cannot reset resources: Board or biomes data is missing");
-    return;
+    // Early exit if board or biomes are missing
+    if (!board || !biomes || biomes.size === 0) {
+      console.warn("Cannot reset resources: Board or biomes data is missing");
+      return;
+    }
+
+    // Clear previous visualizations
+    this.resourceRenderer.clearResources();
+    this.resourceRenderer.clearBlankTileMarkers();
+
+    // Update game state by resetting resources
+    actions.resetResources(resourceChance);
+
+    // Fetch updated resource tiles and log the reset count
+    const resourceTiles = actions.getResourceTiles();
+    this.resourceRenderer.renderResourceTiles(resourceTiles); // Directly render resource tiles
+
+    // Visualize blank tiles after rendering resource tiles
+    this.resourceRenderer.visualizeBlankTiles();
   }
-
-  // Generate terrain data array from board tiles more efficiently
-  const terrainData: TerrainType[][] = board.tiles.map(row => row.map(tile => tile.terrain));
-
-  // Clear previous visualizations
-  this.resourceRenderer.clearResources();
-  this.resourceRenderer.clearBlankTileMarkers();
-
-  // Update game state by resetting resources
-  actions.resetResources(board.width, board.height, terrainData, resourceChance);
-
-  // Fetch updated resource tiles and log the reset count
-  const resourceTiles = actions.getResourceTiles();
-  this.resourceRenderer.renderResourceTiles(resourceTiles); // Directly render resource tiles
-
-  // Visualize blank tiles after rendering resource tiles
-  this.resourceRenderer.visualizeBlankTiles();
-}
 
   // Scene shutdown handler
   shutdown() {
@@ -538,104 +534,67 @@ export default class BoardScene extends Phaser.Scene {
     this.controlsSetup = false;
   }
 
-  /**
-   * Expose the animation controller for external use (e.g. GameController)
-   */
+
   public getAnimationController(): AnimationController {
     return this.animationController;
   }
 
-  /**
-   * Expose the animal renderer for external use (e.g. GameController)
-   */
   public getAnimalRenderer(): AnimalRenderer {
     return this.animalRenderer;
   }
 
-  /** Expose the camera manager for external use (e.g. UI camera pans) */
   public getCameraManager(): CameraManager {
     return this.cameraManager;
   }
-
-  /** Get tile size for grid-to-world calculations */
+  
   public getTileSize(): number {
     return this.tileSize;
   }
-
-  /** Get tile height for grid-to-world calculations */
+  
   public getTileHeight(): number {
     return this.tileHeight;
   }
 
-  /** Get current anchor X coordinate */
   public getAnchorX(): number {
     return this.anchorX;
   }
 
-  /** Get current anchor Y coordinate */
   public getAnchorY(): number {
     return this.anchorY;
   }
 
-  /**
-   * Expose the GameController facade created in create().
-   */
   public getGameController(): GameController {
     return this.gameController;
   }
-
-  /**
-   * Get the visibility controller for fog-of-war operations.
-   */
+  
   public getVisibilityController(): VisibilityController {
     return this.visibilityController;
   }
 
-  /**
-   * Get the LayerManager instance.
-   */
   public getLayerManager(): LayerManager {
     return this.layerManager;
   }
 
-  /**
-   * Get the StateSubscriptionManager instance.
-   */
   public getSubscriptionManager(): StateSubscriptionManager {
     return this.subscriptionManager;
   }
-
-  /**
-   * Get the TileRenderer instance.
-   */
+  
   public getTileRenderer(): TileRenderer {
     return this.tileRenderer;
   }
 
-  /**
-   * Get the MoveRangeRenderer instance.
-   */
   public getMoveRangeRenderer(): MoveRangeRenderer {
     return this.moveRangeRenderer;
   }
 
-  /**
-   * Get the BiomeRenderer instance.
-   */
   public getBiomeRenderer(): BiomeRenderer {
     return this.biomeRenderer;
   }
 
-  /**
-   * Get the ResourceRenderer instance.
-   */
   public getResourceRenderer(): ResourceRenderer {
     return this.resourceRenderer;
   }
 
-  /**
-   * Get the SelectionRenderer instance.
-   */
   public getSelectionRenderer(): SelectionRenderer {
     return this.selectionRenderer;
   }
@@ -648,12 +607,6 @@ export default class BoardScene extends Phaser.Scene {
       return this.eggRenderer;
   }
   
-
- 
-
-  /**
-   * Get the TileInteractionController instance for input handling.
-   */
   public getTileInteractionController(): TileInteractionController {
     return this.tileInteractionController;
   }

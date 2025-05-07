@@ -1,10 +1,8 @@
 import { Coordinate, Board, Animal, Biome, Tile } from "../store/gameStore";
 import { TerrainType, ResourceType } from "../types/gameTypes";
 import { getEggPlacementTiles, getTilesForBiome, getEggCountForBiome } from "../store/actions";
-import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
-import { MovementController } from "./MovementController";
-import type { GameState, Egg } from "../store/gameStore";
-import { generateAnimalId } from "../utils/IdGenerator";
+import { MAX_LUSHNESS, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
+import type { GameState } from "../store/gameStore";
 
 /**
  * Interface for egg placement validation
@@ -76,17 +74,11 @@ export class EcosystemController {
    * Reset and regenerate resources for the game board
    * This clears all existing resources and creates new ones based on terrain type and resource density
    * 
-   * @param width Board width
-   * @param height Board height
-   * @param terrainData Array of terrain types for each tile
    * @param board The current game board
    * @param biomes Map of all biomes
    * @param resourceChance Decimal 0–1 of resource density (defaults to constant)
    */
   public static resetResources(
-    width: number,
-    height: number,
-    terrainData: TerrainType[][],
     board: Board,
     biomes: Map<string, Biome>,
     resourceChance: number = RESOURCE_GENERATION_PERCENTAGE
@@ -208,25 +200,6 @@ export class EcosystemController {
     return scored
       .sort((a, b) => b.score - a.score)
       .map(({ x, y }) => ({ x, y }));
-  }
-
-  /**
-   * Helper method to determine the appropriate species based on terrain type
-   * (Moved from TERRAIN_ANIMAL_MAP in gameStore to maintain encapsulation)
-   * 
-   * @param terrain The terrain type to get a species for
-   * @returns The appropriate species for the terrain
-   */
-  private static getSpeciesForTerrain(terrain: TerrainType): string {
-    const terrainSpeciesMap: Record<TerrainType, string> = {
-      [TerrainType.GRASS]: 'buffalo',
-      [TerrainType.MOUNTAIN]: 'bird',
-      [TerrainType.WATER]: 'turtle',
-      [TerrainType.UNDERWATER]: 'octopus',
-      [TerrainType.BEACH]: 'snake',
-    };
-    
-    return terrainSpeciesMap[terrain] || 'snake'; // Default to snake if unknown terrain
   }
 
   /**
@@ -490,21 +463,6 @@ export class EcosystemController {
   }
 
   /**
-   * Get a dormant egg by ID from game state
-   */
-  public static getEggById(state: GameState, id: string): Egg | undefined {
-    return state.eggs[id];
-  }
-
-  /**
-   * Remove egg flag from the board at a coordinate
-   */
-  public static removeEggFromPosition(board: Board, coord: Coordinate): Board {
-    // Tile-level egg flag is deprecated; no-op here
-    return board;
-  }
-
-  /**
    * Recalculate lushness for a specific biome (single-biome update)
    */
   public static recalcBiomeLushness(
@@ -522,83 +480,5 @@ export class EcosystemController {
       newBiomes.set(biomeId, { ...biome, baseLushness, lushnessBoost, totalLushness });
     }
     return newBiomes;
-  }
-
-  /**
-   * Evolve an egg into an active animal, handling displacement, board updates, and lushness.
-   */
-  public static evolveAnimalState(
-    state: GameState,
-    id: string
-  ): {
-    animals: Animal[];
-    board: Board;
-    biomes: Map<string, Biome>;
-    displacementEvent: GameState['displacementEvent'];
-    eggs: Record<string, Egg>;
-    newAnimalId: string;
-  } {
-    // Find the egg
-    const egg = this.getEggById(state, id);
-    if (!egg) {
-      console.warn(`Cannot evolve animal ${id}: not found or not a dormant egg`);
-      return {
-        animals: state.animals,
-        board: state.board!,
-        biomes: state.biomes,
-        displacementEvent: { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null } as GameState['displacementEvent'],
-        eggs: state.eggs,
-        newAnimalId: ''
-      };
-    }
-    // Prepare initial state
-    const board = state.board!;
-    let animals = state.animals;
-    let displacementEvent: GameState['displacementEvent'] = { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null };
-    const eggPos = egg.position;
-    // Handle displacement
-    const collider = animals.find(a =>
-      a.id !== id && a.position.x === eggPos.x && a.position.y === eggPos.y
-    );
-    if (collider) {
-      animals = MovementController.handleDisplacement(
-        eggPos.x,
-        eggPos.y,
-        collider,
-        animals,
-        board
-      );
-      const displaced = animals.find(a => a.id === collider.id)!;
-      displacementEvent = {
-        occurred: true,
-        unitId: collider.id,
-        fromX: collider.position.x,
-        fromY: collider.position.y,
-        toX: displaced.position.x,
-        toY: displaced.position.y,
-        timestamp: Date.now()
-      };
-    }
-
-    // Update biomes
-    const tile = board.tiles[eggPos.y][eggPos.x];
-    const biomeId = tile.biomeId;
-    const newBiomes = biomeId
-      ? this.recalcBiomeLushness(state.biomes, biomeId, board)
-      : state.biomes;
-    // Activate the egg
-    const species = this.getSpeciesForTerrain(board.tiles[eggPos.y][eggPos.x].terrain);
-    console.log(`[EggHatch] Egg ${id} hatched into ${species} owner=${egg.ownerId} at (${eggPos.x},${eggPos.y})`);
-    const newAnimal: Animal = {
-      id: generateAnimalId(species),
-      species,
-      position: { ...eggPos },
-      previousPosition: null,
-      hasMoved: true,
-      ownerId: egg.ownerId,
-    };
-    const finalAnimals = [...animals, newAnimal];
-    const { [id]: _, ...remainingEggs } = state.eggs;
-    return { animals: finalAnimals, board, biomes: newBiomes, displacementEvent, eggs: remainingEggs, newAnimalId: newAnimal.id };
   }
 }

@@ -644,9 +644,6 @@ export function getSelectedResource(): Coordinate | null {
  * Reset resources with the current settings
  */
 export function resetResources(
-  width: number,
-  height: number,
-  terrainData: TerrainType[][],
   resourceChance: number = RESOURCE_GENERATION_PERCENTAGE
 ): void {
   const state = useGameStore.getState();
@@ -677,9 +674,6 @@ export function resetResources(
 
   // Delegate resource generation to controller (mutates newBoard & biomesMap)
   EcosystemController.resetResources(
-    newBoard.width,
-    newBoard.height,
-    terrainData,
     newBoard,
     biomesMap,
     resourceChance

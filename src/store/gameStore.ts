@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import { EcosystemController } from "../controllers/EcosystemController";
+import { EvolutionController } from "../controllers/EvolutionController";
 import { initializeBoard as initGameBoard } from '../game/GameInitializer';
 import { MovementController } from "../controllers/MovementController";
 import { TerrainType, ResourceType } from '../types/gameTypes';
+import { EcosystemController } from "../controllers/EcosystemController";
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -488,39 +489,57 @@ export const useGameStore = create<GameState>((set, get) => ({
     }),
 
   // EVOLUTION
-  evolveAnimal: (id: string) =>
-    set((state) => {
-      const {
-        animals: animalsFromController,
-        board: newBoard,
-        biomes: newBiomes,
-        displacementEvent,
-        eggs: updatedEggs,
-        newAnimalId
-      } = EcosystemController.evolveAnimalState(state, id);
+  evolveAnimal: (id: string) => {
+    const state = get();
+    const {
+      animals: animalsFromController,
+      board: newBoard,
+      biomes: newBiomes,
+      displacementEvent,
+      eggs: updatedEggs,
+      newAnimalId,
+      biomeIdAffected
+    } = EvolutionController.spawnAnimal({
+      eggId: id,
+      animals: state.animals,
+      eggs: state.eggs,
+      biomes: state.biomes,
+      board: state.board!,
+      turn: state.turn
+    });
 
-      console.log(`[SpawnEvent] New animal ${newAnimalId} spawned from egg ${id}`);
-      // Trigger spawn event for animation layer
-      const spawnEvent = {
-        occurred: true,
-        unitId: newAnimalId,
-        timestamp: Date.now()
-      } as GameState['spawnEvent'];
+    console.log(`[SpawnEvent] New animal ${newAnimalId} spawned from egg ${id}`);
+    const spawnEvent = {
+      occurred: true,
+      unitId: newAnimalId,
+      timestamp: Date.now()
+    } as GameState['spawnEvent'];
 
-      return {
-        animals: animalsFromController,
-        board: newBoard,
-        biomes: newBiomes,
-        displacementEvent,
-        eggs: updatedEggs,
-        selectedEggId: null,
-        selectedUnitId: newAnimalId,
-        spawnEvent,
-        moveMode: false,
-        validMoves: []
-      };
-    }),
+    // First commit diff (animals, eggs etc.)
+    set({
+      animals: animalsFromController,
+      board: newBoard,
+      biomes: newBiomes,
+      displacementEvent,
+      eggs: updatedEggs,
+      selectedEggId: null,
+      selectedUnitId: newAnimalId,
+      spawnEvent,
+      moveMode: false,
+      validMoves: []
+    });
 
+    // Recalculate lushness for the affected biome now that eggs record is updated
+    if (biomeIdAffected) {
+      const latestState = get();
+      const recalcedBiomes = EcosystemController.recalcBiomeLushness(
+        latestState.biomes,
+        biomeIdAffected,
+        latestState.board!
+      );
+      set({ biomes: recalcedBiomes });
+    }
+  },
 
   // Egg actions for Animal/Egg refactor Phase 1
   addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
