@@ -1,4 +1,4 @@
-import { Board, Tile, Animal, Biome, AnimalState } from '../store/gameStore';
+import { Board, Tile, Animal, Biome } from '../store/gameStore';
 import { TerrainType, BIOME_TERRAIN_ORDER } from '../types/gameTypes';
 import { generateIslandTerrain } from '../utils/TerrainGenerator';
 import { VoronoiNode, isNodeOverlapping, generateVoronoiBiomes } from '../utils/BiomeGenerator';
@@ -145,7 +145,6 @@ export function initializeBoard(
       const newAnimal: Animal = {
         id: `animal-${animals.length}`,
         species,
-        state: AnimalState.ACTIVE,
         position: choice,
         previousPosition: null,
         hasMoved: false,

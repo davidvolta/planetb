@@ -54,6 +54,7 @@ export class TileInteractionController {
     // Build content arrays for selection cases using store helpers
     const activeUnits = actions.getActiveUnitsAt(x, y).filter(a => a.ownerId === playerId);
     const dormantUnits = actions.getDormantUnitsAt(x, y).filter(a => a.ownerId === playerId);
+    const eggs = actions.getEggsAt(x, y).filter(e => e.ownerId === playerId);
     const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
     const biomesAtLocation = habitatTiles
       .map(({ tile }) => actions.getBiomes().get(tile.biomeId!))
@@ -70,10 +71,15 @@ export class TileInteractionController {
       });
     }
 
-    // Case 5: dormant unit selection
-    if (dormantUnits.length > 0) {
+    // Case 5: egg (or legacy dormant unit) selection
+    if (eggs.length > 0) {
       handlers.push((x, y) => {
-        // Treat dormant animal as an egg selection
+        actions.selectEgg(eggs[0].id);
+        // Selection UI handled by StateSubscriptionManager
+      });
+    } else if (dormantUnits.length > 0) {
+      // Legacy support until AnimalState is purged
+      handlers.push((x, y) => {
         actions.selectEgg(dormantUnits[0].id);
         // Selection UI handled by StateSubscriptionManager
       });

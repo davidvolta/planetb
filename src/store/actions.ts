@@ -1,4 +1,4 @@
-import { useGameStore, Animal, AnimalState, Board, Biome, Coordinate, Player, Egg } from "./gameStore";
+import { useGameStore, Animal, Board, Biome, Coordinate, Player, Egg } from "./gameStore";
 import { TerrainType } from "../types/gameTypes";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
@@ -116,14 +116,13 @@ export function addAnimal(animal: Animal): void {
 export async function evolveAnimal(id: string): Promise<void> {
   const state = useGameStore.getState();
   const unit = state.animals.find(a => a.id === id);
-  if (!unit) {
-    throw new Error(`EvolveAnimal failed: animal ${id} not found`);
+  const eggRecord = state.eggs[id];
+  if (!unit && !eggRecord) {
+    throw new Error(`EvolveAnimal failed: entity ${id} not found (neither dormant unit nor egg)`);
   }
-  if (unit.state !== AnimalState.DORMANT) {
-    throw new Error(`EvolveAnimal failed: animal ${id} is not dormant`);
-  }
+  // Legacy dormant-unit guard no longer needed after enum removal
+  // Delegate to store evolve action (handles record removal internally)
   state.evolveAnimal(id);
-  // Remove the egg from state now that it has evolved
 }
 
 /**
@@ -174,7 +173,13 @@ export function removeEgg(id: string): void {
  * Select an egg by ID or clear the selection.
  */
 export function selectEgg(id: string | null): void {
-  useGameStore.getState().selectEgg(id);
+  useGameStore.setState(state => ({
+    selectedEggId: id,
+    selectedUnitId: null,
+    validMoves: [],
+    moveMode: false,
+    selectedResource: null
+  }));
 }
 
 /**
@@ -361,8 +366,17 @@ export async function captureBiome(biomeId: string): Promise<void> {
       state.activePlayerId,
       state.turn
     );
-  // Commit updated state with new animal list (capture effects and egg ownership transfers)
-  useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: newAnimals });
+
+  // Transfer ownership of eggs in captured biome
+  const updatedEggsRecord: Record<string, Egg> = { ...state.eggs };
+  Object.values(updatedEggsRecord).forEach(e => {
+    if (e.biomeId === biomeId) {
+      e.ownerId = state.activePlayerId;
+    }
+  });
+
+  // Commit updated state
+  useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: newAnimals, eggs: updatedEggsRecord });
   // Recalculate lushness for this biome
   await updateBiomeLushness(biomeId);
 }
@@ -563,9 +577,10 @@ export async function harvestTileResource(amount: number): Promise<void> {
   }
   const board = state.board!;
   // Only allow harvesting if an active, owned unit that hasn't moved is on the tile
+  const eggsRecord = state.eggs;
   const unitHere = state.animals.find(a =>
     a.position.x === coord.x && a.position.y === coord.y &&
-    a.state === AnimalState.ACTIVE &&
+    !(a.id in eggsRecord) &&
     a.ownerId === state.activePlayerId &&
     !a.hasMoved
   );
@@ -769,17 +784,22 @@ export function getUnitsAt(x: number, y: number): Animal[] {
 }
 
 /**
- * Get active units at a given tile coordinate
+ * Get active units at a given tile coordinate (excludes eggs).
  */
 export function getActiveUnitsAt(x: number, y: number): Animal[] {
-  return getUnitsAt(x, y).filter(a => a.state === AnimalState.ACTIVE);
+  const animals = getUnitsAt(x, y);
+  const eggsRecord = getEggs();
+  return animals.filter(a => !(a.id in eggsRecord));
 }
 
 /**
- * Get dormant units (eggs) at a given tile coordinate
+ * Get dormant units (legacy) at a given tile coordinate.
+ * This will be removed in Phase 4. For now, treat any animal ID that also exists in eggsRecord as dormant.
  */
 export function getDormantUnitsAt(x: number, y: number): Animal[] {
-  return getUnitsAt(x, y).filter(a => a.state === AnimalState.DORMANT);
+  const animals = getUnitsAt(x, y);
+  const eggsRecord = getEggs();
+  return animals.filter(a => a.id in eggsRecord);
 }
 
 /**
@@ -804,27 +824,19 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
   // Regenerate resources only for these biomes
   const newBoard = EcosystemController.regenerateResources(board, playerBiomes);
   
-  // Produce eggs only for these biomes
-  const { animals: postEggAnimals, biomes: postEggBiomes, eggs: newEggs } = EcosystemController.biomeEggProduction(
+  // Produce eggs via new EggProducer
+  const { EggProducer } = await import('../controllers/EggProducer');
+  const { eggs: newEggs, biomes: postEggBiomes } = EggProducer.produce(
     turn,
-    animals,
+    playerId,
+    newBoard,
     playerBiomes,
-    newBoard
+    state.eggs
   );
 
-  // Add newly produced eggs to state
-  newEggs.forEach(animal => {
-    // Derive biomeId from the new board
-    const tile = newBoard.tiles[animal.position.y][animal.position.x];
-    const egg: Egg = {
-      id: animal.id,
-      ownerId: animal.ownerId!,
-      position: animal.position,
-      biomeId: tile.biomeId!,
-      createdAtTurn: turn,
-    };
-    addEgg(egg);
-  });
+  newEggs.forEach(addEgg);
+
+  const postEggAnimals = animals; // animals list unchanged by egg production
 
   // Merge updated biomes back into full map
   const mergedBiomes = new Map(allBiomes);

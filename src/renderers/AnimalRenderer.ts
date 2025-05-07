@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
-import { Animal, AnimalState } from '../store/gameStore';
+import { Animal } from '../store/gameStore';
+import { getEggs } from '../store/actions';
 import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
 
@@ -46,9 +47,9 @@ export class AnimalRenderer extends BaseRenderer {
     const usedIds = new Set<string>();
 
     animals.forEach(animal => {
-      // ❌ TEMPORARY: Skip dormant animals (eggs)
-      // TODO [egg-refactor]: Remove this check once DORMANT is fully removed
-      if (animal.state === AnimalState.DORMANT) return;
+      // Skip if this animal ID corresponds to an egg (should not happen)
+      const eggsRecord = getEggs();
+      if (animal.id in eggsRecord) return;
 
       const gridX = animal.position.x;
       const gridY = animal.position.y;
@@ -74,7 +75,7 @@ export class AnimalRenderer extends BaseRenderer {
       }
 
       const sprite = this.unitSprites.get(animal.id);
-      const isActive = animal.state === AnimalState.ACTIVE;
+      const isActive = true;
 
       if (sprite) {
         usedIds.add(animal.id);
@@ -116,17 +117,10 @@ export class AnimalRenderer extends BaseRenderer {
    * @param animal The animal data
    */
   private updateSpriteInteractivity(sprite: Phaser.GameObjects.Sprite, animal: Animal): void {
-    // Still apply visual indicators based on state
-    if (animal.state === AnimalState.DORMANT) {
-      sprite.clearTint(); // Make sure eggs are not tinted
-    } else if (animal.state === AnimalState.ACTIVE) {
-      if (animal.hasMoved) {
-        // Make sure the tint is applied
-        sprite.setTint(0xAAAAAA);
-      } else {
-        // Clear any tint
-        sprite.clearTint();
-      }
+    if (animal.hasMoved) {
+      sprite.setTint(0xAAAAAA);
+    } else {
+      sprite.clearTint();
     }
   }
   

@@ -1,5 +1,4 @@
-import type { GameState, Animal, Biome, Board } from '../store/gameStore';
-import { AnimalState } from '../store/gameStore';
+import type { GameState, Animal, Biome, Board, Egg } from '../store/gameStore';
 import { isTerrainCompatible } from '../utils/SpeciesUtils';
 import type { GameCommand } from '../game/CommandExecutor';
 import { MovementController } from './MovementController';
@@ -29,36 +28,35 @@ export class AIController {
     // Helper: Get all capturable biomes
     const capturable = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId !== this.playerId);
 
-    // Helper: Track egg production per biome (dormant units in biome)
+    // Helper: Track egg presence per biome (from egg record)
     const biomeHasEgg = new Map<string, boolean>();
-    for (const a of workingAnimals) {
-      if (a.state === AnimalState.DORMANT) {
-        const tile = board.tiles[a.position.y]?.[a.position.x];
-        if (tile?.biomeId) biomeHasEgg.set(tile.biomeId, true);
-      }
-    }
-
-    // Helper: Get lushness for a biome
-    const getLushness = (biomeId: string) => this.gameState.biomes.get(biomeId)?.totalLushness ?? 0;
+    Object.values(this.gameState.eggs).forEach((egg: Egg) => {
+      biomeHasEgg.set(egg.biomeId, true);
+    });
 
     // --- EGG SPAWNING (EVOLVE) LOGIC ---
-    const eggs = workingAnimals.filter(a => {
-      if (a.ownerId !== this.playerId || a.state !== AnimalState.DORMANT) return false;
-      const tile = board.tiles[a.position.y]?.[a.position.x];
-      if (!tile?.biomeId) return false;
-      const biome = this.gameState.biomes.get(tile.biomeId);
-      return biome !== undefined && biome.totalLushness >= 9.0;
+    // Gather eggs from record that meet hatching criteria
+    const eggsToConsider: { id: string; posX: number; posY: number; biomeId: string }[] = [];
+    Object.values(this.gameState.eggs).forEach((egg) => {
+      if (egg.ownerId !== this.playerId) return;
+      const biome = this.gameState.biomes.get(egg.biomeId);
+      if (biome && biome.totalLushness >= 9.0) {
+        eggsToConsider.push({ id: egg.id, posX: egg.position.x, posY: egg.position.y, biomeId: egg.biomeId });
+      }
     });
+
+    const eggs = [...eggsToConsider];
     eggs.forEach(egg => {
       commands.push({ type: 'evolve', unitId: egg.id });
-      // Update working copy: egg becomes active and flagged moved
+      // Update working copy: if this egg was represented as dormant unit, mark it active.
       workingAnimals = workingAnimals.map(a =>
-        a.id === egg.id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
+        a.id === egg.id ? { ...a, hasMoved: true } : a
       );
     });
 
     // Eligible units: active, owned by this AI, and not moved yet
-    const units = workingAnimals.filter(a => a.ownerId === this.playerId && a.state === AnimalState.ACTIVE && !a.hasMoved);
+    const eggsRecord3 = this.gameState.eggs || {};
+    const units = workingAnimals.filter(a => a.ownerId === this.playerId && !(a.id in eggsRecord3) && !a.hasMoved);
 
     // --- DEFENSE ASSIGNMENT ---
     const defenderAssignments: Record<string, string> = {};
@@ -203,7 +201,7 @@ export class AIController {
       // --- HARVESTER LOGIC ---
       // If not on a biome, skip
       if (!biomeId) continue;
-      const lushness = getLushness(biomeId);
+      const lushness = this.gameState.biomes.get(biomeId)!.totalLushness;
       const hasEgg = biomeHasEgg.get(biomeId) || false;
       // If lushness <= 6.0 and no egg, move to a new biome with lushness > 6.0 and resources
       if (lushness <= 6.0 && !hasEgg) {
@@ -211,7 +209,8 @@ export class AIController {
         let targetBiome: Biome | null = null;
         let bestDist = Infinity;
         for (const b of ownedBiomes) {
-          if (getLushness(b.id) > 6.0) {
+          const targetBiomeLushness = this.gameState.biomes.get(b.id)!.totalLushness;
+          if (targetBiomeLushness > 6.0) {
             // Check for available resources in this biome
             const resourceTiles = this.getResourceTilesForBiome(b, board);
             if (resourceTiles.length > 0) {

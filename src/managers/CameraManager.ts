@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import * as actions from "../store/actions";
-import { AnimalState } from "../store/gameStore";
+import { getEggs } from "../store/actions";
 import * as CoordinateUtils from "../utils/CoordinateUtils";
 
 // Manages the camera system for the board scene
@@ -202,9 +202,10 @@ export class CameraManager {
     const activePlayerId = actions.getActivePlayerId();
     
     // Find the first active unit owned by the current player
+    const eggsRecord = getEggs();
     const playerUnit = animals.find((animal: any) => 
       animal.ownerId === activePlayerId && 
-      animal.state === AnimalState.ACTIVE
+      !(animal.id in eggsRecord)
     );
     
     if (playerUnit) {
@@ -226,7 +227,8 @@ export class CameraManager {
     duration: number = 500
   ): Promise<void> {
     // Filter active units by player
-    const animals = actions.getAnimals().filter(a => a.ownerId === playerId && a.state === AnimalState.ACTIVE);
+    const eggsRecord = getEggs();
+    const animals = actions.getAnimals().filter(a => a.ownerId === playerId && !(a.id in eggsRecord));
     if (animals.length === 0) return;
     const camera = this.getCamera();
     const centerX = camera.midPoint.x;

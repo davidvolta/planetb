@@ -1,5 +1,6 @@
-import { Animal, Board, Coordinate, AnimalState } from "../store/gameStore";
+import { Animal, Board, Coordinate } from "../store/gameStore";
 import { isTerrainCompatible, getSpeciesMoveRange } from "../utils/SpeciesUtils";
+import { getEggs } from "../store/actions";
 
 export class MovementController {
   /**
@@ -21,8 +22,9 @@ export class MovementController {
       const nx = x + dx;
       const ny = y + dy;
       if (nx < 0 || nx >= board.width || ny < 0 || ny >= board.height) continue;
+      const eggsRecord = getEggs();
       const occupied = animals.some(a =>
-        a.position.x === nx && a.position.y === ny && a.state === AnimalState.ACTIVE
+        a.position.x === nx && a.position.y === ny && !(a.id in eggsRecord)
       );
       if (!occupied) validTiles.push({ x: nx, y: ny });
     }
@@ -93,7 +95,8 @@ export class MovementController {
     board: Board,
     animals: Animal[]
   ): Coordinate[] {
-    if (unit.state === AnimalState.DORMANT) return [];
+    const eggsRecord = getEggs();
+    if (unit.id in eggsRecord) return [];
     if (unit.hasMoved) return [];
     const startX = unit.position.x;
     const startY = unit.position.y;
@@ -118,7 +121,8 @@ export class MovementController {
         if (nx < 0 || nx >= board.width || ny < 0 || ny >= board.height) continue;
         const tile = board.tiles[ny][nx];
         if (!isTerrainCompatible(unit.species, tile.terrain)) continue;
-        const occ = animals.some(a => a.id !== unit.id && a.state === AnimalState.ACTIVE && a.position.x === nx && a.position.y === ny);
+        const eggsRecord = getEggs();
+        const occ = animals.some(a => a.id !== unit.id && !(a.id in eggsRecord) && a.position.x === nx && a.position.y === ny);
         if (occ) continue;
         visited.add(key);
         queue.push([nx, ny, dist + 1]);
@@ -146,7 +150,8 @@ export class MovementController {
       if (pos.x < 0 || pos.x >= board.width || pos.y < 0 || pos.y >= board.height) return false;
       const tile = board.tiles[pos.y][pos.x];
       if (!isTerrainCompatible(activeUnit.species, tile.terrain)) return false;
-      return !animalsList.some(a => a.state === AnimalState.ACTIVE && a.position.x === pos.x && a.position.y === pos.y);
+      const eggsRecord = getEggs();
+      return !animalsList.some(a => !(a.id in eggsRecord) && a.position.x === pos.x && a.position.y === pos.y);
     });
     // Determine displacement tile: use previous direction if available, otherwise random
     const prevDir = this.determinePreviousDirection(activeUnit);

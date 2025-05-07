@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import { TerrainType } from "../types/gameTypes";
 import { StateObserver } from "../utils/stateObserver";
-import { AnimalState } from "../store/gameStore";
 import * as actions from "../store/actions";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import * as CoordinateUtils from "../utils/CoordinateUtils";
@@ -399,9 +398,9 @@ export default class BoardScene extends Phaser.Scene {
 
     const activePlayerId = actions.getActivePlayerId();
 
-    // Adjacent tiles around active player units
+    const eggsRecord = actions.getEggs();
     const unitAdjacents = actions.getAnimals()
-      .filter(a => a.ownerId === activePlayerId && a.state === AnimalState.ACTIVE)
+      .filter(a => a.ownerId === activePlayerId && !(a.id in eggsRecord))
       .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, board.width, board.height));
     const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
 

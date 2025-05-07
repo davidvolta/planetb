@@ -1,9 +1,9 @@
-import { Coordinate, AnimalState, Board, Animal, Biome, Tile } from "../store/gameStore";
+import { Coordinate, Board, Animal, Biome, Tile } from "../store/gameStore";
 import { TerrainType, ResourceType } from "../types/gameTypes";
 import { getEggPlacementTiles, getTilesForBiome, getEggCountForBiome } from "../store/actions";
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
-import type { GameState, Egg } from "../store/gameStore";
 import { MovementController } from "./MovementController";
+import type { GameState, Egg } from "../store/gameStore";
 
 /**
  * Interface for egg placement validation
@@ -11,15 +11,6 @@ import { MovementController } from "./MovementController";
 interface ValidEggPlacementState {
   board: Board;
   animals: Animal[];
-}
-
-/**
- * Interface for the return type of biomeEggProduction
- */
-interface BiomeProductionResult {
-  animals: Animal[];
-  biomes: Map<string, Biome>;
-  eggs: Animal[];
 }
 
 /**
@@ -219,84 +210,6 @@ export class EcosystemController {
   }
 
   /**
-   * Process egg production for all biomes.
-   * 
-   * @param turn Current turn number
-   * @param animals Array of all animals
-   * @param biomes Map of all biomes
-   * @param board The game board
-   * @returns Updated animals and biomes
-   */
-  public static biomeEggProduction(
-    turn: number,
-    animals: Animal[],
-    biomes: Map<string, Biome>,
-    board: Board
-  ): BiomeProductionResult {
-
-    // Only produce eggs on even turns
-    if (turn % 2 !== 0) {
-      // Just update lastProductionTurn for all biomes and return
-      const updatedBiomes: Map<string, Biome> = new Map(biomes);
-      biomes.forEach((biome, biomeId) => {
-        updatedBiomes.set(biomeId, { ...biome, lastProductionTurn: turn });
-      });
-      return { animals: [...animals], biomes: updatedBiomes, eggs: [] };
-    }
-
-    const newAnimals: Animal[] = [...animals];
-    const updatedBiomes: Map<string, Biome> = new Map(biomes);
-    const allNewEggs: Animal[] = [];
-
-    biomes.forEach((biome, biomeId) => {
-      // Skip biomes without owner or already processed
-      if (biome.ownerId === null || biome.lastProductionTurn === turn) {
-        return;
-      }
-
-      // Prepare base update for lastProductionTurn
-      const baseUpdatedBiome: Biome = { ...biome, lastProductionTurn: turn };
-
-      // If not enough lushness or nothing to produce, update turn and skip
-      if (biome.totalLushness < EGG_PRODUCTION_THRESHOLD || biome.productionRate <= 0) {
-        updatedBiomes.set(biomeId, baseUpdatedBiome);
-        return;
-      }
-
-      // Determine valid egg placement tiles
-      const validTiles = this.getValidEggPlacementTiles(
-        biomeId,
-        { board, animals: newAnimals },
-        biomes
-      );
-      const eggsToPlace = Math.min(biome.productionRate, validTiles.length);
-      const startIndex = newAnimals.length;
-
-      // Create new egg animals
-      const newEggs = validTiles.slice(0, eggsToPlace).map((tile, idx) => {
-        return {
-          id: `animal-${startIndex + idx}`,
-          species: this.getSpeciesForTerrain(board.tiles[tile.y][tile.x].terrain),
-          state: AnimalState.DORMANT,
-          position: tile,
-          previousPosition: null,
-          hasMoved: false,
-          ownerId: biome.ownerId!,
-        } as Animal;
-      });
-
-      // Append new eggs to animals list and tracking
-      newAnimals.push(...newEggs);
-      allNewEggs.push(...newEggs);
-
-      // Only update lastProductionTurn for this biome
-      updatedBiomes.set(biomeId, baseUpdatedBiome);
-    });
-
-    return { animals: newAnimals, biomes: updatedBiomes, eggs: allNewEggs };
-  }
-
-  /**
    * Helper method to determine the appropriate species based on terrain type
    * (Moved from TERRAIN_ANIMAL_MAP in gameStore to maintain encapsulation)
    * 
@@ -491,7 +404,6 @@ export class EcosystemController {
         tile &&
         tile.isHabitat &&
         tile.biomeId === biomeId &&
-        a.state === AnimalState.ACTIVE &&
         !a.hasMoved &&
         a.ownerId === currentPlayerId
       );
@@ -509,7 +421,6 @@ export class EcosystemController {
       if (
         tile &&
         tile.biomeId === biomeId &&
-        a.state === AnimalState.DORMANT &&
         a.ownerId !== currentPlayerId
       ) {
         return { ...a, ownerId: currentPlayerId };
@@ -546,7 +457,6 @@ export class EcosystemController {
         tile != null &&
         tile.isHabitat &&
         tile.biomeId === biomeId &&
-        a.state === AnimalState.ACTIVE &&
         !a.hasMoved &&
         a.ownerId === currentPlayerId
       );
@@ -558,23 +468,6 @@ export class EcosystemController {
    */
   public static regenerateResourcesState(state: GameState): Board {
     return this.regenerateResources(state.board!, state.biomes);
-  }
-
-  /**
-   * Produce eggs for the entire game state using the given board snapshot
-   */
-  public static produceEggsState(
-    state: GameState,
-    board: Board
-  ): { animals: Animal[]; biomes: Map<string, Biome> } {
-    // Destructure only animals and biomes, ignore eggs
-    const { animals, biomes } = this.biomeEggProduction(
-      state.turn,
-      state.animals,
-      state.biomes,
-      board
-    );
-    return { animals, biomes };
   }
 
   /**
@@ -598,8 +491,8 @@ export class EcosystemController {
   /**
    * Get a dormant egg by ID from game state
    */
-  public static getEggById(state: GameState, id: string): Animal | undefined {
-    return state.animals.find(a => a.id === id && a.state === AnimalState.DORMANT);
+  public static getEggById(state: GameState, id: string): Egg | undefined {
+    return state.eggs[id];
   }
 
   /**
@@ -663,7 +556,7 @@ export class EcosystemController {
     const eggPos = egg.position;
     // Handle displacement
     const collider = animals.find(a =>
-      a.id !== id && a.state === AnimalState.ACTIVE && a.position.x === eggPos.x && a.position.y === eggPos.y
+      a.id !== id && a.position.x === eggPos.x && a.position.y === eggPos.y
     );
     if (collider) {
       animals = MovementController.handleDisplacement(
@@ -692,9 +585,17 @@ export class EcosystemController {
       ? this.recalcBiomeLushness(state.biomes, biomeId, board)
       : state.biomes;
     // Activate the egg
-    const finalAnimals = animals.map(a =>
-      a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
-    );
+    const species = this.getSpeciesForTerrain(board.tiles[eggPos.y][eggPos.x].terrain);
+    console.log(`[EggHatch] Egg ${id} hatched into ${species} owner=${egg.ownerId} at (${eggPos.x},${eggPos.y})`);
+    const newAnimal: Animal = {
+      id,
+      species,
+      position: { ...eggPos },
+      previousPosition: null,
+      hasMoved: true,
+      ownerId: egg.ownerId,
+    };
+    const finalAnimals = [...animals, newAnimal];
     const { [id]: _, ...remainingEggs } = state.eggs;
     return { animals: finalAnimals, board, biomes: newBiomes, displacementEvent, eggs: remainingEggs };
   }

@@ -80,7 +80,8 @@ export class TurnController {
     const board = actions.getBoard();
     const animals = actions.getAnimals();
     const biomes = actions.getBiomes();
-    const gameState = { board, animals, biomes } as any;
+    const eggs = actions.getEggs();
+    const gameState = { board, animals, biomes, eggs } as any;
 
     const ai = new AIController(gameState, playerId);
     const commands = ai.generateCommands();

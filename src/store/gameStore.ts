@@ -43,11 +43,10 @@ export interface Tile {
   isHabitat: boolean; // Whether this tile is a habitat
 }
 
-// Base animal structure
+// Base animal structure (enum-free)
 export interface Animal {
   id: string;
   species: string; 
-  state: AnimalState;
   position: Coordinate;
   previousPosition: Coordinate | null; // Track previous position for direction calculation
   hasMoved: boolean; // Flag to track if animal has moved this turn
@@ -69,12 +68,6 @@ export interface Player {
   energy: number; // Amount of resources collected by this player
   exploredTiles: Set<string>; // Tiles that this player has explored
   visibleTiles: Set<string>; // Tiles currently visible to this player
-}
-
-// Animal states
-export enum AnimalState {
-  DORMANT = 'dormant',
-  ACTIVE = 'active',
 }
 
 // Movement-related interfaces
@@ -247,8 +240,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         const biomes = state.biomes;
         const seededPlayers = state.players.map(player => {
           const coordSet = new Set<string>();
+          const eggsRecord = state.eggs;
           animals
-            .filter(a => a.ownerId === player.id && a.state === AnimalState.ACTIVE)
+            .filter(a => a.ownerId === player.id && !(a.id in eggsRecord))
             .forEach(a => {
               for (let dx = -1; dx <= 1; dx++) {
                 for (let dy = -1; dy <= 1; dy++) {
@@ -311,8 +305,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       const seededPlayers = state.players.map(player => {
         const coordSet = new Set<string>();
         // Reveal tiles around any active starting units for this player
+        const eggsRecord = state.eggs;
         animals
-          .filter(a => a.ownerId === player.id && a.state === AnimalState.ACTIVE)
+          .filter(a => a.ownerId === player.id && !(a.id in eggsRecord))
           .forEach(a => {
             for (let dx = -1; dx <= 1; dx++) {
               for (let dy = -1; dy <= 1; dy++) {
@@ -411,16 +406,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
 
       const unit = state.animals.find(a => a.id === id);
-      if (unit && unit.state === AnimalState.DORMANT) {
-        return {
-          selectedUnitId: null,
-          validMoves: [],
-          moveMode: false,
-          selectedEggId: id,
-          selectedResource: null
-        };
-      }
-
       if (unit && unit.hasMoved) {
         console.log(`Cannot select unit ${id} for movement - it has already moved this turn`);
         return {
@@ -459,9 +444,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           : animal
       );
       // Handle collision displacement via MovementController
+      const eggsRecord = state.eggs;
       const collided = state.animals.find(a =>
         a.id !== id &&
-        a.state === AnimalState.ACTIVE &&
+        !(a.id in eggsRecord) &&
         a.position.x === x &&
         a.position.y === y
       );
@@ -502,32 +488,40 @@ export const useGameStore = create<GameState>((set, get) => ({
     }),
 
   // EVOLUTION
-evolveAnimal: (id: string) =>
-  set((state) => {
-    const {
-      board: newBoard,
-      biomes: newBiomes,
-      displacementEvent,
-      eggs: updatedEggs // ✅ pulled from logic result
-    } = EcosystemController.evolveAnimalState(state, id);
+  evolveAnimal: (id: string) =>
+    set((state) => {
+      const {
+        animals: animalsFromController,
+        board: newBoard,
+        biomes: newBiomes,
+        displacementEvent,
+        eggs: updatedEggs // ✅ pulled from logic result
+      } = EcosystemController.evolveAnimalState(state, id);
 
-    // Activate the egg by updating its state in the animals list
-    const activatedAnimals = state.animals.map(a =>
-      a.id === id ? { ...a, state: AnimalState.ACTIVE, hasMoved: true } : a
-    );
+      // Use animals array returned by controller (already contains the new active unit)
 
-    return {
-      animals: activatedAnimals,
-      board: newBoard,
-      biomes: newBiomes,
-      displacementEvent,
-      eggs: updatedEggs // ✅ apply new eggs object (without the evolved egg)
-    };
-  }),
+      return {
+        animals: animalsFromController,
+        board: newBoard,
+        biomes: newBiomes,
+        displacementEvent,
+        eggs: updatedEggs, // ✅ apply new eggs object (without the evolved egg)
+        selectedEggId: null, // Clear egg selection after evolution
+        selectedUnitId: id, // Optionally auto-select the new unit
+        moveMode: false,
+        validMoves: []
+      };
+    }),
 
 
   // Egg actions for Animal/Egg refactor Phase 1
   addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
-  selectEgg: (id: string | null) => set(() => ({ selectedEggId: id })),
+  selectEgg: (id: string | null) => set(() => ({
+    selectedEggId: id,
+    selectedUnitId: null,
+    validMoves: [],
+    moveMode: false,
+    selectedResource: null
+  })),
   addAnimal: (animal: Animal) => set((state) => ({ animals: [...state.animals, animal] })),
 }));

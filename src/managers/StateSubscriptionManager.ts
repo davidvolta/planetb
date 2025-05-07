@@ -127,21 +127,23 @@ export class StateSubscriptionManager {
   public setupEggSubscriptions(): void {
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
-      (state) => Object.values(state.eggs),
-      (eggArray: Egg[]) => {
-        const fowEnabled = actions.getFogOfWarEnabled();
-        if (!fowEnabled) {
-          this.eggRenderer.renderEggs(eggArray);
-        } else {
-          const activePlayerId = actions.getActivePlayerId();
-          const visibleSet = new Set(
-            actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
-          );
-          const visibleEggs = eggArray.filter(e =>
-            visibleSet.has(`${e.position.x},${e.position.y}`)
-          );
-          this.eggRenderer.renderEggs(visibleEggs);
+      (state) => ({
+        eggs: Object.values(state.eggs),
+        activePlayerId: state.activePlayerId,
+        fogOfWarEnabled: state.fogOfWarEnabled
+      }),
+      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
+        if (!fogOfWarEnabled) {
+          this.eggRenderer.renderEggs(eggs);
+          return;
         }
+        const visibleCoords = new Set(
+          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
+        );
+        const visibleEggs = eggs.filter(e =>
+          visibleCoords.has(`${e.position.x},${e.position.y}`)
+        );
+        this.eggRenderer.renderEggs(visibleEggs);
       },
       { immediate: true, debug: false }
     );
@@ -385,7 +387,8 @@ export class StateSubscriptionManager {
             const { x, y } = egg.position;
             this.selectionRenderer.showSelection(x, y, SelectionType.Action);
           } else {
-            console.warn("Selected egg not found in state:", sel.eggId);
+            // Egg no longer exists (hatched), clear selection
+            actions.selectEgg(null);
           }
           return;
         }

@@ -10,7 +10,7 @@ import { computeDepth } from '../utils/DepthUtils';
  */
 export class EggRenderer extends BaseRenderer {
   private eggSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
-  private verticalOffset: number = -12;
+  private verticalOffset: number = 12;
 
   /**
    * Clear all egg sprites
