@@ -9,18 +9,6 @@
 - [ ] Refactor namespace to that Spawn = Evolve
 
 
-1.  Game store selection logic  
-    - File: `src/store/gameStore.ts`  
-    - What to do: introduce a `selectedEggId` alongside (or in place of) `selectedUnitIsDormant`. Swap out every occurrence of `selectedUnitIsDormant` for a more explicit egg-ID check.
-
-2.  Tile interaction controller  
-    - File: `src/controllers/TileInteractionController.ts`  
-    - What to do: Case 5 currently routes dormant-unit clicks. Refactor it to use your new `selectedEggId` and fire an “egg selected” action instead of treating it like a hidden animal state.
-
-3.  Renderer split-out  
-    - File: `src/renderers/AnimalRenderer.ts`  
-    - What to do: carve out all the egg‐rendering logic into a new `EggRenderer`. This gives you a clear boundary—animals just render themselves; eggs live in their own renderer.
-
 4.  Subscription manager  
     - File: `src/managers/StateSubscriptionManager.ts`  
     - What to do: you’ve already got an eggs subscription. Rename and tighten it to only deliver an `Egg[]` payload, and drop any DOM/data plumbing that still thinks eggs are “dormant animals.”

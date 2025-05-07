@@ -1,5 +1,5 @@
 import { StateObserver } from '../utils/stateObserver';
-import { Animal, ValidMove, Biome } from '../store/gameStore';
+import { Biome } from '../store/gameStore';
 import * as actions from '../store/actions';
 import BoardScene from '../scene/BoardScene';
 import { SelectionRenderer, SelectionType } from '../renderers/SelectionRenderer';
@@ -9,7 +9,6 @@ import { BiomeRenderer } from '../renderers/BiomeRenderer';
 import { ResourceRenderer } from '../renderers/ResourceRenderer';
 import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
 import { EggRenderer } from '../renderers/EggRenderer';
-import Phaser from "phaser";
 
 // Component interfaces: These define the contracts that components must fulfill to receive state updates
 
@@ -122,6 +121,38 @@ export class StateSubscriptionManager {
     );
   }
   
+/**
+   * Subscribe to egg state changes for rendering.
+   */
+public setupEggSubscriptions(): void {
+  StateObserver.subscribe(
+    StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
+    (state) => ({ eggs: state.eggs, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
+    ({ eggs, activePlayerId, fogOfWarEnabled }) => {
+      if (!eggs) return;
+
+      const eggArray = Object.values(eggs);
+      if (!fogOfWarEnabled) {
+        // FOW disabled: render all eggs
+        this.eggRenderer.renderEggs(eggArray);
+        return;
+      }
+
+      // With FOW: only render visible eggs
+      const visibleSet = new Set(
+        actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
+      );
+
+      const visibleEggs = eggArray.filter(e =>
+        visibleSet.has(`${e.position.x},${e.position.y}`)
+      );
+
+      this.eggRenderer.renderEggs(visibleEggs);
+    },
+    { immediate: true, debug: false }
+  );
+}
+
   // Set up subscriptions related to animals
   private setupAnimalSubscriptions(): void {
     // Subscribe to animal changes and filter by fog-of-war visibility for active player
@@ -338,7 +369,8 @@ export class StateSubscriptionManager {
       (state) => ({
         unitId: state.selectedUnitId,
         resource: state.selectedResource,
-        biomeId: state.selectedBiomeId
+        biomeId: state.selectedBiomeId,
+        eggId: state.selectedEggId
       }),
       (sel) => {
         // Clear existing selection visuals
@@ -353,6 +385,18 @@ export class StateSubscriptionManager {
           }
           return;
         }
+        if (sel.eggId) {
+          const egg = actions.getEggs()[sel.eggId];
+          if (egg) {
+            const { x, y } = egg.position;
+            this.selectionRenderer.showSelection(x, y, SelectionType.Action);
+          } else {
+            console.warn("Selected egg not found in state:", sel.eggId);
+          }
+          return;
+        }
+        
+        
         if (sel.resource) {
           this.selectionRenderer.showSelection(sel.resource.x, sel.resource.y, SelectionType.Action);
           return;
@@ -382,38 +426,6 @@ export class StateSubscriptionManager {
     this.subscriptionsSetup = false;
     
     console.log("All StateSubscriptionManager subscriptions unsubscribed");
-  }
- 
-  /**
-   * Subscribe to egg state changes for rendering.
-   */
-  public setupEggSubscriptions(): void {
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
-      (state) => ({ eggs: state.eggs, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
-      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
-        if (!eggs) return;
-
-        const eggArray = Object.values(eggs);
-        if (!fogOfWarEnabled) {
-          // FOW disabled: render all eggs
-          this.eggRenderer.renderEggs(eggArray);
-          return;
-        }
-
-        // With FOW: only render visible eggs
-        const visibleSet = new Set(
-          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
-        );
-
-        const visibleEggs = eggArray.filter(e =>
-          visibleSet.has(`${e.position.x},${e.position.y}`)
-        );
-
-        this.eggRenderer.renderEggs(visibleEggs);
-      },
-      { immediate: true, debug: false }
-    );
   }
 
    

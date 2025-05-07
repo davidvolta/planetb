@@ -177,6 +177,13 @@ export function selectEgg(id: string | null): void {
   useGameStore.getState().selectEgg(id);
 }
 
+/**
+ * Get all eggs in the game.
+ */
+export function getEggs(): Record<string, Egg> {
+  return useGameStore.getState().eggs;
+}
+
 // =============================================================================
 // UNIT MOVEMENT
 // =============================================================================
