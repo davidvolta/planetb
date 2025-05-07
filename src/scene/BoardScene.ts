@@ -301,7 +301,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Handle unit spawned events
-  public handleUnitSpawned(unitId: string) {
+  public handleSpawnEvent(unitId: string) {
     if (this.fogOfWarEnabled && unitId) {
       const unit = actions.getAnimals().find(a => a.id === unitId);
       if (unit) {

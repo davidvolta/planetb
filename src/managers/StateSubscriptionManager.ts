@@ -350,7 +350,7 @@ export class StateSubscriptionManager {
       spawnEvent => {
         if (spawnEvent && spawnEvent.occurred) {
           if (this.scene instanceof BoardScene) {
-            this.scene.handleUnitSpawned(spawnEvent.unitId!);
+            this.scene.handleSpawnEvent(spawnEvent.unitId!);
           }
           actions.clearSpawnEvent();
         }
@@ -391,9 +391,7 @@ export class StateSubscriptionManager {
             actions.selectEgg(null);
           }
           return;
-        }
-        
-        
+        }        
         if (sel.resource) {
           this.selectionRenderer.showSelection(sel.resource.x, sel.resource.y, SelectionType.Action);
           return;

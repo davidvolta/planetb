@@ -2,7 +2,6 @@
 
 
 ## The Great Animal/Egg Refactor
-- [ ] Solve subscription problem of spawning eggs not immediately updating lushness (but having to wait until the next turn to do so)
 - [ ] Add back in animation for displacement
 
 
