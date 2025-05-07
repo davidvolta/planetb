@@ -8,9 +8,11 @@
 - [ ] Fix TileInteractionController Case 5 DormantUnit Selction needs to be selectedEggID
 - [ ] Refactor namespace to that Spawn = Evolve
 
+- [ ] Remove SelectedUnitIsDormant
+- [ ] Actually generate animals when spawning units
 
-  - [ ] Replace all `AnimalState.DORMANT` checks with egg lookups; swap `selectedUnitIsDormant` for `selectedEggId`; update renderers, controllers, UI, and subscriptions.
-  - [ ] Remove `AnimalState` enum and `state` field.
+- [ ] Replace all `AnimalState.DORMANT` checks with egg lookups; swap `selectedUnitIsDormant` for `selectedEggId`; update renderers, controllers, UI, and subscriptions.
+- [ ] Remove `AnimalState` enum and `state` field.
 
 - Make Animals a Record, not an Array // Use the Animal Registry Approach to Sidechain it
 - Make Biomes a Record, not a Map
