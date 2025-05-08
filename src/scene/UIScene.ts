@@ -48,7 +48,7 @@ export default class UIScene extends Phaser.Scene {
         const player = state.players.find(p => p.id === state.activePlayerId);
         return {
           turn: state.turn,
-          selectedUnit: state.selectedAnimalID ? state.animals.find(a => a.id === state.selectedAnimalID) : null,
+          selectedAnimal: state.selectedAnimalID ? state.animals.find(a => a.id === state.selectedAnimalID) : null,
           selectedEggId: state.selectedEggId,
           selectedBiomeId: state.selectedBiomeId,
           activePlayerName: player ? player.name : `Player ${state.activePlayerId}`
@@ -65,8 +65,8 @@ export default class UIScene extends Phaser.Scene {
           this.nextTurnText.setText(`End ${data.activePlayerName} Turn`);
         }
         
-        // Update selected unit details
-        this.selectedAnimalID = data.selectedUnit?.id || null;
+        // Update selected animal details
+        this.selectedAnimalID = data.selectedAnimal?.id || null;
         this.selectedEggId = data.selectedEggId || null;
         
         // Show/hide spawn button based on selection
@@ -76,7 +76,7 @@ export default class UIScene extends Phaser.Scene {
           this.updateBackgroundSize();
         }
         
-        // Show/hide biome capture button based on biome selection and unit presence
+        // Show/hide biome capture button based on biome selection and animal presence
         if (this.captureBiomeButton) {
           const selectedBiomeId = data.selectedBiomeId;
           const isAvailable = selectedBiomeId !== null && actions.isSelectedBiomeAvailableForCapture();
@@ -353,9 +353,9 @@ export default class UIScene extends Phaser.Scene {
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     await boardScene.getTurnController().next();
 
-    // Pan camera to the next active player's closest active unit
+    // Pan camera to the next active player's closest active animal
     const camMgr = boardScene.getCameraManager();
-    await camMgr.centerCameraOnClosestPlayerUnit(
+    await camMgr.centerCameraOnClosestAnimal(
       boardScene.getTileSize(),
       boardScene.getTileHeight(),
       boardScene.getAnchorX(),
@@ -374,7 +374,7 @@ export default class UIScene extends Phaser.Scene {
   
     await executor.execute({
       type: 'spawn',
-      unitId: this.selectedEggId,
+      animalId: this.selectedEggId,
     });
   }
 

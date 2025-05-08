@@ -5,9 +5,9 @@ import * as actions from '../store/actions';
  * A generic game command that can be executed by both human UI and AI.
  */
 export type GameCommand =
-  | { type: 'move';    unitId: string; x: number; y: number }
+  | { type: 'move';    animalId: string; x: number; y: number }
   | { type: 'capture'; biomeId: string }
-  | { type: 'spawn';   unitId: string }
+  | { type: 'spawn';   animalId: string }
   | { type: 'harvest'; x: number; y: number; amount?: number };
 
 /**
@@ -22,14 +22,14 @@ export class CommandExecutor {
   public async execute(cmd: GameCommand): Promise<void> {
     switch (cmd.type) {
       case 'move':
-        await this.gc.moveAnimal(cmd.unitId, cmd.x, cmd.y);
+        await this.gc.moveAnimal(cmd.animalId, cmd.x, cmd.y);
         break;
       case 'capture':
         this.gc.captureBiome(cmd.biomeId);
         actions.selectBiome(null); // clear selection afterward
         break;
       case 'spawn':
-        this.gc.spawnAnimal(cmd.unitId);
+        this.gc.spawnAnimal(cmd.animalId);
         actions.deselectUnit();
         break;
       case 'harvest':

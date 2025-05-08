@@ -205,7 +205,7 @@ export class MovementController {
     const displaced = movedAnimals.find(a => a.id === collider.id)!;
     const event: DisplacementEvent = {
       occurred: true,
-      unitId: collider.id,
+      animalId: collider.id,
       fromX: collider.position.x,
       fromY: collider.position.y,
       toX: displaced.position.x,

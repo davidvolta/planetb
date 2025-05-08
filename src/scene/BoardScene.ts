@@ -198,7 +198,7 @@ export default class BoardScene extends Phaser.Scene {
     const board = actions.getBoard();
     if (board) {
       this.createTiles();
-      this.cameraManager.centerCameraOnPlayerUnit(
+      this.cameraManager.centerCameraOnPlayerAnimal(
         this.tileSize,
         this.tileHeight,
         this.anchorX,
@@ -300,12 +300,12 @@ export default class BoardScene extends Phaser.Scene {
     await this.gameController.moveAnimal(unitId, toX, toY);
   }
 
-  // Handle unit spawned events
-  public handleSpawnEvent(unitId: string) {
-    if (this.fogOfWarEnabled && unitId) {
-      const unit = actions.getAnimals().find(a => a.id === unitId);
-      if (unit) {
-        this.visibilityController.revealAround(unit.position.x, unit.position.y);
+  // Handle animal spawned events
+  public handleSpawnEvent(animalId: string) {
+    if (this.fogOfWarEnabled && animalId) {
+      const animal = actions.getAnimals().find(a => a.id === animalId);
+      if (animal) {
+        this.visibilityController.revealAround(animal.position.x, animal.position.y);
       }
     }
   }
@@ -370,11 +370,11 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Handle displacement events for animals
-  async handleDisplacementEvent(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+  async handleDisplacementEvent(animalId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
     // Lookup the animal sprite directly
-    const unitSprite = this.getAnimalSprite(unitId);
-    if (!unitSprite) {
-      console.error(`Could not find sprite for animal ${unitId} to displace`);
+    const animalSprite = this.getAnimalSprite(animalId);
+    if (!animalSprite) {
+      console.error(`Could not find sprite for animal ${animalId} to displace`);
       actions.clearDisplacementEvent();
       return;
     }
@@ -388,7 +388,7 @@ export default class BoardScene extends Phaser.Scene {
       this.anchorX,
       this.anchorY
     );
-    unitSprite.setPosition(startWorld.x, startWorld.y - 12); // same verticalOffset as renderer
+    animalSprite.setPosition(startWorld.x, startWorld.y - 12); // same verticalOffset as renderer
     
     // If fog of war is enabled, reveal around the destination via VisibilityController
     if (this.fogOfWarEnabled) {
@@ -396,7 +396,7 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     // Animate displacement and update state
-    await this.animationController.displaceUnit(unitId, unitSprite, fromX, fromY, toX, toY);
+    await this.animationController.displaceUnit(animalId, animalSprite, fromX, fromY, toX, toY);
     // Clear the displacement event after animation completes
     actions.clearDisplacementEvent();
   }

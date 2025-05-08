@@ -8,7 +8,7 @@ import { MovementController } from './MovementController';
  */
 export class AIController {
   // No longer a single seeker; use a map for multiple seekers
-  private seekerAssignments: Record<string, string> = {}; // unitId -> biomeId
+  private seekerAssignments: Record<string, string> = {}; // animalId -> biomeId
 
   constructor(private gameState: GameState, private playerId: number) {}
 
@@ -47,7 +47,7 @@ export class AIController {
 
     const eggs = [...eggsToConsider];
     eggs.forEach(egg => {
-      commands.push({ type: 'spawn', unitId: egg.id });
+      commands.push({ type: 'spawn', animalId: egg.id });
       // Update working copy: if this egg was represented as dormant unit, mark it active.
       workingAnimals = workingAnimals.map(a =>
         a.id === egg.id ? { ...a, hasMoved: true } : a
@@ -154,7 +154,7 @@ export class AIController {
             }
           }
           if (moveTarget) {
-            commands.push({ type: 'move', unitId: unit.id, x: moveTarget.x, y: moveTarget.y });
+            commands.push({ type: 'move', animalId: unit.id, x: moveTarget.x, y: moveTarget.y });
             workingAnimals = workingAnimals.map(a =>
               a.id === unit.id ? { ...a, position: { x: moveTarget.x, y: moveTarget.y }, hasMoved: true } : a
             );
@@ -189,7 +189,7 @@ export class AIController {
             }
           }
           if (moveTarget) {
-            commands.push({ type: 'move', unitId: unit.id, x: moveTarget.x, y: moveTarget.y });
+            commands.push({ type: 'move', animalId: unit.id, x: moveTarget.x, y: moveTarget.y });
             workingAnimals = workingAnimals.map(a =>
               a.id === unit.id ? { ...a, position: { x: moveTarget.x, y: moveTarget.y }, hasMoved: true } : a
             );
@@ -241,7 +241,7 @@ export class AIController {
             }
           }
           if (moveTarget) {
-            commands.push({ type: 'move', unitId: unit.id, x: moveTarget.x, y: moveTarget.y });
+            commands.push({ type: 'move', animalId: unit.id, x: moveTarget.x, y: moveTarget.y });
             workingAnimals = workingAnimals.map(a =>
               a.id === unit.id ? { ...a, position: { x: moveTarget.x, y: moveTarget.y }, hasMoved: true } : a
             );
@@ -273,7 +273,7 @@ export class AIController {
         }
       }
       if (moveTarget) {
-        commands.push({ type: 'move', unitId: unit.id, x: moveTarget.x, y: moveTarget.y });
+        commands.push({ type: 'move', animalId: unit.id, x: moveTarget.x, y: moveTarget.y });
         workingAnimals = workingAnimals.map(a =>
           a.id === unit.id ? { ...a, position: { x: moveTarget.x, y: moveTarget.y }, hasMoved: true } : a
         );

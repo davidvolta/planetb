@@ -15,8 +15,8 @@ export class TileInteractionController {
    * Handle a tile click by cycling through possible actions based on tile contents:
    * Case 7: ignore hidden tiles
    * Case 2: valid move target
-   * Case 1: select active unit
-   * Case 5: select dormant unit
+   * Case 1: select active animal
+   * Case 5: select dormant animal
    * Case 3: select unowned habitat
    * Case 4: select resource in owned biome
    * Case 8: clear selection
@@ -52,7 +52,7 @@ export class TileInteractionController {
     }
 
     // Build content arrays for selection cases using store helpers
-    const activeUnits = actions.getActiveUnitsAt(x, y).filter(a => a.ownerId === playerId);
+    const animalsAtTile = actions.getAnimalsAt(x, y).filter(a => a.ownerId === playerId);
     const eggs = actions.getEggsAt(x, y).filter(e => e.ownerId === playerId);
     const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
     const biomesAtLocation = habitatTiles
@@ -62,10 +62,10 @@ export class TileInteractionController {
     // Build list of handlers in priority order
     const handlers: ((x: number, y: number) => void)[] = [];
 
-    // Case 1: active unit selection (only if unit hasn't moved)
-    if (activeUnits.length > 0 && !activeUnits[0].hasMoved) {
+    // Case 1: active animal selection (only if animal hasn't moved)
+    if (animalsAtTile.length > 0 && !animalsAtTile[0].hasMoved) {
       handlers.push((x, y) => {
-        actions.selectAnimal(activeUnits[0].id);
+        actions.selectAnimal(animalsAtTile[0].id);
         // Selection UI handled by StateSubscriptionManager
       });
     }
@@ -91,9 +91,9 @@ export class TileInteractionController {
     const tile = board.tiles[y][x];
     if (tile.active && tile.resourceType !== null && tile.biomeId) {
       const biome = actions.getBiomes().get(tile.biomeId);
-      // Only allow harvesting if an active unit owned by current player that hasn't moved is on this tile
-      const unitHere = activeUnits.find(u => u.ownerId === playerId && !u.hasMoved);
-      if (biome && biome.ownerId === playerId && unitHere) {
+      // Only allow harvesting if an active animal owned by current player that hasn't moved is on this tile
+      const animalHere = animalsAtTile.find(a => a.ownerId === playerId && !a.hasMoved);
+      if (biome && biome.ownerId === playerId && animalHere) {
         handlers.push((x, y) => {
           actions.selectResourceTile({ x, y });
           actions.selectBiome(null);

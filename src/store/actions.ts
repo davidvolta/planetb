@@ -116,9 +116,9 @@ export function addAnimal(animal: Animal): void {
  */
 export async function spawnAnimal(id: string): Promise<void> {
   const state = useGameStore.getState();
-  const unit = state.animals.find(a => a.id === id);
+  const animal = state.animals.find(a => a.id === id);
   const eggRecord = state.eggs[id];
-  if (!unit && !eggRecord) {
+  if (!animal && !eggRecord) {
     throw new Error(`SpawnAnimal failed: entity ${id} not found)`);
   }
   state.spawnAnimal(id);
@@ -226,18 +226,18 @@ export async function deselectUnit(): Promise<void> {
  */
 export async function moveAnimal(id: string, x: number, y: number): Promise<void> {
   const state = useGameStore.getState();
-  const unit = state.animals.find(a => a.id === id);
-  if (!unit) {
+  const animal = state.animals.find(a => a.id === id);
+  if (!animal) {
     throw new Error(`MoveAnimal failed: animal ${id} not found`);
   }
-  if (unit.hasMoved) {
+  if (animal.hasMoved) {
     throw new Error(`MoveAnimal failed: animal ${id} has already moved`);
   }
   if (!state.board) {
     throw new Error(`MoveAnimal failed: board not initialized`);
   }
   // Recalculate legal moves directly for validation
-  const legalMoves = MovementController.calculateValidMoves(unit, state.board, state.animals);
+  const legalMoves = MovementController.calculateValidMoves(animal, state.board, state.animals);
   if (!legalMoves.some(m => m.x === x && m.y === y)) {
     throw new Error(`MoveAnimal failed: invalid move to (${x},${y})`);
   }
@@ -253,29 +253,28 @@ export async function moveAnimal(id: string, x: number, y: number): Promise<void
  */
 export async function moveDisplacedAnimal(id: string, x: number, y: number): Promise<void> {
   const state = useGameStore.getState();
-  const unit = state.animals.find(animal => animal.id === id);
-  if (!unit) {
+  const animal = state.animals.find(animal => animal.id === id);
+  if (!animal) {
     throw new Error(`MoveDisplacedAnimal failed: animal ${id} not found`);
   }
-  // Save the original hasMoved state to preserve it
-  const originalHasMoved = unit.hasMoved;
-  // Update the unit's position in state while preserving its hasMoved state
+  const originalHasMoved = animal.hasMoved;
+  // Update the animal's position in state while preserving its hasMoved state
   useGameStore.setState({
-    animals: state.animals.map(animal => 
-      animal.id === id 
+    animals: state.animals.map(a => 
+      a.id === id 
         ? { 
-            ...animal, 
-            previousPosition: { ...animal.position }, // Record previous position
+            ...a, 
+            previousPosition: { ...a.position }, // Record previous position
             position: { x, y }, // Update to new position
             hasMoved: originalHasMoved // Preserve original movement state
           } 
-        : animal
+        : a
     )
   });
 }
 
 /**
- * Get the valid moves for the currently selected unit
+ * Get the valid moves for the currently selected animal
  */
 export function getValidMoves(): { x: number, y: number }[] {
   return useGameStore.getState().validMoves;
@@ -330,8 +329,8 @@ export async function selectBiome(biomeId: string | null): Promise<void> {
 }
 
 /**
- * Checks if a biome can be captured based on unit position
- * Returns true if there's an active unit on the habitat that hasn't moved yet
+ * Checks if a biome can be captured based on animal position
+ * Returns true if there's an active animal on the habitat that hasn't moved yet
  * @param biomeId The ID of the biome to check (pure wrapper)
  * @returns boolean indicating if biome can be captured
  */
@@ -575,16 +574,16 @@ export async function harvestTileResource(amount: number): Promise<void> {
     throw new Error(`HarvestTileResource failed: no resource selected`);
   }
   const board = state.board!;
-  // Only allow harvesting if an active, owned unit that hasn't moved is on the tile
+  // Only allow harvesting if an active, owned animal that hasn't moved is on the tile
   const eggsRecord = state.eggs;
-  const unitHere = state.animals.find(a =>
+  const animalHere = state.animals.find(a =>
     a.position.x === coord.x && a.position.y === coord.y &&
     !(a.id in eggsRecord) &&
     a.ownerId === state.activePlayerId &&
     !a.hasMoved
   );
-  if (!unitHere) {
-    throw new Error(`HarvestTileResource failed: no eligible unit on tile (${coord.x},${coord.y})`);
+  if (!animalHere) {
+    throw new Error(`HarvestTileResource failed: no eligible animal on tile (${coord.x},${coord.y})`);
   }
   // Guard: require the biome at this tile to be owned by current player
   const tile = board.tiles[coord.y][coord.x];
@@ -603,9 +602,9 @@ export async function harvestTileResource(amount: number): Promise<void> {
       state.biomes,
       amount
     );
-  // Always mark the harvesting unit as having moved
+  // Always mark the harvesting animal as having moved
   const updatedAnimals = state.animals.map(a =>
-    a.id === unitHere.id
+    a.id === animalHere.id
       ? { ...a, hasMoved: true }
       : a
   );
@@ -704,17 +703,17 @@ export async function clearDisplacementEvent(): Promise<void> {
 
 /**
  * Record a spawn event in the state
- * @param unitId ID of the unit that was spawned
+ * @param animalId ID of the animal that was spawned
  */
-export async function recordSpawnEvent(unitId: string): Promise<void> {
+export async function recordSpawnEvent(animalId: string): Promise<void> {
   const state = useGameStore.getState();
-  if (!state.animals.some(a => a.id === unitId)) {
-    throw new Error(`RecordSpawnEvent failed: animal ${unitId} not found`);
+  if (!state.animals.some(a => a.id === animalId)) {
+    throw new Error(`RecordSpawnEvent failed: animal ${animalId} not found`);
   }
   useGameStore.setState({
     spawnEvent: {
       occurred: true,
-      unitId: unitId,
+      animalId: animalId,
       timestamp: Date.now(),
     }
   });
@@ -762,15 +761,6 @@ export function getAnimalsAt(x: number, y: number): Animal[] {
   return useGameStore.getState().animals.filter(a =>
     a.position.x === x && a.position.y === y
   );
-}
-
-/**
- * Get active units at a given tile coordinate (excludes eggs).
- */
-export function getActiveUnitsAt(x: number, y: number): Animal[] {
-  const animals = getAnimalsAt(x, y);
-  const eggsRecord = getEggs();
-  return animals.filter(a => !(a.id in eggsRecord));
 }
 
 /**

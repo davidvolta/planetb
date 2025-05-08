@@ -10,24 +10,23 @@ export class GameController {
 
   /**
    * Move a unit with full animation and update game state.
-   * @param unitId ID of the unit to move
+   * @param animalId ID of the animal to move
    * @param x Destination X coordinate
    * @param y Destination Y coordinate
    */
-  async moveAnimal(unitId: string, x: number, y: number): Promise<void> {
-    const unit = actions.getAnimals().find(a => a.id === unitId)!;
-    const fromX = unit.position.x;
-    const fromY = unit.position.y;
-    await this.animationController.moveUnit(unitId, fromX, fromY, x, y);
-    actions.moveAnimal(unitId, x, y);
+  async moveAnimal(animalId: string, x: number, y: number): Promise<void> {
+    const unit = actions.getAnimals().find(a => a.id === animalId)!;
+    const { x: fromX, y: fromY } = unit.position;
+    await this.animationController.moveUnit(animalId, fromX, fromY, x, y);
+    actions.moveAnimal(animalId, x, y);
   }
 
   /**
    * Spawn (hatch) a dormant unit (egg) into an active animal.
-   * @param unitId ID of the egg to hatch
+   * @param animalId ID of the egg to hatch
    */
-  spawnAnimal(unitId: string): void {
-    actions.spawnAnimal(unitId);
+  spawnAnimal(animalId: string): void {
+    actions.spawnAnimal(animalId);
   }
 
   /**

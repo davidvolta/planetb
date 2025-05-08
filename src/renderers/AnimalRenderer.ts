@@ -14,8 +14,8 @@ export class AnimalRenderer extends BaseRenderer {
   // Vertical offset to raise animals above tiles
   private verticalOffset: number = -12;
   
-  // Map from unit ID to sprite for O(1) sprite lookup
-  private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  // Map from animal ID to sprite for O(1) sprite lookup
+  private animalSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   
   /**
    * Creates a new AnimalRenderer
@@ -52,10 +52,10 @@ export class AnimalRenderer extends BaseRenderer {
       const eggsRecord = getEggs();
       if (animal.id in eggsRecord) return;
 
-      // If this is the displaced unit and the event is active, start it at its previous position
-      const gridX = (displacementEvent.occurred && displacementEvent.unitId === animal.id && displacementEvent.fromX !== null)
+      // If this is the displaced animal and the event is active, start it at its previous position
+      const gridX = (displacementEvent.occurred && displacementEvent.animalId === animal.id && displacementEvent.fromX !== null)
         ? displacementEvent.fromX : animal.position.x;
-      const gridY = (displacementEvent.occurred && displacementEvent.unitId === animal.id && displacementEvent.fromY !== null)
+      const gridY = (displacementEvent.occurred && displacementEvent.animalId === animal.id && displacementEvent.fromY !== null)
         ? displacementEvent.fromY : animal.position.y;
       const worldPosition = CoordinateUtils.gridToWorld(
         gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
@@ -78,7 +78,7 @@ export class AnimalRenderer extends BaseRenderer {
         textureKey = animal.species;
       }
 
-      const sprite = this.unitSprites.get(animal.id);
+      const sprite = this.animalSprites.get(animal.id);
       const isActive = true;
 
       if (sprite) {
@@ -102,15 +102,15 @@ export class AnimalRenderer extends BaseRenderer {
         animalSprite.setData('gridY', gridY);
         this.updateSpriteInteractivity(animalSprite, animal);
         this.layerManager.addToLayer('units', animalSprite);
-        this.unitSprites.set(animal.id, animalSprite);
+        this.animalSprites.set(animal.id, animalSprite);
         usedIds.add(animal.id);
       }
     });
 
-    this.unitSprites.forEach((sprite, id) => {
+    this.animalSprites.forEach((sprite, id) => {
       if (!usedIds.has(id)) {
         sprite.destroy();
-        this.unitSprites.delete(id);
+        this.animalSprites.delete(id);
       }
     });
   }
@@ -133,17 +133,17 @@ export class AnimalRenderer extends BaseRenderer {
    */
   override destroy(): void {
     super.destroy();
-    // Destroy all tracked unit sprites and clear the map
-    this.unitSprites.forEach(sprite => {
+    // Destroy all tracked animal sprites and clear the map
+    this.animalSprites.forEach(sprite => {
       sprite.destroy();
     });
-    this.unitSprites.clear();
+    this.animalSprites.clear();
   }
   
   /**
-   * Get the sprite associated with a given unit ID
+   * Get the sprite associated with a given animal ID
    */
   public getSpriteById(id: string): Phaser.GameObjects.Sprite | undefined {
-    return this.unitSprites.get(id);
+    return this.animalSprites.get(id);
   }
 } 

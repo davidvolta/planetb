@@ -153,24 +153,24 @@ export class AnimationController {
   
   /**
    * Handle unit movement from one position to another, including game state updates
-   * @param unitId ID of the unit to move
+   * @param animalId ID of the animal to move
    * @param fromX Starting X grid coordinate
    * @param fromY Starting Y grid coordinate
    * @param toX Destination X grid coordinate
    * @param toY Destination Y grid coordinate
    * @returns Promise that resolves when movement is complete
    */
-  async moveUnit(
-    unitId: string,
+  public async moveUnit(
+    animalId: string,
     fromX: number,
     fromY: number,
     toX: number,
     toY: number
   ): Promise<void> {
-    const sprite = this.animalRenderer.getSpriteById(unitId);
+    const sprite = this.animalRenderer.getSpriteById(animalId);
   
     if (!sprite) {
-      console.error(`[AnimationController] Could not find sprite for unitId ${unitId}`);
+      console.error(`[AnimationController] Could not find sprite for animalId ${animalId}`);
       return;
     }
   
@@ -179,7 +179,7 @@ export class AnimationController {
   
   /**
    * Handle unit displacement (being pushed) from one position to another
-   * @param unitId ID of the unit being displaced
+   * @param animalId ID of the animal being displaced
    * @param sprite The sprite to animate
    * @param fromX Starting X grid coordinate
    * @param fromY Starting Y grid coordinate
@@ -187,8 +187,8 @@ export class AnimationController {
    * @param toY Destination Y grid coordinate
    * @returns Promise that resolves when displacement is complete
    */
-  async displaceUnit(
-    unitId: string,
+  public async displaceUnit(
+    animalId: string,
     sprite: Phaser.GameObjects.Sprite,
     fromX: number,
     fromY: number,
@@ -198,7 +198,7 @@ export class AnimationController {
     // Animate displacement
     await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
     // Update game state after displacement completes
-    actions.moveDisplacedAnimal(unitId, toX, toY);
+    actions.moveDisplacedAnimal(animalId, toX, toY);
   }
   
   /**

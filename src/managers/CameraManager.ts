@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import * as actions from "../store/actions";
-import { getEggs } from "../store/actions";
 import * as CoordinateUtils from "../utils/CoordinateUtils";
+import { Coordinate } from '../store/gameStore';
 
 // Manages the camera system for the board scene
 export class CameraManager {
@@ -174,80 +174,94 @@ export class CameraManager {
     this.getCamera().setBounds(x, y, width, height);
   }
   
-  // Centers the camera on the player's first unit
-  centerCameraOnPlayerUnit(
+  // Centers the camera on the player's first animal
+  public centerCameraOnPlayerAnimal(
     tileSize: number,
     tileHeight: number,
     anchorX: number,
     anchorY: number
   ): void {
-    const unitPosition = this.findPlayerFirstUnit();
-    if (unitPosition) {
-      const worldPos = CoordinateUtils.gridToWorld(
-        unitPosition.x, 
-        unitPosition.y, 
-        tileSize, 
-        tileHeight,
-        anchorX,
-        anchorY
-      );
-      this.centerOn(worldPos.x, worldPos.y);
-      console.log(`Camera centered on player unit at grid (${unitPosition.x},${unitPosition.y}) with max zoom`);
+    const animalPosition = this.findFirstPlayerAnimal();
+    if (!animalPosition) {
+      console.warn("No animal found for current player");
+      return;
     }
+
+    const worldPosition = CoordinateUtils.gridToWorld(
+      animalPosition.x,
+      animalPosition.y,
+      tileSize,
+      tileHeight,
+      anchorX,
+      anchorY
+    );
+
+    console.log(`Camera centered on player animal at grid (${animalPosition.x},${animalPosition.y}) with max zoom`);
+    this.centerOn(worldPosition.x, worldPosition.y);
+    this.centerOn(worldPosition.x, worldPosition.y, 500);
   }
   
-  //Finds the first unit owned by the player
-  private findPlayerFirstUnit(): { x: number, y: number } | null {
-    const animals = actions.getAnimals();
+  // Finds the first animal owned by the player
+  private findFirstPlayerAnimal(): Coordinate | null {
     const activePlayerId = actions.getActivePlayerId();
-    
-    // Find the first active unit owned by the current player
-    const eggsRecord = getEggs();
-    const playerUnit = animals.find((animal: any) => 
-      animal.ownerId === activePlayerId && 
-      !(animal.id in eggsRecord)
+    const eggsRecord = actions.getEggs();
+
+    // Find the first active animal owned by the current player
+    const animal = actions.getAnimals().find(
+      a => a.ownerId === activePlayerId && !(a.id in eggsRecord)
     );
-    
-    if (playerUnit) {
-      return playerUnit.position;
-    }
-    
-    return null;
+
+    return animal ? animal.position : null;
   }
   
   /**
-   * Center the camera on the closest active unit owned by the player.
+   * Center the camera on the closest active animal owned by the player.
    */
-  public async centerCameraOnClosestPlayerUnit(
+  public async centerCameraOnClosestAnimal(
     tileSize: number,
     tileHeight: number,
     anchorX: number,
-    anchorY: number,
-    playerId: number = actions.getActivePlayerId(),
-    duration: number = 500
+    anchorY: number
   ): Promise<void> {
-    // Filter active units by player
-    const eggsRecord = getEggs();
-    const animals = actions.getAnimals().filter(a => a.ownerId === playerId && !(a.id in eggsRecord));
-    if (animals.length === 0) return;
+    const activePlayerId = actions.getActivePlayerId();
+    const eggsRecord = actions.getEggs();
+
+    // Get all active animals owned by the current player
+    const animals = actions.getAnimals().filter(
+      a => a.ownerId === activePlayerId && !(a.id in eggsRecord)
+    );
+
+    if (animals.length === 0) {
+      console.warn("No animals found for current player");
+      return;
+    }
+
+    // Compute world positions for each animal
+    const animalPositions = animals.map(animal => ({
+      animal,
+      world: CoordinateUtils.gridToWorld(
+        animal.position.x,
+        animal.position.y,
+        tileSize,
+        tileHeight,
+        anchorX,
+        anchorY
+      )
+    }));
+
     const camera = this.getCamera();
     const centerX = camera.midPoint.x;
     const centerY = camera.midPoint.y;
     
-    // Compute world positions for each unit
-    const worldPoints = animals.map(a =>
-      CoordinateUtils.gridToWorld(a.position.x, a.position.y, tileSize, tileHeight, anchorX, anchorY)
-    );
-    
     // Find the closest point to current camera center
-    const closest = worldPoints.reduce((prev, cur) => {
-      const dPrev = Phaser.Math.Distance.Between(prev.x, prev.y, centerX, centerY);
-      const dCur = Phaser.Math.Distance.Between(cur.x, cur.y, centerX, centerY);
+    const closest = animalPositions.reduce((prev, cur) => {
+      const dPrev = Phaser.Math.Distance.Between(prev.world.x, prev.world.y, centerX, centerY);
+      const dCur = Phaser.Math.Distance.Between(cur.world.x, cur.world.y, centerX, centerY);
       return dCur < dPrev ? cur : prev;
-    }, worldPoints[0]);
+    }, animalPositions[0]);
     
     // Pan to that position smoothly
-    await this.centerOnAsync(closest.x, closest.y, duration);
+    await this.centerOnAsync(closest.world.x, closest.world.y, 500);
   }
   
   // Clean up any resources used by the camera manager

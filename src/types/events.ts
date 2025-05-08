@@ -1,6 +1,6 @@
 export interface DisplacementEvent {
   occurred: boolean;
-  unitId: string | null;
+  animalId: string | null;
   fromX: number | null;
   fromY: number | null;
   toX: number | null;
@@ -11,7 +11,7 @@ export interface DisplacementEvent {
 // A reusable blank event object
 export const BLANK_DISPLACEMENT_EVENT: DisplacementEvent = {
   occurred: false,
-  unitId: null,
+  animalId: null,
   fromX: null,
   fromY: null,
   toX: null,
@@ -20,18 +20,18 @@ export const BLANK_DISPLACEMENT_EVENT: DisplacementEvent = {
 };
 
 // ------------------------------------------------------------
-// SpawnEvent – fires when a new unit is spawned (egg hatching)
+// SpawnEvent – fires when a new animal is spawned (egg hatching)
 // ------------------------------------------------------------
 
 export interface SpawnEvent {
   occurred: boolean;
-  unitId: string | null;
+  animalId: string | null;
   timestamp: number | null;
 }
 
 export const BLANK_SPAWN_EVENT: SpawnEvent = {
   occurred: false,
-  unitId: null,
+  animalId: null,
   timestamp: null,
 };
 

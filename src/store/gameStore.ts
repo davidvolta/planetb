@@ -316,9 +316,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   getValidMoves: (id: string) => {
     const state = get();
     // Delegate to MovementController
-    const unit = state.animals.find(a => a.id === id);
-    return unit && state.board
-      ? MovementController.calculateValidMoves(unit, state.board, state.animals)
+    const animal = state.animals.find(a => a.id === id);
+    return animal && state.board
+      ? MovementController.calculateValidMoves(animal, state.board, state.animals)
       : [];
   },
 
@@ -341,9 +341,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         };
       }
 
-      const unit = state.animals.find(a => a.id === id);
-      if (unit && unit.hasMoved) {
-        console.log(`Cannot select unit ${id} for movement - it has already moved this turn`);
+      const animal = state.animals.find(a => a.id === id);
+      if (animal && animal.hasMoved) {
+        console.log(`Cannot select animal ${id} for movement - it has already moved this turn`);
         return {
           selectedAnimalID: id,
           validMoves: [],
@@ -353,8 +353,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         };
       }
 
-      const validMoves = unit && state.board
-        ? MovementController.calculateValidMoves(unit, state.board, state.animals)
+      const validMoves = animal && state.board
+        ? MovementController.calculateValidMoves(animal, state.board, state.animals)
         : [];
 
       return {
@@ -368,7 +368,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     
   moveAnimal: (id: string, x: number, y: number) =>
     set((state) => {
-      // Update the moved unit's position and flag
+      // Update the moved animal's position and flag
       let updatedAnimals = state.animals.map(animal => 
         animal.id === id 
           ? { 
@@ -454,7 +454,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       selectedAnimalID: newAnimalId,
       spawnEvent: {
         occurred: true,
-        unitId: newAnimalId,
+        animalId: newAnimalId,
         timestamp: Date.now()
       } as SpawnEvent,
       moveMode: false,

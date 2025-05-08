@@ -335,8 +335,8 @@ export class StateSubscriptionManager {
       (displacementEvent) => {
         if (displacementEvent && displacementEvent.occurred) {
           if (this.scene instanceof BoardScene) {
-            const { unitId, fromX, fromY, toX, toY } = displacementEvent;
-            this.scene.handleDisplacementEvent(unitId!, fromX!, fromY!, toX!, toY!);
+            const { animalId, fromX, fromY, toX, toY } = displacementEvent;
+            this.scene.handleDisplacementEvent(animalId!, fromX!, fromY!, toX!, toY!);
           }
         }
       }
@@ -349,7 +349,7 @@ export class StateSubscriptionManager {
       spawnEvent => {
         if (spawnEvent && spawnEvent.occurred) {
           if (this.scene instanceof BoardScene) {
-            this.scene.handleSpawnEvent(spawnEvent.unitId!);
+            this.scene.handleSpawnEvent(spawnEvent.animalId!);
           }
           actions.clearSpawnEvent();
         }
@@ -362,7 +362,7 @@ export class StateSubscriptionManager {
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.SELECTION,
       (state) => ({
-        unitId: state.selectedAnimalID,
+        animalId: state.selectedAnimalID,
         resource: state.selectedResource,
         biomeId: state.selectedBiomeId,
         eggId: state.selectedEggId
@@ -371,8 +371,8 @@ export class StateSubscriptionManager {
         // Clear existing selection visuals
         this.selectionRenderer.hideSelection();
         // Priority: unit, resource, biome
-        if (sel.unitId) {
-          const unit = actions.getAnimals().find(a => a.id === sel.unitId);
+        if (sel.animalId) {
+          const unit = actions.getAnimals().find(a => a.id === sel.animalId);
           if (unit) {
             const x = unit.position.x;
             const y = unit.position.y;
