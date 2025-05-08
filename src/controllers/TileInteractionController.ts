@@ -40,20 +40,19 @@ export class TileInteractionController {
 
     // Case 2: valid move target has priority over selection
     if (this.scene.getMoveRangeRenderer().isValidMoveTarget(x, y)) {
-      const selectedUnitId = actions.getSelectedUnitId();
+      const selectedAnimalId = actions.getSelectedAnimalID();
       const animals = actions.getAnimals();
-      const selectedAnimal = animals.find((a: any) => a.id === selectedUnitId);
-      if (selectedUnitId && selectedAnimal) {
+      const selectedAnimal = animals.find((a: any) => a.id === selectedAnimalId);
+      if (selectedAnimalId && selectedAnimal) {
         const fromX = selectedAnimal.position.x;
         const fromY = selectedAnimal.position.y;
-        this.scene.startUnitMovement(selectedUnitId, fromX, fromY, x, y);
+        this.scene.startAnimalMovement(selectedAnimalId, fromX, fromY, x, y);
       }
       return;
     }
 
     // Build content arrays for selection cases using store helpers
     const activeUnits = actions.getActiveUnitsAt(x, y).filter(a => a.ownerId === playerId);
-    const dormantUnits = actions.getDormantUnitsAt(x, y).filter(a => a.ownerId === playerId);
     const eggs = actions.getEggsAt(x, y).filter(e => e.ownerId === playerId);
     const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
     const biomesAtLocation = habitatTiles
@@ -66,21 +65,15 @@ export class TileInteractionController {
     // Case 1: active unit selection (only if unit hasn't moved)
     if (activeUnits.length > 0 && !activeUnits[0].hasMoved) {
       handlers.push((x, y) => {
-        actions.selectUnit(activeUnits[0].id);
+        actions.selectAnimal(activeUnits[0].id);
         // Selection UI handled by StateSubscriptionManager
       });
     }
 
-    // Case 5: egg (or legacy dormant unit) selection
+    // Case 5: egg selection
     if (eggs.length > 0) {
       handlers.push((x, y) => {
         actions.selectEgg(eggs[0].id);
-        // Selection UI handled by StateSubscriptionManager
-      });
-    } else if (dormantUnits.length > 0) {
-      // Legacy support until AnimalState is purged
-      handlers.push((x, y) => {
-        actions.selectEgg(dormantUnits[0].id);
         // Selection UI handled by StateSubscriptionManager
       });
     }
@@ -111,7 +104,7 @@ export class TileInteractionController {
 
     // Case 8: clear all selections and highlights
     handlers.push((x, y) => {
-      actions.selectUnit(null);
+      actions.selectAnimal(null);
       actions.selectBiome(null);
       actions.selectResourceTile(null);
       // Selection UI handled by StateSubscriptionManager

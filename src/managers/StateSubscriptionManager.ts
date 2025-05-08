@@ -362,7 +362,7 @@ export class StateSubscriptionManager {
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.SELECTION,
       (state) => ({
-        unitId: state.selectedUnitId,
+        unitId: state.selectedAnimalID,
         resource: state.selectedResource,
         biomeId: state.selectedBiomeId,
         eggId: state.selectedEggId

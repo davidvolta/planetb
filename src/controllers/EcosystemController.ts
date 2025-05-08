@@ -371,8 +371,8 @@ export class EcosystemController {
     const newBiomes = new Map(biomes);
     newBiomes.set(biomeId, updatedBiome);
 
-    // Find an active unit on the habitat that hasn't moved
-    const unitsOnHabitat = animals.filter(a => {
+    // Find an active animal on the habitat that hasn't moved
+    const animalsOnHabitat = animals.filter(a => {
       const tile = board.tiles[a.position.y]?.[a.position.x];
       return (
         tile &&
@@ -383,13 +383,13 @@ export class EcosystemController {
       );
     });
     let newAnimals: Animal[] = [...animals];
-    if (unitsOnHabitat.length > 0) {
-      const unitId = unitsOnHabitat[0].id;
+    if (animalsOnHabitat.length > 0) {
+      const animalId = animalsOnHabitat[0].id;
       newAnimals = animals.map(a =>
-        a.id === unitId ? { ...a, hasMoved: true } : a
+        a.id === animalId ? { ...a, hasMoved: true } : a
       );
     }
-    // Transfer ownership of all dormant units (eggs) in this biome to the new owner
+    // Transfer ownership of all eggs in this biome to the new owner
     newAnimals = newAnimals.map(a => {
       const tile = board.tiles[a.position.y]?.[a.position.x];
       if (
@@ -424,7 +424,7 @@ export class EcosystemController {
     if (!biome || biome.ownerId === currentPlayerId) {
       return false;
     }
-    // Is there an alive, active unit of the current player on that habitat?
+    // Is there an alive, active animal of the current player on that habitat?
     return animals.some(a => {
       const tile = board.tiles[a.position.y]?.[a.position.x];
       return (

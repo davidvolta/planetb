@@ -273,17 +273,17 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Helper to lookup a unit sprite by ID
-  private getUnitSprite(unitId: string): Phaser.GameObjects.Sprite | undefined {
+  // Helper to lookup an animal sprite by ID
+  private getAnimalSprite(unitId: string): Phaser.GameObjects.Sprite | undefined {
     return this.animalRenderer.getSpriteById(unitId);
   }
 
-  // Start movement animation of a unit
-  public async startUnitMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
-    // Lookup the unit sprite directly
-    const unitSprite = this.getUnitSprite(unitId);
+  // Start movement animation of an animal
+  public async startAnimalMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+    // Lookup the animal sprite directly
+    const unitSprite = this.getAnimalSprite(unitId);
     if (!unitSprite) {
-      console.error(`Could not find sprite for unit ${unitId}`);
+      console.error(`Could not find sprite for animal ${unitId}`);
       return;
     }
     
@@ -297,7 +297,7 @@ export default class BoardScene extends Phaser.Scene {
     }
     
     // Execute movement with animation and state update via GameController
-    await this.gameController.moveUnit(unitId, toX, toY);
+    await this.gameController.moveAnimal(unitId, toX, toY);
   }
 
   // Handle unit spawned events
@@ -318,7 +318,7 @@ export default class BoardScene extends Phaser.Scene {
   
   // Handle unit selection (UI now via subscription manager)
   public handleUnitSelection(unitId: string | null) {
-    actions.selectUnit(unitId);
+    actions.selectAnimal(unitId);
   }
 
   // Update method called each frame
@@ -371,10 +371,10 @@ export default class BoardScene extends Phaser.Scene {
 
   // Handle displacement events for animals
   async handleDisplacementEvent(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
-    // Lookup the unit sprite directly
-    const unitSprite = this.getUnitSprite(unitId);
+    // Lookup the animal sprite directly
+    const unitSprite = this.getAnimalSprite(unitId);
     if (!unitSprite) {
-      console.error(`Could not find sprite for unit ${unitId} to displace`);
+      console.error(`Could not find sprite for animal ${unitId} to displace`);
       actions.clearDisplacementEvent();
       return;
     }

@@ -15,7 +15,7 @@ export default class UIScene extends Phaser.Scene {
   private nextTurnButton: Phaser.GameObjects.Container | null = null;
   private nextTurnText: Phaser.GameObjects.Text | null = null;
   private nextTurnButtonBg: Phaser.GameObjects.Rectangle | null = null;
-  private selectedUnitId: string | null = null;
+  private selectedAnimalID: string | null = null;
   private selectedEggId: string | null = null;
   private captureBiomeButton: Phaser.GameObjects.Container | null = null;
   private harvestButton: Phaser.GameObjects.Container | null = null;
@@ -48,7 +48,7 @@ export default class UIScene extends Phaser.Scene {
         const player = state.players.find(p => p.id === state.activePlayerId);
         return {
           turn: state.turn,
-          selectedUnit: state.selectedUnitId ? state.animals.find(a => a.id === state.selectedUnitId) : null,
+          selectedUnit: state.selectedAnimalID ? state.animals.find(a => a.id === state.selectedAnimalID) : null,
           selectedEggId: state.selectedEggId,
           selectedBiomeId: state.selectedBiomeId,
           activePlayerName: player ? player.name : `Player ${state.activePlayerId}`
@@ -66,7 +66,7 @@ export default class UIScene extends Phaser.Scene {
         }
         
         // Update selected unit details
-        this.selectedUnitId = data.selectedUnit?.id || null;
+        this.selectedAnimalID = data.selectedUnit?.id || null;
         this.selectedEggId = data.selectedEggId || null;
         
         // Show/hide spawn button based on selection
@@ -643,7 +643,7 @@ export default class UIScene extends Phaser.Scene {
     }
     
     this.turnText = null;
-    this.selectedUnitId = null;
+    this.selectedAnimalID = null;
     this.selectedEggId = null;
     this.selectedBiomeId = null;
   }

@@ -125,10 +125,10 @@ export async function spawnAnimal(id: string): Promise<void> {
 }
 
 /**
- * Get the currently selected unit ID
+ * Get the currently selected animal ID
  */
-export function getSelectedUnitId(): string | null {
-  return useGameStore.getState().selectedUnitId;
+export function getSelectedAnimalID(): string | null {
+  return useGameStore.getState().selectedAnimalID;
 }
 
 // =============================================================================
@@ -174,7 +174,7 @@ export function removeEgg(id: string): void {
 export function selectEgg(id: string | null): void {
   useGameStore.setState(state => ({
     selectedEggId: id,
-    selectedUnitId: null,
+    selectedAnimalID: null,
     validMoves: [],
     moveMode: false,
     selectedResource: null
@@ -201,61 +201,61 @@ export function getEggsAt(x: number, y: number): Egg[] {
 // =============================================================================
 
 /**
- * Select a unit and calculate its valid moves
+ * Select an animal by ID
  */
-export async function selectUnit(unitId: string | null): Promise<void> {
+export async function selectAnimal(unitId: string | null): Promise<void> {
   const state = useGameStore.getState();
   if (unitId !== null && !state.animals.some(a => a.id === unitId)) {
-    throw new Error(`SelectUnit failed: animal ${unitId} not found`);
+    throw new Error(`SelectAnimal failed: animal ${unitId} not found`);
   }
-  useGameStore.getState().selectUnit(unitId);
+  useGameStore.getState().selectAnimal(unitId);
 }
 
 /**
- * Deselect the currently selected unit
+ * Deselect the current animal selection
  */
 export async function deselectUnit(): Promise<void> {
-  useGameStore.getState().selectUnit(null);
+  useGameStore.getState().selectAnimal(null);
 }
 
 /**
- * Move a unit to a new position
- * @param id Unit ID
+ * Move an animal to a new position
+ * @param id Animal ID
  * @param x X coordinate
  * @param y Y coordinate
  */
-export async function moveUnit(id: string, x: number, y: number): Promise<void> {
+export async function moveAnimal(id: string, x: number, y: number): Promise<void> {
   const state = useGameStore.getState();
   const unit = state.animals.find(a => a.id === id);
   if (!unit) {
-    throw new Error(`MoveUnit failed: animal ${id} not found`);
+    throw new Error(`MoveAnimal failed: animal ${id} not found`);
   }
   if (unit.hasMoved) {
-    throw new Error(`MoveUnit failed: animal ${id} has already moved`);
+    throw new Error(`MoveAnimal failed: animal ${id} has already moved`);
   }
   if (!state.board) {
-    throw new Error(`MoveUnit failed: board not initialized`);
+    throw new Error(`MoveAnimal failed: board not initialized`);
   }
   // Recalculate legal moves directly for validation
   const legalMoves = MovementController.calculateValidMoves(unit, state.board, state.animals);
   if (!legalMoves.some(m => m.x === x && m.y === y)) {
-    throw new Error(`MoveUnit failed: invalid move to (${x},${y})`);
+    throw new Error(`MoveAnimal failed: invalid move to (${x},${y})`);
   }
-  useGameStore.getState().moveUnit(id, x, y);
+  useGameStore.getState().moveAnimal(id, x, y);
 }
 
 /**
- * Move a displaced unit to a new position
+ * Move a displaced animal to its new position after collision
  * Used by the animation system after displacement animation completes
- * @param id Unit ID
+ * @param id Animal ID
  * @param x X coordinate
  * @param y Y coordinate
  */
-export async function moveDisplacedUnit(id: string, x: number, y: number): Promise<void> {
+export async function moveDisplacedAnimal(id: string, x: number, y: number): Promise<void> {
   const state = useGameStore.getState();
   const unit = state.animals.find(animal => animal.id === id);
   if (!unit) {
-    throw new Error(`MoveDisplacedUnit failed: animal ${id} not found`);
+    throw new Error(`MoveDisplacedAnimal failed: animal ${id} not found`);
   }
   // Save the original hasMoved state to preserve it
   const originalHasMoved = unit.hasMoved;
@@ -756,9 +756,9 @@ export async function updateTilesVisibility(tiles: { x: number; y: number; visib
 }
 
 /**
- * Get all units at a given tile coordinate
+ * Get all animals at a given tile coordinate
  */
-export function getUnitsAt(x: number, y: number): Animal[] {
+export function getAnimalsAt(x: number, y: number): Animal[] {
   return useGameStore.getState().animals.filter(a =>
     a.position.x === x && a.position.y === y
   );
@@ -768,19 +768,9 @@ export function getUnitsAt(x: number, y: number): Animal[] {
  * Get active units at a given tile coordinate (excludes eggs).
  */
 export function getActiveUnitsAt(x: number, y: number): Animal[] {
-  const animals = getUnitsAt(x, y);
+  const animals = getAnimalsAt(x, y);
   const eggsRecord = getEggs();
   return animals.filter(a => !(a.id in eggsRecord));
-}
-
-/**
- * Get dormant units (legacy) at a given tile coordinate.
- * This will be removed in Phase 4. For now, treat any animal ID that also exists in eggsRecord as dormant.
- */
-export function getDormantUnitsAt(x: number, y: number): Animal[] {
-  const animals = getUnitsAt(x, y);
-  const eggsRecord = getEggs();
-  return animals.filter(a => a.id in eggsRecord);
 }
 
 /**

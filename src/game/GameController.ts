@@ -14,12 +14,12 @@ export class GameController {
    * @param x Destination X coordinate
    * @param y Destination Y coordinate
    */
-  async moveUnit(unitId: string, x: number, y: number): Promise<void> {
+  async moveAnimal(unitId: string, x: number, y: number): Promise<void> {
     const unit = actions.getAnimals().find(a => a.id === unitId)!;
     const fromX = unit.position.x;
     const fromY = unit.position.y;
     await this.animationController.moveUnit(unitId, fromX, fromY, x, y);
-    actions.moveUnit(unitId, x, y);
+    actions.moveAnimal(unitId, x, y);
   }
 
   /**

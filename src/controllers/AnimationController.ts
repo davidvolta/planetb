@@ -198,7 +198,7 @@ export class AnimationController {
     // Animate displacement
     await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
     // Update game state after displacement completes
-    actions.moveDisplacedUnit(unitId, toX, toY);
+    actions.moveDisplacedAnimal(unitId, toX, toY);
   }
   
   /**

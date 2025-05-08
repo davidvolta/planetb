@@ -107,7 +107,7 @@ export interface GameState {
   selectedEggId: string | null;
   
   // Movement state
-  selectedUnitId: string | null;
+  selectedAnimalID: string | null;
   validMoves: ValidMove[];
   moveMode: boolean;
   fogOfWarEnabled: boolean;
@@ -137,8 +137,8 @@ export interface GameState {
   initializeBoard: (width: number, height: number) => void;
   getTile: (x: number, y: number) => Tile | undefined;
   spawnAnimal: (id: string) => void;
-  selectUnit: (id: string | null) => void;
-  moveUnit: (id: string, x: number, y: number) => void;
+  selectAnimal: (id: string | null) => void;
+  moveAnimal: (id: string, x: number, y: number) => void;
   getValidMoves: (id: string) => ValidMove[];
   selectBiome: (id: string | null) => void;
   addAnimal: (animal: Animal) => void;
@@ -154,7 +154,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   eggs: {},
   selectedEggId: null,
   
-  selectedUnitId: null,
+  selectedAnimalID: null,
   validMoves: [],
   moveMode: false,
   
@@ -329,11 +329,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   // MOVEMENT
-  selectUnit: (id: string | null) =>
+  selectAnimal: (id: string | null) =>
     set((state) => {
       if (!id) {
         return {
-          selectedUnitId: null,
+          selectedAnimalID: null,
           validMoves: [],
           moveMode: false,
           selectedEggId: null,
@@ -345,7 +345,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (unit && unit.hasMoved) {
         console.log(`Cannot select unit ${id} for movement - it has already moved this turn`);
         return {
-          selectedUnitId: id,
+          selectedAnimalID: id,
           validMoves: [],
           moveMode: false,
           selectedEggId: null,
@@ -358,7 +358,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         : [];
 
       return {
-        selectedUnitId: id,
+        selectedAnimalID: id,
         validMoves,
         moveMode: true,
         selectedEggId: null,
@@ -366,7 +366,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     }),
     
-  moveUnit: (id: string, x: number, y: number) =>
+  moveAnimal: (id: string, x: number, y: number) =>
     set((state) => {
       // Update the moved unit's position and flag
       let updatedAnimals = state.animals.map(animal => 
@@ -406,7 +406,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   // SELECTION
   selectResource: (coord) => set({
     selectedResource: coord,
-    selectedUnitId: null,
+    selectedAnimalID: null,
     validMoves: [],
     moveMode: false
   }),
@@ -414,13 +414,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectBiome: (id: string | null) => 
     set(state => {
       if (id === null) {
-        return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false };
+        return { selectedBiomeId: null, selectedAnimalID: null, validMoves: [], moveMode: false };
       }
       const biome = state.biomes.get(id);
       if (biome) {
-        return { selectedBiomeId: id, selectedUnitId: null, validMoves: [], moveMode: false };
+        return { selectedBiomeId: id, selectedAnimalID: null, validMoves: [], moveMode: false };
       }
-      return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false };
+      return { selectedBiomeId: null, selectedAnimalID: null, validMoves: [], moveMode: false };
     }),
 
   
@@ -451,7 +451,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       displacementEvent,
       eggs: updatedEggs,
       selectedEggId: null,
-      selectedUnitId: newAnimalId,
+      selectedAnimalID: newAnimalId,
       spawnEvent: {
         occurred: true,
         unitId: newAnimalId,
@@ -478,7 +478,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   
   selectEgg: (id: string | null) => set(() => ({
     selectedEggId: id,
-    selectedUnitId: null,
+    selectedAnimalID: null,
     validMoves: [],
     moveMode: false,
     selectedResource: null

@@ -22,7 +22,7 @@ export class CommandExecutor {
   public async execute(cmd: GameCommand): Promise<void> {
     switch (cmd.type) {
       case 'move':
-        await this.gc.moveUnit(cmd.unitId, cmd.x, cmd.y);
+        await this.gc.moveAnimal(cmd.unitId, cmd.x, cmd.y);
         break;
       case 'capture':
         this.gc.captureBiome(cmd.biomeId);

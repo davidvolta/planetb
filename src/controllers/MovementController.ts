@@ -133,7 +133,7 @@ export class MovementController {
   }
 
   /**
-   * Handle displacement when an active unit is bumped
+   * Handle displacement when an animal is bumped
    */
   public static handleDisplacement(
     x: number,
