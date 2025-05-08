@@ -228,9 +228,6 @@ export class BiomeRenderer extends BaseRenderer {
           }
         });
       }
-
-      // Debug: log the biome lushness
-      console.log(`[BiomeRenderer] Biome ${biomeId} lushness:`, roundedLushness);
     }
 
     return container;
