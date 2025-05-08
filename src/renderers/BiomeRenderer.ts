@@ -2,8 +2,9 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
-import { getBoard, getBiomes, getPlayers } from '../store/actions';
+import { getBoard, getBiomes, getPlayers, getActivePlayerId } from '../store/actions';
 import type { Biome } from '../store/gameStore';
+import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD } from '../constants/gameConfig';
 
 /**
  * Responsible for rendering and managing biome graphics
@@ -136,28 +137,102 @@ export class BiomeRenderer extends BaseRenderer {
     
     // Add the graphics to the container
     container.add(graphics);
-    
-    // Format the lushness value to show one decimal place
-    const lushnessDisplay = lushness.toFixed(1);
-    
-    // Determine text color based on lushness threshold (green if >= 7.0, red otherwise)
-    const textColor = lushness >= 7.0 ? '#00FF00' : '#FF0000';
-    
-    // Create text to display lushness value
-    const lushnessText = this.scene.add.text(0, 0, lushnessDisplay, {
-      fontSize: '14px',
-      fontFamily: 'Arial',
-      color: textColor,
-      stroke: '#000000',
-      strokeThickness: 2
-    });
-    
-    // Center the text on the biome
-    lushnessText.setOrigin(0.5, 0.5);
-    
-    // Add the text to the container
-    container.add(lushnessText);
-    
+
+    // --- LUSHNESS BAR (only for owned biomes) ---
+    if (isCaptured) {
+      // Bar dimensions
+      const barWidth = this.tileSize * 0.8; // 80% of tile width
+      const barHeight = 5; // 5px height
+      const barX = 0 - barWidth / 2;
+      const barY = this.tileHeight * 0.5 - barHeight - 2; // bottom of diamond, with small padding
+
+      // Round lushness to one decimal place for all calculations
+      const roundedLushness = Number(lushness.toFixed(1));
+
+      // Color interpolation: 0-5 solid red, 5-MAX_LUSHNESS red to green, >MAX_LUSHNESS stays green
+      function getLushnessColor(value: number): number {
+        if (value <= 5) {
+          // Solid bright red
+          return 0xFF0000;
+        } else if (value <= MAX_LUSHNESS) {
+          // Highly saturated gradient: red -> yellow -> green
+          const midpoint = 5 + (MAX_LUSHNESS - 5) / 2;
+          if (value <= midpoint) {
+            // Red (#FF0000) to Yellow (#FFFF00)
+            const t = (value - 5) / (midpoint - 5);
+            const r = 255;
+            const g = Math.round(255 * t);
+            const b = 0;
+            return (r << 16) | (g << 8) | b;
+          } else {
+            // Yellow (#FFFF00) to Green (#00FF00)
+            const t = (value - midpoint) / (MAX_LUSHNESS - midpoint);
+            const r = Math.round(255 * (1 - t));
+            const g = 255;
+            const b = 0;
+            return (r << 16) | (g << 8) | b;
+          }
+        } else {
+          // Above MAX_LUSHNESS: bright green (pulse will be applied)
+          return 0x00FF00;
+        }
+      }
+
+      // Draw bar background (gray)
+      const barBg = this.scene.add.graphics();
+      barBg.fillStyle(0x222222, 0.7);
+      barBg.fillRoundedRect(barX, barY, barWidth, barHeight, 2);
+      container.add(barBg);
+
+      // Draw bar fill
+      const barFill = this.scene.add.graphics();
+      const barColor = getLushnessColor(roundedLushness);
+      const fillPercent = Math.max(0, Math.min(1, roundedLushness / 10));
+      const fillWidth = barWidth * fillPercent;
+      barFill.fillStyle(barColor, 1);
+      barFill.fillRoundedRect(barX, barY, fillWidth, barHeight, 2);
+      container.add(barFill);
+
+      // Draw white stroke if roundedLushness >= EGG_PRODUCTION_THRESHOLD
+      if (roundedLushness >= EGG_PRODUCTION_THRESHOLD) {
+        const barStroke = this.scene.add.graphics();
+        barStroke.lineStyle(1, 0xFFFFFF, 1);
+        barStroke.strokeRoundedRect(barX, barY, barWidth, barHeight, 2);
+        container.add(barStroke);
+      }
+
+      // Pulse effect if roundedLushness > MAX_LUSHNESS and it's the player's turn
+      const biome = biomeId ? getBiomes().get(biomeId) : undefined;
+      const activePlayerId = getActivePlayerId();
+      const isPlayersTurn = biome && biome.ownerId === activePlayerId;
+      if (roundedLushness > MAX_LUSHNESS && isPlayersTurn) {
+        // Animate a pulse value and redraw the bar with interpolated color
+        const pulseObj = { t: 0 };
+        this.scene.tweens.add({
+          targets: pulseObj,
+          t: 1,
+          duration: 900, // fast pulse
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+          onUpdate: () => {
+            // Interpolate between #00FF00 and #00CE00
+            // #00FF00 (0,255,0) to #00CE00 (0,206,0)
+            const r = 0;
+            const g = Math.round(255 * (1 - pulseObj.t) + 206 * pulseObj.t);
+            const b = 0;
+            const color = (r << 16) | (g << 8) | b;
+            barFill.clear();
+            barFill.fillStyle(color, 1);
+            barFill.fillRoundedRect(barX, barY, fillWidth, barHeight, 2);
+          }
+        });
+      }
+
+      // Debug: log the biome lushness
+      console.log(`[BiomeRenderer] Biome ${biomeId} lushness:`, roundedLushness);
+    }
+
     return container;
   }
   

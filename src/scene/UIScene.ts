@@ -570,15 +570,15 @@ export default class UIScene extends Phaser.Scene {
     
     // Resource counts
     if (this.biomeInfoTexts['initialResourceCount']) {
-      this.biomeInfoTexts['initialResourceCount'].setText(biome.initialResourceCount.toString());
+      this.biomeInfoTexts['initialResourceCount'].setText(Math.floor(biome.initialResourceCount).toString());
     }
     
     if (this.biomeInfoTexts['nonDepletedCount']) {
-      this.biomeInfoTexts['nonDepletedCount'].setText(biome.nonDepletedCount.toString());
+      this.biomeInfoTexts['nonDepletedCount'].setText(Math.floor(biome.nonDepletedCount).toString());
     }
     
     if (this.biomeInfoTexts['totalHarvested']) {
-      this.biomeInfoTexts['totalHarvested'].setText(biome.totalHarvested.toString());
+      this.biomeInfoTexts['totalHarvested'].setText(Math.floor(biome.totalHarvested).toString());
     }
     
     // Egg count
