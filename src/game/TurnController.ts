@@ -4,6 +4,10 @@ import { GameController } from './GameController';
 import { AIController } from '../controllers/AIController';
 import { CommandExecutor } from './CommandExecutor';
 import { GameMode } from '../env/GameEnvironment';
+import { PromptBuilder } from '../AI/PromptBuilder';
+import { LLMClient } from '../AI/LLMClient';
+import { canExecuteCommand } from '../utils/canExecuteCommand';
+
 
 /**
  * Service to manage turn sequencing for human and AI players.
@@ -83,10 +87,19 @@ export class TurnController {
     const eggs = actions.getEggs();
     const gameState = { board, animals, biomes, eggs } as any;
 
+    // Log the prompt for debugging
+    //console.log(PromptBuilder.buildPrompt(gameState, playerId));
+
     const ai = new AIController(gameState, playerId);
     const commands = ai.generateCommands();
 
+    // TODO: Uncomment this to use the LLM to generate commands
+    //const commands = await LLMClient.requestStrategy(gameState, playerId);
+    //const legalCommands = commands.filter(c => canExecuteCommand(c, gameState, playerId));
+    //console.log('🛡️ Legal AI Commands:', legalCommands);
+    
     const executor = new CommandExecutor(this.gameController);
+    //await executor.runAll(legalCommands); // TODO: Uncomment this to use the LLM to generate commands
     await executor.runAll(commands);
 
     await this.gameController.endCurrentPlayerTurn();
