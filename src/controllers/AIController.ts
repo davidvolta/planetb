@@ -34,7 +34,7 @@ export class AIController {
       biomeHasEgg.set(egg.biomeId, true);
     });
 
-    // --- EGG SPAWNING (EVOLVE) LOGIC ---
+    // --- EGG SPAWNING LOGIC ---
     // Gather eggs from record that meet hatching criteria
     const eggsToConsider: { id: string; posX: number; posY: number; biomeId: string }[] = [];
     Object.values(this.gameState.eggs).forEach((egg) => {
@@ -47,7 +47,7 @@ export class AIController {
 
     const eggs = [...eggsToConsider];
     eggs.forEach(egg => {
-      commands.push({ type: 'evolve', unitId: egg.id });
+      commands.push({ type: 'spawn', unitId: egg.id });
       // Update working copy: if this egg was represented as dormant unit, mark it active.
       workingAnimals = workingAnimals.map(a =>
         a.id === egg.id ? { ...a, hasMoved: true } : a

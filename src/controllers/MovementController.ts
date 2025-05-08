@@ -1,6 +1,7 @@
 import { Animal, Board, Coordinate } from "../store/gameStore";
 import { isTerrainCompatible, getSpeciesMoveRange } from "../utils/SpeciesUtils";
 import { getEggs } from "../store/actions";
+import { DisplacementEvent, BLANK_DISPLACEMENT_EVENT } from "../types/events";
 
 export class MovementController {
   /**
@@ -182,26 +183,10 @@ export class MovementController {
     board: Board
   ): {
     animals: Animal[];
-    displacementEvent: {
-      occurred: boolean;
-      unitId: string | null;
-      fromX: number | null;
-      fromY: number | null;
-      toX: number | null;
-      toY: number | null;
-      timestamp: number | null;
-    };
+    displacementEvent: DisplacementEvent;
   } {
-    // Default no-op event structure
-    const dispEvent = {
-      occurred: false,
-      unitId: null,
-      fromX: null,
-      fromY: null,
-      toX: null,
-      toY: null,
-      timestamp: null,
-    };
+    // Start with a blank event structure
+    let dispEvent: DisplacementEvent = { ...BLANK_DISPLACEMENT_EVENT };
 
     // Look for an occupying animal
     const collider = animals.find(a => a.position.x === x && a.position.y === y);
@@ -218,7 +203,7 @@ export class MovementController {
     );
 
     const displaced = movedAnimals.find(a => a.id === collider.id)!;
-    const event = {
+    const event: DisplacementEvent = {
       occurred: true,
       unitId: collider.id,
       fromX: collider.position.x,

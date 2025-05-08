@@ -3,17 +3,7 @@ import { TerrainType } from "../types/gameTypes";
 import { MovementController } from "./MovementController";
 import { EcosystemController } from "./EcosystemController";
 import { generateAnimalId } from "../utils/IdGenerator";
-
-// Local copy of the DisplacementEvent interface to avoid tight coupling
-interface DisplacementEvent {
-  occurred: boolean;
-  unitId: string | null;
-  fromX: number | null;
-  fromY: number | null;
-  toX: number | null;
-  toY: number | null;
-  timestamp: number | null;
-}
+import { DisplacementEvent, BLANK_DISPLACEMENT_EVENT } from "../types/events";
 
 interface SpawnAnimalParams {
   eggId: string;
@@ -41,15 +31,7 @@ export class EvolutionController {
   public static spawnAnimal({ eggId, animals, eggs, biomes, board, turn }: SpawnAnimalParams): SpawnAnimalResult {
     const _unusedTurn = turn; // currently not used but kept for future evolution logic
 
-    const defaultDisp: DisplacementEvent = {
-      occurred: false,
-      unitId: null,
-      fromX: null,
-      fromY: null,
-      toX: null,
-      toY: null,
-      timestamp: null,
-    };
+    const defaultDisp: DisplacementEvent = { ...BLANK_DISPLACEMENT_EVENT };
 
     const egg = eggs[eggId];
     if (!egg) {

@@ -3,7 +3,7 @@ import { RoundController } from '../controllers/RoundController';
 import { GameController } from './GameController';
 import { AIController } from '../controllers/AIController';
 import { CommandExecutor } from './CommandExecutor';
-import { GameEnvironment, GameMode } from '../env/GameEnvironment';
+import { GameMode } from '../env/GameEnvironment';
 
 /**
  * Service to manage turn sequencing for human and AI players.

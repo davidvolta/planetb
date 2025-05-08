@@ -1,10 +1,5 @@
 # Development Checklist
 
-
-## The Great Animal/Egg Refactor
-- [ ] Add back in animation for displacement
-
-
 ## FUTURE TASKS
 - [ ] Change tinting mechanism to be clearer when unit can't move.
 - [ ] Really fix the displacement issue

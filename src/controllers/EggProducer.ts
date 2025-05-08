@@ -50,7 +50,6 @@ export class EggProducer {
           biomeId,
           createdAtTurn: turn
         };
-        console.log(`[EggProducer] Egg created: ${eggId} biome=${biomeId} owner=${playerId} at (${tile.x},${tile.y})`);
         newEggs.push(egg);
       }
 

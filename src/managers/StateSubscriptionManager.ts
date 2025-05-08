@@ -338,7 +338,6 @@ export class StateSubscriptionManager {
             const { unitId, fromX, fromY, toX, toY } = displacementEvent;
             this.scene.handleDisplacementEvent(unitId!, fromX!, fromY!, toX!, toY!);
           }
-          actions.clearDisplacementEvent();
         }
       }
     );

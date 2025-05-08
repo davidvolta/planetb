@@ -373,7 +373,7 @@ export default class UIScene extends Phaser.Scene {
     const executor = new CommandExecutor(gameController);
   
     await executor.execute({
-      type: 'evolve',
+      type: 'spawn',
       unitId: this.selectedEggId,
     });
   }

@@ -4,6 +4,7 @@ import { initializeBoard as initGameBoard } from '../game/GameInitializer';
 import { MovementController } from "../controllers/MovementController";
 import { TerrainType, ResourceType } from '../types/gameTypes';
 import { EcosystemController } from "../controllers/EcosystemController";
+import { DisplacementEvent, SpawnEvent, BiomeCaptureEvent, BLANK_DISPLACEMENT_EVENT, BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT } from '../types/events';
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -116,29 +117,13 @@ export interface GameState {
   selectedResource: Coordinate | null; // Currently selected resource tile
   
   // Displacement tracking (for animation and UI feedback)
-  displacementEvent: {
-    occurred: boolean;         // Whether displacement has occurred in the current action
-    unitId: string | null;     // ID of the displaced unit
-    fromX: number | null;      // Original X position
-    fromY: number | null;      // Original Y position
-    toX: number | null;        // New X position
-    toY: number | null;        // New Y position
-    timestamp: number | null;  // When the displacement occurred
-  };
+  displacementEvent: DisplacementEvent;
   
   // Spawn event tracking
-  spawnEvent: {
-    occurred: boolean;        // Whether a unit was just spawned
-    unitId: string | null;    // ID of the unit that was spawned
-    timestamp: number | null; // When the spawn occurred
-  };
+  spawnEvent: SpawnEvent;
   
   // Biome capture event tracking
-  biomeCaptureEvent: {
-    occurred: boolean;        // Whether a biome was just captured
-    biomeId: string | null;   // ID of the biome that was captured
-    timestamp: number | null; // When the capture occurred
-  };
+  biomeCaptureEvent: BiomeCaptureEvent;
   
   // Actions
   addEgg: (egg: Egg) => void;
@@ -151,39 +136,13 @@ export interface GameState {
   setActivePlayer: (playerId: number) => void;
   initializeBoard: (width: number, height: number) => void;
   getTile: (x: number, y: number) => Tile | undefined;
-  evolveAnimal: (id: string) => void;
+  spawnAnimal: (id: string) => void;
   selectUnit: (id: string | null) => void;
   moveUnit: (id: string, x: number, y: number) => void;
   getValidMoves: (id: string) => ValidMove[];
   selectBiome: (id: string | null) => void;
   addAnimal: (animal: Animal) => void;
 }
-
-// Default displacement event for animations
-const DEFAULT_DISPLACEMENT_EVENT: GameState['displacementEvent'] = {
-  occurred: false,
-  unitId: null,
-  fromX: null,
-  fromY: null,
-  toX: null,
-  toY: null,
-  timestamp: null
-};
-
-// Default spawn event for animations
-const DEFAULT_SPAWN_EVENT: GameState['spawnEvent'] = {
-  occurred: false,
-  unitId: null,
-  timestamp: null
-};
-
-// Default biome capture event for animations
-const DEFAULT_BIOME_CAPTURE_EVENT: GameState['biomeCaptureEvent'] = {
-  occurred: false,
-  biomeId: null,
-  timestamp: null
-};
-
 
 export const useGameStore = create<GameState>((set, get) => ({
   turn: 1,
@@ -195,39 +154,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   eggs: {},
   selectedEggId: null,
   
-  // Initialize movement state
   selectedUnitId: null,
   validMoves: [],
   moveMode: false,
   
-  // Initialize selection state
   selectedBiomeId: null,
   selectedResource: null,
-  
-  // Initialize displacement event with default values
-  displacementEvent: {
-    occurred: false,
-    unitId: null,
-    fromX: null,
-    fromY: null,
-    toX: null,
-    toY: null,
-    timestamp: null
-  } as GameState['displacementEvent'], // Force type alignment
-
-  // Initialize spawn event with default values
-  spawnEvent: {
-    occurred: false,
-    unitId: null,
-    timestamp: null
-  } as GameState['spawnEvent'], // Force type alignment
-  
-  // Initialize biome capture event with default values
-  biomeCaptureEvent: {
-    occurred: false,
-    biomeId: null,
-    timestamp: null
-  } as GameState['biomeCaptureEvent'], // Force type alignment
+  displacementEvent: { ...BLANK_DISPLACEMENT_EVENT },
+  spawnEvent: { ...BLANK_SPAWN_EVENT },
+  biomeCaptureEvent: { ...BLANK_BIOME_CAPTURE_EVENT },
 
   // FOG OF WAR
   fogOfWarEnabled: true,
@@ -488,8 +423,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { selectedBiomeId: null, selectedUnitId: null, validMoves: [], moveMode: false };
     }),
 
-  // EVOLUTION
-  evolveAnimal: (id: string) => {
+  
+  spawnAnimal: (id: string) => {
     const state = get();
     const {
       animals: animalsFromController,
@@ -508,13 +443,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       turn: state.turn
     });
 
-    console.log(`[SpawnEvent] New animal ${newAnimalId} spawned from egg ${id}`);
-    const spawnEvent = {
-      occurred: true,
-      unitId: newAnimalId,
-      timestamp: Date.now()
-    } as GameState['spawnEvent'];
-
     // First commit diff (animals, eggs etc.)
     set({
       animals: animalsFromController,
@@ -524,7 +452,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       eggs: updatedEggs,
       selectedEggId: null,
       selectedUnitId: newAnimalId,
-      spawnEvent,
+      spawnEvent: {
+        occurred: true,
+        unitId: newAnimalId,
+        timestamp: Date.now()
+      } as SpawnEvent,
       moveMode: false,
       validMoves: []
     });
@@ -541,7 +473,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  // Egg actions for Animal/Egg refactor Phase 1
+  // Egg actions
   addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
   
   selectEgg: (id: string | null) => set(() => ({
@@ -551,5 +483,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     moveMode: false,
     selectedResource: null
   })),
+
   addAnimal: (animal: Animal) => set((state) => ({ animals: [...state.animals, animal] })),
 }));

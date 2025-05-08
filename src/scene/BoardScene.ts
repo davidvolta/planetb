@@ -379,6 +379,17 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
     
+    // Force sprite to start at its previous (from) position to ensure tween distance > 0
+    const startWorld = CoordinateUtils.gridToWorld(
+      fromX,
+      fromY,
+      this.tileSize,
+      this.tileHeight,
+      this.anchorX,
+      this.anchorY
+    );
+    unitSprite.setPosition(startWorld.x, startWorld.y - 12); // same verticalOffset as renderer
+    
     // If fog of war is enabled, reveal around the destination via VisibilityController
     if (this.fogOfWarEnabled) {
       this.visibilityController.revealAround(toX, toY);

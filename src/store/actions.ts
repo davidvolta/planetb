@@ -3,6 +3,7 @@ import { TerrainType } from "../types/gameTypes";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { MovementController } from '../controllers/MovementController';
+import { BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT, BLANK_DISPLACEMENT_EVENT } from '../types/events';
 
 
 // =============================================================================
@@ -111,18 +112,16 @@ export function addAnimal(animal: Animal): void {
 }
 
 /**
- * Evolve an animal by ID
+ * Spawn (hatch) an animal from an egg by ID
  */
-export async function evolveAnimal(id: string): Promise<void> {
+export async function spawnAnimal(id: string): Promise<void> {
   const state = useGameStore.getState();
   const unit = state.animals.find(a => a.id === id);
   const eggRecord = state.eggs[id];
   if (!unit && !eggRecord) {
-    throw new Error(`EvolveAnimal failed: entity ${id} not found (neither dormant unit nor egg)`);
+    throw new Error(`SpawnAnimal failed: entity ${id} not found)`);
   }
-  // Legacy dormant-unit guard no longer needed after enum removal
-  // Delegate to store evolve action (handles record removal internally)
-  state.evolveAnimal(id);
+  state.spawnAnimal(id);
 }
 
 /**
@@ -699,15 +698,7 @@ export function resetResources(
  */
 export async function clearDisplacementEvent(): Promise<void> {
   useGameStore.setState({
-    displacementEvent: {
-      occurred: false,
-      unitId: null,
-      fromX: null,
-      fromY: null,
-      toX: null,
-      toY: null,
-      timestamp: null
-    }
+    displacementEvent: { ...BLANK_DISPLACEMENT_EVENT }
   });
 }
 
@@ -724,7 +715,7 @@ export async function recordSpawnEvent(unitId: string): Promise<void> {
     spawnEvent: {
       occurred: true,
       unitId: unitId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
   });
 }
@@ -734,11 +725,7 @@ export async function recordSpawnEvent(unitId: string): Promise<void> {
  */
 export async function clearSpawnEvent(): Promise<void> {
   useGameStore.setState({
-    spawnEvent: {
-      occurred: false,
-      unitId: null,
-      timestamp: null
-    }
+    spawnEvent: { ...BLANK_SPAWN_EVENT }
   });
 }
 
@@ -853,9 +840,9 @@ export function resetPlayerMovementAndEvents(playerId: number): void {
     animals: state.animals.map(a =>
       a.ownerId === playerId ? { ...a, hasMoved: false } : a
     ),
-    displacementEvent: { occurred: false, unitId: null, fromX: null, fromY: null, toX: null, toY: null, timestamp: null },
-    spawnEvent: { occurred: false, unitId: null, timestamp: null },
-    biomeCaptureEvent: { occurred: false, biomeId: null, timestamp: null }
+    displacementEvent: { ...BLANK_DISPLACEMENT_EVENT },
+    spawnEvent: { ...BLANK_SPAWN_EVENT },
+    biomeCaptureEvent: { ...BLANK_BIOME_CAPTURE_EVENT }
   }));
 }
 

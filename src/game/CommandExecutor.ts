@@ -5,12 +5,10 @@ import * as actions from '../store/actions';
  * A generic game command that can be executed by both human UI and AI.
  */
 export type GameCommand =
-  | { type: 'move';   unitId: string; x: number; y: number }
+  | { type: 'move';    unitId: string; x: number; y: number }
   | { type: 'capture'; biomeId: string }
-  | { type: 'evolve';  unitId: string }
+  | { type: 'spawn';   unitId: string }
   | { type: 'harvest'; x: number; y: number; amount?: number };
-
-;
 
 /**
  * Central executor for sequencing and running GameCommand objects.
@@ -30,8 +28,8 @@ export class CommandExecutor {
         this.gc.captureBiome(cmd.biomeId);
         actions.selectBiome(null); // clear selection afterward
         break;
-      case 'evolve':
-        this.gc.evolveAnimal(cmd.unitId);
+      case 'spawn':
+        this.gc.spawnAnimal(cmd.unitId);
         actions.deselectUnit();
         break;
       case 'harvest':

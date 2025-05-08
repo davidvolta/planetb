@@ -5,6 +5,7 @@ import { Animal } from '../store/gameStore';
 import { getEggs } from '../store/actions';
 import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
+import { DisplacementEvent, BLANK_DISPLACEMENT_EVENT } from '../types/events';
 
 /**
  * Responsible for rendering and managing animal sprites
@@ -36,7 +37,7 @@ export class AnimalRenderer extends BaseRenderer {
    * Render all animals based on the provided animal data
    * @param animals Array of animal objects from the game state
    */
-  public renderAnimals(animals: Animal[]): void {
+  public renderAnimals(animals: Animal[], displacementEvent: DisplacementEvent = BLANK_DISPLACEMENT_EVENT): void {
     const eggsLayer = this.layerManager.getEggsLayer();
     const unitsLayer = this.layerManager.getUnitsLayer();
     if (!eggsLayer || !unitsLayer) {
@@ -51,8 +52,11 @@ export class AnimalRenderer extends BaseRenderer {
       const eggsRecord = getEggs();
       if (animal.id in eggsRecord) return;
 
-      const gridX = animal.position.x;
-      const gridY = animal.position.y;
+      // If this is the displaced unit and the event is active, start it at its previous position
+      const gridX = (displacementEvent.occurred && displacementEvent.unitId === animal.id && displacementEvent.fromX !== null)
+        ? displacementEvent.fromX : animal.position.x;
+      const gridY = (displacementEvent.occurred && displacementEvent.unitId === animal.id && displacementEvent.fromY !== null)
+        ? displacementEvent.fromY : animal.position.y;
       const worldPosition = CoordinateUtils.gridToWorld(
         gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );

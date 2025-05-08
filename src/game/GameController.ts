@@ -23,11 +23,11 @@ export class GameController {
   }
 
   /**
-   * Evolve a dormant unit (egg) into an active animal.
-   * @param unitId ID of the unit to evolve
+   * Spawn (hatch) a dormant unit (egg) into an active animal.
+   * @param unitId ID of the egg to hatch
    */
-  evolveAnimal(unitId: string): void {
-    actions.evolveAnimal(unitId);
+  spawnAnimal(unitId: string): void {
+    actions.spawnAnimal(unitId);
   }
 
   /**
