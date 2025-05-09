@@ -31,7 +31,7 @@ export class BiomeOutlineRenderer {
     const color = parseInt(player.color.replace('#', ''), 16);
     if (!this.outlineGraphics) {
       this.outlineGraphics = this.scene.add.graphics();
-      this.outlineGraphics.setDepth(4);
+      this.outlineGraphics.setDepth(5);
     }
     this.outlineGraphics.clear();
     this.outlineGraphics.lineStyle(2, color, 1);
