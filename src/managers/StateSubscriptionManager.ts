@@ -207,18 +207,19 @@ export class StateSubscriptionManager {
             const lushnessChanged = biome.totalLushness !== prev.totalLushness;
             if (ownerChanged) {
               // Reveal fog on capture
-              if (this.scene instanceof BoardScene) {
-                this.scene.revealBiomeTiles(id);
-              }
+              this.scene.getVisibilityController().revealBiomeTiles(id);
+            
+              // Update ownership visuals
               this.biomeRenderer.updateBiomeOwnership(id);
-              if (this.scene instanceof BoardScene) {
-                const board = actions.getBoard();
-                const players = actions.getPlayers();
-                const playerId = actions.getActivePlayerId();
-                if (board && players.length > 0) {
-                  this.scene.getBiomeOutlineRenderer().renderOutlines(board, biomes, players, playerId);
-                }
+            
+              // Redraw biome outlines
+              const board = actions.getBoard();
+              const players = actions.getPlayers();
+              const playerId = actions.getActivePlayerId();
+              if (board && players.length > 0) {
+                this.scene.getBiomeOutlineRenderer().renderOutlines(board, biomes, players, playerId);
               }
+            
             } else if (lushnessChanged) {
               this.biomeRenderer.updateBiomeOwnership(id);
             }

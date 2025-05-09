@@ -294,7 +294,8 @@ export default class BoardScene extends Phaser.Scene {
 
   // Handle animal spawned events
   public handleSpawnEvent(animalId: string) {
-    if (this.fogOfWarEnabled && animalId) {
+    if (!animalId) return;
+    if (actions.getFogOfWarEnabled()) {
       const animal = actions.getAnimals().find(a => a.id === animalId);
       if (animal) {
         this.visibilityController.revealAround(animal.position.x, animal.position.y);
@@ -364,8 +365,8 @@ export default class BoardScene extends Phaser.Scene {
     );
     animalSprite.setPosition(startWorld.x, startWorld.y - 12); // same verticalOffset as renderer
     
-    // If fog of war is enabled, reveal around the destination via VisibilityController
-    if (this.fogOfWarEnabled) {
+    // Fog-of-war reveal using global flag
+    if (actions.getFogOfWarEnabled()) {
       this.visibilityController.revealAround(toX, toY);
     }
     
@@ -374,62 +375,8 @@ export default class BoardScene extends Phaser.Scene {
     // Clear the displacement event after animation completes
     actions.clearDisplacementEvent();
   }
-
-  // Reveal all tiles in a biome
-  public revealBiomeTiles(biomeId: string, revealedTiles?: { x: number, y: number }[]): void {
-    // Fetch tiles belonging to this biome
-    const tileResults = actions.getTilesForBiome(biomeId);
-    if (tileResults.length === 0) return;
-
-    // Batch update visibility
-    const visibilityUpdates = tileResults.map(({ x, y }) => ({ x, y, visible: true }));
-    actions.updateTilesVisibility(visibilityUpdates);
-
-    // Reveal in fog of war
-    const coords = tileResults.map(({ x, y }) => ({ x, y }));
-    if (revealedTiles) {
-      revealedTiles.push(...coords);
-    } else {
-      this.fogOfWarRenderer.revealTiles(coords);
-    }
-  }
   
-  // Toggle fog of war on/off
-  public toggleFogOfWar(enabled: boolean): void {
-    this.fogOfWarEnabled = enabled;
-    const board = actions.getBoard();
-    if (!board) return;
-    if (enabled) {
-      this.fogOfWarRenderer.createFogOfWar(board);
-      const exploredTiles = actions.getTilesByFilter(tile => tile.explored);
-      const coords = exploredTiles.map(({ x, y }) => ({ x, y }));
-      if (coords.length) {
-        this.fogOfWarRenderer.revealTiles(coords);
-      }
-      // Use VisibilityController to update player visibility
-      const activePlayerId = actions.getActivePlayerId();
-      this.visibilityController.updatePlayerVisibility(activePlayerId);
-    } else {
-      this.fogOfWarRenderer.clearFogOfWar();
  
-    }
-  }
-  
- /**
-   * Updates the fog-of-war visuals when the active player changes.
-   * This is called by SubscriptionBinder.
-   */
- public updateFogForPlayer(playerId: number): void {
-  if (!this.fogOfWarEnabled) return;
-  const board = actions.getBoard();
-  if (!board) return;
-  this.fogOfWarRenderer.clearFogOfWar();
-  this.fogOfWarRenderer.createFogOfWar(board);
-  const coords = actions.getVisibleTilesForPlayer(playerId);
-  if (coords.length) {
-    this.fogOfWarRenderer.revealTiles(coords);
-  }
-}
 
   // Public method to reset resources with current settings (accepts override)
   public resetResources(resourceChance: number = RESOURCE_GENERATION_PERCENTAGE): void {

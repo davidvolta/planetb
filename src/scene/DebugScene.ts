@@ -257,7 +257,8 @@ export default class DebugScene extends Phaser.Scene {
     setFogOfWarEnabled(this.fowEnabled);
     // Reflect change immediately in the board scene
     const boardScene = this.scene.get('BoardScene') as BoardScene;
-    boardScene.toggleFogOfWar(this.fowEnabled);
+    boardScene.getVisibilityController().toggleFogOfWar(this.fowEnabled);
+
   }
 
   private createPauseButton(x: number, y: number): void {

@@ -25,7 +25,7 @@ export class SubscriptionBinder {
       'BoardScene.activePlayerFOW',
       state => state.activePlayerId,
       playerId => {
-      this.scene.updateFogForPlayer(playerId);
+      this.scene.getVisibilityController().updateFogForActivePlayer(playerId);
 
     const board = actions.getBoard();
     const biomes = actions.getBiomes();

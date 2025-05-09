@@ -24,6 +24,15 @@ export class VisibilityController {
     this.fogOfWarRenderer.revealTiles(uniqueTiles);
   }
 
+  public revealBiomeTiles(biomeId: string): void {
+    const tiles = actions.getTilesForBiome(biomeId);
+    if (tiles.length === 0) return;
+  
+    actions.updateTilesVisibility(tiles.map(({ x, y }) => ({ x, y, visible: true })));
+    this.fogOfWarRenderer.revealTiles(tiles);
+  }
+
+  
   /**
    * Update player visibility based on the current FOW state.
    */
@@ -70,4 +79,42 @@ export class VisibilityController {
       this.fogOfWarRenderer.revealTiles(allTilesToReveal);
     }
   }
+
+  public toggleFogOfWar(enabled: boolean): void {
+    const board = actions.getBoard();
+    if (!board) return;
+  
+    if (enabled) {
+      this.fogOfWarRenderer.createFogOfWar(board);
+  
+      const exploredTiles = actions.getTilesByFilter(tile => tile.explored);
+      const coords = exploredTiles.map(({ x, y }) => ({ x, y }));
+      if (coords.length) {
+        this.fogOfWarRenderer.revealTiles(coords);
+      }
+  
+      const activePlayerId = actions.getActivePlayerId();
+      this.updatePlayerVisibility(activePlayerId);
+    } else {
+      this.fogOfWarRenderer.clearFogOfWar();
+    }
+  }
+  /**
+   * Updates the fog-of-war visuals when the active player changes.
+   * This is called by SubscriptionBinder.
+   */
+  public updateFogForActivePlayer(playerId: number): void {
+    const board = actions.getBoard();
+    if (!board) return;
+  
+    this.fogOfWarRenderer.clearFogOfWar();
+    this.fogOfWarRenderer.createFogOfWar(board);
+  
+    const coords = actions.getVisibleTilesForPlayer(playerId);
+    if (coords.length > 0) {
+      this.fogOfWarRenderer.revealTiles(coords);
+    }
+  }
+  
+  
 } 

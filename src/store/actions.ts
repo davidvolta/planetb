@@ -93,7 +93,7 @@ export function addPlayer(name: string, color: string): void {
 /**
  * Get all animals in the game
  */
-export function getAnimals(): any[] {
+export function getAnimals(): Animal[] {
   return useGameStore.getState().animals;
 }
 
@@ -791,8 +791,7 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
     turn,
     playerId,
     newBoard,
-    playerBiomes,
-    state.eggs
+    playerBiomes
   );
 
   newEggs.forEach(addEgg);
