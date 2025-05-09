@@ -1,14 +1,8 @@
 # Development Checklist
 
 ## ASSETS AND UI
-- [ ] Change tinting mechanism to be clearer when unit can't move.
-- [ ] Buffalo can harvest more
-
-- [ ] Assets for Resources 
+- [ ] Change tinting mechanism to be clearer when unit can't move
 - [ ] Assets for Habitats (unowned, owned)
-
-- [ ] Fix the Red selector to be a graphic/alpha
-- [ ] Fix the player color to not be red (yellow?)
 
 ## COMBAT
 - [ ] Animal Health
@@ -16,10 +10,10 @@
 - [ ] Animal Defense
 - [ ] Available Attacks / Move check
 
-## MECHANICS
+## HARVEST
 - [ ] Harvest Other Player's Resources
   - [ ] Depleted Biomes (0 Lushness) are Permanently Dead (maybe special ability to restore)
-
+- [ ] Buffalo can harvest more
 
 ## EVOLUTION
   - [ ] Capabilites Matrix
