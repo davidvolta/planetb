@@ -1,30 +1,35 @@
-import Phaser from "phaser";
-import { StateObserver } from "../utils/stateObserver";
-import * as actions from "../store/actions";
-import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
-import * as CoordinateUtils from "../utils/CoordinateUtils";
-import { LayerManager } from "../managers/LayerManager";
-import { TileRenderer } from "../renderers/TileRenderer";
-import { SelectionRenderer } from "../renderers/SelectionRenderer";
-import { MoveRangeRenderer } from "../renderers/MoveRangeRenderer";
-import { BiomeRenderer } from "../renderers/BiomeRenderer";
-import { AnimalRenderer } from "../renderers/AnimalRenderer";
-import { EggRenderer } from "../renderers/EggRenderer";
-import { ResourceRenderer } from "../renderers/ResourceRenderer";
-import { AnimationController } from "../controllers/AnimationController";
-import { CameraManager } from "../managers/CameraManager";
-import { StateSubscriptionManager } from "../managers/StateSubscriptionManager";
-import { FogOfWarRenderer } from '../renderers/FogOfWarRenderer';
-import { TILE_SIZE, TILE_HEIGHT } from '../constants/gameConfig';
-import { TileInteractionController } from "../controllers/TileInteractionController";
-import { VisibilityController } from '../controllers/VisibilityController';
+import Phaser from 'phaser';
+import * as actions from '../store/actions';
+import { TILE_SIZE, TILE_HEIGHT, RESOURCE_GENERATION_PERCENTAGE } from '../constants/gameConfig';
+import { StateObserver } from '../utils/stateObserver';
+import * as CoordinateUtils from '../utils/CoordinateUtils';
+import { GameEnvironment } from '../env/GameEnvironment';
+
+import { TileRenderer, 
+  SelectionRenderer, 
+  MoveRangeRenderer, 
+  BiomeRenderer, 
+  AnimalRenderer, 
+  EggRenderer, 
+  ResourceRenderer, 
+  FogOfWarRenderer, 
+  BiomeOutlineRenderer 
+} from '../renderers';
+
+import {
+  LayerManager,
+  CameraManager,
+  StateSubscriptionManager
+} from '../managers';
+import {
+  AnimationController,
+  VisibilityController,
+  TileInteractionController
+} from '../controllers';
 import { GameController } from '../game/GameController';
+import { TurnController } from '../game/TurnController';
 import { SceneInitializer } from './init/SceneInitializer';
 import { SubscriptionBinder } from './setup/SubscriptionBinder';
-import { CommandExecutor } from '../game/CommandExecutor';
-import { GameEnvironment } from '../env/GameEnvironment';
-import { TurnController } from '../game/TurnController';
-import { BiomeOutlineRenderer } from '../renderers/BiomeOutlineRenderer';
 
 
 
@@ -35,9 +40,6 @@ export const EVENTS = {
 
 // Delegate functionality to managers and ensure proper lifecycle management
 export default class BoardScene extends Phaser.Scene {
-  // Keep the tiles array for compatibility with existing code
-  private tiles: Phaser.GameObjects.GameObject[] = [];
-  
   // Fixed tile properties
   private tileSize = TILE_SIZE; 
   private tileHeight = TILE_HEIGHT; 
@@ -120,21 +122,21 @@ export default class BoardScene extends Phaser.Scene {
     this.load.image("underwater", "assets/underwater.png");
 
     // Preload colored animal sprites for both players
-    this.load.image("snake-red", "assets/animals/snake/snake-red.png");
+    this.load.image("snake-pink", "assets/animals/snake/snake-pink.png");
     this.load.image("snake-blue", "assets/animals/snake/snake-blue.png");
-    this.load.image("bird-red", "assets/animals/bird/bird-red.png");
+    this.load.image("bird-pink", "assets/animals/bird/bird-pink.png");
     this.load.image("bird-blue", "assets/animals/bird/bird-blue.png");
-    this.load.image("buffalo-red", "assets/animals/buffalo/buffalo-red.png");
+    this.load.image("buffalo-pink", "assets/animals/buffalo/buffalo-pink.png");
     this.load.image("buffalo-blue", "assets/animals/buffalo/buffalo-blue.png");
-    this.load.image("octopus-red", "assets/animals/octopus/octopus-red.png");
+    this.load.image("octopus-pink", "assets/animals/octopus/octopus-pink.png");
     this.load.image("octopus-blue", "assets/animals/octopus/octopus-blue.png");
-    this.load.image("turtle-red", "assets/animals/turtle/turtle-red.png");
+    this.load.image("turtle-pink", "assets/animals/turtle/turtle-pink.png");
     this.load.image("turtle-blue", "assets/animals/turtle/turtle-blue.png");
 
     this.load.on('complete', () => {
       // Set nearest filter on all loaded textures to preserve pixel-art for sprites
       const keys = ['egg','buffalo','bird','snake','octopus','turtle','forest','kelp','insects','plankton','blank','beach','grass','water','mountain','underwater',
-        'snake-red','snake-blue','bird-red','bird-blue','buffalo-red','buffalo-blue','octopus-red','octopus-blue','turtle-red','turtle-blue'];
+        'snake-pink','snake-blue','bird-pink','bird-blue','buffalo-pink','buffalo-blue','octopus-pink','octopus-blue','turtle-pink','turtle-blue'];
       keys.forEach(key => {
         const tex = this.textures.get(key);
         if (tex) {
@@ -149,7 +151,6 @@ export default class BoardScene extends Phaser.Scene {
   init(data?: any) {
     console.log("BoardScene init() called", data ? `with data: ${JSON.stringify(data)}` : "without data");
     
-    this.tiles = [];    // Clear previous tiles array
     this.unsubscribeAll();  // Ensure all old subscriptions are cleaned up before creating new ones
     
     // Reset setup flags
@@ -256,7 +257,7 @@ export default class BoardScene extends Phaser.Scene {
     this.anchorY = anchorY;
     
     // Use TileRenderer to create all board tiles
-    this.tiles = this.tileRenderer.createBoardTiles(board, anchorX, anchorY);
+    this.tileRenderer.createBoardTiles(board, anchorX, anchorY);
     
     // Initialize renderers after tiles are created
     this.selectionRenderer.initialize(anchorX, anchorY);
@@ -289,28 +290,6 @@ export default class BoardScene extends Phaser.Scene {
   // Helper to lookup an animal sprite by ID
   private getAnimalSprite(unitId: string): Phaser.GameObjects.Sprite | undefined {
     return this.animalRenderer.getSpriteById(unitId);
-  }
-
-  // Start movement animation of an animal
-  public async startAnimalMovement(unitId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
-    // Lookup the animal sprite directly
-    const unitSprite = this.getAnimalSprite(unitId);
-    if (!unitSprite) {
-      console.error(`Could not find sprite for animal ${unitId}`);
-      return;
-    }
-    
-    // Hide selection indicator and clear move highlights before movement
-    this.moveRangeRenderer.clearMoveHighlights();
-    this.selectionRenderer.hideSelection();
-    
-    // If fog of war is enabled, reveal around the destination via VisibilityController
-    if (this.fogOfWarEnabled) {
-      this.visibilityController.revealAround(toX, toY);
-    }
-    
-    // Execute movement with animation and state update via GameController
-    await this.gameController.moveAnimal(unitId, toX, toY);
   }
 
   // Handle animal spawned events
@@ -480,11 +459,11 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Scene shutdown handler
-  shutdown() {
-    this.unsubscribeAll();    // Clean up subscriptions    
-    this.input.removeAllListeners(); // Clean up input handlers
-    
-    // Clean up renderers
+  shutdown(): void {
+    this.subscriptionManager.unsubscribeAll();
+    this.input.removeAllListeners();
+    this.layerManager.clearAllLayers(true);
+
     this.tileRenderer.destroy();
     this.selectionRenderer.destroy();
     this.moveRangeRenderer.destroy();
@@ -493,15 +472,11 @@ export default class BoardScene extends Phaser.Scene {
     this.eggRenderer.destroy();
     this.resourceRenderer.destroy();
     this.fogOfWarRenderer.destroy();
-    
-    // Clean up managers
-    this.layerManager.clearAllLayers(true);
+
     this.cameraManager.destroy();
     this.animationController.destroy();
     this.subscriptionManager.destroy();
-    
-    // Reset variables
-    this.tiles = [];
+
     this.controlsSetup = false;
   }
 

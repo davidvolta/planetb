@@ -1,6 +1,6 @@
 // EggProducer: pure helper to generate eggs each turn
 import { Board, Biome, Egg } from '../store/gameStore';
-import { getEggPlacementTiles } from '../store/actions';
+import { EcosystemController } from './EcosystemController';
 import { generateEggId } from '../utils/IdGenerator';
 import { EGG_PRODUCTION_THRESHOLD } from '../constants/gameConfig';
 
@@ -23,7 +23,6 @@ export class EggProducer {
     playerId: number,
     board: Board,
     biomes: Map<string, Biome>,
-    existingEggs: Record<string, Egg>
   ): ProduceResult {
     const updatedBiomes = new Map(biomes);
     const newEggs: Egg[] = [];
@@ -34,14 +33,18 @@ export class EggProducer {
       if (turn % 2 !== 0) return;
       if (biome.totalLushness < EGG_PRODUCTION_THRESHOLD) return;
 
-      // Valid placement tiles
-      const blankTiles = getEggPlacementTiles(biomeId);
-      if (blankTiles.length === 0) return;
+      // Valid placement tiles prioritized by resource adjacency
+      const placementTiles = EcosystemController.getValidEggPlacementTiles(
+        biomeId,
+        board,
+        biomes
+      );
+      if (placementTiles.length === 0) return;
 
-      const eggsToPlace = Math.min(biome.productionRate, blankTiles.length);
+      const eggsToPlace = Math.min(biome.productionRate, placementTiles.length);
 
       for (let i = 0; i < eggsToPlace; i++) {
-        const tile = blankTiles[i];
+        const tile = placementTiles[i];
         const eggId = generateEggId(biomeId);
         const egg: Egg = {
           id: eggId,

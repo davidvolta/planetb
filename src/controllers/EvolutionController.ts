@@ -28,8 +28,7 @@ export class EvolutionController {
   /**
    * Spawn an animal from the given eggId. Returns a fully-formed diff with no side-effects.
    */
-  public static spawnAnimal({ eggId, animals, eggs, biomes, board, turn }: SpawnAnimalParams): SpawnAnimalResult {
-    const _unusedTurn = turn; // currently not used but kept for future evolution logic
+  public static spawnAnimal({ eggId, animals, eggs, biomes, board }: SpawnAnimalParams): SpawnAnimalResult {
 
     const defaultDisp: DisplacementEvent = { ...BLANK_DISPLACEMENT_EVENT };
 

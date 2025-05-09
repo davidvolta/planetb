@@ -5,14 +5,6 @@ import { MAX_LUSHNESS, RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameC
 import type { GameState } from "../store/gameStore";
 
 /**
- * Interface for egg placement validation
- */
-interface ValidEggPlacementState {
-  board: Board;
-  animals: Animal[];
-}
-
-/**
  * EcosystemController handles ecosystem-related functionality:
  * - Resource generation and management
  * - Biome health and lushness
@@ -145,16 +137,15 @@ export class EcosystemController {
    * Valid tiles are in the biome, don't have eggs, and don't have active resources
    * 
    * @param biomeId The ID of the biome to find valid egg placement tiles for
-   * @param state Simplified game state containing board and animals
+   * @param board The game board
    * @param allBiomes Map of all biomes
    * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources in owned biomes
    */
   public static getValidEggPlacementTiles(
     biomeId: string,
-    state: ValidEggPlacementState,
+    board: Board,
     allBiomes: Map<string, Biome>
   ): Coordinate[] {
-    const board = state.board;
     if (!board) return [];
 
     const biome = allBiomes.get(biomeId);
@@ -225,7 +216,7 @@ export class EcosystemController {
    * @param biome The biome object with up-to-date eggCount
    * @returns Percentage (0-1) of blank tiles that have eggs
    */
-  private static calculateEggPercentage(biomeId: string, board: Board, biome: Biome): number {
+  private static calculateEggPercentage(biomeId: string, board: Board,): number {
     const biomeTiles = this.getBoardTilesForBiome(board, biomeId);
     const blankTiles = biomeTiles.filter(({ tile }) =>
       !tile.active && !tile.isHabitat
@@ -275,7 +266,7 @@ export class EcosystemController {
     if (initialTotal > 0) {
       baseLushness = (currentTotal / initialTotal) * MAX_LUSHNESS;
     }
-    const eggPercentage = this.calculateEggPercentage(biomeId, board, biome);
+    const eggPercentage = this.calculateEggPercentage(biomeId, board);
     const lushnessBoost = this.calculateLushnessBoost(eggPercentage);
     return {
       baseLushness,
@@ -389,18 +380,6 @@ export class EcosystemController {
         a.id === animalId ? { ...a, hasMoved: true } : a
       );
     }
-    // Transfer ownership of all eggs in this biome to the new owner
-    newAnimals = newAnimals.map(a => {
-      const tile = board.tiles[a.position.y]?.[a.position.x];
-      if (
-        tile &&
-        tile.biomeId === biomeId &&
-        a.ownerId !== currentPlayerId
-      ) {
-        return { ...a, ownerId: currentPlayerId };
-      }
-      return a;
-    });
     return { animals: newAnimals, biomes: newBiomes };
   }
 

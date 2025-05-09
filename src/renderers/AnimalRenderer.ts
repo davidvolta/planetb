@@ -67,7 +67,7 @@ export class AnimalRenderer extends BaseRenderer {
       // Determine sprite key based on species and owner
       let textureKey: string;
       if (animal.ownerId === 0) {
-        textureKey = `${animal.species}-red`;
+        textureKey = `${animal.species}-pink`;
       } else if (animal.ownerId === 1) {
         textureKey = `${animal.species}-blue`;
       } else {

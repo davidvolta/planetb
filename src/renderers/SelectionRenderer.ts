@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
+import * as actions from '../store/actions';
 
 // Types of selection states to differentiate behavior
 export enum SelectionType {
@@ -205,7 +206,19 @@ export class SelectionRenderer extends BaseRenderer {
   // Show a selection indicator at a specific grid position with a type
   public showSelection(x: number, y: number, type: SelectionType = SelectionType.Move): void {
     // Map selection type to indicator color
-    const color = type === SelectionType.Move ? 0xFFFFFF : 0xFF0000;
+    let color: number;
+    if (type === SelectionType.Move) {
+      color = 0xFFFFFF;
+    } else {
+      // Use active player's color
+      const playerId = actions.getActivePlayerId();
+      const player = actions.getPlayers().find(p => p.id === playerId);
+      if (player && player.color) {
+        color = parseInt(player.color.replace('#', ''), 16);
+      } else {
+        color = 0xFF0000; // fallback
+      }
+    }
     this.updateSelectionIndicator(true, x, y, color);
   }
 

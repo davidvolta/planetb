@@ -66,13 +66,17 @@ export class TileInteractionController {
     const selectedAnimal = animals.find((a: Animal) => a.id === selectedAnimalId);
 
     if (selectedAnimalId && selectedAnimal) {
-      this.scene.startAnimalMovement(
-        selectedAnimalId,
-        selectedAnimal.position.x,
-        selectedAnimal.position.y,
-        x,
-        y
-      );
+      // 1) Clear UI indicators
+      this.scene.getMoveRangeRenderer().clearMoveHighlights();
+      this.scene.getSelectionRenderer().hideSelection();
+
+      // 2) Fog-of-war reveal around destination (use global FOW flag)
+      if (actions.getFogOfWarEnabled()) {
+        this.scene.getVisibilityController().revealAround(x, y);
+      }
+
+      // 3) Execute the move via GameController (animation + state)
+      this.scene.getGameController().moveAnimal(selectedAnimalId, x, y);
       return true;
     }
 

@@ -101,6 +101,7 @@ export class ResourceRenderer extends BaseRenderer {
         // Update texture if resource type changed
         if (existing.sprite.texture.key !== textureKey) {
           existing.sprite.setTexture(textureKey);
+          existing.sprite.setTint(0x222222);
         }
         
         // Store active state in the sprite data
@@ -109,9 +110,10 @@ export class ResourceRenderer extends BaseRenderer {
         // Create a new sprite for this resource
         const resourceSprite = this.scene.add.sprite(worldX, worldY, textureKey);
         
-        // Set scale and opacity
+        // Set scale, opacity, and tint (dark grey)
         resourceSprite.setScale(this.resourceScale);
         resourceSprite.setAlpha(opacity);
+        resourceSprite.setTint(0xaaaaaa);
         
         // Store position and type data on the sprite
         resourceSprite.setData('gridX', x);
