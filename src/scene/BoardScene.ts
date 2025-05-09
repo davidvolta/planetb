@@ -4,34 +4,13 @@ import { TILE_SIZE, TILE_HEIGHT, RESOURCE_GENERATION_PERCENTAGE } from '../const
 import { StateObserver } from '../utils/stateObserver';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { GameEnvironment } from '../env/GameEnvironment';
-
-import { TileRenderer, 
-  SelectionRenderer, 
-  MoveRangeRenderer, 
-  BiomeRenderer, 
-  AnimalRenderer, 
-  EggRenderer, 
-  ResourceRenderer, 
-  FogOfWarRenderer, 
-  BiomeOutlineRenderer 
-} from '../renderers';
-
-import {
-  LayerManager,
-  CameraManager,
-  StateSubscriptionManager
-} from '../managers';
-import {
-  AnimationController,
-  VisibilityController,
-  TileInteractionController
-} from '../controllers';
+import { TileRenderer, SelectionRenderer, MoveRangeRenderer, BiomeRenderer, AnimalRenderer, EggRenderer, ResourceRenderer, FogOfWarRenderer, BiomeOutlineRenderer } from '../renderers';
+import { LayerManager, CameraManager, StateSubscriptionManager} from '../managers';
+import { AnimationController, VisibilityController, TileInteractionController } from '../controllers'
 import { GameController } from '../game/GameController';
 import { TurnController } from '../game/TurnController';
 import { SceneInitializer } from './init/SceneInitializer';
 import { SubscriptionBinder } from './setup/SubscriptionBinder';
-
-
 
 // Custom event names
 export const EVENTS = {
@@ -70,11 +49,6 @@ export default class BoardScene extends Phaser.Scene {
   private gameController!: GameController;
   private turnController!: TurnController;
   private biomeOutlineRenderer!: BiomeOutlineRenderer;
-
-
-  private fogOfWarEnabled = true;
-
-  // New visibility controller
   private visibilityController: VisibilityController;
 
   constructor() {
@@ -149,13 +123,9 @@ export default class BoardScene extends Phaser.Scene {
   
   // Initialize the scene
   init(data?: any) {
-    console.log("BoardScene init() called", data ? `with data: ${JSON.stringify(data)}` : "without data");
-    
-    this.unsubscribeAll();  // Ensure all old subscriptions are cleaned up before creating new ones
-    
+    this.unsubscribeAll();  // Ensure all old subscriptions are cleaned up before creating new ones    
     // Reset setup flags
     this.controlsSetup = false;
-    
     this.layerManager.setupLayers(); // Set up layers FIRST
     this.initializeManagers(); // THEN initialize managers and renderers
   }
@@ -263,7 +233,7 @@ export default class BoardScene extends Phaser.Scene {
     this.selectionRenderer.initialize(anchorX, anchorY);
     
     // Create Fog of War if it's enabled
-    if (this.fogOfWarEnabled) {
+    if (actions.getFogOfWarEnabled()) {
       this.fogOfWarRenderer.createFogOfWar(board);
       this.visibilityController.initializeVisibility();
     } else {
