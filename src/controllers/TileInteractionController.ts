@@ -1,10 +1,13 @@
 import * as actions from '../store/actions';
-import { Biome } from '../store/gameStore';
+import { Biome, Animal, Egg, Tile } from '../store/gameStore';
 import type BoardScene from '../scene/BoardScene';
+
+type ToggleState = Record<string, number>;
+type ClickHandler = (x: number, y: number) => void;
 
 export class TileInteractionController {
   private scene: BoardScene;
-  private toggleState: Record<string, number> = {};
+  private toggleState: ToggleState = {};
   private lastClickedKey: string | null = null;
 
   constructor(scene: BoardScene) {
@@ -12,105 +15,153 @@ export class TileInteractionController {
   }
 
   /**
-   * Handle a tile click by cycling through possible actions based on tile contents:
-   * Case 7: ignore hidden tiles
-   * Case 2: valid move target
-   * Case 1: select active animal
-   * Case 5: select dormant animal
-   * Case 3: select unowned habitat
-   * Case 4: select resource in owned biome
-   * Case 8: clear selection
+   * Handle a tile click by cycling through possible actions based on tile contents
    */
-  public handleClick(x: number, y: number) {
+  public handleClick(x: number, y: number): void {
+    try {
+      if (!this.isValidClick(x, y)) {
+        return;
+      }
+
+      const key = `${x},${y}`;
+      this.resetToggleStateForNewTile(key);
+
+      // Handle move target first as it has highest priority
+      if (this.handleMoveTarget(x, y)) {
+        return;
+      }
+
+      const handlers = this.buildClickHandlers(x, y);
+      this.executeHandler(x, y, key, handlers);
+    } catch (error) {
+      console.error('Error handling tile click:', error);
+    }
+  }
+
+  private isValidClick(x: number, y: number): boolean {
     const playerId = actions.getActivePlayerId();
     const board = actions.getBoard();
-    if (!board || !board.tiles[y] || !board.tiles[y][x]) {
-      return;
-    }
-    const visibleCoords = actions.getVisibleTilesForPlayer(playerId);
-    if (!visibleCoords.some(coord => coord.x === x && coord.y === y)) {
-      return;
+    
+    if (!board?.tiles[y]?.[x]) {
+      return false;
     }
 
-    // Reset toggleState for newly clicked tile so first click always fires
-    const key = `${x},${y}`;
+    const visibleCoords = actions.getVisibleTilesForPlayer(playerId);
+    return visibleCoords.some(coord => coord.x === x && coord.y === y);
+  }
+
+  private resetToggleStateForNewTile(key: string): void {
     if (key !== this.lastClickedKey) {
       this.toggleState[key] = 0;
     }
+  }
 
-    // Case 2: valid move target has priority over selection
-    if (this.scene.getMoveRangeRenderer().isValidMoveTarget(x, y)) {
-      const selectedAnimalId = actions.getSelectedAnimalID();
-      const animals = actions.getAnimals();
-      const selectedAnimal = animals.find((a: any) => a.id === selectedAnimalId);
-      if (selectedAnimalId && selectedAnimal) {
-        const fromX = selectedAnimal.position.x;
-        const fromY = selectedAnimal.position.y;
-        this.scene.startAnimalMovement(selectedAnimalId, fromX, fromY, x, y);
-      }
-      return;
+  private handleMoveTarget(x: number, y: number): boolean {
+    if (!this.scene.getMoveRangeRenderer().isValidMoveTarget(x, y)) {
+      return false;
     }
 
-    // Build content arrays for selection cases using store helpers
-    const animalsAtTile = actions.getAnimalsAt(x, y).filter(a => a.ownerId === playerId);
-    const eggs = actions.getEggsAt(x, y).filter(e => e.ownerId === playerId);
+    const selectedAnimalId = actions.getSelectedAnimalID();
+    const animals = actions.getAnimals();
+    const selectedAnimal = animals.find((a: Animal) => a.id === selectedAnimalId);
+
+    if (selectedAnimalId && selectedAnimal) {
+      this.scene.startAnimalMovement(
+        selectedAnimalId,
+        selectedAnimal.position.x,
+        selectedAnimal.position.y,
+        x,
+        y
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  private buildClickHandlers(x: number, y: number): ClickHandler[] {
+    const playerId = actions.getActivePlayerId();
+    const handlers: ClickHandler[] = [];
+
+    // Get all relevant game state
+    const animalsAtTile = this.getPlayerAnimalsAtTile(x, y, playerId);
+    const eggsAtTile = this.getPlayerEggsAtTile(x, y, playerId);
+    const biomesAtLocation = this.getBiomesAtLocation(x, y);
+    const board = actions.getBoard();
+    if (!board) return handlers;
+    const tile = board.tiles[y][x];
+
+    // Add handlers in priority order
+    this.addAnimalSelectionHandler(handlers, animalsAtTile);
+    this.addEggSelectionHandler(handlers, eggsAtTile);
+    this.addBiomeSelectionHandler(handlers, biomesAtLocation);
+    this.addResourceSelectionHandler(handlers, tile, animalsAtTile, playerId);
+    this.addClearSelectionHandler(handlers);
+
+    return handlers;
+  }
+
+  private getPlayerAnimalsAtTile(x: number, y: number, playerId: number): Animal[] {
+    return actions.getAnimalsAt(x, y).filter(a => a.ownerId === playerId);
+  }
+
+  private getPlayerEggsAtTile(x: number, y: number, playerId: number): Egg[] {
+    return actions.getEggsAt(x, y).filter(e => e.ownerId === playerId);
+  }
+
+  private getBiomesAtLocation(x: number, y: number): Biome[] {
     const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
-    const biomesAtLocation = habitatTiles
+    return habitatTiles
       .map(({ tile }) => actions.getBiomes().get(tile.biomeId!))
       .filter((b): b is Biome => !!b);
+  }
 
-    // Build list of handlers in priority order
-    const handlers: ((x: number, y: number) => void)[] = [];
-
-    // Case 1: active animal selection (only if animal hasn't moved)
+  private addAnimalSelectionHandler(handlers: ClickHandler[], animalsAtTile: Animal[]): void {
     if (animalsAtTile.length > 0 && !animalsAtTile[0].hasMoved) {
-      handlers.push((x, y) => {
-        actions.selectAnimal(animalsAtTile[0].id);
-        // Selection UI handled by StateSubscriptionManager
-      });
+      handlers.push(() => actions.selectAnimal(animalsAtTile[0].id));
     }
+  }
 
-    // Case 5: egg selection
-    if (eggs.length > 0) {
-      handlers.push((x, y) => {
-        actions.selectEgg(eggs[0].id);
-        // Selection UI handled by StateSubscriptionManager
-      });
+  private addEggSelectionHandler(handlers: ClickHandler[], eggsAtTile: Egg[]): void {
+    if (eggsAtTile.length > 0) {
+      handlers.push(() => actions.selectEgg(eggsAtTile[0].id));
     }
+  }
 
-    // Case 3: habitat selection (owned or unowned)
+  private addBiomeSelectionHandler(handlers: ClickHandler[], biomesAtLocation: Biome[]): void {
     if (biomesAtLocation.length > 0) {
-      const biome = biomesAtLocation[0];
-      handlers.push((x, y) => {
-        actions.selectBiome(biome.id);
-        // Selection UI handled by StateSubscriptionManager
-      });
+      handlers.push(() => actions.selectBiome(biomesAtLocation[0].id));
     }
+  }
 
-    // Case 4: select resource in owned biome
-    const tile = board.tiles[y][x];
+  private addResourceSelectionHandler(
+    handlers: ClickHandler[],
+    tile: Tile,
+    animalsAtTile: Animal[],
+    playerId: number
+  ): void {
     if (tile.active && tile.resourceType !== null && tile.biomeId) {
       const biome = actions.getBiomes().get(tile.biomeId);
-      // Only allow harvesting if an active animal owned by current player that hasn't moved is on this tile
       const animalHere = animalsAtTile.find(a => a.ownerId === playerId && !a.hasMoved);
-      if (biome && biome.ownerId === playerId && animalHere) {
-        handlers.push((x, y) => {
-          actions.selectResourceTile({ x, y });
+      
+      if (biome?.ownerId === playerId && animalHere) {
+        handlers.push(() => {
+          actions.selectResourceTile({ x: tile.coordinate.x, y: tile.coordinate.y });
           actions.selectBiome(null);
-          // Selection UI handled by StateSubscriptionManager
         });
       }
     }
+  }
 
-    // Case 8: clear all selections and highlights
-    handlers.push((x, y) => {
+  private addClearSelectionHandler(handlers: ClickHandler[]): void {
+    handlers.push(() => {
       actions.selectAnimal(null);
       actions.selectBiome(null);
       actions.selectResourceTile(null);
-      // Selection UI handled by StateSubscriptionManager
     });
+  }
 
-    // Cycle through handlers on repeated clicks
+  private executeHandler(x: number, y: number, key: string, handlers: ClickHandler[]): void {
     const idx = this.toggleState[key] || 0;
     handlers[idx % handlers.length](x, y);
     this.toggleState[key] = (idx + 1) % handlers.length;

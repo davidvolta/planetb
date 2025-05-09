@@ -4,9 +4,9 @@ import { GameController } from './GameController';
 import { AIController } from '../controllers/AIController';
 import { CommandExecutor } from './CommandExecutor';
 import { GameMode } from '../env/GameEnvironment';
-import { PromptBuilder } from '../AI/PromptBuilder';
-import { LLMClient } from '../AI/LLMClient';
-import { canExecuteCommand } from '../utils/canExecuteCommand';
+//import { PromptBuilder } from '../AI/PromptBuilder';
+//import { LLMClient } from '../AI/LLMClient';
+//import { canExecuteCommand } from '../utils/canExecuteCommand';
 
 
 /**
@@ -17,9 +17,9 @@ export class TurnController {
   private gameController: GameController;
   private mode: GameMode;
 
-  constructor(gameController: GameController, mode: GameMode = 'pve') {
+  constructor(gameController: GameController, mode: GameMode) {
     this.gameController = gameController;
-    this.mode = mode; // Still inject from GameEnvironment if needed
+    this.mode = mode;
   }
 
   /**

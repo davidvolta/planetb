@@ -33,7 +33,7 @@ export class BiomeOutlineRenderer {
       this.outlineGraphics.setDepth(5);
     }
     this.outlineGraphics.clear();
-    this.outlineGraphics.lineStyle(1, 0xffffff, 1);
+    this.outlineGraphics.lineStyle(1, color, 1); //0xffffff
   
     const drawnEdges = new Set<string>();
   
