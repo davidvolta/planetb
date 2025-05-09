@@ -36,14 +36,6 @@ export class FogOfWarRenderer extends BaseRenderer {
   }
   
   /**
-   * Set a callback to be called when tile visibility changes
-   * @param callback The callback function
-   */
-  setTileVisibilityCallback(callback: (x: number, y: number, isVisible: boolean) => void): void {
-    this.onTileVisibilityChange = callback;
-  }
-  
-  /**
    * Create a fog tile at the specified grid coordinates
    * @param gridX X position on the grid
    * @param gridY Y position on the grid
@@ -87,35 +79,6 @@ export class FogOfWarRenderer extends BaseRenderer {
     this.fogTiles.set(key, fogTile);
     
     return fogTile;
-  }
-  
-  /**
-   * Reveal a tile by fading out and removing its fog
-   * @param gridX X position on the grid
-   * @param gridY Y position on the grid
-   */
-  revealTile(gridX: number, gridY: number): void {
-    const key = `${gridX},${gridY}`;
-    const fogTile = this.fogTiles.get(key);
-    
-    if (fogTile) {
-      // Notify about visibility change before animation starts
-      if (this.onTileVisibilityChange !== null) {
-        this.onTileVisibilityChange!(gridX, gridY, true);
-      }
-      
-      // Animate the fade out
-      this.scene.tweens.add({
-        targets: fogTile,
-        alpha: 0,
-        duration: this.fadeAnimationDuration,
-        onComplete: () => {
-          // Remove and destroy the fog tile after animation
-          fogTile.destroy();
-          this.fogTiles.delete(key);
-        }
-      });
-    }
   }
   
   /**
@@ -208,18 +171,7 @@ export class FogOfWarRenderer extends BaseRenderer {
     // Clear the map
     this.fogTiles.clear();
   }
-  
-  /**
-   * Check if a tile is currently under fog
-   * @param gridX X position on the grid
-   * @param gridY Y position on the grid
-   * @returns Whether the tile is fogged
-   */
-  isTileFogged(gridX: number, gridY: number): boolean {
-    const key = `${gridX},${gridY}`;
-    return this.fogTiles.has(key);
-  }
-  
+
   /**
    * Clean up resources when destroying this renderer
    */

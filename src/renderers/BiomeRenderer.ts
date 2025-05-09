@@ -138,8 +138,12 @@ export class BiomeRenderer extends BaseRenderer {
     // Add the graphics to the container
     container.add(graphics);
 
-    // --- LUSHNESS BAR (only for owned biomes) ---
-    if (isCaptured) {
+    // --- LUSHNESS BAR (only for owned biomes and only for active player) ---
+    const biome = biomeId ? getBiomes().get(biomeId) : undefined;
+    const activePlayerId = getActivePlayerId();
+    const isPlayersBiome = biome && biome.ownerId === activePlayerId;
+
+    if (isCaptured && isPlayersBiome) {
       // Bar dimensions
       const barWidth = this.tileSize * 0.8; // 80% of tile width
       const barHeight = 5; // 5px height
@@ -202,9 +206,7 @@ export class BiomeRenderer extends BaseRenderer {
       }
 
       // Pulse effect if roundedLushness > MAX_LUSHNESS and it's the player's turn
-      const biome = biomeId ? getBiomes().get(biomeId) : undefined;
-      const activePlayerId = getActivePlayerId();
-      const isPlayersTurn = biome && biome.ownerId === activePlayerId;
+      const isPlayersTurn = isPlayersBiome;
       if (roundedLushness > MAX_LUSHNESS && isPlayersTurn) {
         // Animate a pulse value and redraw the bar with interpolated color
         const pulseObj = { t: 0 };

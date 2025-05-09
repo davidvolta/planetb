@@ -264,7 +264,7 @@ export default class BoardScene extends Phaser.Scene {
     // Create Fog of War if it's enabled
     if (this.fogOfWarEnabled) {
       this.fogOfWarRenderer.createFogOfWar(board);
-      this.initializeVisibility();
+      this.visibilityController.initializeVisibility();
     } else {
       // Disable fog of war and reveal all
       this.fogOfWarRenderer.clearFogOfWar();
@@ -323,17 +323,6 @@ export default class BoardScene extends Phaser.Scene {
     }
   }
 
-  // Handle egg selection (called from SubscriptionBinder)
-  public handleEggSelection(eggId: string | null): void {
-    actions.selectEgg(eggId);
-  }
-  
-  
-  // Handle unit selection (UI now via subscription manager)
-  public handleUnitSelection(unitId: string | null) {
-    actions.selectAnimal(unitId);
-  }
-
   // Update method called each frame
   update() {
     // Let the selection renderer handle hover updates
@@ -375,13 +364,6 @@ export default class BoardScene extends Phaser.Scene {
     this.controlsSetup = true;
   }
 
-
-  
-  //Get the current input mode
-  isInMoveMode(): boolean {
-    return actions.isMoveMode();
-  }
-
   // Handle displacement events for animals
   async handleDisplacementEvent(animalId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
     // Lookup the animal sprite directly
@@ -414,34 +396,6 @@ export default class BoardScene extends Phaser.Scene {
     actions.clearDisplacementEvent();
   }
 
-  // Initialize visibility for starting units and habitats
-  private initializeVisibility(): void {
-    const board = actions.getBoard();
-    if (!board) return;
-
-    const activePlayerId = actions.getActivePlayerId();
-
-    const eggsRecord = actions.getEggs();
-    const unitAdjacents = actions.getAnimals()
-      .filter(a => a.ownerId === activePlayerId && !(a.id in eggsRecord))
-      .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, board.width, board.height));
-    const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
-
-    // All tiles of owned biomes
-    const biomeTiles = Array.from(actions.getBiomes().entries())
-      .filter(([_, b]) => b.ownerId === activePlayerId)
-      .flatMap(([id]) => actions.getTilesForBiome(id).map(({ x, y }) => ({ x, y })));
-    const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
-
-    // Combine and batch update visibility
-    const allTilesToReveal = [...uniqueUnitTiles, ...uniqueBiomeTiles];
-    if (allTilesToReveal.length > 0) {
-      const visibilityUpdates = allTilesToReveal.map(({ x, y }) => ({ x, y, visible: true }));
-      actions.updateTilesVisibility(visibilityUpdates);
-      this.fogOfWarRenderer.revealTiles(allTilesToReveal);
-    }
-  }
-  
   // Reveal all tiles in a biome
   public revealBiomeTiles(biomeId: string, revealedTiles?: { x: number, y: number }[]): void {
     // Fetch tiles belonging to this biome
@@ -473,8 +427,12 @@ export default class BoardScene extends Phaser.Scene {
       if (coords.length) {
         this.fogOfWarRenderer.revealTiles(coords);
       }
+      // Use VisibilityController to update player visibility
+      const activePlayerId = actions.getActivePlayerId();
+      this.visibilityController.updatePlayerVisibility(activePlayerId);
     } else {
       this.fogOfWarRenderer.clearFogOfWar();
+ 
     }
   }
   
@@ -493,17 +451,6 @@ export default class BoardScene extends Phaser.Scene {
     this.fogOfWarRenderer.revealTiles(coords);
   }
 }
-
-  // Toggle biome visualization mode on/off
-  public toggleBiomeVisualization(enabled: boolean): void {
-    if (this.tileRenderer) {
-      // Get biomes using actions instead of directly from registry
-      const biomes = actions.getBiomes();
-      
-      // Toggle biome mode in the tile renderer
-      this.tileRenderer.toggleBiomeMode(enabled);
-    }
-  }
 
   // Public method to reset resources with current settings (accepts override)
   public resetResources(resourceChance: number = RESOURCE_GENERATION_PERCENTAGE): void {

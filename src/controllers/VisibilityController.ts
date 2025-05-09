@@ -23,4 +23,51 @@ export class VisibilityController {
     // Update fog-of-war rendering
     this.fogOfWarRenderer.revealTiles(uniqueTiles);
   }
+
+  /**
+   * Update player visibility based on the current FOW state.
+   */
+  public updatePlayerVisibility(playerId: number): void {
+    const board = actions.getBoard();
+    if (!board) return;
+
+    // Get visible tiles for the player
+    const visibleCoords = actions.getVisibleTilesForPlayer(playerId);
+    const uniqueTiles = CoordinateUtils.removeDuplicateTiles(visibleCoords);
+
+    // Update fog-of-war state
+    actions.updateTilesVisibility(uniqueTiles.map(t => ({ x: t.x, y: t.y, visible: true })));
+    // Update fog-of-war rendering
+    this.fogOfWarRenderer.revealTiles(uniqueTiles);
+  }
+
+  /**
+   * Initialize visibility for starting units and habitats.
+   */
+  public initializeVisibility(): void {
+    const board = actions.getBoard();
+    if (!board) return;
+
+    const activePlayerId = actions.getActivePlayerId();
+
+    const eggsRecord = actions.getEggs();
+    const unitAdjacents = actions.getAnimals()
+      .filter(a => a.ownerId === activePlayerId && !(a.id in eggsRecord))
+      .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, board.width, board.height));
+    const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
+
+    // All tiles of owned biomes
+    const biomeTiles = Array.from(actions.getBiomes().entries())
+      .filter(([_, b]) => b.ownerId === activePlayerId)
+      .flatMap(([id]) => actions.getTilesForBiome(id).map(({ x, y }) => ({ x, y })));
+    const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
+
+    // Combine and batch update visibility
+    const allTilesToReveal = [...uniqueUnitTiles, ...uniqueBiomeTiles];
+    if (allTilesToReveal.length > 0) {
+      const visibilityUpdates = allTilesToReveal.map(({ x, y }) => ({ x, y, visible: true }));
+      actions.updateTilesVisibility(visibilityUpdates);
+      this.fogOfWarRenderer.revealTiles(allTilesToReveal);
+    }
+  }
 } 
