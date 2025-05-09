@@ -23,10 +23,10 @@ export class BiomeOutlineRenderer {
     activePlayerId: number
   ): void {
     this.clear();
-
+  
     const player = players.find(p => p.id === activePlayerId);
     if (!player || !player.color) return;
-
+  
     const color = parseInt(player.color.replace('#', ''), 16);
     if (!this.outlineGraphics) {
       this.outlineGraphics = this.scene.add.graphics();
@@ -34,49 +34,50 @@ export class BiomeOutlineRenderer {
     }
     this.outlineGraphics.clear();
     this.outlineGraphics.lineStyle(1, 0xffffff, 1);
-
+  
+    const drawnEdges = new Set<string>();
+  
     for (const [biomeId, biome] of biomes.entries()) {
       if (biome.ownerId !== activePlayerId) continue;
-
-      const tiles: Tile[] = [];
+  
       for (let y = 0; y < board.height; y++) {
         for (let x = 0; x < board.width; x++) {
           const tile = board.tiles[y][x];
-          if (tile.biomeId === biomeId) {
-            tiles.push({ ...tile, coordinate: { x, y } });
-          }
-        }
-      }
-      if (tiles.length === 0) continue;
-
-      for (const tile of tiles) {
-        const { x, y } = tile.coordinate;
-        const neighbors = [
-          board.tiles[y - 1]?.[x], // north
-          board.tiles[y]?.[x + 1], // east
-          board.tiles[y + 1]?.[x], // south
-          board.tiles[y]?.[x - 1], // west
-        ];
-
-        const edges = [
-          { condition: !neighbors[0] || neighbors[0].biomeId !== biomeId, a: 0, b: 1 },
-          { condition: !neighbors[1] || neighbors[1].biomeId !== biomeId, a: 1, b: 2 },
-          { condition: !neighbors[2] || neighbors[2].biomeId !== biomeId, a: 2, b: 3 },
-          { condition: !neighbors[3] || neighbors[3].biomeId !== biomeId, a: 3, b: 0 },
-        ];
-
-        const verts = this.getDiamondVertices(x, y);
-
-        for (const edge of edges) {
-          if (edge.condition) {
-            const p1 = verts[edge.a];
-            const p2 = verts[edge.b];
-            this.drawDashedLine(p1.x, p1.y, p2.x, p2.y, 3, 2);
+          if (tile.biomeId !== biomeId) continue;
+  
+          const verts = this.getDiamondVertices(x, y);
+  
+          const directions = [
+            { dx: 0, dy: -1, a: 0, b: 1 }, // top edge (connect top → right)
+            { dx: 1, dy: 0, a: 1, b: 2 },  // right edge (right → bottom)
+            { dx: 0, dy: 1, a: 2, b: 3 },  // bottom edge (bottom → left)
+            { dx: -1, dy: 0, a: 3, b: 0 }, // left edge (left → top)
+          ];
+          
+  
+          for (const { dx, dy, a, b } of directions) {
+            const nx = x + dx;
+            const ny = y + dy;
+            const neighbor = board.tiles[ny]?.[nx];
+            const neighborBiome = neighbor?.biomeId ? biomes.get(neighbor.biomeId) : null;
+  
+            const sameOwner = neighborBiome?.ownerId === activePlayerId;
+            if (sameOwner) continue;
+  
+            const p1 = verts[a];
+            const p2 = verts[b];
+            const key = this.normalizeEdgeKey(p1, p2);
+  
+            if (!drawnEdges.has(key)) {
+              drawnEdges.add(key);
+              this.drawDashedLine(p1.x, p1.y, p2.x, p2.y, 3, 2);
+            }
           }
         }
       }
     }
   }
+  
 
   private getDiamondVertices(x: number, y: number): Phaser.Math.Vector2[] {
     const cx = (x - y) * (this.tileWidth / 2) + this.anchorX;
@@ -87,6 +88,14 @@ export class BiomeOutlineRenderer {
       new Phaser.Math.Vector2(cx, cy + this.tileHeight / 2), // bottom
       new Phaser.Math.Vector2(cx - this.tileWidth / 2, cy),   // left
     ];
+  }
+  private normalizeEdgeKey(p1: Phaser.Math.Vector2, p2: Phaser.Math.Vector2): string {
+    // Ensures same key for both directions
+    if (p1.y < p2.y || (p1.y === p2.y && p1.x < p2.x)) {
+      return `${p1.x},${p1.y}:${p2.x},${p2.y}`;
+    } else {
+      return `${p2.x},${p2.y}:${p1.x},${p1.y}`;
+    }
   }
 
   private drawDashedLine(
