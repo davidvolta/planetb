@@ -183,13 +183,21 @@ export class StateSubscriptionManager {
       StateSubscriptionManager.SUBSCRIPTIONS.BIOMES,
       (state) => state.biomes,
       (biomes, previousBiomes) => {
+        
         if (!biomes) return;
         
         if (!previousBiomes) {
           // Initial render - render all biomes at once
           const biomesArray = Array.from(biomes.values());
-          console.log(`Initial render of ${biomesArray.length} biomes`);
           this.biomeRenderer.renderBiomes(biomesArray);
+          if (this.scene instanceof BoardScene) {
+            const board = actions.getBoard();
+            const players = actions.getPlayers();
+            const playerId = actions.getActivePlayerId();
+            if (board && players.length > 0) {
+              this.scene.getBiomeOutlineRenderer().renderOutlines(board, biomes, players, playerId);
+            }
+          }
         } else {
           // Subsequent updates: collapse duplicate calls for owner & lushness changes
           for (const [id, biome] of biomes.entries()) {
@@ -203,6 +211,14 @@ export class StateSubscriptionManager {
                 this.scene.revealBiomeTiles(id);
               }
               this.biomeRenderer.updateBiomeOwnership(id);
+              if (this.scene instanceof BoardScene) {
+                const board = actions.getBoard();
+                const players = actions.getPlayers();
+                const playerId = actions.getActivePlayerId();
+                if (board && players.length > 0) {
+                  this.scene.getBiomeOutlineRenderer().renderOutlines(board, biomes, players, playerId);
+                }
+              }
             } else if (lushnessChanged) {
               this.biomeRenderer.updateBiomeOwnership(id);
             }
@@ -224,6 +240,7 @@ export class StateSubscriptionManager {
               return false;
             }
           }
+          
           return true;
         }
       }

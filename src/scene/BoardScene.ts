@@ -24,6 +24,9 @@ import { SubscriptionBinder } from './setup/SubscriptionBinder';
 import { CommandExecutor } from '../game/CommandExecutor';
 import { GameEnvironment } from '../env/GameEnvironment';
 import { TurnController } from '../game/TurnController';
+import { BiomeOutlineRenderer } from '../renderers/BiomeOutlineRenderer';
+
+
 
 // Custom event names
 export const EVENTS = {
@@ -64,6 +67,8 @@ export default class BoardScene extends Phaser.Scene {
   private tileInteractionController: TileInteractionController;
   private gameController!: GameController;
   private turnController!: TurnController;
+  private biomeOutlineRenderer!: BiomeOutlineRenderer;
+
 
   private fogOfWarEnabled = true;
 
@@ -163,6 +168,14 @@ export default class BoardScene extends Phaser.Scene {
     // Store these values for future reference
     this.anchorX = anchorX;
     this.anchorY = anchorY;
+
+    this.biomeOutlineRenderer = new BiomeOutlineRenderer(
+      this,
+      this.tileSize,
+      this.tileHeight,
+      this.anchorX,
+      this.anchorY
+    );
     
     // Initialize all renderers and controllers with anchor coordinates
     this.tileRenderer.initialize(anchorX, anchorY);
@@ -620,5 +633,9 @@ export default class BoardScene extends Phaser.Scene {
   
   public getTileInteractionController(): TileInteractionController {
     return this.tileInteractionController;
+  }
+
+  public getBiomeOutlineRenderer(): BiomeOutlineRenderer {
+    return this.biomeOutlineRenderer;
   }
 }
