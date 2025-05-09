@@ -2,11 +2,14 @@ import Phaser from "phaser";
 import BoardScene from "./BoardScene";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { setFogOfWarEnabled, getFogOfWarEnabled } from "../store/actions";
+import { GameEnvironment } from '../env/GameEnvironment';
 
 export default class DebugScene extends Phaser.Scene {
   
   private fpsText!: Phaser.GameObjects.Text;
   private boardScene: BoardScene | null = null;
+  private pauseButton!: Phaser.GameObjects.Text;
+  private isPaused: boolean = false;
   
   // FOW toggle elements
   private fowCheckbox!: Phaser.GameObjects.Container;
@@ -77,6 +80,11 @@ export default class DebugScene extends Phaser.Scene {
     
     // Listen for pointer up event on the entire scene for slider handling
     this.input.on('pointerup', this.handlePointerUp, this);
+
+    // Create pause button if in SIM mode
+    if (GameEnvironment.mode === 'sim') {
+      this.createPauseButton(leftX, bottomY - 120);
+    }
   }
 
   // Create a resource percentage slider
@@ -312,6 +320,29 @@ export default class DebugScene extends Phaser.Scene {
     boardScene.toggleFogOfWar(this.fowEnabled);
   }
 
+  private createPauseButton(x: number, y: number): void {
+    this.pauseButton = this.add.text(x, y, "Pause", {
+      fontSize: "14px",
+      fontFamily: "monospace",
+      color: "#00FF00",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      padding: { x: 5, y: 2 },
+    }).setOrigin(0, 0.5) // Align vertically centered
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', this.togglePause, this);
+  }
+
+  private togglePause(): void {
+    if (this.isPaused) {
+      this.scene.resume('BoardScene');
+      this.pauseButton.setText('Pause');
+    } else {
+      this.scene.pause('BoardScene');
+      this.pauseButton.setText('Resume');
+    }
+    this.isPaused = !this.isPaused;
+  }
+
   update() {
     const fps = this.game.loop.actualFps.toFixed(1);
     this.fpsText.setText(`FPS: ${fps}`);
@@ -346,6 +377,10 @@ export default class DebugScene extends Phaser.Scene {
       // Position FPS slightly further left to ensure full value is visible
       const fpsX = width - fpsWidth - (padding * 2);
       this.fpsText.setPosition(fpsX, bottomY);
+    }
+    // Position pause button
+    if (this.pauseButton) {
+      this.pauseButton.setPosition(xOffset, bottomY - this.pauseButton.height);
     }
   }
 

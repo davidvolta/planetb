@@ -1,4 +1,3 @@
-// BiomeOutlineRenderer.ts
 import Phaser from 'phaser';
 import type { Board, Biome, Player, Tile } from '../store/gameStore';
 
@@ -34,7 +33,7 @@ export class BiomeOutlineRenderer {
       this.outlineGraphics.setDepth(5);
     }
     this.outlineGraphics.clear();
-    this.outlineGraphics.lineStyle(2, color, 1);
+    this.outlineGraphics.lineStyle(1, 0xffffff, 1);
 
     for (const [biomeId, biome] of biomes.entries()) {
       if (biome.ownerId !== activePlayerId) continue;
@@ -44,7 +43,6 @@ export class BiomeOutlineRenderer {
         for (let x = 0; x < board.width; x++) {
           const tile = board.tiles[y][x];
           if (tile.biomeId === biomeId) {
-            // Inject coordinates into tile object
             tiles.push({ ...tile, coordinate: { x, y } });
           }
         }
@@ -69,16 +67,13 @@ export class BiomeOutlineRenderer {
 
         const verts = this.getDiamondVertices(x, y);
 
-        this.outlineGraphics.beginPath();
         for (const edge of edges) {
           if (edge.condition) {
             const p1 = verts[edge.a];
             const p2 = verts[edge.b];
-            this.outlineGraphics.moveTo(p1.x, p1.y);
-            this.outlineGraphics.lineTo(p2.x, p2.y);
+            this.drawDashedLine(p1.x, p1.y, p2.x, p2.y, 3, 2);
           }
         }
-        this.outlineGraphics.strokePath();
       }
     }
   }
@@ -92,5 +87,35 @@ export class BiomeOutlineRenderer {
       new Phaser.Math.Vector2(cx, cy + this.tileHeight / 2), // bottom
       new Phaser.Math.Vector2(cx - this.tileWidth / 2, cy),   // left
     ];
+  }
+
+  private drawDashedLine(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    dashLength: number,
+    gapLength: number
+  ) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx);
+    const steps = Math.floor(length / (dashLength + gapLength));
+
+    for (let i = 0; i < steps; i++) {
+      const start = i * (dashLength + gapLength);
+      const end = start + dashLength;
+
+      const sx = x1 + Math.cos(angle) * start;
+      const sy = y1 + Math.sin(angle) * start;
+      const ex = x1 + Math.cos(angle) * Math.min(end, length);
+      const ey = y1 + Math.sin(angle) * Math.min(end, length);
+
+      this.outlineGraphics!.beginPath();
+      this.outlineGraphics!.moveTo(sx, sy);
+      this.outlineGraphics!.lineTo(ex, ey);
+      this.outlineGraphics!.strokePath();
+    }
   }
 }
