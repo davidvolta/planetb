@@ -171,15 +171,13 @@ export class TileRenderer extends BaseRenderer {
    * @param x World x-coordinate
    * @param y World y-coordinate
    * @param biomeId Optional biome ID for this tile
-   * @param biomeColor Optional biome color for visualization
    * @returns The created tile game object
    */
   private createTerrainTile(
     terrain: TerrainType, 
     x: number, 
     y: number,
-    biomeId?: string | null,
-    biomeColor?: number
+    biomeId?: string | null
   ): Phaser.GameObjects.Graphics {
     // Create a graphics object for the tile
     const tile = this.scene.add.graphics();
@@ -194,28 +192,16 @@ export class TileRenderer extends BaseRenderer {
     let fillColor: number;
     let strokeColor: number;
     
-    if (this.showBiomeMode && biomeId && biomeColor) {
-      // In biome mode, use the biome color with slightly darker stroke
-      fillColor = biomeColor;
-      strokeColor = this.darkenColor(biomeColor, 0.7); // 70% brightness for stroke
-    } else {
-      // In terrain mode, use terrain colors
-      const terrainStyle = this.getTerrainStyle(terrain);
-      fillColor = terrainStyle.fillColor;
-      strokeColor = terrainStyle.strokeColor;
-    }
+    const terrainStyle = this.getTerrainStyle(terrain);
+    fillColor = terrainStyle.fillColor;
+    strokeColor = terrainStyle.strokeColor;
     
-    // Draw filled shape with outline
+    // Draw the tile
     tile.fillStyle(fillColor, 1);
-    tile.lineStyle(1, strokeColor, 1);
-    
+    tile.lineStyle(2, strokeColor, 1);
     tile.beginPath();
     tile.moveTo(diamondPoints[0].x, diamondPoints[0].y);
-    
-    for (let i = 1; i < diamondPoints.length; i++) {
-      tile.lineTo(diamondPoints[i].x, diamondPoints[i].y);
-    }
-    
+    diamondPoints.forEach(point => tile.lineTo(point.x, point.y));
     tile.closePath();
     tile.fillPath();
     tile.strokePath();
@@ -340,17 +326,8 @@ export class TileRenderer extends BaseRenderer {
               x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
             );
             
-            // Get biome color if available using actions
-            let biomeColor: number | undefined;
-            if (newBiomeId) {
-              const biome = actions.getBiomeById(newBiomeId);
-              if (biome) {
-                biomeColor = biome.color;
-              }
-            }
-            
             // Create replacement tile
-            const newTile = this.createTerrainTile(newTerrain, worldPos.x, worldPos.y, newBiomeId, biomeColor);
+            const newTile = this.createTerrainTile(newTerrain, worldPos.x, worldPos.y, newBiomeId);
             newTile.setData('visualMode', this.showBiomeMode ? 'biome' : 'terrain');
             this.setupTileInteraction(newTile, x, y);
             

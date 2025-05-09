@@ -15,7 +15,6 @@ export interface Coordinate {
 // Biome structure
 export interface Biome {
   id: string;
-  color: number; // Store a color for visualization
   baseLushness: number; // Base lushness calculated from resources
   lushnessBoost: number; // Additional lushness from eggs
   totalLushness: number; // Combined lushness value (baseLushness + lushnessBoost)

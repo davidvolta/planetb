@@ -81,17 +81,15 @@ export function initializeBoard(
     }
   }
 
-  const biomeResult = generateVoronoiBiomes(width, height, voronoiNodes, terrainData);
+  const biomeResult = generateVoronoiBiomes(width, height, voronoiNodes);
   const biomeMap = biomeResult.biomeMap;
   const biomes = new Map<string, Biome>();
 
   voronoiNodes.forEach(node => {
     const id = node.id;
     const pos = node.position;
-    const color = biomeResult.biomeColors.get(id) || 0x000000;
     biomes.set(id, {
       id,
-      color,
       baseLushness: 0,
       lushnessBoost: 0,
       totalLushness: 0,

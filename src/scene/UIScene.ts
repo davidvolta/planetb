@@ -253,7 +253,7 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
     // Create button text with shortcut hint
-    const buttonText = this.add.text(75, 20, 'Hatch Egg', {
+    const buttonText = this.add.text(75, 20, 'Spawn Animal', {
       fontFamily: 'Arial',
       fontSize: '16px',
       color: '#FFFFFF'
