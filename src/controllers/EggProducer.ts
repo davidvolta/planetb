@@ -29,8 +29,7 @@ export class EggProducer {
 
     biomes.forEach((biome, biomeId) => {
       if (biome.ownerId !== playerId) return;
-      // Simple cooldown: every even turn, like before (can tweak later)
-      if (turn % 2 !== 0) return;
+      // Egg production is now purely based on production rate and lushness threshold
       if (biome.totalLushness < EGG_PRODUCTION_THRESHOLD) return;
 
       // Valid placement tiles prioritized by resource adjacency

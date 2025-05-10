@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { Animal } from '../store/gameStore';
-import { getEggs } from '../store/actions';
 import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
 import { DisplacementEvent, BLANK_DISPLACEMENT_EVENT } from '../types/events';
@@ -48,10 +47,6 @@ export class AnimalRenderer extends BaseRenderer {
     const usedIds = new Set<string>();
 
     animals.forEach(animal => {
-      // Skip if this animal ID corresponds to an egg (should not happen)
-      const eggsRecord = getEggs();
-      if (animal.id in eggsRecord) return;
-
       // If this is the displaced animal and the event is active, start it at its previous position
       const gridX = (displacementEvent.occurred && displacementEvent.animalId === animal.id && displacementEvent.fromX !== null)
         ? displacementEvent.fromX : animal.position.x;
@@ -64,14 +59,20 @@ export class AnimalRenderer extends BaseRenderer {
       const worldX = worldPosition.x;
       const worldY = worldPosition.y + this.verticalOffset;
 
-      // Determine sprite key based on species and owner
+      // Determine sprite key based on species, owner, and movement state
       let textureKey: string;
-      if (animal.ownerId === 0) {
-        textureKey = `${animal.species}-pink`;
-      } else if (animal.ownerId === 1) {
-        textureKey = `${animal.species}-blue`;
-      } else {
+      if (animal.hasMoved) {
+        // Use base sprite when animal has moved
         textureKey = animal.species;
+      } else {
+        // Use colored sprite when animal hasn't moved
+        if (animal.ownerId === 0) {
+          textureKey = `${animal.species}-pink`;
+        } else if (animal.ownerId === 1) {
+          textureKey = `${animal.species}-blue`;
+        } else {
+          textureKey = animal.species;
+        }
       }
 
       if (!this.scene.textures.exists(textureKey)) {

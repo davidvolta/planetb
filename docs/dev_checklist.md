@@ -20,7 +20,7 @@
 
 ## MULTIPLAYER
 - [ ] Serialization
-- [ ] Make Animals a Record, not an Array // Use the Animal Registry Approach to Sidechain it
+- [ ] Make Animals a Record, not an Array //   the Animal Registry Approach to Sidechain it
 - [ ] Make Biomes a Record, not a Map
 
 

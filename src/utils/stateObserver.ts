@@ -1,3 +1,6 @@
+// 🔒 This file is the only allowed direct subscriber to useGameStore (besides actions.ts)
+
+
 import { useGameStore } from "../store/gameStore";
 import { GameState } from "../store/gameStore";
 

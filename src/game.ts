@@ -8,8 +8,8 @@ import { StateObserver } from './utils/stateObserver';
 import { GameEnvironment } from './env/GameEnvironment';
 
 // Compute game dimensions based on tile size and board dimensions
-const GAME_WIDTH = TILE_SIZE * GameEnvironment.boardWidth;
-const GAME_HEIGHT = TILE_HEIGHT * (GameEnvironment.boardHeight + 10); // Add padding for UI elements
+const GAME_WIDTH = 1080; //TILE_SIZE * GameEnvironment.boardWidth;
+const GAME_HEIGHT = 720; //TILE_HEIGHT * (GameEnvironment.boardHeight + 10); // Add padding for UI elements
 
 // Game configuration
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {

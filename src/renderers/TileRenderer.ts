@@ -3,7 +3,6 @@ import { TerrainType } from '../types/gameTypes';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
-import * as actions from "../store/actions";
 
 /**
  * Responsible for rendering and managing board tiles
@@ -11,9 +10,6 @@ import * as actions from "../store/actions";
 export class TileRenderer extends BaseRenderer {
   // Track all created tiles
   private tiles: Phaser.GameObjects.GameObject[] = [];
-  
-  // Terrain visualization style
-  private showBiomeMode: boolean = false;
   
   /**
    * Create a new TileRenderer
@@ -170,14 +166,12 @@ export class TileRenderer extends BaseRenderer {
    * @param terrain The terrain type for this tile
    * @param x World x-coordinate
    * @param y World y-coordinate
-   * @param biomeId Optional biome ID for this tile
    * @returns The created tile game object
    */
   private createTerrainTile(
     terrain: TerrainType, 
     x: number, 
-    y: number,
-    biomeId?: string | null
+    y: number
   ): Phaser.GameObjects.Graphics {
     // Create a graphics object for the tile
     const tile = this.scene.add.graphics();
@@ -188,17 +182,12 @@ export class TileRenderer extends BaseRenderer {
     // Get diamond points for the tile shape
     const diamondPoints = CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight);
     
-    // Determine coloring based on mode
-    let fillColor: number;
-    let strokeColor: number;
-    
+    // Get terrain style
     const terrainStyle = this.getTerrainStyle(terrain);
-    fillColor = terrainStyle.fillColor;
-    strokeColor = terrainStyle.strokeColor;
     
     // Draw the tile
-    tile.fillStyle(fillColor, 1);
-    tile.lineStyle(2, strokeColor, 1);
+    tile.fillStyle(terrainStyle.fillColor, 1);
+    tile.lineStyle(2, terrainStyle.strokeColor, 1);
     tile.beginPath();
     tile.moveTo(diamondPoints[0].x, diamondPoints[0].y);
     diamondPoints.forEach(point => tile.lineTo(point.x, point.y));
@@ -208,32 +197,30 @@ export class TileRenderer extends BaseRenderer {
     
     // Store data on the tile for reference
     tile.setData('terrainType', terrain);
-    if (biomeId) {
-      tile.setData('biomeId', biomeId);
-    }
     
     return tile;
   }
   
   /**
-   * Darken a color by a given factor
-   * @param color The color to darken
-   * @param factor The factor to darken by (0-1, where lower is darker)
-   * @returns The darkened color
+   * Get the style for a terrain type
+   * @param terrain The terrain type
+   * @returns Object containing fill and stroke colors
    */
-  private darkenColor(color: number, factor: number): number {
-    // Convert color to RGB components
-    const r = (color >> 16) & 0xFF;
-    const g = (color >> 8) & 0xFF;
-    const b = color & 0xFF;
-    
-    // Darken each component
-    const newR = Math.floor(r * factor);
-    const newG = Math.floor(g * factor);
-    const newB = Math.floor(b * factor);
-    
-    // Recombine into a color
-    return (newR << 16) | (newG << 8) | newB;
+  private getTerrainStyle(terrain: TerrainType): { fillColor: number, strokeColor: number } {
+    switch (terrain) {
+      case TerrainType.GRASS:
+        return { fillColor: 0x4CAF50, strokeColor: 0x388E3C };
+      case TerrainType.WATER:
+        return { fillColor: 0x2196F3, strokeColor: 0x1976D2 };
+      case TerrainType.BEACH:
+        return { fillColor: 0xFFEB3B, strokeColor: 0xFBC02D };
+      case TerrainType.MOUNTAIN:
+        return { fillColor: 0x795548, strokeColor: 0x5D4037 };
+      case TerrainType.UNDERWATER:
+        return { fillColor: 0x0288D1, strokeColor: 0x01579B };
+      default:
+        return { fillColor: 0x9E9E9E, strokeColor: 0x616161 };
+    }
   }
   
   /**
@@ -248,141 +235,42 @@ export class TileRenderer extends BaseRenderer {
     gridY: number
   ): void {
     // Make the tile interactive with a diamond hitbox
-    tile.setInteractive(new Phaser.Geom.Polygon([
-      { x: 0, y: -this.tileHeight / 2 },
-      { x: this.tileSize / 2, y: 0 },
-      { x: 0, y: this.tileHeight / 2 },
-      { x: -this.tileSize / 2, y: 0 }
-    ]), Phaser.Geom.Polygon.Contains);
+    tile.setInteractive(new Phaser.Geom.Polygon(
+      CoordinateUtils.createIsoDiamondPoints(this.tileSize, this.tileHeight)
+    ), Phaser.Geom.Polygon.Contains);
     
-    // Store grid coordinates on the tile for reference
+    // Store grid coordinates for reference
     tile.setData('gridX', gridX);
     tile.setData('gridY', gridY);
   }
   
   /**
-   * Get color and style properties for a terrain type
-   * @param terrain The terrain type
-   * @returns Object with fill and stroke colors
-   */
-  private getTerrainStyle(terrain: TerrainType): { fillColor: number, strokeColor: number } {
-    switch (terrain) {
-      case TerrainType.WATER:
-        return { fillColor: 0x3498db, strokeColor: 0x2980b9 };
-      
-      case TerrainType.MOUNTAIN:
-        return { fillColor: 0x7f8c8d, strokeColor: 0x6c7a89 };
-      
-      case TerrainType.BEACH:
-        return { fillColor: 0xf1c40f, strokeColor: 0xf39c12 };
-      
-      case TerrainType.UNDERWATER:
-        return { fillColor: 0x2980b9, strokeColor: 0x1a5276 };
-      
-      case TerrainType.GRASS:
-      default:
-        return { fillColor: 0x2ecc71, strokeColor: 0x27ae60 };
-    }
-  }
-  
-  /**
-   * Updates tile information without recreating them
-   * @param board Updated board data
+   * Update tiles based on new board state
+   * @param board The new board state
    */
   updateTiles(board: { width: number, height: number, tiles: any[][] }): void {
-  
-    // Get biome colors using actions instead of directly from registry
-    const biomes = actions.getBiomes();
+    // Clear existing tiles
+    this.clearTiles();
     
-    // Track biome sizes if in biome mode
-    const biomeSizes = new Map<string, number>();
-    
-    // Otherwise, just update existing tiles
-    let index = 0;
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        if (index < this.tiles.length) {
-          const tile = this.tiles[index];
-          const currentTerrain = tile.getData('terrainType');
-          const currentBiomeId = tile.getData('biomeId');
-          
-          const newTerrain = board.tiles[y]?.[x]?.terrain || TerrainType.GRASS;
-          const newBiomeId = board.tiles[y]?.[x]?.biomeId;
-          
-          // Count tile for its biome if in biome mode
-          if (this.showBiomeMode && newBiomeId) {
-            // Increment count for this biome
-            biomeSizes.set(newBiomeId, (biomeSizes.get(newBiomeId) || 0) + 1);
-          }
-          
-          // Update if terrain or biome changed or if visualization mode changed
-          if (
-            currentTerrain !== newTerrain || 
-            currentBiomeId !== newBiomeId ||
-            tile.getData('visualMode') !== (this.showBiomeMode ? 'biome' : 'terrain')
-          ) {
-            // Get position
-            const worldPos = CoordinateUtils.gridToWorld(
-              x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-            );
-            
-            // Create replacement tile
-            const newTile = this.createTerrainTile(newTerrain, worldPos.x, worldPos.y, newBiomeId);
-            newTile.setData('visualMode', this.showBiomeMode ? 'biome' : 'terrain');
-            this.setupTileInteraction(newTile, x, y);
-            
-            // Replace in layer
-            this.layerManager.removeFromLayer('terrain', tile, true);
-            this.layerManager.addToLayer('terrain', newTile);
-            
-            // Update tiles array
-            this.tiles[index] = newTile;
-          }
-        }
-        index++;
-      }
-    }
+    // Create new tiles
+    this.createBoardTiles(board);
   }
   
   /**
-   * Clears all tiles
+   * Clear all tiles from the board
    * @param destroy Whether to destroy the tile objects
    */
   clearTiles(destroy: boolean = true): void {
-    // Clear all tiles from the terrain layer
-    this.layerManager.clearLayer('terrain', destroy);
-    
-    // Clear the tiles array
+    if (destroy) {
+      this.tiles.forEach(tile => tile.destroy());
+    }
     this.tiles = [];
   }
   
   /**
-   * Clean up and prepare for destruction
+   * Clean up resources
    */
   destroy(): void {
-    // Clear all existing tiles
     this.clearTiles(true);
-    
-    // Remove all event listeners
-    
-    // Clear arrays and properties
-    this.tiles = [];
-  }
-  
-  /**
-   * Toggle biome visualization mode
-   * @param enabled Whether to enable biome visualization
-   */
-  toggleBiomeMode(enabled: boolean): void {
-    if (this.showBiomeMode !== enabled) {
-      this.showBiomeMode = enabled;
-      
-      // Force update all tiles with the new visualization mode
-      const board = actions.getBoard();
-      if (board) {
-        // Update tiles with the new visualization mode
-        this.updateTiles(board);
-      }
-    }
   }
 } 

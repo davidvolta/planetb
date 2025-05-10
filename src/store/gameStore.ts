@@ -1,3 +1,6 @@
+// ❗ DO NOT import useGameStore directly outside of actions.ts or StateSubscriptionManager.ts
+// Use the actions.ts API for all reads/writes to game state
+
 import { create } from "zustand";
 import { EvolutionController } from "../controllers/EvolutionController";
 import { initializeBoard as initGameBoard } from '../game/GameInitializer';
