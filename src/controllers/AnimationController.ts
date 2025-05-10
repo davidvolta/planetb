@@ -105,14 +105,6 @@ export class AnimationController {
       );
       const endWorldY = endPos.y + this.verticalOffset;
 
-      // Facing: flip based on actual world horizontal movement, ignore pure vertical moves
-      const dx = endPos.x - startPos.x;
-      if (dx > 0) {
-        sprite.setFlipX(true);
-      } else if (dx < 0) {
-        sprite.setFlipX(false);
-      }
-
       // Compute duration
       let duration = fixedDuration ?? Math.sqrt(
         (endPos.x - startPos.x) ** 2 +
@@ -172,6 +164,14 @@ export class AnimationController {
     if (!sprite) {
       console.error(`[AnimationController] Could not find sprite for animalId ${animalId}`);
       return;
+    }
+  
+    // Refetch animal state before animation
+    const animal = actions.getAnimals().find(a => a.id === animalId);
+    if (animal?.facingDirection === 'right') {
+      sprite.setFlipX(true);  // Default sprite faces left
+    } else {
+      sprite.setFlipX(false);
     }
   
     await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);

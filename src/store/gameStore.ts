@@ -55,6 +55,7 @@ export interface Animal {
   previousPosition: Coordinate | null; // Track previous position for direction calculation
   hasMoved: boolean; // Flag to track if animal has moved this turn
   ownerId: number | null; // Player ID that owns this animal, null if unowned
+  facingDirection: 'left' | 'right'; // New property to track sprite orientation
 }
 
 // Board structure

@@ -90,6 +90,12 @@ export class AnimalRenderer extends BaseRenderer {
         if (sprite.texture.key !== textureKey) {
           sprite.setTexture(textureKey);
         }
+        // Corrected sprite flipX logic
+        if (animal.facingDirection === 'right') {
+          sprite.setFlipX(true); // Default sprite faces left, so flipX=true = face right
+        } else {
+          sprite.setFlipX(false);
+        }
         this.updateSpriteInteractivity(sprite, animal);
         this.layerManager.removeFromLayer('units', sprite);
         this.layerManager.addToLayer('units', sprite);
@@ -101,6 +107,12 @@ export class AnimalRenderer extends BaseRenderer {
         animalSprite.setData('animalType', animal.species);
         animalSprite.setData('gridX', gridX);
         animalSprite.setData('gridY', gridY);
+        // Corrected sprite flipX logic
+        if (animal.facingDirection === 'right') {
+          animalSprite.setFlipX(true); // Default sprite faces left, so flipX=true = face right
+        } else {
+          animalSprite.setFlipX(false);
+        }
         this.updateSpriteInteractivity(animalSprite, animal);
         this.layerManager.addToLayer('units', animalSprite);
         this.animalSprites.set(animal.id, animalSprite);

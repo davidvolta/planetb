@@ -108,6 +108,7 @@ export function removeAnimal(id: string): void {
  * Add a new animal to the game state.
  */
 export function addAnimal(animal: Animal): void {
+  animal.facingDirection = 'left'; // Default to facing left
   useGameStore.getState().addAnimal(animal);
 }
 
@@ -241,6 +242,15 @@ export async function moveAnimal(id: string, x: number, y: number): Promise<void
   if (!legalMoves.some(m => m.x === x && m.y === y)) {
     throw new Error(`MoveAnimal failed: invalid move to (${x},${y})`);
   }
+
+  // Update direction before state update
+  const direction = x > animal.position.x ? 'right' : 'left';
+  useGameStore.setState(state => ({
+    animals: state.animals.map(a =>
+      a.id === id ? { ...a, facingDirection: direction } : a
+    )
+  }));
+
   useGameStore.getState().moveAnimal(id, x, y);
 }
 
