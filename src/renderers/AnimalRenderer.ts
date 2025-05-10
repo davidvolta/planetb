@@ -4,7 +4,6 @@ import { LayerManager } from '../managers/LayerManager';
 import { Animal } from '../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
-import { DisplacementEvent, BLANK_DISPLACEMENT_EVENT } from '../types/events';
 
 /**
  * Responsible for rendering and managing animal sprites
@@ -36,109 +35,83 @@ export class AnimalRenderer extends BaseRenderer {
    * Render all animals based on the provided animal data
    * @param animals Array of animal objects from the game state
    */
-  public renderAnimals(animals: Animal[], displacementEvent: DisplacementEvent = BLANK_DISPLACEMENT_EVENT): void {
-    const eggsLayer = this.layerManager.getEggsLayer();
-    const unitsLayer = this.layerManager.getUnitsLayer();
-    if (!eggsLayer || !unitsLayer) {
-      console.warn("Cannot render animal sprites - eggs or units layer not available");
-      return;
-    }
-
+  public renderAnimals(animals: Animal[]): void {
     const usedIds = new Set<string>();
 
     animals.forEach(animal => {
-      // If this is the displaced animal and the event is active, start it at its previous position
-      const gridX = (displacementEvent.occurred && displacementEvent.animalId === animal.id && displacementEvent.fromX !== null)
-        ? displacementEvent.fromX : animal.position.x;
-      const gridY = (displacementEvent.occurred && displacementEvent.animalId === animal.id && displacementEvent.fromY !== null)
-        ? displacementEvent.fromY : animal.position.y;
+      const gridX = animal.position.x;
+      const gridY = animal.position.y;
       const worldPosition = CoordinateUtils.gridToWorld(
         gridX, gridY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
-
       const worldX = worldPosition.x;
       const worldY = worldPosition.y + this.verticalOffset;
 
-      // Determine sprite key based on species, owner, and movement state
-      let textureKey: string;
-      if (animal.hasMoved) {
-        // Use base sprite when animal has moved
-        textureKey = animal.species;
-      } else {
-        // Use colored sprite when animal hasn't moved
-        if (animal.ownerId === 0) {
-          textureKey = `${animal.species}-pink`;
-        } else if (animal.ownerId === 1) {
-          textureKey = `${animal.species}-blue`;
-        } else {
-          textureKey = animal.species;
-        }
+      let textureKey = animal.species;
+      if (!animal.hasMoved) {
+        // Only apply color suffix when the animal is still active
+        if (animal.ownerId === 0) textureKey += '-pink';
+        else if (animal.ownerId === 1) textureKey += '-blue';
       }
+      if (!this.scene.textures.exists(textureKey)) textureKey = animal.species;
 
-      if (!this.scene.textures.exists(textureKey)) {
-        textureKey = animal.species;
-      }
-
-      const sprite = this.animalSprites.get(animal.id);
+      const existing = this.animalSprites.get(animal.id);
       const isActive = true;
 
-      if (sprite) {
+      if (existing) {
+        // Update position only if it changed
+        const prevX = existing.getData('gridX');
+        const prevY = existing.getData('gridY');
+        if (prevX !== gridX || prevY !== gridY) {
+          existing.setPosition(worldX, worldY);
+          existing.setDepth(computeDepth(gridX, gridY, isActive));
+          existing.setData('gridX', gridX);
+          existing.setData('gridY', gridY);
+        }
+
+        // Update flip direction
+        existing.setFlipX(animal.facingDirection === 'right');
+
+        // Update tint
+        if (animal.hasMoved) {
+          existing.setTint(0xAAAAAA);
+        } else {
+          existing.clearTint();
+        }
+
+        // Texture swap if species/ownership changed
+        if (existing.texture.key !== textureKey) {
+          existing.setTexture(textureKey);
+        }
+
+        this.layerManager.removeFromLayer('units', existing);
+        this.layerManager.addToLayer('units', existing);
+
         usedIds.add(animal.id);
-        sprite.setPosition(worldX, worldY);
+      } else {
+        const sprite = this.scene.add.sprite(worldX, worldY, textureKey);
         sprite.setScale(0.3333);
         sprite.setDepth(computeDepth(gridX, gridY, isActive));
-        if (sprite.texture.key !== textureKey) {
-          sprite.setTexture(textureKey);
-        }
-        // Corrected sprite flipX logic
-        if (animal.facingDirection === 'right') {
-          sprite.setFlipX(true); // Default sprite faces left, so flipX=true = face right
-        } else {
-          sprite.setFlipX(false);
-        }
-        this.updateSpriteInteractivity(sprite, animal);
-        this.layerManager.removeFromLayer('units', sprite);
+        sprite.setData('animalId', animal.id);
+        sprite.setData('animalType', animal.species);
+        sprite.setData('gridX', gridX);
+        sprite.setData('gridY', gridY);
+
+        sprite.setFlipX(animal.facingDirection === 'right');
+
         this.layerManager.addToLayer('units', sprite);
-      } else {
-        const animalSprite = this.scene.add.sprite(worldX, worldY, textureKey);
-        animalSprite.setScale(0.3333);
-        animalSprite.setDepth(computeDepth(gridX, gridY, isActive));
-        animalSprite.setData('animalId', animal.id);
-        animalSprite.setData('animalType', animal.species);
-        animalSprite.setData('gridX', gridX);
-        animalSprite.setData('gridY', gridY);
-        // Corrected sprite flipX logic
-        if (animal.facingDirection === 'right') {
-          animalSprite.setFlipX(true); // Default sprite faces left, so flipX=true = face right
-        } else {
-          animalSprite.setFlipX(false);
-        }
-        this.updateSpriteInteractivity(animalSprite, animal);
-        this.layerManager.addToLayer('units', animalSprite);
-        this.animalSprites.set(animal.id, animalSprite);
+        this.animalSprites.set(animal.id, sprite);
         usedIds.add(animal.id);
       }
     });
 
+    // Cleanup sprites for animals that were removed
     this.animalSprites.forEach((sprite, id) => {
       if (!usedIds.has(id)) {
         sprite.destroy();
         this.animalSprites.delete(id);
       }
     });
-  }
-  
-  /**
-   * Update sprite interactivity and appearance based on animal state
-   * @param sprite The sprite to update
-   * @param animal The animal data
-   */
-  private updateSpriteInteractivity(sprite: Phaser.GameObjects.Sprite, animal: Animal): void {
-    if (animal.hasMoved) {
-      sprite.setTint(0xAAAAAA);
-    } else {
-      sprite.clearTint();
-    }
   }
   
   /**

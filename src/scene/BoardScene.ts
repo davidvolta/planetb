@@ -263,7 +263,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Handle animal spawned events
-  public handleSpawnEvent(animalId: string) {
+  public handleSpawnEvent(animalId: string): void {
     if (!animalId) return;
     if (actions.getFogOfWarEnabled()) {
       const animal = actions.getAnimals().find(a => a.id === animalId);
@@ -271,6 +271,9 @@ export default class BoardScene extends Phaser.Scene {
         this.visibilityController.revealAround(animal.position.x, animal.position.y);
       }
     }
+    // Ensure animal sprites are updated after spawn
+    const updatedAnimals = actions.getAnimals();
+    this.animalRenderer.renderAnimals(updatedAnimals);
   }
 
   // Update method called each frame

@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
-import { LayerManager } from '../managers/LayerManager';
 import { Egg } from '../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
@@ -25,13 +24,13 @@ export class EggRenderer extends BaseRenderer {
    * @param eggs Array of egg objects from the game state
    */
   public renderEggs(eggs: Egg[]): void {
-    this.clearEggs();
-
     const eggsLayer = this.layerManager.getEggsLayer();
     if (!eggsLayer) {
       console.warn("Cannot render eggs - eggs layer not available");
       return;
     }
+
+    const usedIds = new Set<string>();
 
     for (const egg of eggs) {
       const { id, position } = egg;
@@ -41,19 +40,45 @@ export class EggRenderer extends BaseRenderer {
       );
       const worldX = worldPos.x;
       const worldY = worldPos.y + this.verticalOffset;
-      const sprite = this.scene.add.sprite(worldX, worldY, 'egg');
-      sprite.setOrigin(0.5, 1);
-      sprite.setScale(0.3333);
-      // Depth matches active unit logic
-      sprite.setDepth(computeDepth(x, y, true));
 
-      sprite.setData('eggId', id);
-      sprite.setData('gridX', x);
-      sprite.setData('gridY', y);
+      const existing = this.eggSprites.get(id);
+      if (existing) {
+        // Update position only if needed
+        const prevX = existing.getData('gridX');
+        const prevY = existing.getData('gridY');
+        if (prevX !== x || prevY !== y) {
+          existing.setPosition(worldX, worldY);
+          existing.setDepth(computeDepth(x, y, true));
+          existing.setData('gridX', x);
+          existing.setData('gridY', y);
+        }
 
-      this.layerManager.addToLayer('eggs', sprite);
-      this.eggSprites.set(id, sprite);
+        this.layerManager.removeFromLayer('eggs', existing);
+        this.layerManager.addToLayer('eggs', existing);
+
+        usedIds.add(id);
+      } else {
+        const sprite = this.scene.add.sprite(worldX, worldY, 'egg');
+        sprite.setOrigin(0.5, 1);
+        sprite.setScale(0.3333);
+        sprite.setDepth(computeDepth(x, y, true));
+        sprite.setData('eggId', id);
+        sprite.setData('gridX', x);
+        sprite.setData('gridY', y);
+
+        this.layerManager.addToLayer('eggs', sprite);
+        this.eggSprites.set(id, sprite);
+        usedIds.add(id);
+      }
     }
+
+    // Remove any eggs that no longer exist
+    this.eggSprites.forEach((sprite, id) => {
+      if (!usedIds.has(id)) {
+        sprite.destroy();
+        this.eggSprites.delete(id);
+      }
+    });
   }
 
   /**
