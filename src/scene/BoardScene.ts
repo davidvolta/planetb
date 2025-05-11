@@ -227,7 +227,7 @@ export default class BoardScene extends Phaser.Scene {
     this.anchorY = anchorY;
     
     // Use TileRenderer to create all board tiles
-    this.tileRenderer.createBoardTiles(board, anchorX, anchorY);
+    this.tileRenderer.renderBoard(board, anchorX, anchorY);
     
     // Initialize renderers after tiles are created
     this.selectionRenderer.initialize(anchorX, anchorY);

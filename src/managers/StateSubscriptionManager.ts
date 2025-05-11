@@ -111,7 +111,7 @@ export class StateSubscriptionManager {
         
         // Only create board tiles on initial render
         if (!previousBoard) {
-          this.tileRenderer.createBoardTiles(board);
+          this.tileRenderer.renderBoard(board);
         }
       },
       { 
