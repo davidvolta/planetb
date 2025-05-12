@@ -9,9 +9,7 @@ export class SubscriptionBinder {
     const subscriptionManager = this.scene.getSubscriptionManager();
 
     subscriptionManager.initialize({
-      moveRangeRenderer: this.scene.getMoveRangeRenderer(),
       tileRenderer: this.scene.getTileRenderer(),
-      selectionRenderer: this.scene.getSelectionRenderer(),
     });
 
     // No explicit callbacks needed for selection; handled by TileInteractionController and subscription manager

@@ -83,6 +83,8 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer.setupSubscriptions();
     this.biomeRenderer.setupSubscriptions();
     this.eggRenderer.setupSubscriptions();
+    this.moveRangeRenderer.setupSubscriptions();
+    this.selectionRenderer.setupSubscriptions();
   }
 
   // Preload assets needed for the scene

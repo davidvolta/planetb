@@ -3,6 +3,7 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { ValidMove } from '../store/gameStore';
 import { BaseRenderer } from './BaseRenderer';
+import { StateObserver } from '../utils/stateObserver';
 
 /**
  * Responsible for rendering and managing move range highlights
@@ -25,6 +26,26 @@ export class MoveRangeRenderer extends BaseRenderer {
     tileHeight: number
   ) {
     super(scene, layerManager, tileSize, tileHeight);
+  }
+  
+  /**
+   * Set up state subscriptions for move range rendering
+   */
+  public setupSubscriptions(): void {
+    StateObserver.subscribe(
+      'MoveRangeRenderer.validMoves',
+      (state) => ({ 
+        validMoves: state.validMoves, 
+        moveMode: state.moveMode 
+      }),
+      (moveState) => {
+        if (moveState.moveMode) {
+          this.showMoveRange(moveState.validMoves, moveState.moveMode);
+        } else {
+          this.clearMoveHighlights();
+        }
+      }
+    );
   }
   
   /**

@@ -1,9 +1,7 @@
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import BoardScene from '../scene/BoardScene';
-import { SelectionRenderer, SelectionType } from '../renderers/SelectionRenderer';
 import { TileRenderer } from '../renderers/TileRenderer';
-import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
 
 // Component interfaces: These define the contracts that components must fulfill to receive state updates
 
@@ -13,9 +11,7 @@ export class StateSubscriptionManager {
   private scene: BoardScene;
   
   // Renderers and controllers
-  private moveRangeRenderer!: MoveRangeRenderer;
   private tileRenderer!: TileRenderer;
-  private selectionRenderer!: SelectionRenderer;
   
   // Track initialization and subscription state
   private initialized: boolean = false;
@@ -23,15 +19,9 @@ export class StateSubscriptionManager {
   
   // Define subscription keys to ensure consistency
   public static readonly SUBSCRIPTIONS = {
-    // Board state subscriptions
-    BOARD: 'StateSubscriptionManager.board',
-
-    
     // Interaction state subscriptions
-    VALID_MOVES: 'StateSubscriptionManager.validMoves',
     DISPLACEMENT: 'StateSubscriptionManager.displacement',
     SPAWN: 'StateSubscriptionManager.spawn',
-    SELECTION: 'StateSubscriptionManager.selection',
   };
   
   // Create a new StateSubscriptionManager
@@ -41,13 +31,9 @@ export class StateSubscriptionManager {
   
   // Initialize all renderers and controllers
   public initialize(renderers: {
-    moveRangeRenderer: MoveRangeRenderer;
     tileRenderer: TileRenderer;
-    selectionRenderer: SelectionRenderer;
   }): void {
-    this.moveRangeRenderer = renderers.moveRangeRenderer;
-    this.tileRenderer = renderers.tileRenderer; 
-    this.selectionRenderer = renderers.selectionRenderer;
+    this.tileRenderer = renderers.tileRenderer;
     
     // Mark as initialized
     this.initialized = true;
@@ -67,52 +53,12 @@ export class StateSubscriptionManager {
       return;
     }
     
-    this.setupBoardSubscriptions();
     this.setupInteractionSubscriptions();
-    this.setupSelectionSubscriptions();
     this.subscriptionsSetup = true;  // Mark subscriptions as set up
-  }
-  
-  // Set up subscriptions related to the game board
-  private setupBoardSubscriptions(): void {
-    
-    // Subscribe to board changes
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.BOARD,
-      (state) => state.board,
-      (board, previousBoard) => {
-        if (!board) return;
-        
-        // Only create board tiles on initial render
-        if (!previousBoard) {
-          this.tileRenderer.renderBoard(board);
-        }
-      },
-      { 
-        immediate: true, // Render immediately on subscription to handle initial state
-        debug: false 
-      }
-    );
   }
   
   // Set up subscriptions related to user interactions and gameplay events
   private setupInteractionSubscriptions(): void {
-    // Subscribe to valid moves changes
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.VALID_MOVES,
-      (state) => ({ 
-        validMoves: state.validMoves, 
-        moveMode: state.moveMode 
-      }),
-      (moveState) => {
-        if (moveState.moveMode) {
-          this.moveRangeRenderer.showMoveRange(moveState.validMoves, moveState.moveMode);
-        } else {
-          this.moveRangeRenderer.clearMoveHighlights();
-        }
-      }
-    );
-    
     // Subscribe to displacement events
     StateObserver.subscribe(
       StateSubscriptionManager.SUBSCRIPTIONS.DISPLACEMENT,
@@ -139,58 +85,6 @@ export class StateSubscriptionManager {
           actions.clearSpawnEvent();
         }
       }
-    );
-  }
-  
-  // Centralize selection UI based on store state
-  private setupSelectionSubscriptions(): void {
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.SELECTION,
-      (state) => ({
-        animalId: state.selectedAnimalID,
-        resource: state.selectedResource,
-        biomeId: state.selectedBiomeId,
-        eggId: state.selectedEggId
-      }),
-      (sel) => {
-        // Clear existing selection visuals
-        this.selectionRenderer.hideSelection();
-        // Priority: unit, resource, biome
-        if (sel.animalId) {
-          const unit = actions.getAnimals().find(a => a.id === sel.animalId);
-          if (unit) {
-            const x = unit.position.x;
-            const y = unit.position.y;
-            this.selectionRenderer.showSelection(x, y, SelectionType.Move);
-          }
-          return;
-        }
-        if (sel.eggId) {
-          const egg = actions.getEggs()[sel.eggId];
-          if (egg) {
-            const { x, y } = egg.position;
-            this.selectionRenderer.showSelection(x, y, SelectionType.Action);
-          } else {
-            // Egg no longer exists (hatched), clear selection
-            actions.selectEgg(null);
-          }
-          return;
-        }        
-        if (sel.resource) {
-          this.selectionRenderer.showSelection(sel.resource.x, sel.resource.y, SelectionType.Action);
-          return;
-        }
-        if (sel.biomeId) {
-          const biome = actions.getBiomes().get(sel.biomeId);
-          if (biome) {
-            const { x, y } = biome.habitat.position;
-            this.selectionRenderer.showSelection(x, y, SelectionType.Action);
-          }
-          return;
-        }
-        // No selection: nothing to do (already cleared)
-      },
-      { immediate: true, debug: false }
     );
   }
   

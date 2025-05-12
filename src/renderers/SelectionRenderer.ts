@@ -3,6 +3,7 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
 import * as actions from '../store/actions';
+import { StateObserver } from '../utils/stateObserver';
 
 // Types of selection states to differentiate behavior
 export enum SelectionType {
@@ -26,6 +27,65 @@ export class SelectionRenderer extends BaseRenderer {
     tileHeight: number
   ) {
     super(scene, layerManager, tileSize, tileHeight);
+  }
+  
+  /**
+   * Set up state subscriptions for selection rendering
+   */
+  public setupSubscriptions(): void {
+    StateObserver.subscribe(
+      'SelectionRenderer.selection',
+      (state) => ({
+        animalId: state.selectedAnimalID,
+        resource: state.selectedResource,
+        biomeId: state.selectedBiomeId,
+        eggId: state.selectedEggId
+      }),
+      (sel) => {
+        // Clear existing selection visuals
+        this.hideSelection();
+        
+        // Priority: unit, resource, biome
+        if (sel.animalId) {
+          const unit = actions.getAnimals().find(a => a.id === sel.animalId);
+          if (unit) {
+            const x = unit.position.x;
+            const y = unit.position.y;
+            this.showSelection(x, y, SelectionType.Move);
+          }
+          return;
+        }
+        
+        if (sel.eggId) {
+          const egg = actions.getEggs()[sel.eggId];
+          if (egg) {
+            const { x, y } = egg.position;
+            this.showSelection(x, y, SelectionType.Action);
+          } else {
+            // Egg no longer exists (hatched), clear selection
+            actions.selectEgg(null);
+          }
+          return;
+        }
+        
+        if (sel.resource) {
+          this.showSelection(sel.resource.x, sel.resource.y, SelectionType.Action);
+          return;
+        }
+        
+        if (sel.biomeId) {
+          const biome = actions.getBiomes().get(sel.biomeId);
+          if (biome) {
+            const { x, y } = biome.habitat.position;
+            this.showSelection(x, y, SelectionType.Action);
+          }
+          return;
+        }
+        
+        // No selection: nothing to do (already cleared)
+      },
+      { immediate: true, debug: false }
+    );
   }
   
   // Helper to draw a diamond on a graphics object with given style
