@@ -4,6 +4,7 @@ import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { MovementController } from '../controllers/MovementController';
 import { BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT, BLANK_DISPLACEMENT_EVENT } from '../types/events';
+import type { Resource } from './gameStore';
 
 
 // =============================================================================
@@ -661,7 +662,7 @@ export function resetResources(
     return;
   }
 
-  // Shallow-copy each tile, only overriding resource fields as needed
+  // Shallow-copy tiles & clear resource fields first
   const clonedTiles = board.tiles.map(row =>
     row.map(tile => ({
       ...tile,
@@ -672,28 +673,42 @@ export function resetResources(
   );
   const newBoard: Board = { ...board, tiles: clonedTiles };
 
-  // Reset existing biome counts in place
   const biomesMap = state.biomes;
-  biomesMap.forEach(biome => {
-    biome.initialResourceCount = 0;
-    biome.nonDepletedCount = 0;
-    biome.totalHarvested = 0;
+  biomesMap.forEach(b => {
+    b.initialResourceCount = 0;
+    b.nonDepletedCount = 0;
+    b.totalHarvested = 0;
   });
 
-  // Delegate resource generation to controller (mutates newBoard & biomesMap)
   EcosystemController.resetResources(
     newBoard,
     biomesMap,
     resourceChance
   );
 
-  // Commit new board and biomes together
-  useGameStore.setState({ board: newBoard, biomes: biomesMap });
+  // Build resources record (double-write)
+  const resourcesRecord: Record<string, Resource> = {};
+  for (let y = 0; y < newBoard.height; y++) {
+    for (let x = 0; x < newBoard.width; x++) {
+      const tile = newBoard.tiles[y][x];
+      if (tile.resourceType) {
+        const key = `${x},${y}`;
+        resourcesRecord[key] = {
+          id: key,
+          position: { x, y },
+          type: tile.resourceType,
+          biomeId: tile.biomeId,
+          value: tile.resourceValue,
+          active: tile.active,
+        } as Resource;
+      }
+    }
+  }
 
-  // Update lushness for each biome
-  biomesMap.forEach((_b, biomeId) => {
-    updateBiomeLushness(biomeId);
-  });
+  // Commit state
+  useGameStore.setState({ board: newBoard, biomes: biomesMap, resources: resourcesRecord });
+
+  biomesMap.forEach((_b, biomeId) => updateBiomeLushness(biomeId));
 }
 
 
@@ -882,4 +897,14 @@ export function getFogOfWarEnabled(): boolean {
 
 export function getFullGameState() {
   return useGameStore.getState();
+}
+
+// GET RESOURCES
+export function getResources(): Record<string, Resource> {
+  return useGameStore.getState().resources;
+}
+
+export function getResourceAt(x: number, y: number): Resource | undefined {
+  const key = `${x},${y}`;
+  return useGameStore.getState().resources[key];
 }

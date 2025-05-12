@@ -26,3 +26,10 @@
 
 ## REFACTORING
 - [ ] Rewrite TileInteractionController to fully route all click handling through the GameController facade
+- [ ] Decouple resources from Tile (multi-phase)
+  - [ ] Phase 1 – Add `resources` record slice (double-write / single-read)
+  - [ ] Phase 2 – ResourceRenderer consumes `playerView.resources`
+  - [ ] Phase 3 – Remove `resource*` fields from `Tile`
+  - [ ] Phase 4 – EcosystemController works off resources list
+  - [ ] Phase 5 – Eliminate remaining tile-resource coupling in helpers & selectors
+  - [ ] Phase 6 – Cleanup, automated smoke tests & stability pass

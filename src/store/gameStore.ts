@@ -86,6 +86,8 @@ export interface Resource {
   type: ResourceType;
   position: Coordinate;
   biomeId: string | null; // Add biome ID to track which biome each resource belongs to
+  value: number; // current remaining value (0-10)
+  active: boolean; // whether resource is still harvestable
 }
 
 // Egg structure for Animal/Egg refactor Phase 1
@@ -106,6 +108,7 @@ export interface GameState {
   animals: Animal[];
   biomes: Map<string, Biome>; // Track biomes by ID
   eggs: Record<string, Egg>;
+  resources: Record<string, Resource>;
   selectedEggId: string | null;
   
   // Movement state
@@ -154,6 +157,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   animals: [],
   biomes: new Map(),
   eggs: {},
+  resources: {},
   selectedEggId: null,
   
   selectedAnimalID: null,
@@ -274,6 +278,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         board,
         animals,
         biomes,
+        resources: {}, // will be filled by resetResources later
         players: seededPlayers
       };
     }),
