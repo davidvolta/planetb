@@ -78,13 +78,7 @@ export default class BoardScene extends Phaser.Scene {
     this.animationController = new AnimationController(this, this.tileSize, this.tileHeight, this.animalRenderer);
     this.visibilityController = new VisibilityController(this.fogOfWarRenderer);
 
-    // Set up renderer subscriptions
-    this.resourceRenderer.setupSubscriptions();
-    this.animalRenderer.setupSubscriptions();
-    this.biomeRenderer.setupSubscriptions();
-    this.eggRenderer.setupSubscriptions();
-    this.moveRangeRenderer.setupSubscriptions();
-    this.selectionRenderer.setupSubscriptions();
+    // Renderer subscriptions have been moved to setupRendererSubscriptions method
   }
 
   // Preload assets needed for the scene
@@ -173,6 +167,11 @@ export default class BoardScene extends Phaser.Scene {
 
     this.turnController = new TurnController(this.gameController, GameEnvironment.mode);
 
+    // Set up subscriptions
+    this.setupRendererSubscriptions();
+    this.setupDisplacementSubscription();
+    this.setupSpawnSubscription();
+
     const subscriptions = new SubscriptionBinder(this);
     subscriptions.bind();
 
@@ -194,9 +193,8 @@ export default class BoardScene extends Phaser.Scene {
     // Update animal rendering logic
     this.animalRenderer.renderAnimals(this.currentPlayerView?.animals ?? []);
 
-    // Update egg rendering logic
-    const eggs = this.currentPlayerView?.eggs ?? [];
-    this.eggRenderer.renderEggs(eggs);
+    // Update egg rendering logic - compress into one line
+    this.eggRenderer.renderEggs(this.currentPlayerView?.eggs ?? []);
   }
   
   // Clean up all subscriptions to prevent memory leak
@@ -507,5 +505,43 @@ keyboard.on('keydown-T', async () => {
     const playerId = actions.getActivePlayerId();
     const fullState = getFullGameState();
     this.currentPlayerView = getPlayerView(fullState, playerId);
+  }
+
+  // Set up renderer subscriptions
+  setupRendererSubscriptions(): void {
+    this.resourceRenderer.setupSubscriptions();
+    this.animalRenderer.setupSubscriptions();
+    this.biomeRenderer.setupSubscriptions();
+    this.eggRenderer.setupSubscriptions();
+    this.moveRangeRenderer.setupSubscriptions();
+    this.selectionRenderer.setupSubscriptions();
+  }
+
+  // Set up displacement event subscription
+  setupDisplacementSubscription(): void {
+    StateObserver.subscribe(
+      'BoardScene.displacement',
+      (state) => state.displacementEvent,
+      (displacementEvent) => {
+        if (displacementEvent && displacementEvent.occurred) {
+          const { animalId, fromX, fromY, toX, toY } = displacementEvent;
+          this.handleDisplacementEvent(animalId!, fromX!, fromY!, toX!, toY!);
+        }
+      }
+    );
+  }
+
+  // Set up spawn event subscription
+  setupSpawnSubscription(): void {
+    StateObserver.subscribe(
+      'BoardScene.spawn',
+      (state) => state.spawnEvent,
+      (spawnEvent) => {
+        if (spawnEvent && spawnEvent.occurred) {
+          this.handleSpawnEvent(spawnEvent.animalId!);
+          actions.clearSpawnEvent();
+        }
+      }
+    );
   }
 }
