@@ -41,7 +41,7 @@ export type TileFilterFn = (tile: any, x: number, y: number) => boolean;
 export function setupGameBoard({ width, height }: BoardInitOptions): void {
   useGameStore.getState().initializeBoard(width, height);
   // Immediately seed the board with initial resources so the first turn is fully populated
-  //resetResources();
+  resetResources();
 }
 
 /**
