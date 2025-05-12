@@ -31,28 +31,6 @@ export interface TileResult {
 export type TileFilterFn = (tile: any, x: number, y: number) => boolean;
 
 // =============================================================================
-// RESOURCE HELPERS (temporary shim during migration)
-// =============================================================================
-export function syncResourcesToTiles(resources: Record<string, Resource>, board: Board): void {
-  for (let y = 0; y < board.height; y++) {
-    for (let x = 0; x < board.width; x++) {
-      const key = `${x},${y}`;
-      const res = resources[key];
-      const tile = board.tiles[y][x];
-      if (res) {
-        tile.resourceType = res.type;
-        tile.resourceValue = res.value;
-        tile.active = res.active;
-      } else {
-        tile.resourceType = null;
-        tile.resourceValue = 0;
-        tile.active = false;
-      }
-    }
-  }
-}
-
-// =============================================================================
 // GAME STATE MANAGEMENT
 // =============================================================================
 
@@ -62,6 +40,8 @@ export function syncResourcesToTiles(resources: Record<string, Resource>, board:
  */
 export function setupGameBoard({ width, height }: BoardInitOptions): void {
   useGameStore.getState().initializeBoard(width, height);
+  // Immediately seed the board with initial resources so the first turn is fully populated
+  //resetResources();
 }
 
 /**
@@ -410,7 +390,6 @@ export async function captureBiome(biomeId: string): Promise<void> {
   useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: newAnimals, eggs: updatedEggsRecord });
   // Recalculate lushness for this biome
   await updateBiomeLushness(biomeId);
-
 }
 
 /**
@@ -467,8 +446,7 @@ export async function updateBiomeLushness(biomeId: string): Promise<void> {
     totalLushness,
   };
   // Commit updated biomes map in one state update
-  const updatedBiomes = new Map(state.biomes);
-  updatedBiomes.set(biomeId, updatedBiome);
+  const updatedBiomes = EcosystemController.recalcBiomeLushness(state.biomes, biomeId, state.board!, state.resources);
   useGameStore.setState({ biomes: updatedBiomes });
 }
 
@@ -531,12 +509,19 @@ export function getTilesByFilter(filterFn: TileFilterFn): TileResult[] {
 }
 
 /**
+ * Quick helper to determine if a resource exists at X,Y
+ */
+function resourceExists(x: number, y: number, resources: Record<string, Resource>): boolean {
+  return `${x},${y}` in resources;
+}
+
+/**
  * Get all blank tiles (no resources, not habitats, no eggs)
- * @returns Array of blank tiles with their positions
  */
 export function getBlankTiles(): TileResult[] {
+  const resources = useGameStore.getState().resources;
   return getTilesByFilter((tile, x, y) =>
-    !tile.active && !tile.isHabitat && !tileHasEgg(x, y)
+    !resourceExists(x, y, resources) && !tile.isHabitat && !tileHasEgg(x, y)
   );
 }
 
@@ -576,13 +561,12 @@ export function getTilesByTerrain(terrainType: TerrainType): TileResult[] {
 
 /**
  * Get blank tiles suitable for egg placement in a specific biome
- * @param biomeId The ID of the biome
- * @returns Array of blank tiles in the biome suitable for egg placement
  */
 export function getEggPlacementTiles(biomeId: string): TileResult[] {
+  const resources = useGameStore.getState().resources;
   return getTilesByFilter((tile, x, y) =>
     tile.biomeId === biomeId &&
-    !tile.active &&
+    !resourceExists(x, y, resources) &&
     !tile.isHabitat &&
     !tileHasEgg(x, y)
   );
@@ -602,10 +586,6 @@ export function getResourceTiles(): TileResult[] {
         coordinate: { ...r.position },
         terrain: state.board!.tiles[r.position.y][r.position.x].terrain,
         biomeId: r.biomeId,
-        // Deprecated fields kept for compatibility
-        resourceType: r.type,
-        resourceValue: r.value,
-        active: r.active,
         isHabitat: false
       } as any,
       x: r.position.x,
@@ -664,8 +644,7 @@ export async function harvestTileResource(amount: number): Promise<void> {
       : a
   );
 
-  // Sync for legacy paths then commit
-  syncResourcesToTiles(newResources, newBoard);
+  // Commit updated state
   useGameStore.setState({ board: newBoard, players: newPlayers, biomes: newBiomes, animals: updatedAnimals, resources: newResources });
 
   // Refresh lushness for this biome
@@ -709,14 +688,9 @@ export function resetResources(
     return;
   }
 
-  // Shallow-copy tiles & clear resource fields first
+  // Shallow-copy tiles only (resource data lives in resources slice)
   const clonedTiles = board.tiles.map(row =>
-    row.map(tile => ({
-      ...tile,
-      active: tile.isHabitat ? tile.active : false,
-      resourceType: tile.isHabitat ? tile.resourceType : null,
-      resourceValue: tile.isHabitat ? tile.resourceValue : 0,
-    }))
+    row.map(tile => ({ ...tile }))
   );
   const newBoard: Board = { ...board, tiles: clonedTiles };
 
@@ -733,10 +707,7 @@ export function resetResources(
     resourceChance
   );
 
-  // Sync resources onto tiles for legacy code paths (temporary)
-  syncResourcesToTiles(resourcesRecord, newBoard);
-
-  // Commit state
+  // Commit board and resources
   useGameStore.setState({ board: newBoard, biomes: biomesMap, resources: resourcesRecord });
 
   biomesMap.forEach((_b, biomeId) => updateBiomeLushness(biomeId));
@@ -839,10 +810,10 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
   // Regenerate resources for these biomes (resources slice only)
   const newResources = EcosystemController.regenerateResources(state.resources, playerBiomes);
 
-  // Sync regenerated resources back onto tiles for legacy code paths
-  syncResourcesToTiles(newResources, board);
+  // Update resources slice
+  useGameStore.setState({ resources: newResources });
 
-  const newBoard = board; // board tiles have been mutated by syncResourcesToTiles
+  const newBoard = board; // board snapshot (tile data is immutable; resources live separately)
    
   // Produce eggs via new EggProducer
   const { EggProducer } = await import('../controllers/EggProducer');
@@ -850,7 +821,8 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
     turn,
     playerId,
     newBoard,
-    playerBiomes
+    playerBiomes,
+    newResources
   );
 
   newEggs.forEach(addEgg);

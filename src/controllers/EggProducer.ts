@@ -17,12 +17,14 @@ export class EggProducer {
    * @param board Current board snapshot (not mutated)
    * @param biomes Biome map (will be cloned & updated)
    * @param existingEggs Existing eggs record – used to avoid double-ids
+   * @param resources Current resources record
    */
   static produce(
     turn: number,
     playerId: number,
     board: Board,
     biomes: Map<string, Biome>,
+    resources: Record<string, import('../store/gameStore').Resource>
   ): ProduceResult {
     const updatedBiomes = new Map(biomes);
     const newEggs: Egg[] = [];
@@ -36,6 +38,7 @@ export class EggProducer {
       const placementTiles = EcosystemController.getValidEggPlacementTiles(
         biomeId,
         board,
+        resources,
         biomes
       );
       if (placementTiles.length === 0) return;

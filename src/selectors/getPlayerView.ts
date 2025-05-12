@@ -1,4 +1,4 @@
-import type { GameState, Animal, Egg, Biome, Board, Tile, Resource } from '../store/gameStore';
+import type { GameState, Biome, Board, Tile, Resource } from '../store/gameStore';
 
 export function getPlayerView(state: GameState, playerId: number) {
   const player = state.players.find(p => p.id === playerId);
@@ -42,9 +42,6 @@ export function getPlayerView(state: GameState, playerId: number) {
           coordinate: tile.coordinate,
           terrain: tile.terrain, // You may choose a default like 'blank' here if needed
           biomeId: null,
-          resourceType: null,
-          resourceValue: 0,
-          active: false,
           isHabitat: false
         };
       }
@@ -59,16 +56,30 @@ export function getPlayerView(state: GameState, playerId: number) {
     tiles: maskedTiles
   };
 
-  // Add resourceTiles and blankTiles to the player view
-  const resourceTiles = maskedTiles.flat().filter(tile => tile.resourceType !== null && tile.active);
-  const blankTiles = maskedTiles.flat().filter(tile => !tile.active && !tile.isHabitat && tile.resourceType === null);
+  // Build resource sets based on resources slice
+  const resourcesArr: Resource[] = Object.values(state.resources);
 
-  // Filter resources: owned-biome resources or visible coords
-  const resources: Resource[] = Object.values(state.resources).filter(r => {
+  // Visible / owned filters
+  const filteredResources = resourcesArr.filter(r => {
     const coordKey = `${r.position.x},${r.position.y}`;
     const ownedBiome = r.biomeId ? state.biomes.get(r.biomeId)?.ownerId === playerId : false;
     return ownedBiome || visibleTiles.has(coordKey);
   });
+
+  const resourceCoordSet = new Set(filteredResources.map(r => `${r.position.x},${r.position.y}`));
+
+  // Derive resourceTiles and blankTiles for UI helpers
+  const resourceTiles = filteredResources.map(r => {
+    const tile = state.board!.tiles[r.position.y][r.position.x];
+    return tile;
+  });
+
+  const blankTiles = maskedTiles.flat().filter(tile => {
+    const key = `${tile.coordinate.x},${tile.coordinate.y}`;
+    return !resourceCoordSet.has(key) && !tile.isHabitat;
+  });
+
+  const resources = filteredResources;
 
   return {
     playerId,

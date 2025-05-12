@@ -206,9 +206,6 @@ export default class BoardScene extends Phaser.Scene {
 
     // Obtain full resources record for initial render
     const fullResourcesArray = Object.values(actions.getResources());
-    if (fullResourcesArray.length === 0) {
-      this.resetResources();
-    }
 
     if (!this.controlsSetup) {
       this.setupInputHandlers();

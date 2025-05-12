@@ -28,9 +28,6 @@ export function initializeBoard(
         coordinate: { x, y },
         terrain: terrainData[y][x],
         biomeId: null,
-        resourceType: null,
-        resourceValue: 0,
-        active: false,
         isHabitat: false,
       };
     }
@@ -147,7 +144,8 @@ export function initializeBoard(
         position: choice,
         previousPosition: null,
         hasMoved: false,
-        ownerId: playerId
+        ownerId: playerId,
+        facingDirection: 'right'
       };
       animals.push(newAnimal);
     }

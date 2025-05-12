@@ -124,12 +124,6 @@ export class EcosystemController {
         const type = terrainToResource[terrain];
         if (!type) return;
 
-        // Mutate tile for legacy paths (will be removed in Phase 6)
-        const t = board.tiles[y][x];
-        t.resourceType = type;
-        t.resourceValue = 10;
-        t.active = true;
-
         // Build resource object
         const key = `${x},${y}`;
         resourcesRecord[key] = {
@@ -156,12 +150,14 @@ export class EcosystemController {
    * 
    * @param biomeId The ID of the biome to find valid egg placement tiles for
    * @param board The game board
+   * @param resources Record of all resources in the game
    * @param allBiomes Map of all biomes
    * @returns Array of valid tile coordinates for egg placement, prioritized by proximity to resources in owned biomes
    */
   public static getValidEggPlacementTiles(
     biomeId: string,
     board: Board,
+    resources: Record<string, import('../store/gameStore').Resource>,
     allBiomes: Map<string, Biome>
   ): Coordinate[] {
     if (!board) return [];
@@ -198,7 +194,8 @@ export class EcosystemController {
         const ny = y + dy;
         if (nx < 0 || ny < 0 || nx >= board.width || ny >= board.height) return;
         const t = board.tiles[ny][nx];
-        if (t.active && t.resourceType) {
+        const hasRes = `${nx},${ny}` in resources && resources[`${nx},${ny}`].active;
+        if (hasRes) {
           score += (t.biomeId && playerBiomeIds.has(t.biomeId)) ? 3 : 1;
         }
       });
@@ -231,24 +228,32 @@ export class EcosystemController {
    * Calculate the percentage of blank tiles in a biome that have eggs
    * @param biomeId ID of the biome to calculate for
    * @param board The game board
-   * @param biome The biome object with up-to-date eggCount
+   * @param resources Record of all resources in the game
    * @returns Percentage (0-1) of blank tiles that have eggs
    */
-  private static calculateEggPercentage(biomeId: string, board: Board,): number {
+  private static calculateEggPercentage(
+    biomeId: string,
+    board: Board,
+    resources: Record<string, import('../store/gameStore').Resource>
+  ): number {
     const biomeTiles = this.getBoardTilesForBiome(board, biomeId);
-    const blankTiles = biomeTiles.filter(({ tile }) =>
-      !tile.active && !tile.isHabitat
+
+    // Build a quick lookup of resource coords that are active
+    const activeResourceCoords = new Set<string>();
+    Object.values(resources).forEach(r => {
+      if (r.biomeId === biomeId && r.active) {
+        activeResourceCoords.add(`${r.position.x},${r.position.y}`);
+      }
+    });
+
+    // Blank tiles = not a habitat and no active resource on coord
+    const blankTiles = biomeTiles.filter(({ tile, x, y }) =>
+      !tile.isHabitat && !activeResourceCoords.has(`${x},${y}`)
     );
-    
-    // If no blank tiles, return 0
-    if (blankTiles.length === 0) {
-      return 0;
-    }
-    
-    // Derive current egg count using the action helper
+
+    if (blankTiles.length === 0) return 0;
+
     const eggCount = getEggCountForBiome(biomeId);
-    
-    // Calculate and return percentage
     return eggCount / blankTiles.length;
   }
 
@@ -284,7 +289,7 @@ export class EcosystemController {
     if (initialTotal > 0) {
       baseLushness = (currentTotal / initialTotal) * MAX_LUSHNESS;
     }
-    const eggPercentage = this.calculateEggPercentage(biomeId, board);
+    const eggPercentage = this.calculateEggPercentage(biomeId, board, resources);
     const lushnessBoost = this.calculateLushnessBoost(eggPercentage);
     return {
       baseLushness,
