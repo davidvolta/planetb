@@ -377,11 +377,14 @@ keyboard.on('keydown-T', async () => {
     const playerId = actions.getActivePlayerId();
     const fullState = getFullGameState();
     this.currentPlayerView = getPlayerView(fullState, playerId);
+  
+    // Trigger re-rendering for player-visible resource set
+    const visibleResources = this.currentPlayerView?.resources ?? [];
+    this.resourceRenderer.renderResources(visibleResources);
   }
 
   private setupAllSubscriptions(): void {
     // Renderer subscriptions
-    this.resourceRenderer.setupSubscriptions();
     this.animalRenderer.setupSubscriptions();
     this.biomeRenderer.setupSubscriptions();
     this.eggRenderer.setupSubscriptions();

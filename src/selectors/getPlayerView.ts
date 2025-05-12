@@ -1,53 +1,40 @@
 import type { GameState, Biome, Board, Tile, Resource } from '../store/gameStore';
 
+export interface ResourceView {
+  resource: Resource;
+  tile: Tile;
+}
+
 export function getPlayerView(state: GameState, playerId: number) {
   const player = state.players.find(p => p.id === playerId);
   if (!player || !state.board) return null;
 
   const visibleTiles = new Set(player.visibleTiles);
+  const isVisible = (x: number, y: number) => visibleTiles.has(`${x},${y}`);
+  const coordKey = (x: number, y: number) => `${x},${y}`;
 
-  // Filter animals: own units or enemy units in visible tiles
-  const animals = state.animals.filter(a =>
-    a.ownerId === playerId || visibleTiles.has(`${a.position.x},${a.position.y}`)
-  );
-
-  // Filter eggs: own eggs or visible ones
-  const eggs = Object.values(state.eggs).filter(e =>
-    e.ownerId === playerId || visibleTiles.has(`${e.position.x},${e.position.y}`)
-  );
-
-  // Filter biomes: show only owned or partially visible biomes
-  const visibleBiomes = new Map<string, Biome>();
+  // Cache biome ownership
+  const ownedBiomeIds = new Set<string>();
   for (const [id, biome] of state.biomes.entries()) {
     if (biome.ownerId === playerId) {
-      visibleBiomes.set(id, biome);
-      continue;
+      ownedBiomeIds.add(id);
     }
-
-    const biomeIsVisible = state.board.tiles.some(row =>
-      row.some(tile =>
-        tile.biomeId === id && visibleTiles.has(`${tile.coordinate.x},${tile.coordinate.y}`)
-      )
-    );
-    if (biomeIsVisible) visibleBiomes.set(id, biome);
   }
 
-  // Mask board tiles based on visibility
-  const maskedTiles: Tile[][] = state.board.tiles.map(row =>
-    row.map(tile => {
-      const key = `${tile.coordinate.x},${tile.coordinate.y}`;
-      const isVisible = visibleTiles.has(key);
+  const isOwnedBiome = (biomeId: string | null) =>
+    biomeId != null && ownedBiomeIds.has(biomeId);
 
-      if (!isVisible) {
-        return {
-          coordinate: tile.coordinate,
-          terrain: tile.terrain, // You may choose a default like 'blank' here if needed
-          biomeId: null,
-          isHabitat: false
-        };
-      }
-
-      return tile;
+  // Mask board tiles
+  const maskedTiles: Tile[][] = state.board.tiles.map((row, y) =>
+    row.map((tile, x) => {
+      return isVisible(x, y)
+        ? tile
+        : {
+            coordinate: tile.coordinate,
+            terrain: tile.terrain, // Optionally: use TerrainType.BLANK
+            biomeId: null,
+            isHabitat: false
+          };
     })
   );
 
@@ -57,27 +44,52 @@ export function getPlayerView(state: GameState, playerId: number) {
     tiles: maskedTiles
   };
 
-  // Build resource sets based on resources slice
-  const resourcesArr: Resource[] = Object.values(state.resources);
+  // Filter animals
+  const animals = state.animals.filter(a =>
+    a.ownerId === playerId || isVisible(a.position.x, a.position.y)
+  );
 
-  // Visible / owned filters
-  const filteredResources = resourcesArr.filter(r => {
-    const coordKey = `${r.position.x},${r.position.y}`;
-    const ownedBiome = r.biomeId ? state.biomes.get(r.biomeId)?.ownerId === playerId : false;
-    return ownedBiome || visibleTiles.has(coordKey);
-  });
+  // Filter eggs
+  const eggs = Object.values(state.eggs).filter(e =>
+    e.ownerId === playerId || isVisible(e.position.x, e.position.y)
+  );
 
-  const resourceCoordSet = new Set(filteredResources.map(r => `${r.position.x},${r.position.y}`));
+  // Filter biomes
+  const visibleBiomes = new Map<string, Biome>();
+  for (const [id, biome] of state.biomes.entries()) {
+    if (ownedBiomeIds.has(id)) {
+      visibleBiomes.set(id, biome);
+      continue;
+    }
 
-  // Derive resourceTiles and blankTiles for UI helpers
-  const resourceTiles = filteredResources.map(r => maskedTiles[r.position.y][r.position.x]);
+    const biomeIsVisible = state.board.tiles.some(row =>
+      row.some(tile => tile.biomeId === id && isVisible(tile.coordinate.x, tile.coordinate.y))
+    );
 
+    if (biomeIsVisible) {
+      visibleBiomes.set(id, biome);
+    }
+  }
+
+  // Filter visible/owned resources
+  const filteredResources = Object.values(state.resources).filter(r =>
+    isVisible(r.position.x, r.position.y) || isOwnedBiome(r.biomeId)
+  );
+
+  // Build resource view
+  const resourceView: ResourceView[] = filteredResources.map(r => ({
+    resource: r,
+    tile: maskedTiles[r.position.y][r.position.x]
+  }));
+
+  // Precompute resource locations
+  const resourceCoordSet = new Set(filteredResources.map(r => coordKey(r.position.x, r.position.y)));
+
+  // Derive blank tiles
   const blankTiles = maskedTiles.flat().filter(tile => {
-    const key = `${tile.coordinate.x},${tile.coordinate.y}`;
+    const key = coordKey(tile.coordinate.x, tile.coordinate.y);
     return !resourceCoordSet.has(key) && !tile.isHabitat;
   });
-
-  const resources = filteredResources;
 
   return {
     playerId,
@@ -89,8 +101,8 @@ export function getPlayerView(state: GameState, playerId: number) {
     selectedAnimalID: state.selectedAnimalID,
     validMoves: state.validMoves,
     moveMode: state.moveMode,
-    resourceTiles,
+    resourceView,
     blankTiles,
-    resources,
+    resources: filteredResources
   };
-} 
+}
