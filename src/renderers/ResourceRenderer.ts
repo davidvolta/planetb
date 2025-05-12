@@ -28,108 +28,88 @@ export class ResourceRenderer extends BaseRenderer {
   ) {
     super(scene, layerManager, tileSize, tileHeight);
   }
-  
-  /**
-   * Render all resources based on tiles with resource properties
-   * @param resourceTiles Array of tiles that have active resources
+   /**
+   * Set up state subscriptions for resource rendering
    */
-  renderResourceTiles(resourceTiles: { tile: any, x: number, y: number }[]): void {
-    // Check if staticObjectsLayer exists before proceeding
+   public setupSubscriptions(): void {
+    StateObserver.subscribe(
+      'ResourceRenderer.resources',
+      (state) => state.resources,
+      (resourcesRecord, prevRecord) => {
+        console.log('[ResourceRenderer] subscription fired');
+        if (!resourcesRecord) return;
+
+        const currentResources = Object.values(resourcesRecord);
+        const prevResources = prevRecord ? Object.values(prevRecord) : null;
+
+        if (!prevResources) {
+          this.renderResources(currentResources);
+        } else if (this.haveResourcesChanged(currentResources, prevResources)) {
+          this.renderResources(currentResources);
+          actions.selectResourceTile(null);
+        }
+      },
+      { immediate: false, debug: false }
+    );
+  }
+  /**
+   * Render resources directly from Resource list (new architecture)
+   */
+  public renderResources(resources: import('../store/gameStore').Resource[]): void {
+    if (resources.length === 0) return;
+
     const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
     if (!staticObjectsLayer) {
       console.warn("Cannot render resource graphics - staticObjectsLayer not available");
       return;
     }
-    
-    // Clear any existing inactive resource indicators
-    staticObjectsLayer.getAll().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Graphics && 
-          child.getData('inactiveResourceMarker')) {
-        child.destroy();
-      }
-    });
-    
-    // Get a map of current resource sprites by position (since we don't have resource IDs anymore)
-    const existingResourceSprites = new Map();
+
+    // Map of existing sprites keyed by grid position
+    const existingSprites = new Map<string, { sprite: Phaser.GameObjects.Sprite; used: boolean }>();
     staticObjectsLayer.getAll().forEach(child => {
       if (child instanceof Phaser.GameObjects.Sprite && child.getData('resourceType')) {
-        const gridX = child.getData('gridX');
-        const gridY = child.getData('gridY');
-        if (gridX !== undefined && gridY !== undefined) {
-          const key = `${gridX},${gridY}`;
-          existingResourceSprites.set(key, {
-            sprite: child,
-            used: false
-          });
+        const gx = child.getData('gridX');
+        const gy = child.getData('gridY');
+        if (gx !== undefined && gy !== undefined) {
+          existingSprites.set(`${gx},${gy}`, { sprite: child, used: false });
         }
       }
     });
-    
-    // Process each resource tile - create new sprites or update existing ones
-    resourceTiles.forEach(({ tile, x, y }) => {
-      // Calculate world position
-      const worldPosition = CoordinateUtils.gridToWorld(
-        x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-      );
-      
-      const worldX = worldPosition.x;
-      const worldY = worldPosition.y;
-      
-      // Generate a unique key for this position
+
+    // Update or create sprites for each resource
+    resources.forEach(r => {
+      const { x, y } = r.position;
       const key = `${x},${y}`;
-      
-      // Determine the texture based on resource type
-      const textureKey = this.getTextureKeyForResourceType(tile.resourceType);
-      
-      // Set opacity based on resource value (0-10 scale)
-      const opacity = tile.resourceValue / 10;
-      
-      // Check if we have an existing sprite at this position
-      const existing = existingResourceSprites.get(key);
-      
+      const world = CoordinateUtils.gridToWorld(x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY);
+      const textureKey = this.getTextureKeyForResourceType(r.type);
+      const opacity = r.value / 10;
+
+      const existing = existingSprites.get(key);
       if (existing) {
-        // Mark as used so we don't delete it later
         existing.used = true;
-        
-        // Update position (shouldn't need this, but just to be safe)
-        existing.sprite.setPosition(worldX, worldY);
-        
-        // Update opacity based on resource value
+        existing.sprite.setPosition(world.x, world.y);
         existing.sprite.setAlpha(opacity);
-        
-        // Update texture if resource type changed
         if (existing.sprite.texture.key !== textureKey) {
           existing.sprite.setTexture(textureKey);
           existing.sprite.setTint(0x222222);
         }
-        
-        // Store active state in the sprite data
-        existing.sprite.setData('active', tile.active);
+        existing.sprite.setData('active', r.active);
       } else {
-        // Create a new sprite for this resource
-        const resourceSprite = this.scene.add.sprite(worldX, worldY, textureKey);
-        
-        // Set scale, opacity, and tint (dark grey)
-        resourceSprite.setScale(this.resourceScale);
-        resourceSprite.setAlpha(opacity);
-        resourceSprite.setTint(0xaaaaaa);
-        
-        // Store position and type data on the sprite
-        resourceSprite.setData('gridX', x);
-        resourceSprite.setData('gridY', y);
-        resourceSprite.setData('resourceType', tile.resourceType);
-        resourceSprite.setData('active', tile.active);
-        
-        // Add the sprite to the static objects layer
-        this.layerManager.addToLayer('staticObjects', resourceSprite);
+        const sprite = this.scene.add.sprite(world.x, world.y, textureKey);
+        sprite.setScale(this.resourceScale);
+        sprite.setAlpha(opacity);
+        sprite.setTint(0xaaaaaa);
+        sprite.setData('gridX', x);
+        sprite.setData('gridY', y);
+        sprite.setData('resourceType', r.type);
+        sprite.setData('active', r.active);
+        this.layerManager.addToLayer('staticObjects', sprite);
       }
     });
-    
-    // Remove sprites for resources that no longer exist
-    existingResourceSprites.forEach((data, key) => {
-      if (!data.used) {
-        data.sprite.destroy();
-      }
+
+    // Remove sprites that are no longer relevant
+    existingSprites.forEach(({ sprite, used }) => {
+      if (!used) sprite.destroy();
     });
   }
   
@@ -177,56 +157,7 @@ export class ResourceRenderer extends BaseRenderer {
     }
   }
 
-  /**
-   * Set up state subscriptions for resource rendering
-   */
-  public setupSubscriptions(): void {
-    StateObserver.subscribe(
-      'ResourceRenderer.resources',
-      (state) => {
-        if (!state.board) return null;
-        
-        // Extract only the resource-related data from tiles
-        const resourceData = [];
-        for (let y = 0; y < state.board.height; y++) {
-          for (let x = 0; x < state.board.width; x++) {
-            const tile = state.board.tiles[y][x];
-            if (tile.resourceType || tile.active || tile.resourceValue > 0) {
-              resourceData.push({
-                x, 
-                y, 
-                resourceType: tile.resourceType,
-                resourceValue: tile.resourceValue,
-                active: tile.active
-              });
-            }
-          }
-        }
-        return resourceData;
-      },
-      (resourceData, prevResourceData) => {
-        if (!resourceData) return;
-        
-        if (!prevResourceData) {
-          // Initial render
-          const resourceTiles = actions.getResourceTiles();
-          this.renderResourceTiles(resourceTiles);
-        } else if (this.hasResourceChanges(resourceData, prevResourceData)) {
-          // On actual resource changes (e.g., harvest)
-          const resourceTiles = actions.getResourceTiles();
-          this.renderResourceTiles(resourceTiles);
-          // Clear selected resource after harvest
-          actions.selectResourceTile(null);
-        }
-      },
-      { immediate: true, debug: false }
-    );
-  }
-
-  /**
-   * Helper method to detect meaningful resource changes
-   */
-  private hasResourceChanges(currentResources: any[], previousResources: any[]): boolean {
+  private haveResourcesChanged(currentResources: import('../store/gameStore').Resource[], previousResources: import('../store/gameStore').Resource[]): boolean {
     // Quick check for different number of resources
     if (currentResources.length !== previousResources.length) {
       return true;
@@ -235,19 +166,19 @@ export class ResourceRenderer extends BaseRenderer {
     // Create maps for quick lookup
     const previousMap = new Map();
     for (const resource of previousResources) {
-      const key = `${resource.x},${resource.y}`;
+      const key = `${resource.position.x},${resource.position.y}`;
       previousMap.set(key, resource);
     }
     
     // Check for any changes in resource properties
     for (const resource of currentResources) {
-      const key = `${resource.x},${resource.y}`;
+      const key = `${resource.position.x},${resource.position.y}`;
       const prevResource = previousMap.get(key);
       
       // If resource doesn't exist in previous data or has different properties
       if (!prevResource || 
-          resource.resourceType !== prevResource.resourceType ||
-          resource.resourceValue !== prevResource.resourceValue || 
+          resource.type !== prevResource.type ||
+          resource.value !== prevResource.value || 
           resource.active !== prevResource.active) {
         return true;
       }

@@ -21,13 +21,13 @@ export const EVENTS = {
 // Delegate functionality to managers and ensure proper lifecycle management
 export default class BoardScene extends Phaser.Scene {
   // Fixed tile properties
-  private tileSize = TILE_SIZE;
-  private tileHeight = TILE_HEIGHT;
-
+  private tileSize = TILE_SIZE; 
+  private tileHeight = TILE_HEIGHT; 
+  
   // Store fixed anchor positions for the grid
-  private anchorX = 0;
+  private anchorX = 0; 
   private anchorY = 0;
-
+  
   // Renderers
   private tileRenderer!: TileRenderer;
   private selectionRenderer!: SelectionRenderer;
@@ -37,7 +37,7 @@ export default class BoardScene extends Phaser.Scene {
   private eggRenderer!: EggRenderer;
   private resourceRenderer!: ResourceRenderer;
   private fogOfWarRenderer!: FogOfWarRenderer;
-
+  
   // Setup tracking
   private controlsSetup = false;
 
@@ -67,9 +67,9 @@ export default class BoardScene extends Phaser.Scene {
   // Preload assets needed for the scene
   preload() {
     // Load all animal sprites
-    this.load.image("egg", "assets/egg.png");
+    this.load.image("egg", "assets/egg.png");  
     this.load.image("buffalo", "assets/animals/buffalo/buffalo.png");
-    this.load.image("bird", "assets/animals/bird/bird.png");
+    this.load.image("bird", "assets/animals/bird/bird.png"); 
     this.load.image("snake", "assets/animals/snake/snake.png");
     this.load.image("octopus", "assets/animals/octopus/octopus.png");
     this.load.image("turtle", "assets/animals/turtle/turtle.png");
@@ -109,7 +109,7 @@ export default class BoardScene extends Phaser.Scene {
       this.events.emit(EVENTS.ASSETS_LOADED);
     });
   }
-
+  
   update() {
     // Let the selection renderer handle hover updates
     const pointer = this.input.activePointer;
@@ -133,7 +133,7 @@ export default class BoardScene extends Phaser.Scene {
     const validMoves = this.currentPlayerView?.validMoves ?? [];
     const isMoveMode = this.currentPlayerView?.moveMode;
   }
-
+  
   // Create and set up the scene
   public create(): void {
     console.log("BoardScene create() called", this.scene.key);
@@ -163,7 +163,7 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer.renderAnimals(this.currentPlayerView?.animals ?? []);
     this.eggRenderer.renderEggs(this.currentPlayerView?.eggs ?? []);
   }
-
+  
   // Clean up all subscriptions to prevent memory leak
   private unsubscribeAll() {
     // Unsubscribe any lingering direct subscriptions by key prefix
@@ -180,8 +180,8 @@ export default class BoardScene extends Phaser.Scene {
     const board = this.currentPlayerView?.board;
     if (!board) {
       console.warn("No board available");
-      this.add.text(this.cameras.main.centerX, this.cameras.main.centerY,
-        "No board data available",
+      this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 
+        "No board data available", 
         { color: '#ffffff', fontSize: '24px' }
       ).setOrigin(0.5);
       return;
@@ -195,6 +195,7 @@ export default class BoardScene extends Phaser.Scene {
 
     this.tileRenderer.renderBoard(board, anchorX, anchorY);
     this.selectionRenderer.initialize(anchorX, anchorY);
+    this.resourceRenderer.initialize(anchorX, anchorY);
 
     if (actions.getFogOfWarEnabled()) {
       this.fogOfWarRenderer.createFogOfWar(board);
@@ -204,8 +205,8 @@ export default class BoardScene extends Phaser.Scene {
     }
 
     // Use filtered view for resource tiles
-    const resourceTiles = this.currentPlayerView?.board.tiles.flat().filter(tile => tile.resourceType !== null && tile.active) || [];
-    if (resourceTiles.length === 0) {
+    const resourcesList = this.currentPlayerView?.resources ?? [];
+    if (resourcesList.length === 0) {
       console.log("Initial resource generation");
       this.resetResources();
     }
@@ -213,6 +214,8 @@ export default class BoardScene extends Phaser.Scene {
     if (!this.controlsSetup) {
       this.setupInputHandlers();
     }
+
+    this.resourceRenderer.renderResources(resourcesList); // render based on player view resources
   }
 
   // Helper to lookup an animal sprite by ID
@@ -258,7 +261,7 @@ export default class BoardScene extends Phaser.Scene {
     this.fogOfWarRenderer.initialize(anchorX, anchorY);
     this.animationController.initialize(anchorX, anchorY);
   }
-
+  
   // Set up input handlers for clicks and keyboard
   private setupInputHandlers(): void {
     // Handle clicks on tiles and habitats directly
@@ -274,15 +277,15 @@ export default class BoardScene extends Phaser.Scene {
         }
       }
     );
-
+    
     // 🔥 Add debug key: T for "next turn"
     const keyboard = this.input.keyboard;
-    if (!keyboard) {
-      console.warn("Keyboard input system not ready");
-      return;
-    }
+if (!keyboard) {
+  console.warn("Keyboard input system not ready");
+  return;
+}
 
-    keyboard.on('keydown-T', async () => {
+keyboard.on('keydown-T', async () => {
 
       console.log("▶️ Ending turn and switching player...");
       await this.turnController.next();          // Advance to next player
@@ -309,7 +312,7 @@ export default class BoardScene extends Phaser.Scene {
       actions.clearDisplacementEvent();
       return;
     }
-
+    
     // Force sprite to start at its previous (from) position to ensure tween distance > 0
     const startWorld = CoordinateUtils.gridToWorld(
       fromX,
@@ -320,18 +323,18 @@ export default class BoardScene extends Phaser.Scene {
       this.anchorY
     );
     animalSprite.setPosition(startWorld.x, startWorld.y - 12); // same verticalOffset as renderer
-
+    
     // Fog-of-war reveal using global flag
     if (actions.getFogOfWarEnabled()) {
       this.visibilityController.revealAround(toX, toY);
     }
-
+    
     // Animate displacement and update state
     await this.animationController.displaceUnit(animalId, animalSprite, fromX, fromY, toX, toY);
     // Clear the displacement event after animation completes
     actions.clearDisplacementEvent();
   }
-
+  
   public handleSpawnEvent(animalId: string): void {
     if (!animalId) return;
 
@@ -368,10 +371,9 @@ export default class BoardScene extends Phaser.Scene {
     // Update game state by resetting resources
     actions.resetResources(resourceChance);
 
-    // Fetch updated resource tiles and log the reset count
-    const resourceTiles = actions.getResourceTiles();
-    this.resourceRenderer.renderResourceTiles(resourceTiles); // Directly render resource tiles
-
+    // Refresh player view and re-render resources list
+    this.updatePlayerView();
+    this.resourceRenderer.renderResources(this.currentPlayerView?.resources ?? []);
   }
 
   private updatePlayerView(): void {
@@ -452,11 +454,11 @@ export default class BoardScene extends Phaser.Scene {
   public getCameraManager(): CameraManager {
     return this.cameraManager;
   }
-
+  
   public getTileSize(): number {
     return this.tileSize;
   }
-
+  
   public getTileHeight(): number {
     return this.tileHeight;
   }
@@ -472,7 +474,7 @@ export default class BoardScene extends Phaser.Scene {
   public getGameController(): GameController {
     return this.gameController;
   }
-
+  
   public getVisibilityController(): VisibilityController {
     return this.visibilityController;
   }
@@ -480,7 +482,7 @@ export default class BoardScene extends Phaser.Scene {
   public getLayerManager(): LayerManager {
     return this.layerManager;
   }
-
+  
   public getTileRenderer(): TileRenderer {
     return this.tileRenderer;
   }
@@ -504,11 +506,11 @@ export default class BoardScene extends Phaser.Scene {
   public getTurnController(): TurnController {
     return this.turnController;
   }
-
+  
   public getEggRenderer(): EggRenderer {
-    return this.eggRenderer;
+      return this.eggRenderer;
   }
-
+  
   public getTileInteractionController(): TileInteractionController {
     return this.tileInteractionController;
   }

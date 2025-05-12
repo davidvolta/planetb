@@ -1,4 +1,4 @@
-import type { GameState, Animal, Egg, Biome, Board, Tile } from '../store/gameStore';
+import type { GameState, Animal, Egg, Biome, Board, Tile, Resource } from '../store/gameStore';
 
 export function getPlayerView(state: GameState, playerId: number) {
   const player = state.players.find(p => p.id === playerId);
@@ -63,6 +63,13 @@ export function getPlayerView(state: GameState, playerId: number) {
   const resourceTiles = maskedTiles.flat().filter(tile => tile.resourceType !== null && tile.active);
   const blankTiles = maskedTiles.flat().filter(tile => !tile.active && !tile.isHabitat && tile.resourceType === null);
 
+  // Filter resources: owned-biome resources or visible coords
+  const resources: Resource[] = Object.values(state.resources).filter(r => {
+    const coordKey = `${r.position.x},${r.position.y}`;
+    const ownedBiome = r.biomeId ? state.biomes.get(r.biomeId)?.ownerId === playerId : false;
+    return ownedBiome || visibleTiles.has(coordKey);
+  });
+
   return {
     playerId,
     visibleTiles: player.visibleTiles,
@@ -74,6 +81,7 @@ export function getPlayerView(state: GameState, playerId: number) {
     validMoves: state.validMoves,
     moveMode: state.moveMode,
     resourceTiles,
-    blankTiles
+    blankTiles,
+    resources,
   };
 } 
