@@ -750,15 +750,13 @@ export async function updateTilesVisibility(tiles: { x: number; y: number; visib
     // Update only the active player's fog-of-war sets
     const updatedPlayers = state.players.map(player => {
       if (player.id !== activePlayerId) return player;
-      const newExplored = new Set(player.exploredTiles);
       const newVisible = new Set(player.visibleTiles);
       for (const { x, y, visible } of tiles) {
         const key = `${x},${y}`;
-        newExplored.add(key);
         if (visible) newVisible.add(key);
         else newVisible.delete(key);
       }
-      return { ...player, exploredTiles: newExplored, visibleTiles: newVisible };
+      return { ...player, visibleTiles: newVisible };
     });
     return { players: updatedPlayers };
   });
@@ -863,30 +861,6 @@ export function getVisibleTilesForPlayer(playerId: number): { x: number; y: numb
   const player = state.players.find(p => p.id === playerId);
   if (!player) return [];
   return Array.from(player.visibleTiles).map(str => {
-    const [x, y] = str.split(',').map(Number);
-    return { x, y };
-  });
-}
-
-/**
- * Get all tiles explored by the given player
- */
-export function getExploredTilesForPlayer(playerId: number): { x: number; y: number }[] {
-  const state = useGameStore.getState();
-  if (!state.board) return [];
-  if (!state.fogOfWarEnabled) {
-    // FOW disabled: all tiles are explored
-    const tiles: { x: number; y: number }[] = [];
-    for (let y = 0; y < state.board.height; y++) {
-      for (let x = 0; x < state.board.width; x++) {
-        tiles.push({ x, y });
-      }
-    }
-    return tiles;
-  }
-  const player = state.players.find(p => p.id === playerId);
-  if (!player) return [];
-  return Array.from(player.exploredTiles).map(str => {
     const [x, y] = str.split(',').map(Number);
     return { x, y };
   });

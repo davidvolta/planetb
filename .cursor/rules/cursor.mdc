@@ -18,10 +18,8 @@ alwaysApply: true
 ## Rules For Coding
 - Always read docs/app_guide.md and docs/dev_checklist.md at the start of every project
 - Always read every doc inside docs/overview at the start of every project
-- Ask if I want to update docs/dev_checklist.md after completing tasks
 
 ## Context Rules
-- Keep track of current project focus from docs/dev_checklist.md
 - Consider environment setup before suggesting changes
 - Stay focused on main game project unless explicitly working on test and example projects
 
@@ -30,15 +28,10 @@ alwaysApply: true
 
 ## Code Change Rules
 - Read entire files before making edits
-- ALWAYS ASK FOR PERMISSION BEFORE IMPLEMENTING ANY CODE
 - Look for existing or similar functions before creating new ones
 - Follow TypeScript best practices
-- Only modify files within the main project (not tests and examples) scope unless explicitly requested
 
 ## Review Process
-- After completing changes:
-  1. Read dev_checklist.md thoroughly and suggest updates
 
 ## Project-Specific Guidelines
 - Maintain focus on game stability and performance
-- Keep unit tests in mind when making changes

@@ -71,7 +71,6 @@ export interface Player {
   color: string;
   isActive: boolean;
   energy: number; // Amount of resources collected by this player
-  exploredTiles: Set<string>; // Tiles that this player has explored
   visibleTiles: Set<string>; // Tiles currently visible to this player
 }
 
@@ -206,7 +205,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           });
           return {
             ...player,
-            exploredTiles: new Set(coordSet),
             visibleTiles: new Set(coordSet)
           };
         });
@@ -223,7 +221,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
         const updatedPlayers = state.players.map(player => ({
           ...player,
-          exploredTiles: new Set(allCoords),
           visibleTiles: new Set(allCoords)
         }));
         return { fogOfWarEnabled: false, players: updatedPlayers };
@@ -243,7 +240,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Seed initial fog-of-war for each player
       const seededPlayers = state.players.map(player => {
         const coordSet = new Set<string>();
-        // Reveal tiles around any active starting units for this player
         const eggsRecord = state.eggs;
         animals
           .filter(a => a.ownerId === player.id && !(a.id in eggsRecord))
@@ -258,7 +254,6 @@ export const useGameStore = create<GameState>((set, get) => ({
               }
             }
           });
-        // Reveal all tiles in owned biomes
         biomes.forEach((b, id) => {
           if (b.ownerId === player.id) {
             for (let yy = 0; yy < board.height; yy++) {
@@ -272,7 +267,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
         return {
           ...player,
-          exploredTiles: new Set(coordSet),
           visibleTiles: new Set(coordSet)
         };
       });
@@ -292,7 +286,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         color,
         isActive: state.players.length === 0, // First player starts active
         energy: 0,
-        exploredTiles: new Set<string>(),
         visibleTiles: new Set<string>()
       };
       console.log(`[${new Date().toISOString()}] Player created: ${name} (ID: ${newPlayer.id})`);

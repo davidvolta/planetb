@@ -87,12 +87,6 @@ export class VisibilityController {
     if (enabled) {
       this.fogOfWarRenderer.createFogOfWar(board);
   
-      const exploredTiles = actions.getTilesByFilter(tile => tile.explored);
-      const coords = exploredTiles.map(({ x, y }) => ({ x, y }));
-      if (coords.length) {
-        this.fogOfWarRenderer.revealTiles(coords);
-      }
-  
       const activePlayerId = actions.getActivePlayerId();
       this.updatePlayerVisibility(activePlayerId);
     } else {
