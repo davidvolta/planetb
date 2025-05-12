@@ -32,34 +32,35 @@ export class EcosystemController {
    * Regenerate resources on all player-owned biomes according to generation rate
    */
   public static regenerateResources(
-    board: Board,
+    resources: Record<string, import('../store/gameStore').Resource>,
     biomes: Map<string, Biome>
-  ): Board {
-    const newBoard: Board = {
-      ...board,
-      tiles: board.tiles.map(row => row.map(tile => ({ ...tile })))
-    };
+  ): Record<string, import('../store/gameStore').Resource> {
+    const newResources: Record<string, import('../store/gameStore').Resource> = { ...resources };
+
     const maxValue = 10;
+
+    // Iterate through each biome we are regenerating for
     biomes.forEach((biome, biomeId) => {
-      if (biome.ownerId !== null) {
-        const generationRate = this.calculateResourceGenerationRate(biome.totalLushness);
-        for (let y = 0; y < newBoard.height; y++) {
-          for (let x = 0; x < newBoard.width; x++) {
-            const tile = newBoard.tiles[y][x];
-            if (
-              tile.biomeId === biomeId &&
-              tile.active &&
-              tile.resourceValue > 0 &&
-              tile.resourceValue < maxValue
-            ) {
-              const regen = generationRate * (1 - tile.resourceValue / maxValue);
-              tile.resourceValue = Math.min(maxValue, tile.resourceValue + regen);
-            }
-          }
+      // Only regenerate resources for owned biomes
+      if (biome.ownerId === null) return;
+
+      // Determine generation rate from lushness
+      const generationRate = this.calculateResourceGenerationRate(biome.totalLushness);
+
+      // Update each resource that belongs to this biome
+      Object.entries(resources).forEach(([key, res]) => {
+        if (res.biomeId !== biomeId || !res.active || res.value <= 0 || res.value >= maxValue) {
+          return;
         }
-      }
+
+        const regen = generationRate * (1 - res.value / maxValue);
+        const newVal = Math.min(maxValue, res.value + regen);
+
+        newResources[key] = { ...res, value: newVal };
+      });
     });
-    return newBoard;
+
+    return newResources;
   }
 
   /**
@@ -260,7 +261,7 @@ export class EcosystemController {
       .filter(({ tile }) => tile.active && tile.resourceType !== null)
       .map(({ tile }) => tile);
     // Calculate base lushness relative to initial resource count
-    const currentTotal = activeTiles.reduce((sum, t) => sum + t.resourceValue, 0);
+    const currentTotal = activeTiles.reduce((sum, t) => sum + (t.resourceValue ?? 0), 0);
     const initialTotal = biome.initialResourceCount * 10;
     let baseLushness = 0;
     if (initialTotal > 0) {
@@ -292,26 +293,32 @@ export class EcosystemController {
   public static computeHarvest(
     coord: Coordinate,
     board: Board,
+    resources: Record<string, import('../store/gameStore').Resource>,
     players: any[],
     currentPlayerId: number,
     biomes: Map<string, Biome>,
     amount: number
-  ): { board: Board; players: any[]; biomes: Map<string, Biome> } {
+  ): { board: Board; resources: Record<string, import('../store/gameStore').Resource>; players: any[]; biomes: Map<string, Biome> } {
     // Deep copy of board
     const newBoard: Board = {
       ...board,
       tiles: board.tiles.map(row => row.map(tile => ({ ...tile })))
     };
-    const { x, y } = coord;
-    const tile = newBoard.tiles[y][x];
-    if (!tile.active || tile.resourceType === null) {
-      return { board: newBoard, players: [...players], biomes: new Map(biomes) };
+    const key = `${coord.x},${coord.y}`;
+    const resource = resources[key];
+    if (!resource || !resource.active) {
+      return { board: newBoard, resources: { ...resources }, players: [...players], biomes: new Map(biomes) };
     }
-    // Determine harvest amount
-    const harvestAmount = Math.min(amount, tile.resourceValue);
-    // Update tile
-    tile.resourceValue -= harvestAmount;
-    if (tile.resourceValue <= 0) tile.active = false;
+
+    const harvestAmount = Math.min(amount, resource.value);
+
+    const newResources = { ...resources };
+    const updatedRes = { ...resource, value: resource.value - harvestAmount };
+    if (updatedRes.value <= 0) {
+      updatedRes.value = 0;
+      updatedRes.active = false;
+    }
+    newResources[key] = updatedRes;
 
     // Update players
     const newPlayers = players.map(player =>
@@ -321,19 +328,17 @@ export class EcosystemController {
     );
 
     // Update biome stats
-    const biomeId = tile.biomeId!;
+    const biomeId = resource.biomeId!;
     const newBiomes = new Map(biomes);
     const biome = biomes.get(biomeId)!;
-    const newNonDepleted = tile.resourceValue <= 0
-      ? Math.max(0, biome.nonDepletedCount - 1)
-      : biome.nonDepletedCount;
+    const newNonDepleted = updatedRes.active ? biome.nonDepletedCount : Math.max(0, biome.nonDepletedCount - 1);
     newBiomes.set(biomeId, {
       ...biome,
       totalHarvested: biome.totalHarvested + harvestAmount,
       nonDepletedCount: newNonDepleted
     });
 
-    return { board: newBoard, players: newPlayers, biomes: newBiomes };
+    return { board: newBoard, resources: newResources, players: newPlayers, biomes: newBiomes };
   }
 
   /**
@@ -419,8 +424,8 @@ export class EcosystemController {
   /**
    * Regenerate resources for the entire game state
    */
-  public static regenerateResourcesState(state: GameState): Board {
-    return this.regenerateResources(state.board!, state.biomes);
+  public static regenerateResourcesState(state: GameState): Record<string, import('../store/gameStore').Resource> {
+    return this.regenerateResources(state.resources, state.biomes);
   }
 
   /**

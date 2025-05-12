@@ -204,10 +204,9 @@ export default class BoardScene extends Phaser.Scene {
       this.fogOfWarRenderer.clearFogOfWar();
     }
 
-    // Use filtered view for resource tiles
-    const resourcesList = this.currentPlayerView?.resources ?? [];
-    if (resourcesList.length === 0) {
-      console.log("Initial resource generation");
+    // Obtain full resources record for initial render
+    const fullResourcesArray = Object.values(actions.getResources());
+    if (fullResourcesArray.length === 0) {
       this.resetResources();
     }
 
@@ -215,7 +214,8 @@ export default class BoardScene extends Phaser.Scene {
       this.setupInputHandlers();
     }
 
-    this.resourceRenderer.renderResources(resourcesList); // render based on player view resources
+    // Render all resources (visibility will be handled by FOW layer)
+    this.resourceRenderer.renderResources(fullResourcesArray);
   }
 
   // Helper to lookup an animal sprite by ID
@@ -373,7 +373,7 @@ keyboard.on('keydown-T', async () => {
 
     // Refresh player view and re-render resources list
     this.updatePlayerView();
-    this.resourceRenderer.renderResources(this.currentPlayerView?.resources ?? []);
+    this.resourceRenderer.renderResources(Object.values(actions.getResources()));
   }
 
   private updatePlayerView(): void {

@@ -1,5 +1,5 @@
 import * as actions from '../store/actions';
-import { Biome, Animal, Egg, Tile } from '../store/gameStore';
+import { Biome, Animal, Egg, Tile, Resource } from '../store/gameStore';
 import type BoardScene from '../scene/BoardScene';
 
 type ToggleState = Record<string, number>;
@@ -144,10 +144,11 @@ export class TileInteractionController {
     animalsAtTile: Animal[],
     playerId: number
   ): void {
-    if (tile.active && tile.resourceType !== null && tile.biomeId) {
-      const biome = actions.getBiomes().get(tile.biomeId);
+    const resource: Resource | undefined = actions.getResourceAt(tile.coordinate.x, tile.coordinate.y);
+    if (resource && resource.active && resource.biomeId) {
+      const biome = actions.getBiomes().get(resource.biomeId);
       const animalHere = animalsAtTile.find(a => a.ownerId === playerId && !a.hasMoved);
-      
+
       if (biome?.ownerId === playerId && animalHere) {
         handlers.push(() => {
           actions.selectResourceTile({ x: tile.coordinate.x, y: tile.coordinate.y });

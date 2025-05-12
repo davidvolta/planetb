@@ -36,7 +36,6 @@ export class ResourceRenderer extends BaseRenderer {
       'ResourceRenderer.resources',
       (state) => state.resources,
       (resourcesRecord, prevRecord) => {
-        console.log('[ResourceRenderer] subscription fired');
         if (!resourcesRecord) return;
 
         const currentResources = Object.values(resourcesRecord);

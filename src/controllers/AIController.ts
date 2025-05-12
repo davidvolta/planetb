@@ -1,4 +1,4 @@
-import type { GameState, Animal, Biome, Board, Egg } from '../store/gameStore';
+import type { GameState, Animal, Biome, Board, Egg, Resource } from '../store/gameStore';
 import { isTerrainCompatible } from '../utils/SpeciesUtils';
 import type { GameCommand } from '../game/CommandExecutor';
 import { MovementController } from './MovementController';
@@ -19,6 +19,9 @@ export class AIController {
     const commands: GameCommand[] = [];
     const board = this.gameState.board;
     if (!board) return commands;
+
+    // Fallback for missing resources slice (during early initialization)
+    const resourcesRec: Record<string, Resource> = this.gameState.resources ?? {};
 
     // Work on a local copy of animals so we can update positions/states as commands are generated
     let workingAnimals = this.gameState.animals.map(a => ({ ...a }));
@@ -137,6 +140,8 @@ export class AIController {
     for (const unit of units) {
       const { x: ux, y: uy } = unit.position;
       const tile = board.tiles[uy]?.[ux];
+      const resourceHere: Resource | undefined = resourcesRec[`${ux},${uy}`];
+
       // Defense override
       const defendTarget = defenderAssignments[unit.id];
       if (defendTarget) {
@@ -212,7 +217,7 @@ export class AIController {
           const targetBiomeLushness = this.gameState.biomes.get(b.id)!.totalLushness;
           if (targetBiomeLushness > 6.0) {
             // Check for available resources in this biome
-            const resourceTiles = this.getResourceTilesForBiome(b, board);
+            const resourceTiles = this.getResourceTilesForBiome(b, resourcesRec);
             if (resourceTiles.length > 0) {
               // Find distance to nearest resource tile in this biome
               for (const t of resourceTiles) {
@@ -227,7 +232,7 @@ export class AIController {
         }
         if (targetBiome) {
           // Move toward the nearest resource tile in the target biome
-          const resourceTiles = this.getResourceTilesForBiome(targetBiome, board);
+          const resourceTiles = this.getResourceTilesForBiome(targetBiome, resourcesRec);
           let moveTarget = null;
           let moveDist = Infinity;
           for (const t of resourceTiles) {
@@ -250,9 +255,9 @@ export class AIController {
         continue;
       }
       // If lushness > 6.0 or egg produced, harvest if on a resource tile, else move to one
-      const resourceTiles = this.getResourceTilesForBiome(this.gameState.biomes.get(biomeId)!, board);
+      const resourceTiles = this.getResourceTilesForBiome(this.gameState.biomes.get(biomeId)!, resourcesRec);
       // If on a resource tile, harvest
-      if (tile.active && tile.resourceType && tile.resourceValue > 0) {
+      if (resourceHere && resourceHere.active && resourceHere.value > 0) {
         commands.push({ type: 'harvest', x: ux, y: uy, amount: 3 });
         workingAnimals = workingAnimals.map(a =>
           a.id === unit.id ? { ...a, hasMoved: true } : a
@@ -284,16 +289,13 @@ export class AIController {
   }
 
   // Helper: Get all resource tiles for a biome
-  private getResourceTilesForBiome(biome: Biome, board: Board): { x: number; y: number }[] {
+  private getResourceTilesForBiome(biome: Biome, resources: Record<string, Resource>): { x: number; y: number }[] {
     const tiles: { x: number; y: number }[] = [];
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        const tile = board.tiles[y][x];
-        if (tile.biomeId === biome.id && tile.active && tile.resourceType && tile.resourceValue > 0) {
-          tiles.push({ x, y });
-        }
+    Object.values(resources).forEach(r => {
+      if (r.biomeId === biome.id && r.active && r.value > 0) {
+        tiles.push({ x: r.position.x, y: r.position.y });
       }
-    }
+    });
     return tiles;
   }
 } 

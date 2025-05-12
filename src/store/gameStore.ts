@@ -41,9 +41,9 @@ export interface Tile {
   coordinate: Coordinate;
   terrain: TerrainType;
   biomeId: string | null; // Track which biome this tile belongs to
-  resourceType: ResourceType | null; // Type of resource (FOREST, KELP, etc.) or null if none
-  resourceValue: number; // Value from 0-10, where 0 means depleted
-  active: boolean; // Whether this tile has an active resource
+  resourceType?: ResourceType | null; // @deprecated resource data moving to resources slice
+  resourceValue?: number; // @deprecated
+  active?: boolean; // @deprecated
   isHabitat: boolean; // Whether this tile is a habitat
 }
 

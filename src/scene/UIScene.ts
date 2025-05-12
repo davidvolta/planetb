@@ -143,11 +143,11 @@ export default class UIScene extends Phaser.Scene {
       'ui-resource',
       (state: GameState) => {
         const coord = state.selectedResource;
-        if (!coord || !state.board) {
+        if (!coord) {
           return { hasResource: false };
         }
-        const tile = state.board.tiles[coord.y][coord.x];
-        const hasResource = tile.active && tile.resourceValue > 0;
+        const resource = state.resources[`${coord.x},${coord.y}`];
+        const hasResource = !!resource && resource.active && resource.value > 0;
         return { hasResource };
       },
       (data) => {

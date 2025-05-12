@@ -1,5 +1,5 @@
 import type { GameCommand } from '../game/CommandExecutor';
-import type { GameState, Animal, Tile } from '../store/gameStore';
+import type { GameState, Animal, Resource } from '../store/gameStore';
 import { MovementController } from '../controllers/MovementController';
 
 export function canExecuteCommand(cmd: GameCommand, state: GameState, playerId: number): boolean {
@@ -35,9 +35,9 @@ export function canExecuteCommand(cmd: GameCommand, state: GameState, playerId: 
     }
 
     case 'harvest': {
-      if (!board) return false;
-      const tile = board.tiles?.[cmd.y]?.[cmd.x] as Tile | undefined;
-      return !!tile && !!tile.resourceType && tile.resourceValue > 0;
+      const resKey = `${cmd.x},${cmd.y}`;
+      const resource: Resource | undefined = state.resources[resKey];
+      return !!resource && resource.active && resource.value > 0;
     }
 
     default:
