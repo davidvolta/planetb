@@ -1,22 +1,55 @@
 import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
-import { Egg } from '../store/gameStore';
+import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
+import { StateObserver } from '../utils/stateObserver';
+import * as actions from '../store/actions';
+import { Egg } from '../store/gameStore';
 
 /**
  * Responsible for rendering and managing egg sprites
  */
 export class EggRenderer extends BaseRenderer {
   private eggSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
-  private verticalOffset: number = 12;
+  private readonly verticalOffset: number = 12;
+  private readonly scale: number = 0.3333;
+
+  constructor(
+    scene: Phaser.Scene,
+    layerManager: LayerManager,
+    tileSize: number,
+    tileHeight: number
+  ) {
+    super(scene, layerManager, tileSize, tileHeight);
+  }
 
   /**
-   * Clear all egg sprites
+   * Set up state subscriptions for egg rendering.
    */
-  public clearEggs(): void {
-    this.eggSprites.forEach(sprite => sprite.destroy());
-    this.eggSprites.clear();
+  public setupSubscriptions(): void {
+    StateObserver.subscribe(
+      'EggRenderer.eggs',
+      (state) => ({
+        eggs: Object.values(state.eggs),
+        activePlayerId: state.activePlayerId,
+        fogOfWarEnabled: state.fogOfWarEnabled
+      }),
+      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
+        if (!fogOfWarEnabled) {
+          this.renderEggs(eggs);
+          return;
+        }
+        const visibleCoords = new Set(
+          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }: { x: number, y: number }) => `${x},${y}`)
+        );
+        const visibleEggs = eggs.filter(e =>
+          visibleCoords.has(`${e.position.x},${e.position.y}`)
+        );
+        this.renderEggs(visibleEggs);
+      },
+      { immediate: true, debug: false }
+    );
   }
 
   /**
@@ -60,7 +93,7 @@ export class EggRenderer extends BaseRenderer {
       } else {
         const sprite = this.scene.add.sprite(worldX, worldY, 'egg');
         sprite.setOrigin(0.5, 1);
-        sprite.setScale(0.3333);
+        sprite.setScale(this.scale);
         sprite.setDepth(computeDepth(x, y, true));
         sprite.setData('eggId', id);
         sprite.setData('gridX', x);
@@ -79,6 +112,13 @@ export class EggRenderer extends BaseRenderer {
         this.eggSprites.delete(id);
       }
     });
+  }
+  /**
+   * Clear all egg sprites
+   */
+  public clearEggs(): void {
+    this.eggSprites.forEach(sprite => sprite.destroy());
+    this.eggSprites.clear();
   }
 
   /**

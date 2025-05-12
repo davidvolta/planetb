@@ -1,14 +1,9 @@
 import { StateObserver } from '../utils/stateObserver';
-import { Biome, Egg } from '../store/gameStore';
 import * as actions from '../store/actions';
 import BoardScene from '../scene/BoardScene';
 import { SelectionRenderer, SelectionType } from '../renderers/SelectionRenderer';
 import { TileRenderer } from '../renderers/TileRenderer';
-import { AnimalRenderer } from '../renderers/AnimalRenderer';
-import { BiomeRenderer } from '../renderers/BiomeRenderer';
-import { ResourceRenderer } from '../renderers/ResourceRenderer';
 import { MoveRangeRenderer } from '../renderers/MoveRangeRenderer';
-import { EggRenderer } from '../renderers/EggRenderer';
 
 // Component interfaces: These define the contracts that components must fulfill to receive state updates
 
@@ -18,10 +13,6 @@ export class StateSubscriptionManager {
   private scene: BoardScene;
   
   // Renderers and controllers
-  private animalRenderer!: AnimalRenderer;
-  private eggRenderer!: EggRenderer;
-  private biomeRenderer!: BiomeRenderer;
-  private resourceRenderer!: ResourceRenderer;
   private moveRangeRenderer!: MoveRangeRenderer;
   private tileRenderer!: TileRenderer;
   private selectionRenderer!: SelectionRenderer;
@@ -34,12 +25,7 @@ export class StateSubscriptionManager {
   public static readonly SUBSCRIPTIONS = {
     // Board state subscriptions
     BOARD: 'StateSubscriptionManager.board',
-    
-    // Entity state subscriptions
-    ANIMALS: 'StateSubscriptionManager.animals',
-    EGGS: 'StateSubscriptionManager.eggs',
-    BIOMES: 'StateSubscriptionManager.biomes',
-    RESOURCE_TILES: 'StateSubscriptionManager.resourceTiles',
+
     
     // Interaction state subscriptions
     VALID_MOVES: 'StateSubscriptionManager.validMoves',
@@ -55,20 +41,12 @@ export class StateSubscriptionManager {
   
   // Initialize all renderers and controllers
   public initialize(renderers: {
-    animalRenderer: AnimalRenderer;
-    eggRenderer: EggRenderer;
-    biomeRenderer: BiomeRenderer;
     moveRangeRenderer: MoveRangeRenderer;
     tileRenderer: TileRenderer;
-    resourceRenderer: ResourceRenderer;
     selectionRenderer: SelectionRenderer;
   }): void {
-    this.animalRenderer = renderers.animalRenderer;
-    this.eggRenderer = renderers.eggRenderer;
-    this.biomeRenderer = renderers.biomeRenderer;
     this.moveRangeRenderer = renderers.moveRangeRenderer;
     this.tileRenderer = renderers.tileRenderer; 
-    this.resourceRenderer = renderers.resourceRenderer;
     this.selectionRenderer = renderers.selectionRenderer;
     
     // Mark as initialized
@@ -90,10 +68,6 @@ export class StateSubscriptionManager {
     }
     
     this.setupBoardSubscriptions();
-    this.setupAnimalSubscriptions();
-    this.setupEggSubscriptions();
-    this.setupBiomeSubscriptions();
-    this.setupResourceSubscriptions();
     this.setupInteractionSubscriptions();
     this.setupSelectionSubscriptions();
     this.subscriptionsSetup = true;  // Mark subscriptions as set up
@@ -119,213 +93,6 @@ export class StateSubscriptionManager {
         debug: false 
       }
     );
-  }
-  
-  /**
-   * Subscribe to egg state changes for rendering.
-   */
-  public setupEggSubscriptions(): void {
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.EGGS,
-      (state) => ({
-        eggs: Object.values(state.eggs),
-        activePlayerId: state.activePlayerId,
-        fogOfWarEnabled: state.fogOfWarEnabled
-      }),
-      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
-        if (!fogOfWarEnabled) {
-          this.eggRenderer.renderEggs(eggs);
-          return;
-        }
-        const visibleCoords = new Set(
-          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
-        );
-        const visibleEggs = eggs.filter(e =>
-          visibleCoords.has(`${e.position.x},${e.position.y}`)
-        );
-        this.eggRenderer.renderEggs(visibleEggs);
-      },
-      { immediate: true, debug: false }
-    );
-  }
-
-  // Set up subscriptions related to animals
-  private setupAnimalSubscriptions(): void {
-    // Subscribe to animal changes and filter by fog-of-war visibility for active player
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.ANIMALS,
-      (state) => ({ animals: state.animals, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
-      ({ animals, activePlayerId, fogOfWarEnabled }) => {
-        if (!animals) return;
-        if (!fogOfWarEnabled) {
-          // FOW disabled: render all animals
-          this.animalRenderer.renderAnimals(animals);
-          return;
-        }
-        // Get visible coords for the active player
-        const visibleSet = new Set(
-          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }) => `${x},${y}`)
-        );
-        // Only render animals whose positions are visible
-        const visibleAnimals = animals.filter(a =>
-          visibleSet.has(`${a.position.x},${a.position.y}`)
-        );
-        this.animalRenderer.renderAnimals(visibleAnimals);
-      },
-      { immediate: true, debug: false }
-    );
-  }
-  
-  // Set up subscriptions related to biomes - a fundamental game construct
-  private setupBiomeSubscriptions(): void {
-    // Subscribe to biome changes
-    StateObserver.subscribe<Map<string, Biome>>(
-      StateSubscriptionManager.SUBSCRIPTIONS.BIOMES,
-      (state) => state.biomes,
-      (biomes, previousBiomes) => {
-        
-        if (!biomes) return;
-        
-        if (!previousBiomes) {
-          // Initial render - render all biomes at once
-          const biomesArray = Array.from(biomes.values());
-          this.biomeRenderer.renderBiomes(biomesArray);
-          if (this.scene instanceof BoardScene) {
-            const board = actions.getBoard();
-            const players = actions.getPlayers();
-            const playerId = actions.getActivePlayerId();
-            if (board && players.length > 0) {
-              this.scene.getBiomeOutlineRenderer().renderOutlines(board, biomes, players, playerId);
-            }
-          }
-        } else {
-          // Subsequent updates: collapse duplicate calls for owner & lushness changes
-          for (const [id, biome] of biomes.entries()) {
-            const prev = previousBiomes.get(id);
-            if (!prev) continue;
-            const ownerChanged = biome.ownerId !== prev.ownerId;
-            const lushnessChanged = biome.totalLushness !== prev.totalLushness;
-            if (ownerChanged) {
-              // Reveal fog on capture
-              this.scene.getVisibilityController().revealBiomeTiles(id);
-            
-              // Update ownership visuals
-              this.biomeRenderer.updateBiomeOwnership(id);
-            
-              // Redraw biome outlines
-              const board = actions.getBoard();
-              const players = actions.getPlayers();
-              const playerId = actions.getActivePlayerId();
-              if (board && players.length > 0) {
-                this.scene.getBiomeOutlineRenderer().renderOutlines(board, biomes, players, playerId);
-              }
-            
-            } else if (lushnessChanged) {
-              this.biomeRenderer.updateBiomeOwnership(id);
-            }
-          }
-        }
-      },
-      {
-        immediate: true,
-        debug: false,
-        // Only trigger when ownerId or totalLushness changes
-        equalityFn: <S>(a: S, b: S): boolean => {
-          const mapA = a as Map<string, Biome>;
-          const mapB = b as Map<string, Biome>;
-          if (mapA.size !== mapB.size) return false;
-          for (const [id, biomeA] of mapA.entries()) {
-            const biomeB = mapB.get(id);
-            if (!biomeB) return false;
-            if (biomeA.ownerId !== biomeB.ownerId || biomeA.totalLushness !== biomeB.totalLushness) {
-              return false;
-            }
-          }
-          
-          return true;
-        }
-      }
-    );
-  }
-  
-  // Set up subscriptions related to resources
-  private setupResourceSubscriptions(): void {
-    // Subscribe to resource tile changes
-    StateObserver.subscribe(
-      StateSubscriptionManager.SUBSCRIPTIONS.RESOURCE_TILES,
-      (state) => {
-        if (!state.board) return null;
-        
-        // Extract only the resource-related data from tiles
-        const resourceData = [];
-        for (let y = 0; y < state.board.height; y++) {
-          for (let x = 0; x < state.board.width; x++) {
-            const tile = state.board.tiles[y][x];
-            if (tile.resourceType || tile.active || tile.resourceValue > 0) {
-              resourceData.push({
-                x, 
-                y, 
-                resourceType: tile.resourceType,
-                resourceValue: tile.resourceValue,
-                active: tile.active
-              });
-            }
-          }
-        }
-        return resourceData;
-      },
-      (resourceData, prevResourceData) => {
-        if (!resourceData) return;
-        
-        if (!prevResourceData) {
-          // Initial render
-          const resourceTiles = actions.getResourceTiles();
-          if (this.resourceRenderer) {
-            this.resourceRenderer.renderResourceTiles(resourceTiles);
-          }
-        } else if (this.hasResourceChanges(resourceData, prevResourceData)) {
-          // On actual resource changes (e.g., harvest)
-          const resourceTiles = actions.getResourceTiles();
-          if (this.resourceRenderer) {
-            this.resourceRenderer.renderResourceTiles(resourceTiles);
-          }
-          // Clear selected resource after harvest
-          actions.selectResourceTile(null);
-        }
-      },
-      { immediate: true, debug: false }
-    );
-  }
-  
-  // Helper method to detect meaningful resource changes
-  private hasResourceChanges(currentResources: any[], previousResources: any[]): boolean {
-    // Quick check for different number of resources
-    if (currentResources.length !== previousResources.length) {
-      return true;
-    }
-    
-    // Create maps for quick lookup
-    const previousMap = new Map();
-    for (const resource of previousResources) {
-      const key = `${resource.x},${resource.y}`;
-      previousMap.set(key, resource);
-    }
-    
-    // Check for any changes in resource properties
-    for (const resource of currentResources) {
-      const key = `${resource.x},${resource.y}`;
-      const prevResource = previousMap.get(key);
-      
-      // If resource doesn't exist in previous data or has different properties
-      if (!prevResource || 
-          resource.resourceType !== prevResource.resourceType ||
-          resource.resourceValue !== prevResource.resourceValue || 
-          resource.active !== prevResource.active) {
-        return true;
-      }
-    }
-    
-    return false;
   }
   
   // Set up subscriptions related to user interactions and gameplay events

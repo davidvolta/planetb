@@ -9,12 +9,8 @@ export class SubscriptionBinder {
     const subscriptionManager = this.scene.getSubscriptionManager();
 
     subscriptionManager.initialize({
-      animalRenderer: this.scene.getAnimalRenderer(),
-      eggRenderer: this.scene.getEggRenderer(),
-      biomeRenderer: this.scene.getBiomeRenderer(),
       moveRangeRenderer: this.scene.getMoveRangeRenderer(),
       tileRenderer: this.scene.getTileRenderer(),
-      resourceRenderer: this.scene.getResourceRenderer(),
       selectionRenderer: this.scene.getSelectionRenderer(),
     });
 
@@ -25,17 +21,17 @@ export class SubscriptionBinder {
       'BoardScene.activePlayerFOW',
       state => state.activePlayerId,
       playerId => {
-      this.scene.getVisibilityController().updateFogForActivePlayer(playerId);
+        this.scene.getVisibilityController().updateFogForActivePlayer(playerId);
 
-    const board = actions.getBoard();
-    const biomes = actions.getBiomes();
-    const players = actions.getPlayers();
-    if (board && players.length > 0) {
-      this.scene.getBiomeOutlineRenderer().renderOutlines(board, biomes, players, playerId);
-      this.scene.getBiomeRenderer().renderBiomes(Array.from(biomes.values()));
-    }
-  },
-  { immediate: true }
+        const board = actions.getBoard();
+        const biomes = actions.getBiomes();
+        const players = actions.getPlayers();
+        if (board && players.length > 0) {
+          this.scene.getBiomeRenderer().renderOutlines(board, biomes, players, playerId);
+          this.scene.getBiomeRenderer().renderBiomes(Array.from(biomes.values()));
+        }
+      },
+      { immediate: true }
     );
   }
 } 

@@ -2,14 +2,18 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
-import { getBoard, getBiomes, getPlayers, getActivePlayerId } from '../store/actions';
-import type { Biome } from '../store/gameStore';
+import * as actions from '../store/actions';
+import { StateObserver } from '../utils/stateObserver';
+import type { Board, Biome, Player } from '../store/gameStore';
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD } from '../constants/gameConfig';
+import BoardScene from '../scene/BoardScene';
 
 /**
  * Responsible for rendering and managing biome graphics
  */
 export class BiomeRenderer extends BaseRenderer {
+  private outlineGraphics: Phaser.GameObjects.Graphics | null = null;
+
   /**
    * Creates a new BiomeRenderer
    * @param scene The parent scene
@@ -27,12 +31,90 @@ export class BiomeRenderer extends BaseRenderer {
   }
   
   /**
+   * Set up state subscriptions for biome rendering
+   */
+  public setupSubscriptions(): void {
+    // Subscribe to biome changes
+    StateObserver.subscribe<Map<string, Biome>>(
+      'BiomeRenderer.biomes', // Use a unique key
+      (state) => state.biomes,
+      (biomes, previousBiomes) => {
+
+        if (!biomes) return;
+
+        if (!previousBiomes) {
+          // Initial render - render all biomes at once
+          const biomesArray = Array.from(biomes.values());
+          this.renderBiomes(biomesArray);
+          if (this.scene instanceof BoardScene) { // Ensure scene is BoardScene
+            const board = actions.getBoard();
+            const players = actions.getPlayers();
+            const playerId = actions.getActivePlayerId();
+            if (board && players.length > 0) {
+              // Call renderOutlines directly on this instance
+              this.renderOutlines(board, biomes, players, playerId);
+            }
+          }
+        } else {
+          // Subsequent updates: handle changes
+          for (const [id, biome] of biomes.entries()) {
+            const prev = previousBiomes.get(id);
+            if (!prev) continue; // Skip new biomes here, handle elsewhere if needed
+            const ownerChanged = biome.ownerId !== prev.ownerId;
+            const lushnessChanged = biome.totalLushness !== prev.totalLushness;
+
+            if (ownerChanged) {
+               if (this.scene instanceof BoardScene) { // Ensure scene is BoardScene
+                // Reveal fog on capture
+                this.scene.getVisibilityController().revealBiomeTiles(id);
+
+                // Update ownership visuals
+                this.updateBiomeOwnership(id);
+
+                // Redraw biome outlines
+                const board = actions.getBoard();
+                const players = actions.getPlayers();
+                const playerId = actions.getActivePlayerId();
+                if (board && players.length > 0) {
+                  // Call renderOutlines directly on this instance
+                  this.renderOutlines(board, biomes, players, playerId);
+                }
+              }
+            } else if (lushnessChanged) {
+              // Only update visuals if lushness changed, but not owner
+              this.updateBiomeOwnership(id);
+            }
+          }
+        }
+      },
+      {
+        immediate: true,
+        debug: false,
+        // Only trigger when ownerId or totalLushness changes
+        equalityFn: <S>(a: S, b: S): boolean => {
+          const mapA = a as Map<string, Biome>;
+          const mapB = b as Map<string, Biome>;
+          if (mapA.size !== mapB.size) return false;
+          for (const [id, biomeA] of mapA.entries()) {
+            const biomeB = mapB.get(id);
+            if (!biomeB) return false;
+            if (biomeA.ownerId !== biomeB.ownerId || biomeA.totalLushness !== biomeB.totalLushness) {
+              return false;
+            }
+          }
+          return true;
+        }
+      }
+    );
+  }
+  
+  /**
    * Render all biomes based on the provided biome data
    * @param biomes Array of biome objects to render
    */
   renderBiomes(biomes: Biome[]): void {
     const staticLayer = this.layerManager.getStaticObjectsLayer();
-    const board = getBoard();
+    const board = actions.getBoard();
     if (!staticLayer || !board) {
       console.warn("Cannot render biomes - missing layer or board");
       return;
@@ -117,8 +199,8 @@ export class BiomeRenderer extends BaseRenderer {
     // --- PLAYER COLOR STROKE FOR OWNED HABITATS ---
     if (isCaptured && biomeId !== undefined) {
       // Get the player color from the game state
-      const players = getPlayers();
-      const biome = getBiomes().get(biomeId);
+      const players = actions.getPlayers();
+      const biome = actions.getBiomes().get(biomeId);
       const ownerId = biome?.ownerId;
       const player = players.find(p => p.id === ownerId);
       if (player && player.color) {
@@ -139,8 +221,8 @@ export class BiomeRenderer extends BaseRenderer {
     container.add(graphics);
 
     // --- LUSHNESS BAR (only for owned biomes and only for active player) ---
-    const biome = biomeId ? getBiomes().get(biomeId) : undefined;
-    const activePlayerId = getActivePlayerId();
+    const biome = biomeId ? actions.getBiomes().get(biomeId) : undefined;
+    const activePlayerId = actions.getActivePlayerId();
     const isPlayersBiome = biome && biome.ownerId === activePlayerId;
 
     if (isCaptured && isPlayersBiome) {
@@ -251,7 +333,7 @@ export class BiomeRenderer extends BaseRenderer {
    */
   updateBiomeOwnership(biomeId: string): void {
     const layer = this.layerManager.getStaticObjectsLayer();
-    const biome = getBiomes().get(biomeId);
+    const biome = actions.getBiomes().get(biomeId);
     if (!layer || !biome) return;
 
     // Find and replace the existing biome graphic
@@ -289,5 +371,128 @@ export class BiomeRenderer extends BaseRenderer {
     graphic.setData('isCaptured', isCaptured);
     graphic.setData('lushness', lushness);
     this.layerManager.addToLayer('staticObjects', graphic);
+  }
+
+  /**
+   * Render outlines for biomes
+   * @param board The game board
+   * @param biomes Map of biomes
+   * @param players Array of players
+   * @param activePlayerId ID of the active player
+   */
+  public renderOutlines(
+    board: Board,
+    biomes: Map<string, Biome>,
+    players: Player[],
+    activePlayerId: number
+  ): void {
+    this.clearOutlines();
+  
+    const player = players.find(p => p.id === activePlayerId);
+    if (!player || !player.color) return;
+  
+    const color = parseInt(player.color.replace('#', ''), 16);
+    if (!this.outlineGraphics) {
+      this.outlineGraphics = this.scene.add.graphics();
+      this.outlineGraphics.setDepth(5);
+    }
+    this.outlineGraphics.clear();
+    this.outlineGraphics.lineStyle(1, color, 1); //0xffffff
+  
+    const drawnEdges = new Set<string>();
+  
+    for (const [biomeId, biome] of biomes.entries()) {
+      if (biome.ownerId !== activePlayerId) continue;
+  
+      for (let y = 0; y < board.height; y++) {
+        for (let x = 0; x < board.width; x++) {
+          const tile = board.tiles[y][x];
+          if (tile.biomeId !== biomeId) continue;
+  
+          const verts = this.getDiamondVertices(x, y);
+  
+          const directions = [
+            { dx: 0, dy: -1, a: 0, b: 1 }, // top edge (connect top → right)
+            { dx: 1, dy: 0, a: 1, b: 2 },  // right edge (right → bottom)
+            { dx: 0, dy: 1, a: 2, b: 3 },  // bottom edge (bottom → left)
+            { dx: -1, dy: 0, a: 3, b: 0 }, // left edge (left → top)
+          ];
+           
+  
+          for (const { dx, dy, a, b } of directions) {
+            const nx = x + dx;
+            const ny = y + dy;
+            const neighbor = board.tiles[ny]?.[nx];
+            const neighborBiome = neighbor?.biomeId ? biomes.get(neighbor.biomeId) : null;
+  
+            const sameOwner = neighborBiome?.ownerId === activePlayerId;
+            if (sameOwner) continue;
+  
+            const p1 = verts[a];
+            const p2 = verts[b];
+            const key = this.normalizeEdgeKey(p1, p2);
+  
+            if (!drawnEdges.has(key)) {
+              drawnEdges.add(key);
+              this.drawDashedLine(p1.x, p1.y, p2.x, p2.y, 3, 2);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private clearOutlines(): void {
+    this.outlineGraphics?.clear();
+  }
+
+  private getDiamondVertices(x: number, y: number): Phaser.Math.Vector2[] {
+    const cx = (x - y) * (this.tileSize / 2) + this.anchorX;
+    const cy = (x + y) * (this.tileHeight / 2) + this.anchorY;
+    return [
+      new Phaser.Math.Vector2(cx, cy - this.tileHeight / 2), // top
+      new Phaser.Math.Vector2(cx + this.tileSize / 2, cy),   // right
+      new Phaser.Math.Vector2(cx, cy + this.tileHeight / 2), // bottom
+      new Phaser.Math.Vector2(cx - this.tileSize / 2, cy),   // left
+    ];
+  }
+
+  private normalizeEdgeKey(p1: Phaser.Math.Vector2, p2: Phaser.Math.Vector2): string {
+    // Ensures same key for both directions
+    if (p1.y < p2.y || (p1.y === p2.y && p1.x < p2.x)) {
+      return `${p1.x},${p1.y}:${p2.x},${p2.y}`;
+    } else {
+      return `${p2.x},${p2.y}:${p1.x},${p1.y}`;
+    }
+  }
+
+  private drawDashedLine(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    dashLength: number,
+    gapLength: number
+  ) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx);
+    const steps = Math.floor(length / (dashLength + gapLength));
+
+    for (let i = 0; i < steps; i++) {
+      const start = i * (dashLength + gapLength);
+      const end = start + dashLength;
+
+      const sx = x1 + Math.cos(angle) * start;
+      const sy = y1 + Math.sin(angle) * start;
+      const ex = x1 + Math.cos(angle) * Math.min(end, length);
+      const ey = y1 + Math.sin(angle) * Math.min(end, length);
+
+      this.outlineGraphics!.beginPath();
+      this.outlineGraphics!.moveTo(sx, sy);
+      this.outlineGraphics!.lineTo(ex, ey);
+      this.outlineGraphics!.strokePath();
+    }
   }
 } 

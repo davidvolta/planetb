@@ -4,7 +4,7 @@ import { TILE_SIZE, TILE_HEIGHT, RESOURCE_GENERATION_PERCENTAGE } from '../const
 import { StateObserver } from '../utils/stateObserver';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { GameEnvironment } from '../env/GameEnvironment';
-import { TileRenderer, SelectionRenderer, MoveRangeRenderer, BiomeRenderer, AnimalRenderer, EggRenderer, ResourceRenderer, FogOfWarRenderer, BiomeOutlineRenderer } from '../renderers';
+import { TileRenderer, SelectionRenderer, MoveRangeRenderer, BiomeRenderer, AnimalRenderer, EggRenderer, ResourceRenderer, FogOfWarRenderer } from '../renderers';
 import { LayerManager, CameraManager, StateSubscriptionManager} from '../managers';
 import { AnimationController, VisibilityController, TileInteractionController } from '../controllers'
 import { GameController } from '../game/GameController';
@@ -50,7 +50,6 @@ export default class BoardScene extends Phaser.Scene {
   private tileInteractionController: TileInteractionController;
   private gameController!: GameController;
   private turnController!: TurnController;
-  private biomeOutlineRenderer!: BiomeOutlineRenderer;
   private visibilityController: VisibilityController;
 
   // Add this to the class fields:
@@ -78,6 +77,12 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize controllers that depend on renderers
     this.animationController = new AnimationController(this, this.tileSize, this.tileHeight, this.animalRenderer);
     this.visibilityController = new VisibilityController(this.fogOfWarRenderer);
+
+    // Set up renderer subscriptions
+    this.resourceRenderer.setupSubscriptions();
+    this.animalRenderer.setupSubscriptions();
+    this.biomeRenderer.setupSubscriptions();
+    this.eggRenderer.setupSubscriptions();
   }
 
   // Preload assets needed for the scene
@@ -145,14 +150,6 @@ export default class BoardScene extends Phaser.Scene {
     this.anchorX = anchorX;
     this.anchorY = anchorY;
 
-    this.biomeOutlineRenderer = new BiomeOutlineRenderer(
-      this,
-      this.tileSize,
-      this.tileHeight,
-      this.anchorX,
-      this.anchorY
-    );
-    
     // Initialize all renderers and controllers with anchor coordinates
     this.tileRenderer.initialize(anchorX, anchorY);
     this.selectionRenderer.initialize(anchorX, anchorY);
@@ -248,8 +245,6 @@ export default class BoardScene extends Phaser.Scene {
       console.log("Initial resource generation");
       this.resetResources();
     }
-
-    this.resourceRenderer.visualizeBlankTiles();
 
     if (!this.controlsSetup) {
       this.setupInputHandlers();
@@ -397,7 +392,6 @@ keyboard.on('keydown-T', async () => {
 
     // Clear previous visualizations
     this.resourceRenderer.clearResources();
-    this.resourceRenderer.clearBlankTileMarkers();
 
     // Update game state by resetting resources
     actions.resetResources(resourceChance);
@@ -406,8 +400,6 @@ keyboard.on('keydown-T', async () => {
     const resourceTiles = actions.getResourceTiles();
     this.resourceRenderer.renderResourceTiles(resourceTiles); // Directly render resource tiles
 
-    // Visualize blank tiles after rendering resource tiles
-    this.resourceRenderer.visualizeBlankTiles();
   }
 
   // Scene shutdown handler
@@ -507,10 +499,6 @@ keyboard.on('keydown-T', async () => {
   
   public getTileInteractionController(): TileInteractionController {
     return this.tileInteractionController;
-  }
-
-  public getBiomeOutlineRenderer(): BiomeOutlineRenderer {
-    return this.biomeOutlineRenderer;
   }
 
   private updatePlayerView(): void {

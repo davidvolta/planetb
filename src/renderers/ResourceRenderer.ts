@@ -4,15 +4,14 @@ import { LayerManager } from '../managers/LayerManager';
 import { ResourceType } from '../types/gameTypes';
 import { BaseRenderer } from './BaseRenderer';
 import * as actions from '../store/actions';
-import { TileResult } from '../store/actions';
+import { StateObserver } from '../utils/stateObserver';
 
 /**
  * Responsible for rendering and managing resource graphics
  */
 export class ResourceRenderer extends BaseRenderer {
   private resourceScale: number = 0.3333;
-  // Track blank tile sprites by position key (x,y)
-  private blankTileSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+
   
   /**
    * Creates a new ResourceRenderer
@@ -132,164 +131,6 @@ export class ResourceRenderer extends BaseRenderer {
         data.sprite.destroy();
       }
     });
-    
-    // Always refresh blank tiles after updating resources
-    this.visualizeBlankTiles();
-  }
-  
-  /**
-   * Clear all blank tile visualization markers
-   */
-  clearBlankTileMarkers(): void {
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (!staticObjectsLayer) return;
-    
-    let removedCount = 0;
-    
-    // Destroy all tracked blank tile sprites
-    this.blankTileSprites.forEach((sprite) => {
-      sprite.destroy();
-      removedCount++;
-    });
-    
-    // Clear the tracking map
-    this.blankTileSprites.clear();
-    
-    if (removedCount > 0) {
-      console.log(`Removed ${removedCount} blank tile markers`);
-    }
-  }
-  
-  /**
-   * Visualize blank tiles
-   * This performs an incremental update rather than clearing and recreating all markers
-   */
-  visualizeBlankTiles(): void {
-    // Get all blank tiles using the filtering system
-    const blankTiles = actions.getBlankTiles();
-    
-    if (blankTiles.length === 0) {
-      // No blank tiles, clear any existing ones
-      if (this.blankTileSprites.size > 0) {
-        this.clearBlankTileMarkers();
-      }
-      return;
-    }
-    
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (!staticObjectsLayer) return;
-    
-    // Create a set of current blank tile position keys
-    const currentBlankPositions = new Set<string>();
-    let addedCount = 0;
-    let removedCount = 0;
-    
-    // Process all current blank tiles
-    blankTiles.forEach(({ x, y, tile }: TileResult) => {
-      const posKey = `${x},${y}`;
-      currentBlankPositions.add(posKey);
-      
-      // Check if we already have a sprite for this position
-      if (!this.blankTileSprites.has(posKey)) {
-        // Need to create a new sprite
-        const worldPosition = CoordinateUtils.gridToWorld(
-          x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-        );
-        const worldX = worldPosition.x;
-        const worldY = worldPosition.y;
-        // Commented out: visualization of blank tile sprite
-        // const blankSprite = this.scene.add.sprite(worldX, worldY, 'blank');
-        // blankSprite.setScale(0.25);
-        // blankSprite.setDepth(5);
-        // blankSprite.setData('blankTileMarker', true);
-        // blankSprite.setData('gridX', x);
-        // blankSprite.setData('gridY', y);
-        // this.layerManager.addToLayer('staticObjects', blankSprite);
-        // this.blankTileSprites.set(posKey, blankSprite);
-        // addedCount++;
-      }
-    });
-    
-    // Find and remove sprites for positions that are no longer blank
-    const keysToRemove: string[] = [];
-    this.blankTileSprites.forEach((sprite, posKey) => {
-      if (!currentBlankPositions.has(posKey)) {
-        // This position is no longer blank, remove the sprite
-        sprite.destroy();
-        keysToRemove.push(posKey);
-        removedCount++;
-      }
-    });
-    
-    // Remove keys from our tracking map
-    keysToRemove.forEach(key => {
-      this.blankTileSprites.delete(key);
-    });
-    
-    // Log changes only if something actually changed
-    if (addedCount > 0 || removedCount > 0) {
-      console.log(`Blank tiles update: Added ${addedCount}, Removed ${removedCount}, Total ${this.blankTileSprites.size}`);
-    }
-  }
-  
-  /**
-   * Update specific blank tiles that have changed visibility
-   * @param changedTiles Array of tile positions that have changed
-   */
-  updateBlankTilesVisibility(changedTiles: { x: number, y: number }[]): void {
-    if (changedTiles.length === 0) return;
-    
-    const staticObjectsLayer = this.layerManager.getStaticObjectsLayer();
-    if (!staticObjectsLayer) return;
-    
-    // Get current blank tiles from the action helper
-    const blankTiles = actions.getBlankTiles();
-    
-    // Create a set of blank tile positions for quick lookup
-    const blankPositionSet = new Set<string>();
-    blankTiles.forEach(({ x, y }) => {
-      blankPositionSet.add(`${x},${y}`);
-    });
-    
-    let addedCount = 0;
-    let removedCount = 0;
-    
-    // Process each changed tile
-    changedTiles.forEach(({ x, y }) => {
-      const posKey = `${x},${y}`;
-      const isBlank = blankPositionSet.has(posKey);
-      const hasSprite = this.blankTileSprites.has(posKey);
-      
-      if (isBlank && !hasSprite) {
-        // Need to add a new blank tile marker
-        const worldPosition = CoordinateUtils.gridToWorld(
-          x, y, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
-        );
-        // Commented out: visualization of blank tile sprite
-        // const blankSprite = this.scene.add.sprite(worldPosition.x, worldPosition.y, 'blank');
-        // blankSprite.setScale(0.25);
-        // blankSprite.setDepth(5);
-        // blankSprite.setData('blankTileMarker', true);
-        // blankSprite.setData('gridX', x);
-        // blankSprite.setData('gridY', y);
-        // this.layerManager.addToLayer('staticObjects', blankSprite);
-        // this.blankTileSprites.set(posKey, blankSprite);
-        // addedCount++;
-      } else if (!isBlank && hasSprite) {
-        // Need to remove a blank tile marker
-        const sprite = this.blankTileSprites.get(posKey);
-        if (sprite) {
-          sprite.destroy();
-          this.blankTileSprites.delete(posKey);
-          removedCount++;
-        }
-      }
-    });
-    
-    // Log changes only if something actually changed
-    if (addedCount > 0 || removedCount > 0) {
-      console.log(`Blank tiles visibility update: Added ${addedCount}, Removed ${removedCount}`);
-    }
   }
   
   /**
@@ -313,7 +154,6 @@ export class ResourceRenderer extends BaseRenderer {
   override destroy(): void {
     super.destroy();
     this.clearResources();
-    this.clearBlankTileMarkers();
   }
   
   /**
@@ -335,5 +175,84 @@ export class ResourceRenderer extends BaseRenderer {
         console.warn(`Unknown resource type: ${resourceType}, falling back to forest`);
         return 'forest';
     }
+  }
+
+  /**
+   * Set up state subscriptions for resource rendering
+   */
+  public setupSubscriptions(): void {
+    StateObserver.subscribe(
+      'ResourceRenderer.resources',
+      (state) => {
+        if (!state.board) return null;
+        
+        // Extract only the resource-related data from tiles
+        const resourceData = [];
+        for (let y = 0; y < state.board.height; y++) {
+          for (let x = 0; x < state.board.width; x++) {
+            const tile = state.board.tiles[y][x];
+            if (tile.resourceType || tile.active || tile.resourceValue > 0) {
+              resourceData.push({
+                x, 
+                y, 
+                resourceType: tile.resourceType,
+                resourceValue: tile.resourceValue,
+                active: tile.active
+              });
+            }
+          }
+        }
+        return resourceData;
+      },
+      (resourceData, prevResourceData) => {
+        if (!resourceData) return;
+        
+        if (!prevResourceData) {
+          // Initial render
+          const resourceTiles = actions.getResourceTiles();
+          this.renderResourceTiles(resourceTiles);
+        } else if (this.hasResourceChanges(resourceData, prevResourceData)) {
+          // On actual resource changes (e.g., harvest)
+          const resourceTiles = actions.getResourceTiles();
+          this.renderResourceTiles(resourceTiles);
+          // Clear selected resource after harvest
+          actions.selectResourceTile(null);
+        }
+      },
+      { immediate: true, debug: false }
+    );
+  }
+
+  /**
+   * Helper method to detect meaningful resource changes
+   */
+  private hasResourceChanges(currentResources: any[], previousResources: any[]): boolean {
+    // Quick check for different number of resources
+    if (currentResources.length !== previousResources.length) {
+      return true;
+    }
+    
+    // Create maps for quick lookup
+    const previousMap = new Map();
+    for (const resource of previousResources) {
+      const key = `${resource.x},${resource.y}`;
+      previousMap.set(key, resource);
+    }
+    
+    // Check for any changes in resource properties
+    for (const resource of currentResources) {
+      const key = `${resource.x},${resource.y}`;
+      const prevResource = previousMap.get(key);
+      
+      // If resource doesn't exist in previous data or has different properties
+      if (!prevResource || 
+          resource.resourceType !== prevResource.resourceType ||
+          resource.resourceValue !== prevResource.resourceValue || 
+          resource.active !== prevResource.active) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 } 
