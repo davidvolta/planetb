@@ -95,7 +95,7 @@ export class VisibilityController {
   }
   /**
    * Updates the fog-of-war visuals when the active player changes.
-   * This is called by SubscriptionBinder.
+   * This is called from BoardScene's setupVisibilitySubscriptions.
    */
   public updateFogForActivePlayer(playerId: number): void {
     const board = actions.getBoard();

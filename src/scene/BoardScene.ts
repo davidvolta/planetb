@@ -5,12 +5,11 @@ import { StateObserver } from '../utils/stateObserver';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { GameEnvironment } from '../env/GameEnvironment';
 import { TileRenderer, SelectionRenderer, MoveRangeRenderer, BiomeRenderer, AnimalRenderer, EggRenderer, ResourceRenderer, FogOfWarRenderer } from '../renderers';
-import { LayerManager, CameraManager, StateSubscriptionManager} from '../managers';
+import { LayerManager, CameraManager } from '../managers';
 import { AnimationController, VisibilityController, TileInteractionController } from '../controllers'
 import { GameController } from '../game/GameController';
 import { TurnController } from '../game/TurnController';
 import { SceneInitializer } from './init/SceneInitializer';
-import { SubscriptionBinder } from './setup/SubscriptionBinder';
 import { getPlayerView } from '../selectors/getPlayerView';
 import { getFullGameState } from '../store/actions';
 
@@ -46,7 +45,6 @@ export default class BoardScene extends Phaser.Scene {
   private layerManager: LayerManager;
   private animationController: AnimationController;
   private cameraManager: CameraManager;
-  private subscriptionManager: StateSubscriptionManager;
   private tileInteractionController: TileInteractionController;
   private gameController!: GameController;
   private turnController!: TurnController;
@@ -61,7 +59,6 @@ export default class BoardScene extends Phaser.Scene {
     // Initialize managers and controllers
     this.layerManager = new LayerManager(this);
     this.cameraManager = new CameraManager(this);
-    this.subscriptionManager = new StateSubscriptionManager(this);
     this.tileInteractionController = new TileInteractionController(this);
 
     // Initialize renderers
@@ -171,9 +168,7 @@ export default class BoardScene extends Phaser.Scene {
     this.setupRendererSubscriptions();
     this.setupDisplacementSubscription();
     this.setupSpawnSubscription();
-
-    const subscriptions = new SubscriptionBinder(this);
-    subscriptions.bind();
+    this.setupVisibilitySubscriptions();
 
     this.setupInputHandlers();
 
@@ -199,9 +194,7 @@ export default class BoardScene extends Phaser.Scene {
   
   // Clean up all subscriptions to prevent memory leak
   private unsubscribeAll() {
-    this.subscriptionManager.unsubscribeAll();   // Use the StateSubscriptionManager to unsubscribe
-    
-    // Also unsubscribe any lingering direct subscriptions by key prefix
+    // Unsubscribe any lingering direct subscriptions by key prefix
     const boardScenePrefix = 'BoardScene.';
     StateObserver.getActiveSubscriptions().forEach(key => {
       if (key.startsWith(boardScenePrefix)) {
@@ -404,7 +397,7 @@ keyboard.on('keydown-T', async () => {
 
   // Scene shutdown handler
   shutdown(): void {
-    this.subscriptionManager.unsubscribeAll();
+    this.unsubscribeAll();
     this.input.removeAllListeners();
     this.layerManager.clearAllLayers(true);
 
@@ -419,7 +412,6 @@ keyboard.on('keydown-T', async () => {
 
     this.cameraManager.destroy();
     this.animationController.destroy();
-    this.subscriptionManager.destroy();
 
     this.controlsSetup = false;
   }
@@ -463,10 +455,6 @@ keyboard.on('keydown-T', async () => {
 
   public getLayerManager(): LayerManager {
     return this.layerManager;
-  }
-
-  public getSubscriptionManager(): StateSubscriptionManager {
-    return this.subscriptionManager;
   }
   
   public getTileRenderer(): TileRenderer {
@@ -542,6 +530,26 @@ keyboard.on('keydown-T', async () => {
           actions.clearSpawnEvent();
         }
       }
+    );
+  }
+
+  // Set up visibility subscription for fog of war and biome rendering
+  private setupVisibilitySubscriptions(): void {
+    StateObserver.subscribe(
+      'BoardScene.activePlayerFOW',
+      state => state.activePlayerId,
+      playerId => {
+        this.visibilityController.updateFogForActivePlayer(playerId);
+
+        const board = actions.getBoard();
+        const biomes = actions.getBiomes();
+        const players = actions.getPlayers();
+        if (board && players.length > 0) {
+          this.biomeRenderer.renderOutlines(board, biomes, players, playerId);
+          this.biomeRenderer.renderBiomes(Array.from(biomes.values()));
+        }
+      },
+      { immediate: true }
     );
   }
 }

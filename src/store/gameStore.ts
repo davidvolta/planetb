@@ -1,4 +1,4 @@
-// ❗ DO NOT import useGameStore directly outside of actions.ts or StateSubscriptionManager.ts
+// ❗ DO NOT import useGameStore directly outside of actions.ts
 // Use the actions.ts API for all reads/writes to game state
 
 import { create } from "zustand";
