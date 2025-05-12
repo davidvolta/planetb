@@ -443,6 +443,7 @@ export function calculateBiomeLushness(biomeId: string): {
   return EcosystemController.calculateBiomeLushness(
     biomeId,
     state.board!,
+    state.resources,
     state.biomes
   );
 }
@@ -726,32 +727,13 @@ export function resetResources(
     b.totalHarvested = 0;
   });
 
-  EcosystemController.resetResources(
+  const resourcesRecord = EcosystemController.resetResources(
     newBoard,
     biomesMap,
     resourceChance
   );
 
-  // Build resources record (double-write)
-  const resourcesRecord: Record<string, Resource> = {};
-  for (let y = 0; y < newBoard.height; y++) {
-    for (let x = 0; x < newBoard.width; x++) {
-      const tile = newBoard.tiles[y][x];
-      if (tile.resourceType) {
-        const key = `${x},${y}`;
-        resourcesRecord[key] = {
-          id: key,
-          position: { x, y },
-          type: tile.resourceType,
-          biomeId: tile.biomeId,
-          value: tile.resourceValue,
-          active: tile.active,
-        } as Resource;
-      }
-    }
-  }
-
-  // Sync resources onto tiles for legacy code paths
+  // Sync resources onto tiles for legacy code paths (temporary)
   syncResourcesToTiles(resourcesRecord, newBoard);
 
   // Commit state
@@ -880,7 +862,7 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
   postEggBiomes.forEach((b, id) => mergedBiomes.set(id, b));
 
   // Recalculate lushness for all biomes
-  const newBiomes = EcosystemController.recalcLushnessState(newBoard, mergedBiomes);
+  const newBiomes = EcosystemController.recalcLushnessState(newBoard, newResources, mergedBiomes);
 
   // Commit the partial update including regenerated resources
   useGameStore.setState({

@@ -74,6 +74,7 @@ export class EvolutionController {
       previousPosition: null,
       hasMoved: true, // newly spawned counts as moved this turn
       ownerId: egg.ownerId,
+      facingDirection: 'left',
     };
 
     const finalAnimals: Animal[] = [...updatedAnimals, newAnimal];

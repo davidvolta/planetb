@@ -468,7 +468,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       const recalcedBiomes = EcosystemController.recalcBiomeLushness(
         latestState.biomes,
         biomeIdAffected,
-        latestState.board!
+        latestState.board!,
+        latestState.resources
       );
       set({ biomes: recalcedBiomes });
     }

@@ -75,13 +75,15 @@ export class EcosystemController {
     board: Board,
     biomes: Map<string, Biome>,
     resourceChance: number = RESOURCE_GENERATION_PERCENTAGE
-  ): void {
+  ): Record<string, import('../store/gameStore').Resource> {
     if (!board) {
       console.warn("Board not initialized, cannot reset resources");
-      return;
+      return {};
     }
 
     const updatedBiomes = new Map(biomes);
+
+    const resourcesRecord: Record<string, import('../store/gameStore').Resource> = {};
 
     biomes.forEach((biome, biomeId) => {
       // Gather and shuffle eligible tiles for this biome
@@ -121,16 +123,31 @@ export class EcosystemController {
         const terrain = tile.terrain as TerrainType;
         const type = terrainToResource[terrain];
         if (!type) return;
+
+        // Mutate tile for legacy paths (will be removed in Phase 6)
         const t = board.tiles[y][x];
         t.resourceType = type;
         t.resourceValue = 10;
         t.active = true;
+
+        // Build resource object
+        const key = `${x},${y}`;
+        resourcesRecord[key] = {
+          id: key,
+          type,
+          position: { x, y },
+          biomeId,
+          value: 10,
+          active: true
+        } as import('../store/gameStore').Resource;
       });
     });
 
     // Commit updated biomes map
     biomes.clear();
     updatedBiomes.forEach((b, id) => biomes.set(id, b));
+
+    return resourcesRecord;
   }
 
   /**
@@ -239,12 +256,14 @@ export class EcosystemController {
    * Compute lushness for a biome, returning all lushness values
    * @param biomeId ID of the biome to calculate lushness for
    * @param board Current game board
+   * @param resources Record of all resources in the game
    * @param biomes Map of all biomes
    * @returns Object containing baseLushness, lushnessBoost, and totalLushness
    */
   public static calculateBiomeLushness(
     biomeId: string,
     board: Board,
+    resources: Record<string, import('../store/gameStore').Resource>,
     biomes: Map<string, Biome>
   ): {
     baseLushness: number;
@@ -256,12 +275,10 @@ export class EcosystemController {
       console.warn(`Biome ${biomeId} not found`);
       return { baseLushness: 0, lushnessBoost: 0, totalLushness: 0 };
     }
-    // Get active resource tiles in this biome
-    const activeTiles = this.getBoardTilesForBiome(board, biomeId)
-      .filter(({ tile }) => tile.active && tile.resourceType !== null)
-      .map(({ tile }) => tile);
+    // Get active resources in this biome
+    const activeResources = Object.values(resources).filter(r => r.biomeId === biomeId && r.active);
     // Calculate base lushness relative to initial resource count
-    const currentTotal = activeTiles.reduce((sum, t) => sum + (t.resourceValue ?? 0), 0);
+    const currentTotal = activeResources.reduce((sum, r) => sum + r.value, 0);
     const initialTotal = biome.initialResourceCount * 10;
     let baseLushness = 0;
     if (initialTotal > 0) {
@@ -433,13 +450,14 @@ export class EcosystemController {
    */
   public static recalcLushnessState(
     board: Board,
+    resources: Record<string, import('../store/gameStore').Resource> = {},
     biomes: Map<string, Biome>
   ): Map<string, Biome> {
     const newBiomes = new Map(biomes);
     newBiomes.forEach((biome, biomeId) => {
       if (biome.ownerId !== null) {
         const { baseLushness, lushnessBoost, totalLushness } =
-          this.calculateBiomeLushness(biomeId, board, newBiomes);
+          this.calculateBiomeLushness(biomeId, board, resources, newBiomes);
         newBiomes.set(biomeId, { ...biome, baseLushness, lushnessBoost, totalLushness });
       }
     });
@@ -452,7 +470,8 @@ export class EcosystemController {
   public static recalcBiomeLushness(
     biomes: Map<string, Biome>,
     biomeId: string,
-    board: Board
+    board: Board,
+    resources: Record<string, import('../store/gameStore').Resource> = {}
   ): Map<string, Biome> {
     const newBiomes = new Map(biomes);
     const biome = newBiomes.get(biomeId);
@@ -460,7 +479,7 @@ export class EcosystemController {
     // Recalculate lushness only; egg count is maintained in the eggs store
     if (biome.ownerId !== null) {
       const { baseLushness, lushnessBoost, totalLushness } =
-        this.calculateBiomeLushness(biomeId, board, newBiomes);
+        this.calculateBiomeLushness(biomeId, board, resources, newBiomes);
       newBiomes.set(biomeId, { ...biome, baseLushness, lushnessBoost, totalLushness });
     }
     return newBiomes;
