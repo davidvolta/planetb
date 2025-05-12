@@ -572,28 +572,6 @@ export function getEggPlacementTiles(biomeId: string): TileResult[] {
   );
 }
 
-/**
- * Get all resource tiles from the game board
- */
-export function getResourceTiles(): TileResult[] {
-  const state = useGameStore.getState();
-  if (!state.board) return [];
-
-  const results: TileResult[] = [];
-  Object.values(state.resources).forEach(r => {
-    results.push({
-      tile: {
-        coordinate: { ...r.position },
-        terrain: state.board!.tiles[r.position.y][r.position.x].terrain,
-        biomeId: r.biomeId,
-        isHabitat: false
-      } as any,
-      x: r.position.x,
-      y: r.position.y
-    });
-  });
-  return results;
-}
 
 /**
  * Delegate harvesting logic to the EcosystemController.

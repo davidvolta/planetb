@@ -1,4 +1,4 @@
-import type { GameState, Animal, Biome, Board, Egg, Resource } from '../store/gameStore';
+import type { GameState, Animal, Biome, Egg, Resource } from '../store/gameStore';
 import { isTerrainCompatible } from '../utils/SpeciesUtils';
 import type { GameCommand } from '../game/CommandExecutor';
 import { MovementController } from './MovementController';
