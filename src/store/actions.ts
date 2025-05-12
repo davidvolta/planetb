@@ -672,23 +672,28 @@ export function resetResources(
   );
   const newBoard: Board = { ...board, tiles: clonedTiles };
 
-  const biomesMap = state.biomes;
-  biomesMap.forEach(b => {
-    b.initialResourceCount = 0;
-    b.nonDepletedCount = 0;
-    b.totalHarvested = 0;
+  // Create a new Map with reset biome stats
+  const oldBiomes = state.biomes;
+  const newBiomes = new Map<string, Biome>();
+  oldBiomes.forEach((b, id) => {
+    newBiomes.set(id, {
+      ...b,
+      initialResourceCount: 0,
+      nonDepletedCount: 0,
+      totalHarvested: 0
+    });
   });
 
   const resourcesRecord = EcosystemController.resetResources(
     newBoard,
-    biomesMap,
+    newBiomes,
     resourceChance
   );
 
   // Commit board and resources
-  useGameStore.setState({ board: newBoard, biomes: biomesMap, resources: resourcesRecord });
+  useGameStore.setState({ board: newBoard, biomes: newBiomes, resources: resourcesRecord });
 
-  biomesMap.forEach((_b, biomeId) => updateBiomeLushness(biomeId));
+  newBiomes.forEach((_b, biomeId) => updateBiomeLushness(biomeId));
 }
 
 

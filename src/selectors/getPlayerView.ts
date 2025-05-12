@@ -23,6 +23,7 @@ export function getPlayerView(state: GameState, playerId: number) {
       visibleBiomes.set(id, biome);
       continue;
     }
+
     const biomeIsVisible = state.board.tiles.some(row =>
       row.some(tile =>
         tile.biomeId === id && visibleTiles.has(`${tile.coordinate.x},${tile.coordinate.y}`)
@@ -69,10 +70,7 @@ export function getPlayerView(state: GameState, playerId: number) {
   const resourceCoordSet = new Set(filteredResources.map(r => `${r.position.x},${r.position.y}`));
 
   // Derive resourceTiles and blankTiles for UI helpers
-  const resourceTiles = filteredResources.map(r => {
-    const tile = state.board!.tiles[r.position.y][r.position.x];
-    return tile;
-  });
+  const resourceTiles = filteredResources.map(r => maskedTiles[r.position.y][r.position.x]);
 
   const blankTiles = maskedTiles.flat().filter(tile => {
     const key = `${tile.coordinate.x},${tile.coordinate.y}`;
