@@ -879,3 +879,7 @@ export function setFogOfWarEnabled(enabled: boolean): void {
 export function getFogOfWarEnabled(): boolean {
   return useGameStore.getState().fogOfWarEnabled;
 }
+
+export function getFullGameState() {
+  return useGameStore.getState();
+}
