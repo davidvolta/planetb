@@ -255,10 +255,7 @@ export default class DebugScene extends Phaser.Scene {
     this.fowCheckboxInner.setVisible(this.fowEnabled);
     // Update fog-of-war state via actions
     setFogOfWarEnabled(this.fowEnabled);
-    // Reflect change immediately in the board scene
-    const boardScene = this.scene.get('BoardScene') as BoardScene;
-    boardScene.getVisibilityController().toggleFogOfWar(this.fowEnabled);
-
+    // The FOWRenderer will handle the rest through subscriptions
   }
 
   private createPauseButton(x: number, y: number): void {

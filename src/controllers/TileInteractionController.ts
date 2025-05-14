@@ -72,7 +72,7 @@ export class TileInteractionController {
 
       // 2) Fog-of-war reveal around destination (use global FOW flag)
       if (actions.getFogOfWarEnabled()) {
-        this.scene.getVisibilityController().revealAround(x, y);
+        actions.revealTilesAround(x, y);
       }
 
       // 3) Execute the move via GameController (animation + state)

@@ -5,6 +5,7 @@ import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { MovementController } from '../controllers/MovementController';
 import { BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT, BLANK_DISPLACEMENT_EVENT } from '../types/events';
 import type { Resource } from './gameStore';
+import * as CoordinateUtils from '../utils/CoordinateUtils';
 
 
 // =============================================================================
@@ -388,6 +389,10 @@ export async function captureBiome(biomeId: string): Promise<void> {
 
   // Commit updated state
   useGameStore.setState({ board: state.board!, players: state.players, biomes: newBiomes, animals: newAnimals, eggs: updatedEggsRecord });
+  
+  // Always reveal all tiles in a newly captured biome
+  revealBiomeTiles(biomeId);
+  
   // Recalculate lushness for this biome
   await updateBiomeLushness(biomeId);
 }
@@ -899,4 +904,60 @@ export function getResources(): Record<string, Resource> {
 export function getResourceAt(x: number, y: number): Resource | undefined {
   const key = `${x},${y}`;
   return useGameStore.getState().resources[key];
+}
+
+/**
+ * Reveal tiles around a given coordinate for the active player
+ * @param x X coordinate of the center tile
+ * @param y Y coordinate of the center tile
+ */
+export function revealTilesAround(x: number, y: number): void {
+  const board = getBoard();
+  if (!board) return;
+  
+  // Compute adjacent tiles including the current tile
+  const tiles = CoordinateUtils.getAdjacentTiles(x, y, board.width, board.height);
+  const uniqueTiles = CoordinateUtils.removeDuplicateTiles(tiles);
+
+  // Update fog-of-war state for active player
+  updateTilesVisibility(uniqueTiles.map(t => ({ x: t.x, y: t.y, visible: true })));
+}
+
+/**
+ * Reveal all tiles belonging to a specific biome for the active player
+ * @param biomeId ID of the biome to reveal
+ */
+export function revealBiomeTiles(biomeId: string): void {
+  const tiles = getTilesForBiome(biomeId);
+  if (tiles.length === 0) return;
+
+  // Update fog-of-war state for active player
+  updateTilesVisibility(tiles.map(({ x, y }) => ({ x, y, visible: true })));
+}
+
+/**
+ * Get visible tiles for initialization for the active player
+ * This includes tiles around animals and tiles in owned biomes
+ */
+export function getInitialVisibleTiles(): { x: number, y: number }[] {
+  const board = getBoard();
+  if (!board) return [];
+
+  const activePlayerId = getActivePlayerId();
+  
+  // Collect tiles around non-egg animals
+  const eggsRecord = getEggs();
+  const unitAdjacents = getAnimals()
+    .filter(a => a.ownerId === activePlayerId && !(a.id in eggsRecord))
+    .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, board.width, board.height));
+  const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
+
+  // Collect tiles of owned biomes
+  const biomeTiles = Array.from(getBiomes().entries())
+    .filter(([_, b]) => b.ownerId === activePlayerId)
+    .flatMap(([id]) => getTilesForBiome(id).map(({ x, y }) => ({ x, y })));
+  const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
+
+  // Combine all tiles
+  return [...uniqueUnitTiles, ...uniqueBiomeTiles];
 }

@@ -66,7 +66,7 @@ export class BiomeRenderer extends BaseRenderer {
             if (ownerChanged) {
                if (this.scene instanceof BoardScene) { // Ensure scene is BoardScene
                 // Reveal fog on capture
-                this.scene.getVisibilityController().revealBiomeTiles(id);
+                actions.revealBiomeTiles(id);
 
                 // Update ownership visuals
                 this.updateBiomeOwnership(id);

@@ -6,6 +6,7 @@ import { BaseRenderer } from './BaseRenderer';
 import { computeDepth } from '../utils/DepthUtils';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
+import { getPlayerView } from '../selectors/getPlayerView';
 
 /**
  * Responsible for rendering and managing animal sprites
@@ -39,23 +40,9 @@ export class AnimalRenderer extends BaseRenderer {
   public setupSubscriptions(): void {
     StateObserver.subscribe(
       'AnimalRenderer.animals',
-      (state) => ({ animals: state.animals, activePlayerId: state.activePlayerId, fogOfWarEnabled: state.fogOfWarEnabled }),
-      ({ animals, activePlayerId, fogOfWarEnabled }) => {
-        if (!animals) return;
-        if (!fogOfWarEnabled) {
-          // FOW disabled: render all animals
-          this.renderAnimals(animals);
-          return;
-        }
-        // Get visible coords for the active player
-        const visibleSet = new Set(
-          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }: { x: number, y: number }) => `${x},${y}`)
-        );
-        // Only render animals whose positions are visible
-        const visibleAnimals = animals.filter(a =>
-          visibleSet.has(`${a.position.x},${a.position.y}`)
-        );
-        this.renderAnimals(visibleAnimals);
+      (state) => getPlayerView(state, actions.getActivePlayerId()),
+      (playerView) => {
+        this.renderAnimals(playerView?.animals ?? []);
       },
       { immediate: true, debug: false }
     );

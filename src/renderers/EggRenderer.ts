@@ -6,6 +6,8 @@ import { computeDepth } from '../utils/DepthUtils';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
 import { Egg } from '../store/gameStore';
+import { getPlayerView } from '../selectors/getPlayerView';
+
 
 /**
  * Responsible for rendering and managing egg sprites
@@ -30,23 +32,9 @@ export class EggRenderer extends BaseRenderer {
   public setupSubscriptions(): void {
     StateObserver.subscribe(
       'EggRenderer.eggs',
-      (state) => ({
-        eggs: Object.values(state.eggs),
-        activePlayerId: state.activePlayerId,
-        fogOfWarEnabled: state.fogOfWarEnabled
-      }),
-      ({ eggs, activePlayerId, fogOfWarEnabled }) => {
-        if (!fogOfWarEnabled) {
-          this.renderEggs(eggs);
-          return;
-        }
-        const visibleCoords = new Set(
-          actions.getVisibleTilesForPlayer(activePlayerId).map(({ x, y }: { x: number, y: number }) => `${x},${y}`)
-        );
-        const visibleEggs = eggs.filter(e =>
-          visibleCoords.has(`${e.position.x},${e.position.y}`)
-        );
-        this.renderEggs(visibleEggs);
+      (state) => getPlayerView(state, actions.getActivePlayerId()),
+      (playerView) => {
+        this.renderEggs(playerView?.eggs ?? []);
       },
       { immediate: true, debug: false }
     );

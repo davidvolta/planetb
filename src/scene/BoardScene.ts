@@ -6,7 +6,7 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { GameEnvironment } from '../env/GameEnvironment';
 import { TileRenderer, SelectionRenderer, MoveRangeRenderer, BiomeRenderer, AnimalRenderer, EggRenderer, ResourceRenderer, FogOfWarRenderer } from '../renderers';
 import { LayerManager, CameraManager } from '../managers';
-import { AnimationController, VisibilityController, TileInteractionController } from '../controllers'
+import { AnimationController, TileInteractionController } from '../controllers'
 import { GameController } from '../game/GameController';
 import { TurnController } from '../game/TurnController';
 import { SceneInitializer } from './init/SceneInitializer';
@@ -21,13 +21,13 @@ export const EVENTS = {
 // Delegate functionality to managers and ensure proper lifecycle management
 export default class BoardScene extends Phaser.Scene {
   // Fixed tile properties
-  private tileSize = TILE_SIZE; 
-  private tileHeight = TILE_HEIGHT; 
-  
+  private tileSize = TILE_SIZE;
+  private tileHeight = TILE_HEIGHT;
+
   // Store fixed anchor positions for the grid
-  private anchorX = 0; 
+  private anchorX = 0;
   private anchorY = 0;
-  
+
   // Renderers
   private tileRenderer!: TileRenderer;
   private selectionRenderer!: SelectionRenderer;
@@ -37,9 +37,6 @@ export default class BoardScene extends Phaser.Scene {
   private eggRenderer!: EggRenderer;
   private resourceRenderer!: ResourceRenderer;
   private fogOfWarRenderer!: FogOfWarRenderer;
-  
-  // Setup tracking
-  private controlsSetup = false;
 
   // Managers and controllers
   private layerManager!: LayerManager;
@@ -48,7 +45,6 @@ export default class BoardScene extends Phaser.Scene {
   private tileInteractionController!: TileInteractionController;
   private gameController!: GameController;
   private turnController!: TurnController;
-  private visibilityController!: VisibilityController;
 
   // Add this to the class fields:
   private currentPlayerView: ReturnType<typeof getPlayerView> | null = null;
@@ -60,16 +56,15 @@ export default class BoardScene extends Phaser.Scene {
   // Initialize the scene
   init() {
     this.unsubscribeAll();
-    this.controlsSetup = false;
     this.initializeSceneSystems();
   }
 
   // Preload assets needed for the scene
   preload() {
     // Load all animal sprites
-    this.load.image("egg", "assets/egg.png");  
+    this.load.image("egg", "assets/egg.png");
     this.load.image("buffalo", "assets/animals/buffalo/buffalo.png");
-    this.load.image("bird", "assets/animals/bird/bird.png"); 
+    this.load.image("bird", "assets/animals/bird/bird.png");
     this.load.image("snake", "assets/animals/snake/snake.png");
     this.load.image("octopus", "assets/animals/octopus/octopus.png");
     this.load.image("turtle", "assets/animals/turtle/turtle.png");
@@ -109,7 +104,7 @@ export default class BoardScene extends Phaser.Scene {
       this.events.emit(EVENTS.ASSETS_LOADED);
     });
   }
-  
+
   update() {
     // Let the selection renderer handle hover updates
     const pointer = this.input.activePointer;
@@ -127,13 +122,8 @@ export default class BoardScene extends Phaser.Scene {
         this.selectionRenderer.updateHoverIndicator(false);
       }
     }
-
-    // Update selection logic to use filtered view
-    const selectedId = this.currentPlayerView?.selectedAnimalID;
-    const validMoves = this.currentPlayerView?.validMoves ?? [];
-    const isMoveMode = this.currentPlayerView?.moveMode;
   }
-  
+
   // Create and set up the scene
   public create(): void {
     console.log("BoardScene create() called", this.scene.key);
@@ -163,25 +153,15 @@ export default class BoardScene extends Phaser.Scene {
     this.animalRenderer.renderAnimals(this.currentPlayerView?.animals ?? []);
     this.eggRenderer.renderEggs(this.currentPlayerView?.eggs ?? []);
   }
-  
-  // Clean up all subscriptions to prevent memory leak
-  private unsubscribeAll() {
-    // Unsubscribe any lingering direct subscriptions by key prefix
-    const boardScenePrefix = 'BoardScene.';
-    StateObserver.getActiveSubscriptions().forEach(key => {
-      if (key.startsWith(boardScenePrefix)) {
-        StateObserver.unsubscribe(key);
-      }
-    });
-  }
+
 
   // Create tiles for the board
   private createTiles() {
     const board = this.currentPlayerView?.board;
     if (!board) {
       console.warn("No board available");
-      this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 
-        "No board data available", 
+      this.add.text(this.cameras.main.centerX, this.cameras.main.centerY,
+        "No board data available",
         { color: '#ffffff', fontSize: '24px' }
       ).setOrigin(0.5);
       return;
@@ -199,20 +179,26 @@ export default class BoardScene extends Phaser.Scene {
 
     if (actions.getFogOfWarEnabled()) {
       this.fogOfWarRenderer.createFogOfWar(board);
-      this.visibilityController.initializeVisibility();
+      this.fogOfWarRenderer.initializeVisibility();
     } else {
       this.fogOfWarRenderer.clearFogOfWar();
     }
 
-    // Obtain full resources record for initial render
-    const fullResourcesArray = Object.values(actions.getResources());
-
-    if (!this.controlsSetup) {
-      this.setupInputHandlers();
-    }
+    // Obtain visible resources from current player view
+    const fullResourcesArray = this.currentPlayerView?.resources ?? [];
 
     // Render all resources (visibility will be handled by FOW layer)
     this.resourceRenderer.renderResources(fullResourcesArray);
+  }
+
+  private updatePlayerView(): void {
+    const playerId = actions.getActivePlayerId();
+    const fullState = getFullGameState();
+    this.currentPlayerView = getPlayerView(fullState, playerId);
+
+    // Trigger re-rendering for player-visible resource set
+    const visibleResources = this.currentPlayerView?.resources ?? [];
+    this.resourceRenderer.renderResources(visibleResources);
   }
 
   // Helper to lookup an animal sprite by ID
@@ -245,7 +231,6 @@ export default class BoardScene extends Phaser.Scene {
 
     // Create controllers that depend on renderers
     this.animationController = new AnimationController(this, this.tileSize, this.tileHeight, this.animalRenderer);
-    this.visibilityController = new VisibilityController(this.fogOfWarRenderer);
 
     // Initialize all renderers and controllers with anchor coordinates
     this.tileRenderer.initialize(anchorX, anchorY);
@@ -258,13 +243,13 @@ export default class BoardScene extends Phaser.Scene {
     this.fogOfWarRenderer.initialize(anchorX, anchorY);
     this.animationController.initialize(anchorX, anchorY);
   }
-  
+
   // Set up input handlers for clicks and keyboard
   private setupInputHandlers(): void {
     // Handle clicks on tiles and habitats directly
     this.input.on(
       'gameobjectdown',
-      (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
         // Ignore clicks while animations are running
         if (this.animationController.hasActiveAnimations()) return;
         const gridX = gameObject.getData('gridX');
@@ -274,31 +259,6 @@ export default class BoardScene extends Phaser.Scene {
         }
       }
     );
-    
-    // 🔥 Add debug key: T for "next turn"
-    const keyboard = this.input.keyboard;
-if (!keyboard) {
-  console.warn("Keyboard input system not ready");
-  return;
-}
-
-keyboard.on('keydown-T', async () => {
-
-      console.log("▶️ Ending turn and switching player...");
-      await this.turnController.next();          // Advance to next player
-      this.updatePlayerView();                   // Refresh currentPlayerView
-      if (this.currentPlayerView) {
-        const { board, animals, eggs } = this.currentPlayerView;
-        if (board) {
-          this.tileRenderer.renderBoard(board, this.anchorX, this.anchorY);
-        }
-        this.animalRenderer.renderAnimals(animals ?? []);
-        this.eggRenderer.renderEggs(eggs ?? []);
-      }
-    });
-
-    // Mark controls as set up
-    this.controlsSetup = true;
   }
 
   async handleDisplacementEvent(animalId: string, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
@@ -309,7 +269,7 @@ keyboard.on('keydown-T', async () => {
       actions.clearDisplacementEvent();
       return;
     }
-    
+
     // Force sprite to start at its previous (from) position to ensure tween distance > 0
     const startWorld = CoordinateUtils.gridToWorld(
       fromX,
@@ -320,35 +280,36 @@ keyboard.on('keydown-T', async () => {
       this.anchorY
     );
     animalSprite.setPosition(startWorld.x, startWorld.y - 12); // same verticalOffset as renderer
-    
+
     // Fog-of-war reveal using global flag
     if (actions.getFogOfWarEnabled()) {
-      this.visibilityController.revealAround(toX, toY);
+      this.fogOfWarRenderer.revealAround(toX, toY);
     }
-    
+
     // Animate displacement and update state
     await this.animationController.displaceUnit(animalId, animalSprite, fromX, fromY, toX, toY);
     // Clear the displacement event after animation completes
     actions.clearDisplacementEvent();
   }
-  
+
   public handleSpawnEvent(animalId: string): void {
     if (!animalId) return;
 
-    // Refresh player view after spawn
+    // Get spawn animal data directly from global state
+    const animal = actions.getAnimals().find(a => a.id === animalId);
+    
+    // Reveal tiles directly through actions
+    if (animal && actions.getFogOfWarEnabled()) {
+      actions.revealTilesAround(animal.position.x, animal.position.y);
+      }
+    
+    // Now that visibility is updated, refresh player view
     this.updatePlayerView();
 
-    // Reveal visibility
-    if (actions.getFogOfWarEnabled()) {
-      const animal = this.currentPlayerView?.animals.find(a => a.id === animalId);
-      if (animal) {
-        this.visibilityController.revealAround(animal.position.x, animal.position.y);
-      }
-    }
-
-    // Re-render using filtered view
+    // Re-render using filtered view from getPlayerView
     const updatedAnimals = this.currentPlayerView?.animals ?? [];
     this.animalRenderer.renderAnimals(updatedAnimals);
+    this.eggRenderer.renderEggs(this.currentPlayerView?.eggs ?? []);
   }
   // Public method to reset resources with current settings (accepts override)
   public resetResources(resourceChance: number = RESOURCE_GENERATION_PERCENTAGE): void {
@@ -370,17 +331,7 @@ keyboard.on('keydown-T', async () => {
 
     // Refresh player view and re-render resources list
     this.updatePlayerView();
-    this.resourceRenderer.renderResources(Object.values(actions.getResources()));
-  }
-
-  private updatePlayerView(): void {
-    const playerId = actions.getActivePlayerId();
-    const fullState = getFullGameState();
-    this.currentPlayerView = getPlayerView(fullState, playerId);
-  
-    // Trigger re-rendering for player-visible resource set
-    const visibleResources = this.currentPlayerView?.resources ?? [];
-    this.resourceRenderer.renderResources(visibleResources);
+    this.resourceRenderer.renderResources(this.currentPlayerView?.resources ?? []);
   }
 
   private setupAllSubscriptions(): void {
@@ -390,7 +341,7 @@ keyboard.on('keydown-T', async () => {
     this.eggRenderer.setupSubscriptions();
     this.moveRangeRenderer.setupSubscriptions();
     this.selectionRenderer.setupSubscriptions();
-    // TODO: this.fogOfWarRenderer.setupSubscriptions(); // once implemented
+    this.fogOfWarRenderer.setupSubscriptions();
 
     // Board scene subscriptions
     this.setupDisplacementSubscription();
@@ -423,21 +374,33 @@ keyboard.on('keydown-T', async () => {
     );
   }
 
-  // Set up visibility subscription for fog of war and biome rendering -- NEED TO REMOVE THIS
+  // Set up visibility subscription for fog of war and biome rendering
   private setupVisibilitySubscriptions(): void {
     StateObserver.subscribe(
       'BoardScene.activePlayerFOW',
-      state => state.activePlayerId,
-      playerId => {
-        this.visibilityController.updateFogForActivePlayer(playerId);
+      state => ({
+        activePlayerId: state.activePlayerId,
+        // Track visibility changes and turn to catch spawns and captures
+        visibleTiles: state.players.find(p => p.id === state.activePlayerId)?.visibleTiles.size || 0,
+        turn: state.turn,
+        fogOfWarEnabled: state.fogOfWarEnabled
+      }),
+      ({ activePlayerId, visibleTiles, turn, fogOfWarEnabled }) => {
+        // Use FOWRenderer directly to update fog state for player change
+        if (fogOfWarEnabled) {
+          this.fogOfWarRenderer.updateFogForActivePlayer(activePlayerId);
+        }
 
         const board = actions.getBoard();
         const biomes = actions.getBiomes();
         const players = actions.getPlayers();
         if (board && players.length > 0) {
-          this.biomeRenderer.renderOutlines(board, biomes, players, playerId);
+          this.biomeRenderer.renderOutlines(board, biomes, players, activePlayerId);
           this.biomeRenderer.renderBiomes(Array.from(biomes.values()));
         }
+        
+        // Update player view
+        this.updatePlayerView();
       },
       { immediate: true }
     );
@@ -454,11 +417,11 @@ keyboard.on('keydown-T', async () => {
   public getCameraManager(): CameraManager {
     return this.cameraManager;
   }
-  
+
   public getTileSize(): number {
     return this.tileSize;
   }
-  
+
   public getTileHeight(): number {
     return this.tileHeight;
   }
@@ -474,15 +437,11 @@ keyboard.on('keydown-T', async () => {
   public getGameController(): GameController {
     return this.gameController;
   }
-  
-  public getVisibilityController(): VisibilityController {
-    return this.visibilityController;
-  }
 
   public getLayerManager(): LayerManager {
     return this.layerManager;
   }
-  
+
   public getTileRenderer(): TileRenderer {
     return this.tileRenderer;
   }
@@ -506,13 +465,24 @@ keyboard.on('keydown-T', async () => {
   public getTurnController(): TurnController {
     return this.turnController;
   }
-  
+
   public getEggRenderer(): EggRenderer {
-      return this.eggRenderer;
+    return this.eggRenderer;
   }
-  
+
   public getTileInteractionController(): TileInteractionController {
     return this.tileInteractionController;
+  }
+
+  // Clean up all subscriptions to prevent memory leak
+  private unsubscribeAll() {
+    // Unsubscribe any lingering direct subscriptions by key prefix
+    const boardScenePrefix = 'BoardScene.';
+    StateObserver.getActiveSubscriptions().forEach(key => {
+      if (key.startsWith(boardScenePrefix)) {
+        StateObserver.unsubscribe(key);
+      }
+    });
   }
 
   shutdown(): void {
@@ -531,8 +501,6 @@ keyboard.on('keydown-T', async () => {
 
     this.cameraManager.destroy();
     this.animationController.destroy();
-
-    this.controlsSetup = false;
   }
 
 }
