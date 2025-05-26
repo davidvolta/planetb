@@ -48,6 +48,9 @@ export default class BoardScene extends Phaser.Scene {
 
   // Add this to the class fields:
   private currentPlayerView: ReturnType<typeof getPlayerView> | null = null;
+  
+  // Health display properties
+  private healthTexts: Map<string, Phaser.GameObjects.Text> = new Map();
 
   constructor() {
     super({ key: "BoardScene" });
@@ -346,6 +349,7 @@ export default class BoardScene extends Phaser.Scene {
     // Board scene subscriptions
     this.setupDisplacementSubscription();
     this.setupSpawnSubscription();
+    this.setupHealthSubscription();
   }
 
   setupDisplacementSubscription(): void {
@@ -372,6 +376,62 @@ export default class BoardScene extends Phaser.Scene {
         }
       }
     );
+  }
+
+  setupHealthSubscription(): void {
+    StateObserver.subscribe(
+      'BoardScene.health',
+      (state) => {
+        const activePlayerId = state.activePlayerId;
+        const currentPlayerAnimals = state.animals.filter(animal => animal.ownerId === activePlayerId);
+        return {
+          animals: currentPlayerAnimals.map(animal => ({
+            id: animal.id,
+            x: animal.position.x,
+            y: animal.position.y,
+            health: animal.health
+          }))
+        };
+      },
+      (data) => {
+        this.updateHealthDisplay(data.animals);
+      }
+    );
+  }
+
+  private updateHealthDisplay(animals: Array<{id: string, x: number, y: number, health: number}>): void {
+    // Clear existing health texts
+    this.healthTexts.forEach(text => text.destroy());
+    this.healthTexts.clear();
+
+    // Create health text for each animal
+    animals.forEach(animal => {
+      const worldPos = CoordinateUtils.gridToWorld(
+        animal.x,
+        animal.y,
+        this.tileSize,
+        this.tileHeight,
+        this.anchorX,
+        this.anchorY
+      );
+
+      // Position health text in upper right of animal with offset
+      const healthText = this.add.text(
+        worldPos.x + this.tileSize * 0.4 - 10,
+        worldPos.y - this.tileSize * 0.35 - 3,
+        animal.health.toString(),
+        {
+          fontFamily: 'Arial',
+          fontSize: '12px',
+          color: '#FFFFFF',
+          stroke: '#000000',
+          strokeThickness: 1
+        }
+      );
+
+      healthText.setDepth(1000); // High depth to appear above everything
+      this.healthTexts.set(animal.id, healthText);
+    });
   }
 
   // Set up visibility subscription for fog of war and biome rendering
@@ -489,6 +549,10 @@ export default class BoardScene extends Phaser.Scene {
     this.unsubscribeAll();
     this.input.removeAllListeners();
     this.layerManager.clearAllLayers(true);
+
+    // Clean up health texts
+    this.healthTexts.forEach(text => text.destroy());
+    this.healthTexts.clear();
 
     this.tileRenderer.destroy();
     this.selectionRenderer.destroy();
