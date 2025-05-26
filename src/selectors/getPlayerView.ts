@@ -98,9 +98,14 @@ export function getPlayerView(state: GameState, playerId: number) {
     animals,
     eggs,
     biomes: visibleBiomes,
+
+    // UI-local fields for the active player.
+    // These are safe to include because getPlayerView is only ever called for state.activePlayerId.
+    // One day when we do replays, we'll need to be more careful and filter these based on the active player.
     selectedAnimalID: state.selectedAnimalID,
     validMoves: state.validMoves,
     moveMode: state.moveMode,
+    
     resourceView,
     blankTiles,
     resources: filteredResources

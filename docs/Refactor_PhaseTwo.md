@@ -9,24 +9,10 @@
    - The `handleTileClick` and `handleHabitatClick` methods are still quite large and contain game logic
    - Create a proper EventManager that can coordinate between user input and game actions
 
-2. **Implement GameController**
-   - Create the GameController outlined in the documentation
-   - Move game logic out of BoardScene and into proper controller
-   - Establish clear responsibility boundaries between rendering and game logic
-
 3. **Create a ContentManager**
    - Extract `checkTileContents()` into a dedicated ContentManager class
    - This manager would be responsible for querying entity positions and providing access to entities at specific grid locations
 
-4. **Extract Movement Logic**
-   - Create a MovementManager that handles unit movement
-   - Move `startUnitMovement` and related code there
-   - This would centralize all movement logic in one place
-
-5. **Use Proper TypeScript Interfaces**
-   - Replace 'any' types with proper interfaces
-   - Consider using generics for more flexible code
-   - Improve type safety throughout the codebase
 
 ### Secondary Optimizations
 

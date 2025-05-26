@@ -29,6 +29,11 @@ export class EggProducer {
     const updatedBiomes = new Map(biomes);
     const newEggs: Egg[] = [];
 
+    // Only produce eggs on even turns
+    if (turn % 2 !== 0) {
+      return { eggs: newEggs, biomes: updatedBiomes };
+    }
+
     biomes.forEach((biome, biomeId) => {
       if (biome.ownerId !== playerId) return;
       // Egg production is now purely based on production rate and lushness threshold
