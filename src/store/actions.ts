@@ -3,6 +3,7 @@ import { TerrainType } from "../types/gameTypes";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { MovementController } from '../controllers/MovementController';
+import { HealthController } from '../controllers/HealthController';
 import { BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT, BLANK_DISPLACEMENT_EVENT } from '../types/events';
 import type { Resource } from './gameStore';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
@@ -785,7 +786,18 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
   const turn = state.turn;
   const board = state.board!;
   const allBiomes = state.biomes;
-  const animals = state.animals;
+  let animals = state.animals;
+
+  // Update health for this player's animals only
+  console.log(`🏥 [updatePlayerBiomes] Updating health for player ${playerId}'s animals`);
+  const playerAnimals = animals.filter(a => a.ownerId === playerId);
+  const otherAnimals = animals.filter(a => a.ownerId !== playerId);
+  
+  const healthUpdatedPlayerAnimals = HealthController.updateHealthForTurn(playerAnimals, allBiomes, board);
+  animals = [...otherAnimals, ...healthUpdatedPlayerAnimals];
+  
+  // Update the game state with health-updated animals
+  useGameStore.setState({ animals });
 
   // Filter to only this player's biomes
   const playerBiomes = new Map<string, Biome>();
@@ -815,7 +827,7 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
 
   newEggs.forEach(addEgg);
 
-  const postEggAnimals = animals; // animals list unchanged by egg production
+  const postEggAnimals = animals; // Use current animals (health updated separately in RoundController)
 
   // Merge updated biomes back into full map
   const mergedBiomes = new Map(allBiomes);

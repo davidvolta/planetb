@@ -145,7 +145,8 @@ export function initializeBoard(
         previousPosition: null,
         hasMoved: false,
         ownerId: playerId,
-        facingDirection: 'right'
+        facingDirection: 'right',
+        health: 10 // All animals start with full health
       };
       animals.push(newAnimal);
     }

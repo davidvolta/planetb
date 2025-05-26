@@ -75,7 +75,10 @@ export class EvolutionController {
       hasMoved: true, // newly spawned counts as moved this turn
       ownerId: egg.ownerId,
       facingDirection: 'left',
+      health: 10, // All animals start with full health
     };
+    
+    console.log(`🐣 New ${species} ${newAnimal.id.slice(-4)} hatched with health: ${newAnimal.health}`);
 
     const finalAnimals: Animal[] = [...updatedAnimals, newAnimal];
 

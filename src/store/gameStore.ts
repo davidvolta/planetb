@@ -7,6 +7,7 @@ import { initializeBoard as initGameBoard } from '../game/GameInitializer';
 import { MovementController } from "../controllers/MovementController";
 import { TerrainType, ResourceType } from '../types/gameTypes';
 import { EcosystemController } from "../controllers/EcosystemController";
+import { HealthController } from "../controllers/HealthController";
 import { DisplacementEvent, SpawnEvent, BiomeCaptureEvent, BLANK_DISPLACEMENT_EVENT, BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT } from '../types/events';
 
 // Coordinate system for tiles
@@ -53,6 +54,7 @@ export interface Animal {
   hasMoved: boolean; // Flag to track if animal has moved this turn
   ownerId: number | null; // Player ID that owns this animal, null if unowned
   facingDirection: 'left' | 'right'; // New property to track sprite orientation
+  health: number; // Health from 1-10, animals die at 0
 }
 
 // Board structure
@@ -366,6 +368,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     
   moveAnimal: (id: string, x: number, y: number) =>
     set((state) => {
+      if (!state.board) return state;
+      
+      const movingAnimal = state.animals.find(a => a.id === id);
+      if (!movingAnimal) return state;
+      
+      // Get biome IDs for health calculation
+      const fromTile = state.board.tiles[movingAnimal.position.y][movingAnimal.position.x];
+      const toTile = state.board.tiles[y][x];
+      const fromBiomeId = fromTile.biomeId;
+      const toBiomeId = toTile.biomeId;
+      
       // Update the moved animal's position and flag
       let updatedAnimals = state.animals.map(animal => 
         animal.id === id 
@@ -377,9 +390,24 @@ export const useGameStore = create<GameState>((set, get) => ({
             } 
           : animal
       );
+      
+      // Apply health logic for movement
+      updatedAnimals = updatedAnimals.map(animal => {
+        if (animal.id === id) {
+          const updatedAnimal = HealthController.applyMovementHealthLoss(
+            animal, fromBiomeId, toBiomeId, state.biomes
+          );
+          return updatedAnimal;
+        }
+        return animal;
+      });
+      
+      // Remove animals that died from health loss
+      updatedAnimals = updatedAnimals.filter(animal => animal.health > 0);
+      
       // Handle collision displacement via MovementController
       const eggsRecord = state.eggs;
-      const collided = state.animals.find(a =>
+      const collided = updatedAnimals.find(a =>
         a.id !== id &&
         !(a.id in eggsRecord) &&
         a.position.x === x &&
