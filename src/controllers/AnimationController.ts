@@ -5,37 +5,21 @@ import { computeDepth } from '../utils/DepthUtils';
 import { AnimalRenderer } from '../renderers/AnimalRenderer';
 
 /**
- * Controls and manages all animations in the board scene, including:
- * - Unit movement and displacement animations
- * - State tracking for ongoing animations
- * - Animation completion callbacks
+ * Controls and manages all animations in the board scene.
+ * 
+ * KEY PRINCIPLE: Animations are purely visual - they don't affect game state.
+ * State is updated immediately, animations show the transition visually.
  */
 export class AnimationController {
-  // Reference to the scene for accessing tweens
   private scene: Phaser.Scene;
   private animalRenderer: AnimalRenderer;
-
-  
-  // Board properties needed for coordinate conversion
   private tileSize: number;
   private tileHeight: number;
   private anchorX: number;
   private anchorY: number;
-  
-  // Vertical offset to raise units above tiles
   private verticalOffset: number = -12;
-  
-  // Track active tweens created by this controller to avoid killing unrelated tweens
   private activeTweens: Phaser.Tweens.Tween[] = [];
   
-  /**
-   * Creates a new AnimationController
-   * @param scene The parent scene
-   * @param tileSize Width of a tile in pixels
-   * @param tileHeight Height of a tile in pixels
-   * @param anchorX Grid anchor X coordinate
-   * @param anchorY Grid anchor Y coordinate
-   */
   constructor(
     scene: Phaser.Scene,
     tileSize: number = 64,
@@ -43,8 +27,7 @@ export class AnimationController {
     animalRenderer: AnimalRenderer,
     anchorX: number = 0,
     anchorY: number = 0
-  ) 
-  {
+  ) {
     this.scene = scene;
     this.tileSize = tileSize;
     this.tileHeight = tileHeight;
@@ -53,75 +36,69 @@ export class AnimationController {
     this.animalRenderer = animalRenderer;
   }
   
-  /**
-   * Initialize the controller with current anchor position
-   * @param anchorX The X coordinate of the grid anchor point
-   * @param anchorY The Y coordinate of the grid anchor point
-   */
   initialize(anchorX: number, anchorY: number): void {
     this.anchorX = anchorX;
     this.anchorY = anchorY;
   }
-  
+
   /**
-   * Animate a unit sprite moving from one position to another with optional interactivity settings.
+   * Animates a sprite moving from current position to target grid coordinates.
+   * This is purely visual - the sprite position in state is already updated.
+   * 
    * @param sprite The sprite to animate
-   * @param fromX Starting X grid coordinate
-   * @param fromY Starting Y grid coordinate
-   * @param toX Destination X grid coordinate
-   * @param toY Destination Y grid coordinate
-   * @param options Animation options (disableInteractive, duration, ease)
+   * @param fromX Starting X grid coordinate (where sprite currently is visually)
+   * @param fromY Starting Y grid coordinate (where sprite currently is visually)
+   * @param toX Destination X grid coordinate (where sprite should end up)
+   * @param toY Destination Y grid coordinate (where sprite should end up)
+   * @param options Animation options
    * @returns Promise that resolves when animation completes
    */
-  animateUnitMovement(
+  private animateSprite(
     sprite: Phaser.GameObjects.Sprite,
     fromX: number,
     fromY: number,
     toX: number,
     toY: number,
     options: {
-      duration?: number | null;
+      duration?: number;
       ease?: string;
     } = {}
   ): Promise<void> {
     return new Promise((resolve) => {
       if (!sprite) {
-        console.error('Cannot animate movement: sprite is missing');
+        console.warn('Cannot animate: sprite is missing');
         resolve();
         return;
       }
 
-      const {
-        duration: fixedDuration = null,
-        ease = 'Power2.out'
-      } = options;
+      const { duration, ease = 'Power2.out' } = options;
 
-      // Convert grid coordinates to world positions
+      // Calculate world positions
       const startPos = CoordinateUtils.gridToWorld(
         fromX, fromY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
       const endPos = CoordinateUtils.gridToWorld(
         toX, toY, this.tileSize, this.tileHeight, this.anchorX, this.anchorY
       );
-      const endWorldY = endPos.y + this.verticalOffset;
 
-      // Compute duration
-      let duration = fixedDuration ?? Math.sqrt(
-        (endPos.x - startPos.x) ** 2 +
+      // Set sprite to start position (in case it's not already there)
+      sprite.setPosition(startPos.x, startPos.y + this.verticalOffset);
+
+      // Calculate animation duration based on distance if not provided
+      const animDuration = duration ?? Math.sqrt(
+        (endPos.x - startPos.x) ** 2 + 
         (endPos.y - startPos.y) ** 2
       ) * (75 / this.tileSize);
-      // DEBUG: slow down animation for timing introspection
-      duration *= 1;
 
-      // Create and track tween
+      // Create tween
       const tween = this.scene.tweens.add({
         targets: sprite,
         x: endPos.x,
-        y: endWorldY,
-        duration,
+        y: endPos.y + this.verticalOffset,
+        duration: animDuration,
         ease,
         onUpdate: () => {
-          // Update depth throughout movement
+          // Update depth during movement for proper layering
           const relY = ((sprite.y - this.verticalOffset) - this.anchorY) / this.tileHeight;
           const relX = (sprite.x - this.anchorX) / this.tileSize;
           const currentGridY = (relY * 2 - relX) / 2;
@@ -129,28 +106,32 @@ export class AnimationController {
           sprite.setDepth(computeDepth(currentGridX, currentGridY, true));
         },
         onComplete: () => {
-          // Finalize sprite data
+          // Ensure sprite is at exact final position
+          sprite.setPosition(endPos.x, endPos.y + this.verticalOffset);
+          sprite.setDepth(computeDepth(toX, toY, true));
           sprite.setData('gridX', toX);
           sprite.setData('gridY', toY);
-          sprite.setDepth(computeDepth(toX, toY, true));
 
-          // Remove and resolve
+          // Clean up
           this.activeTweens = this.activeTweens.filter(t => t !== tween);
           resolve();
         }
       });
+      
       this.activeTweens.push(tween);
     });
   }
   
   /**
-   * Handle unit movement from one position to another, including game state updates
+   * Moves a unit with coordinated state update and animation.
+   * This method handles both updating the game state and animating the visual transition.
+   * 
    * @param animalId ID of the animal to move
-   * @param fromX Starting X grid coordinate
-   * @param fromY Starting Y grid coordinate
+   * @param fromX Starting X grid coordinate (current position)
+   * @param fromY Starting Y grid coordinate (current position)
    * @param toX Destination X grid coordinate
    * @param toY Destination Y grid coordinate
-   * @returns Promise that resolves when movement is complete
+   * @returns Promise that resolves when both state update and animation complete
    */
   public async moveUnit(
     animalId: string,
@@ -160,45 +141,61 @@ export class AnimationController {
     toY: number
   ): Promise<void> {
     const sprite = this.animalRenderer.getSpriteById(animalId);
-  
+    
     if (!sprite) {
-      console.error(`[AnimationController] Could not find sprite for animalId ${animalId}`);
+      console.warn(`[AnimationController] Could not find sprite for animalId ${animalId}`);
+      // Still update state even if sprite is missing
+      await actions.moveAnimal(animalId, toX, toY);
       return;
     }
-  
-    // Refetch animal state before animation
-    const animal = actions.getAnimals().find(a => a.id === animalId);
-    if (animal?.facingDirection === 'right') {
-      sprite.setFlipX(true);  // Default sprite faces left
-    } else {
-      sprite.setFlipX(false);
-    }
-  
-    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
+
+    // Mark sprite as being animated to prevent renderer interference
+    sprite.setData('isAnimating', true);
+
+    // Update sprite facing direction
+    const direction = toX > fromX ? 'right' : 'left';
+    sprite.setFlipX(direction === 'right');
+
+    // Start animation
+    const animationPromise = this.animateSprite(sprite, fromX, fromY, toX, toY);
+    
+    // Update state immediately (AnimalRenderer won't interfere due to isAnimating flag)
+    await actions.moveAnimal(animalId, toX, toY);
+    
+    // Wait for animation to complete
+    await animationPromise;
+    
+    // Clear animation flag
+    sprite.setData('isAnimating', false);
   }
   
   /**
-   * Handle unit displacement (being pushed) from one position to another
+   * Animates a unit being displaced (pushed) from one position to another.
+   * NOTE: This is for displacement animations - state updates should be handled separately.
+   * 
    * @param animalId ID of the animal being displaced
-   * @param sprite The sprite to animate
    * @param fromX Starting X grid coordinate
    * @param fromY Starting Y grid coordinate
    * @param toX Destination X grid coordinate
    * @param toY Destination Y grid coordinate
-   * @returns Promise that resolves when displacement is complete
+   * @returns Promise that resolves when displacement animation is complete
    */
-  public async displaceUnit(
+  public async animateUnitDisplacement(
     animalId: string,
-    sprite: Phaser.GameObjects.Sprite,
     fromX: number,
     fromY: number,
     toX: number,
     toY: number
   ): Promise<void> {
-    // Animate displacement
-    await this.animateUnitMovement(sprite, fromX, fromY, toX, toY);
-    // Update game state after displacement completes
-    actions.moveDisplacedAnimal(animalId, toX, toY);
+    const sprite = this.animalRenderer.getSpriteById(animalId);
+    
+    if (!sprite) {
+      console.warn(`[AnimationController] Could not find sprite for displaced animal ${animalId}`);
+      return;
+    }
+
+    // Animate the displacement
+    await this.animateSprite(sprite, fromX, fromY, toX, toY);
   }
   
   /**

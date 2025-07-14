@@ -9,16 +9,23 @@ export class GameController {
   constructor(private animationController: AnimationController) {}
 
   /**
-   * Move a unit with full animation and update game state.
+   * Move a unit with coordinated state update and animation.
    * @param animalId ID of the animal to move
    * @param x Destination X coordinate
    * @param y Destination Y coordinate
    */
   async moveAnimal(animalId: string, x: number, y: number): Promise<void> {
-    const unit = actions.getAnimals().find(a => a.id === animalId)!;
+    // Get current position before movement
+    const unit = actions.getAnimals().find(a => a.id === animalId);
+    if (!unit) {
+      console.error(`[GameController] Cannot move animal ${animalId}: not found`);
+      return;
+    }
+    
     const { x: fromX, y: fromY } = unit.position;
+    
+    // Let AnimationController handle both state and animation coordination
     await this.animationController.moveUnit(animalId, fromX, fromY, x, y);
-    actions.moveAnimal(animalId, x, y);
   }
 
   /**

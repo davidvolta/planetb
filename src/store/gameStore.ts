@@ -2,13 +2,9 @@
 // Use the actions.ts API for all reads/writes to game state
 
 import { create } from "zustand";
-import { EvolutionController } from "../controllers/EvolutionController";
-import { initializeBoard as initGameBoard } from '../game/GameInitializer';
-import { MovementController } from "../controllers/MovementController";
 import { TerrainType, ResourceType } from '../types/gameTypes';
-import { EcosystemController } from "../controllers/EcosystemController";
-import { HealthController } from "../controllers/HealthController";
 import { DisplacementEvent, SpawnEvent, BiomeCaptureEvent, BLANK_DISPLACEMENT_EVENT, BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT } from '../types/events';
+import type { SelectionState } from '../controllers/SelectionController';
 
 // Coordinate system for tiles
 export interface Coordinate {
@@ -131,20 +127,27 @@ export interface GameState {
   
   // Actions
   addEgg: (egg: Egg) => void;
-  selectEgg: (id: string | null) => void;
-  toggleFogOfWar: (enabled: boolean) => void;
-  selectResource: (coord: Coordinate | null) => void;
+  selectEgg: (selectionState: Partial<SelectionState>) => void;
+  toggleFogOfWar: (fogOfWarEnabled: boolean, players: Player[]) => void;
+  selectResource: (selectionState: Partial<SelectionState>) => void;
   nextTurn: () => void;
-  resetMovementFlags: () => void; // Reset hasMoved flags for all animals
-  addPlayer: (name: string, color: string) => void;
-  setActivePlayer: (playerId: number) => void;
-  initializeBoard: (width: number, height: number) => void;
-  getTile: (x: number, y: number) => Tile | undefined;
-  spawnAnimal: (id: string) => void;
-  selectAnimal: (id: string | null) => void;
-  moveAnimal: (id: string, x: number, y: number) => void;
-  getValidMoves: (id: string) => ValidMove[];
-  selectBiome: (id: string | null) => void;
+  resetMovementFlags: (animals: Animal[]) => void; // Reset hasMoved flags for all animals
+  addPlayer: (newPlayer: Player) => void;
+  setActivePlayer: (players: Player[], activePlayerId: number) => void;
+  initializeBoard: (board: Board, animals: Animal[], biomes: Map<string, Biome>, players: Player[]) => void;
+  getTile: (tile: Tile | undefined) => Tile | undefined;
+  spawnAnimal: (
+    animals: Animal[],
+    board: Board,
+    biomes: Map<string, Biome>, 
+    displacementEvent: DisplacementEvent,
+    eggs: Record<string, Egg>,
+    newAnimalId: string | null,
+    spawnEvent: SpawnEvent
+  ) => void;
+  selectAnimal: (selectionState: Partial<SelectionState>) => void;
+  moveAnimal: (animals: Animal[], displacementEvent?: DisplacementEvent) => void;
+  selectBiome: (selectionState: Partial<SelectionState>) => void;
   addAnimal: (animal: Animal) => void;
 }
 
@@ -171,156 +174,28 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // FOG OF WAR
   fogOfWarEnabled: true,
-  toggleFogOfWar: (enabled: boolean) => {
-    set((state) => {
-      if (enabled) {
-        // Re-seed visibility/exploration as per normal rules
-        if (!state.board) return { fogOfWarEnabled: true };
-        const board = state.board;
-        const animals = state.animals;
-        const biomes = state.biomes;
-        const seededPlayers = state.players.map(player => {
-          const coordSet = new Set<string>();
-          const eggsRecord = state.eggs;
-          animals
-            .filter(a => a.ownerId === player.id && !(a.id in eggsRecord))
-            .forEach(a => {
-              for (let dx = -1; dx <= 1; dx++) {
-                for (let dy = -1; dy <= 1; dy++) {
-                  const x = a.position.x + dx;
-                  const y = a.position.y + dy;
-                  if (x >= 0 && x < board.width && y >= 0 && y < board.height) {
-                    coordSet.add(`${x},${y}`);
-                  }
-                }
-              }
-            });
-          biomes.forEach((b, id) => {
-            if (b.ownerId === player.id) {
-              for (let yy = 0; yy < board.height; yy++) {
-                for (let xx = 0; xx < board.width; xx++) {
-                  if (board.tiles[yy][xx].biomeId === id) {
-                    coordSet.add(`${xx},${yy}`);
-                  }
-                }
-              }
-            }
-          });
-          return {
-            ...player,
-            visibleTiles: new Set(coordSet)
-          };
-        });
-        return { fogOfWarEnabled: true, players: seededPlayers };
-      } else {
-        // Reveal the whole board for all players
-        if (!state.board) return { fogOfWarEnabled: false };
-        const board = state.board;
-        const allCoords = new Set<string>();
-        for (let y = 0; y < board.height; y++) {
-          for (let x = 0; x < board.width; x++) {
-            allCoords.add(`${x},${y}`);
-          }
-        }
-        const updatedPlayers = state.players.map(player => ({
-          ...player,
-          visibleTiles: new Set(allCoords)
-        }));
-        return { fogOfWarEnabled: false, players: updatedPlayers };
-      }
-    });
-  },
+  toggleFogOfWar: (fogOfWarEnabled: boolean, players: Player[]) =>
+    set(() => ({ fogOfWarEnabled, players })),
 
-  // INITIALIZATION METHODS
-  initializeBoard: (width, height) =>
-    set((state) => {
-      const numPlayers = state.players.length;
-      const { board, animals, biomes } = initGameBoard(
-        width,
-        height,
-        numPlayers
-      );
-      // Seed initial fog-of-war for each player
-      const seededPlayers = state.players.map(player => {
-        const coordSet = new Set<string>();
-        const eggsRecord = state.eggs;
-        animals
-          .filter(a => a.ownerId === player.id && !(a.id in eggsRecord))
-          .forEach(a => {
-            for (let dx = -1; dx <= 1; dx++) {
-              for (let dy = -1; dy <= 1; dy++) {
-                const x = a.position.x + dx;
-                const y = a.position.y + dy;
-                if (x >= 0 && x < board.width && y >= 0 && y < board.height) {
-                  coordSet.add(`${x},${y}`);
-                }
-              }
-            }
-          });
-        biomes.forEach((b, id) => {
-          if (b.ownerId === player.id) {
-            for (let yy = 0; yy < board.height; yy++) {
-              for (let xx = 0; xx < board.width; xx++) {
-                if (board.tiles[yy][xx].biomeId === id) {
-                  coordSet.add(`${xx},${yy}`);
-                }
-              }
-            }
-          }
-        });
-        return {
-          ...player,
-          visibleTiles: new Set(coordSet)
-        };
-      });
-      return {
-        board,
-        animals,
-        biomes,
-        resources: {}, // will be filled by resetResources later
-        players: seededPlayers
-      };
-    }),
+  // INITIALIZATION METHODS - Pure state setters only
+  initializeBoard: (board: Board, animals: Animal[], biomes: Map<string, Biome>, players: Player[]) =>
+    set(() => ({
+      board,
+      animals,
+      biomes,
+      resources: {}, // will be filled by resetResources later
+      players
+    })),
 
-  addPlayer: (name: string, color: string) => 
-    set((state) => {
-      const newPlayer: Player = {
-        id: state.players.length,
-        name,
-        color,
-        isActive: state.players.length === 0, // First player starts active
-        energy: 0,
-        visibleTiles: new Set<string>()
-      };
-      console.log(`[${new Date().toISOString()}] Player created: ${name} (ID: ${newPlayer.id})`);
-      return { players: [...state.players, newPlayer] };
-    }),
+  addPlayer: (newPlayer: Player) => 
+    set((state) => ({ players: [...state.players, newPlayer] })),
 
-  setActivePlayer: (playerId: number) =>
-    set((state) => {
-      const updatedPlayers = state.players.map(player => ({
-        ...player,
-        isActive: player.id === playerId
-      }));
-      return { players: updatedPlayers, activePlayerId: playerId };
-    }),
+  setActivePlayer: (players: Player[], activePlayerId: number) =>
+    set(() => ({ players, activePlayerId })),
 
-  // GETTERS / SELECTORS
-  getTile: (x, y) => {
-    const board = get().board;
-    if (!board) return undefined;
-    if (x < 0 || x >= board.width || y < 0 || y >= board.height) return undefined;
-    return board.tiles[y][x];
-  },
+  // GETTERS / SELECTORS - moved to actions.ts
+  getTile: (tile: Tile | undefined) => tile,
 
-  getValidMoves: (id: string) => {
-    const state = get();
-    // Delegate to MovementController
-    const animal = state.animals.find(a => a.id === id);
-    return animal && state.board
-      ? MovementController.calculateValidMoves(animal, state.board, state.animals)
-      : [];
-  },
 
   // TURN PROGRESSION
   nextTurn: () => set((state) => {
@@ -329,187 +204,56 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   // MOVEMENT
-  selectAnimal: (id: string | null) =>
-    set((state) => {
-      if (!id) {
-        return {
-          selectedAnimalID: null,
-          validMoves: [],
-          moveMode: false,
-          selectedEggId: null,
-          selectedResource: null
-        };
-      }
-
-      const animal = state.animals.find(a => a.id === id);
-      if (animal && animal.hasMoved) {
-        console.log(`Cannot select animal ${id} for movement - it has already moved this turn`);
-        return {
-          selectedAnimalID: id,
-          validMoves: [],
-          moveMode: false,
-          selectedEggId: null,
-          selectedResource: null
-        };
-      }
-
-      const validMoves = animal && state.board
-        ? MovementController.calculateValidMoves(animal, state.board, state.animals)
-        : [];
-
-      return {
-        selectedAnimalID: id,
-        validMoves,
-        moveMode: true,
-        selectedEggId: null,
-        selectedResource: null
-      };
-    }),
+  selectAnimal: (selectionState: Partial<SelectionState>) => set(() => selectionState),
     
-  moveAnimal: (id: string, x: number, y: number) =>
-    set((state) => {
-      if (!state.board) return state;
-      
-      const movingAnimal = state.animals.find(a => a.id === id);
-      if (!movingAnimal) return state;
-      
-      // Get biome IDs for health calculation
-      const fromTile = state.board.tiles[movingAnimal.position.y][movingAnimal.position.x];
-      const toTile = state.board.tiles[y][x];
-      const fromBiomeId = fromTile.biomeId;
-      const toBiomeId = toTile.biomeId;
-      
-      // Update the moved animal's position and flag
-      let updatedAnimals = state.animals.map(animal => 
-        animal.id === id 
-          ? { 
-              ...animal, 
-              previousPosition: { ...animal.position },
-              position: { x, y },
-              hasMoved: true 
-            } 
-          : animal
-      );
-      
-      // Apply health logic for movement
-      updatedAnimals = updatedAnimals.map(animal => {
-        if (animal.id === id) {
-          const updatedAnimal = HealthController.applyMovementHealthLoss(
-            animal, fromBiomeId, toBiomeId, state.biomes
-          );
-          return updatedAnimal;
-        }
-        return animal;
-      });
-      
-      // Remove animals that died from health loss
-      updatedAnimals = updatedAnimals.filter(animal => animal.health > 0);
-      
-      // Handle collision displacement via MovementController
-      const eggsRecord = state.eggs;
-      const collided = updatedAnimals.find(a =>
-        a.id !== id &&
-        !(a.id in eggsRecord) &&
-        a.position.x === x &&
-        a.position.y === y
-      );
-      if (collided && state.board) {
-        updatedAnimals = MovementController.handleDisplacement(
-          x, y, collided, updatedAnimals, state.board
-        );
+  // Pure state setters - business logic moved to controllers
+  moveAnimal: (animals: Animal[], displacementEvent?: DisplacementEvent) =>
+    set(() => ({ 
+      animals,
+      displacementEvent: displacementEvent || {
+        occurred: false,
+        animalId: null,
+        fromX: null,
+        fromY: null,
+        toX: null,
+        toY: null,
+        timestamp: null
       }
-      return { animals: updatedAnimals };
-    }),
+    })),
 
-  resetMovementFlags: () => set((state) => {
-    const updatedAnimals = state.animals.map(animal => ({
-      ...animal,
-      hasMoved: false
-    }));
-    return { animals: updatedAnimals };
-  }),
+  resetMovementFlags: (animals: Animal[]) => set(() => ({ animals })),
 
   // SELECTION
-  selectResource: (coord) => set({
-    selectedResource: coord,
-    selectedAnimalID: null,
-    validMoves: [],
-    moveMode: false
-  }),
+  selectResource: (selectionState: Partial<SelectionState>) => set(() => selectionState),
 
-  selectBiome: (id: string | null) => 
-    set(state => {
-      if (id === null) {
-        return { selectedBiomeId: null, selectedAnimalID: null, validMoves: [], moveMode: false };
-      }
-      const biome = state.biomes.get(id);
-      if (biome) {
-        return { selectedBiomeId: id, selectedAnimalID: null, validMoves: [], moveMode: false };
-      }
-      return { selectedBiomeId: null, selectedAnimalID: null, validMoves: [], moveMode: false };
-    }),
+  selectBiome: (selectionState: Partial<SelectionState>) => set(() => selectionState),
 
   
-  spawnAnimal: (id: string) => {
-    const state = get();
-    const {
-      animals: animalsFromController,
-      board: newBoard,
-      biomes: newBiomes,
-      displacementEvent,
-      eggs: updatedEggs,
-      newAnimalId,
-      biomeIdAffected
-    } = EvolutionController.spawnAnimal({
-      eggId: id,
-      animals: state.animals,
-      eggs: state.eggs,
-      biomes: state.biomes,
-      board: state.board!,
-      turn: state.turn
-    });
-
-    // First commit diff (animals, eggs etc.)
-    set({
-      animals: animalsFromController,
-      board: newBoard,
-      biomes: newBiomes,
-      displacementEvent,
-      eggs: updatedEggs,
-      selectedEggId: null,
-      selectedAnimalID: newAnimalId,
-      spawnEvent: {
-        occurred: true,
-        animalId: newAnimalId,
-        timestamp: Date.now()
-      } as SpawnEvent,
-      moveMode: false,
-      validMoves: []
-    });
-
-    // Recalculate lushness for the affected biome now that eggs record is updated
-    if (biomeIdAffected) {
-      const latestState = get();
-      const recalcedBiomes = EcosystemController.recalcBiomeLushness(
-        latestState.biomes,
-        biomeIdAffected,
-        latestState.board!,
-        latestState.resources
-      );
-      set({ biomes: recalcedBiomes });
-    }
-  },
+  spawnAnimal: (
+    animals: Animal[],
+    board: Board,
+    biomes: Map<string, Biome>, 
+    displacementEvent: DisplacementEvent,
+    eggs: Record<string, Egg>,
+    newAnimalId: string | null,
+    spawnEvent: SpawnEvent
+  ) => set(() => ({
+    animals,
+    board,
+    biomes,
+    displacementEvent,
+    eggs,
+    selectedEggId: null,
+    selectedAnimalID: newAnimalId,
+    spawnEvent,
+    moveMode: false,
+    validMoves: []
+  })),
 
   // Egg actions
   addEgg: (egg: Egg) => set((state) => ({ eggs: { ...state.eggs, [egg.id]: egg } })),
   
-  selectEgg: (id: string | null) => set(() => ({
-    selectedEggId: id,
-    selectedAnimalID: null,
-    validMoves: [],
-    moveMode: false,
-    selectedResource: null
-  })),
+  selectEgg: (selectionState: Partial<SelectionState>) => set(() => selectionState),
 
   addAnimal: (animal: Animal) => set((state) => ({ animals: [...state.animals, animal] })),
 }));

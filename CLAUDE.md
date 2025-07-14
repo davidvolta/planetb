@@ -76,6 +76,7 @@ npm run preview      # Preview production build
 3. **Component Design**: Follow the lifecycle pattern (init/update/destroy)
 4. **Biome Focus**: Treat biomes as primary entities, access habitats through biomes
 5. **Rendering**: Phaser handles rendering, Zustand handles state - never mix these concerns
+6. **🚨 CRITICAL: Player View Model**: Always develop and test with player-restricted views, NOT god-mode/dev-mode access. Use the PlayerView system from `src/selectors/getPlayerView.ts` as the primary interface for all game features. Build everything as if you're a player with limited information - this prevents architectural shortcuts and ensures proper game balance.
 
 ## Documentation
 

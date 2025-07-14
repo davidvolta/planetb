@@ -76,10 +76,12 @@ export class AnimalRenderer extends BaseRenderer {
       const isActive = true;
 
       if (existing) {
-        // Update position only if it changed
+        // Update position only if it changed and sprite is not being animated
         const prevX = existing.getData('gridX');
         const prevY = existing.getData('gridY');
-        if (prevX !== gridX || prevY !== gridY) {
+        const isAnimating = existing.getData('isAnimating');
+        
+        if ((prevX !== gridX || prevY !== gridY) && !isAnimating) {
           existing.setPosition(worldX, worldY);
           existing.setDepth(computeDepth(gridX, gridY, isActive));
           existing.setData('gridX', gridX);

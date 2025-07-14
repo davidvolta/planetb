@@ -1,9 +1,14 @@
-import { useGameStore, Animal, Board, Biome, Coordinate, Player, Egg } from "./gameStore";
+import { useGameStore, Animal, Board, Biome, Coordinate, Player, Egg, ValidMove, Tile } from "./gameStore";
 import { TerrainType } from "../types/gameTypes";
 import { EcosystemController } from "../controllers/EcosystemController";
 import { RESOURCE_GENERATION_PERCENTAGE } from "../constants/gameConfig";
 import { MovementController } from '../controllers/MovementController';
 import { HealthController } from '../controllers/HealthController';
+import { BoardController } from '../controllers/BoardController';
+import { AnimalController } from '../controllers/AnimalController';
+import { FogOfWarController } from '../controllers/FogOfWarController';
+import { SelectionController } from '../controllers/SelectionController';
+import { PlayerController } from '../controllers/PlayerController';
 import { BLANK_SPAWN_EVENT, BLANK_BIOME_CAPTURE_EVENT, BLANK_DISPLACEMENT_EVENT } from '../types/events';
 import type { Resource } from './gameStore';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
@@ -41,7 +46,10 @@ export type TileFilterFn = (tile: any, x: number, y: number) => boolean;
  * Set up the game board with the specified dimensions and options
  */
 export function setupGameBoard({ width, height }: BoardInitOptions): void {
-  useGameStore.getState().initializeBoard(width, height);
+  const state = useGameStore.getState();
+  const { board, animals, biomes, updatedPlayers } = BoardController.initializeBoard(width, height, state.players);
+  
+  useGameStore.getState().initializeBoard(board, animals, biomes, updatedPlayers);
   // Immediately seed the board with initial resources so the first turn is fully populated
   resetResources();
 }
@@ -51,6 +59,14 @@ export function setupGameBoard({ width, height }: BoardInitOptions): void {
  */
 export function getBoard(): Board | null {
   return useGameStore.getState().board;
+}
+
+/**
+ * Get a tile at specific coordinates
+ */
+export function getTile(x: number, y: number): Tile | undefined {
+  const state = useGameStore.getState();
+  return BoardController.getTile(x, y, state.board);
 }
 
 /**
@@ -79,7 +95,9 @@ export function getPlayers(): Player[] {
  * @param playerId The ID of the player to set as active
  */
 export function setActivePlayer(playerId: number): void {
-  useGameStore.getState().setActivePlayer(playerId);
+  const state = useGameStore.getState();
+  const result = PlayerController.updateActivePlayer(playerId, state.players);
+  useGameStore.getState().setActivePlayer(result.players, result.activePlayerId);
 }
 
 /**
@@ -88,7 +106,9 @@ export function setActivePlayer(playerId: number): void {
  * @param color Player color in hex format
  */
 export function addPlayer(name: string, color: string): void {
-  useGameStore.getState().addPlayer(name, color);
+  const state = useGameStore.getState();
+  const newPlayer = PlayerController.createPlayer(name, color, state.players);
+  useGameStore.getState().addPlayer(newPlayer);
 }
 
 // =============================================================================
@@ -127,7 +147,47 @@ export async function spawnAnimal(id: string): Promise<void> {
   if (!animal && !eggRecord) {
     throw new Error(`SpawnAnimal failed: entity ${id} not found)`);
   }
-  state.spawnAnimal(id);
+  
+  // Use AnimalController for business logic
+  const result = AnimalController.spawnAnimal(id, state);
+  const spawnEvent = {
+    occurred: true,
+    animalId: result.newAnimalId,
+    timestamp: Date.now()
+  };
+  
+  useGameStore.getState().spawnAnimal(
+    result.animals,
+    result.board,
+    result.biomes,
+    result.displacementEvent,
+    result.eggs,
+    result.newAnimalId,
+    spawnEvent
+  );
+
+  // Recalculate lushness for the affected biome if needed
+  if (result.biomeIdAffected) {
+    const latestState = useGameStore.getState();
+    const recalcedBiomes = EcosystemController.recalcBiomeLushness(
+      latestState.biomes,
+      result.biomeIdAffected,
+      latestState.board!,
+      latestState.resources
+    );
+    useGameStore.setState({ biomes: recalcedBiomes });
+  }
+}
+
+/**
+ * Get valid moves for an animal
+ */
+export function getValidMoves(animalId: string): ValidMove[] {
+  const state = useGameStore.getState();
+  const animal = state.animals.find(a => a.id === animalId);
+  return animal && state.board
+    ? MovementController.calculateValidMoves(animal, state.board, state.animals)
+    : [];
 }
 
 /**
@@ -178,13 +238,8 @@ export function removeEgg(id: string): void {
  * Select an egg by ID or clear the selection.
  */
 export function selectEgg(id: string | null): void {
-  useGameStore.setState(state => ({
-    selectedEggId: id,
-    selectedAnimalID: null,
-    validMoves: [],
-    moveMode: false,
-    selectedResource: null
-  }));
+  const selectionState = SelectionController.selectEgg(id);
+  useGameStore.getState().selectEgg(selectionState);
 }
 
 /**
@@ -214,14 +269,17 @@ export async function selectAnimal(unitId: string | null): Promise<void> {
   if (unitId !== null && !state.animals.some(a => a.id === unitId)) {
     throw new Error(`SelectAnimal failed: animal ${unitId} not found`);
   }
-  useGameStore.getState().selectAnimal(unitId);
+  
+  const selectionState = SelectionController.selectAnimal(unitId, state.animals, state.board);
+  useGameStore.getState().selectAnimal(selectionState);
 }
 
 /**
  * Deselect the current animal selection
  */
 export async function deselectUnit(): Promise<void> {
-  useGameStore.getState().selectAnimal(null);
+  const selectionState = SelectionController.selectAnimal(null, [], null);
+  useGameStore.getState().selectAnimal(selectionState);
 }
 
 /**
@@ -248,15 +306,9 @@ export async function moveAnimal(id: string, x: number, y: number): Promise<void
     throw new Error(`MoveAnimal failed: invalid move to (${x},${y})`);
   }
 
-  // Update direction before state update
-  const direction = x > animal.position.x ? 'right' : 'left';
-  useGameStore.setState(state => ({
-    animals: state.animals.map(a =>
-      a.id === id ? { ...a, facingDirection: direction } : a
-    )
-  }));
-
-  useGameStore.getState().moveAnimal(id, x, y);
+  // Use AnimalController for business logic (includes direction update)
+  const { animals, displacementEvent } = AnimalController.moveAnimal(id, x, y, state);
+  useGameStore.getState().moveAnimal(animals, displacementEvent);
 }
 
 /**
@@ -291,7 +343,7 @@ export async function moveDisplacedAnimal(id: string, x: number, y: number): Pro
 /**
  * Get the valid moves for the currently selected animal
  */
-export function getValidMoves(): { x: number, y: number }[] {
+export function getSelectedAnimalValidMoves(): { x: number, y: number }[] {
   return useGameStore.getState().validMoves;
 }
 
@@ -340,7 +392,9 @@ export async function selectBiome(biomeId: string | null): Promise<void> {
   if (biomeId !== null && !state.biomes.has(biomeId)) {
     throw new Error(`SelectBiome failed: biome ${biomeId} not found`);
   }
-  useGameStore.getState().selectBiome(biomeId);
+  
+  const selectionState = SelectionController.selectBiome(biomeId, state.biomes);
+  useGameStore.getState().selectBiome(selectionState);
 }
 
 /**
@@ -649,7 +703,9 @@ export async function selectResourceTile(coord: Coordinate | null): Promise<void
       throw new Error(`SelectResourceTile failed: invalid coordinate (${coord.x},${coord.y})`);
     }
   }
-  useGameStore.getState().selectResource(coord);
+  
+  const selectionState = SelectionController.selectResource(coord);
+  useGameStore.getState().selectResource(selectionState);
 }
 
 /**
@@ -894,7 +950,9 @@ export function getVisibleTilesForPlayer(playerId: number): { x: number; y: numb
  * Set the global fog of war enabled/disabled state
  */
 export function setFogOfWarEnabled(enabled: boolean): void {
-  useGameStore.getState().toggleFogOfWar(enabled);
+  const state = useGameStore.getState();
+  const result = FogOfWarController.toggleFogOfWar(enabled, state);
+  useGameStore.getState().toggleFogOfWar(result.fogOfWarEnabled, result.players);
 }
 
 /**
