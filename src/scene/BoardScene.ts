@@ -196,10 +196,15 @@ export default class BoardScene extends Phaser.Scene {
     this.selectionRenderer.initialize(anchorX, anchorY);
     this.resourceRenderer.initialize(anchorX, anchorY);
 
+    console.log("createTiles() - fog of war enabled:", playerActions.getFogOfWarEnabled());
     if (playerActions.getFogOfWarEnabled()) {
+      console.log("createTiles() - creating fog of war");
       this.fogOfWarRenderer.createFogOfWar(board);
+      console.log("createTiles() - initializing fog visibility");
       this.fogOfWarRenderer.initializeVisibility();
+      console.log("createTiles() - fog of war setup completed");
     } else {
+      console.log("createTiles() - clearing fog of war");
       this.fogOfWarRenderer.clearFogOfWar();
     }
 
