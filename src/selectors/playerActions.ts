@@ -1,6 +1,7 @@
 import { useGameStore } from '../store/gameStore';
 import { getActivePlayerView } from './getPlayerView';
-import type { Animal, Biome, Egg, Resource, Board } from '../store/gameStore';
+import type { Animal, Biome, Egg, Resource, Board, Coordinate } from '../store/gameStore';
+import * as CoordinateUtils from '../utils/CoordinateUtils';
 
 /**
  * Player-view-aware action functions
@@ -331,6 +332,58 @@ export function getEggCountForBiome(biomeId: string): number {
   
   // Only count eggs that are visible to the player
   return playerView.eggs.filter(egg => egg.biomeId === biomeId).length;
+}
+
+/**
+ * Get fog of war enabled status (global setting)
+ */
+export function getFogOfWarEnabled(): boolean {
+  const state = useGameStore.getState();
+  return state.fogOfWarEnabled;
+}
+
+/**
+ * Get initial visible tiles for the active player
+ * Replaces omniscient actions.getInitialVisibleTiles()
+ */
+export function getInitialVisibleTiles(): Coordinate[] {
+  const state = useGameStore.getState();
+  const playerView = getActivePlayerView(state);
+  if (!playerView || !playerView.board) return [];
+
+  const activePlayerId = playerView.activePlayerId;
+  
+  // Collect tiles around non-egg animals
+  const eggsRecord = playerView.eggs.reduce((acc, egg) => {
+    acc[egg.id] = egg;
+    return acc;
+  }, {} as Record<string, Egg>);
+  
+  const unitAdjacents = playerView.animals
+    .filter(a => a.ownerId === activePlayerId && !(a.id in eggsRecord))
+    .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, playerView.board!.width, playerView.board!.height));
+  const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
+
+  // Collect tiles of owned biomes  
+  const biomeTiles = Array.from(playerView.biomes.entries())
+    .filter(([, b]) => b.ownerId === activePlayerId)
+    .flatMap(([id]) => {
+      // Get tiles for biome
+      const tiles = [];
+      for (let y = 0; y < playerView.board!.height; y++) {
+        for (let x = 0; x < playerView.board!.width; x++) {
+          const tile = playerView.board!.tiles[y][x];
+          if (tile.biomeId === id) {
+            tiles.push({ x, y });
+          }
+        }
+      }
+      return tiles;
+    });
+  const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
+
+  // Combine all tiles
+  return [...uniqueUnitTiles, ...uniqueBiomeTiles];
 }
 
 // Re-export all the state-mutating actions that don't need filtering
