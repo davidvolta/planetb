@@ -140,13 +140,19 @@ export default class BoardScene extends Phaser.Scene {
     // Update player view BEFORE setting up subscriptions to ensure data is available
     this.updatePlayerView();
     
+    // Debug: Check if player view is available
+    console.log("BoardScene.create() - currentPlayerView:", !!this.currentPlayerView);
+    console.log("BoardScene.create() - currentPlayerView.board:", !!this.currentPlayerView?.board);
+    
     // Set up subscriptions
     this.setupAllSubscriptions();
     this.setupVisibilitySubscriptions();
     this.setupInputHandlers();
 
     const board = this.currentPlayerView?.board;
+    console.log("BoardScene.create() - board for createTiles:", !!board);
     if (board) {
+      console.log("BoardScene.create() - calling createTiles()");
       this.createTiles();
       this.cameraManager.centerCameraOnPlayerAnimal(
         this.tileSize,
