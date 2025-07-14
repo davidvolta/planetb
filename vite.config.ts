@@ -6,5 +6,10 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   build: {
     outDir: 'dist', // Output to standard dist directory
-  }
+  },
+  server: {
+    port: 5173,
+    open: true
+  },
+  publicDir: 'public' // Serve public directory at root
 }) 
