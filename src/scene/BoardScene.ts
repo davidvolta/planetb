@@ -169,6 +169,7 @@ export default class BoardScene extends Phaser.Scene {
 
   // Create tiles for the board
   private createTiles() {
+    console.log("createTiles() called");
     const board = this.currentPlayerView?.board;
     if (!board) {
       console.warn("No board available");
@@ -179,13 +180,19 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
 
+    console.log("createTiles() - board dimensions:", board.width, "x", board.height);
+    console.log("createTiles() - about to call tileRenderer.renderBoard()");
+    console.log("createTiles() - anchorX:", this.anchorX, "anchorY:", this.anchorY);
+
     const anchorX = this.cameras.main.width / 2;
     const anchorY = this.cameras.main.height / 2;
 
     this.anchorX = anchorX;
     this.anchorY = anchorY;
 
+    console.log("createTiles() - calling tileRenderer.renderBoard() with anchorX:", anchorX, "anchorY:", anchorY);
     this.tileRenderer.renderBoard(board, anchorX, anchorY);
+    console.log("createTiles() - tileRenderer.renderBoard() completed");
     this.selectionRenderer.initialize(anchorX, anchorY);
     this.resourceRenderer.initialize(anchorX, anchorY);
 
