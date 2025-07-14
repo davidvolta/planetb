@@ -186,10 +186,18 @@ export class FogOfWarRenderer extends BaseRenderer {
    * Initialize visibility for starting units and habitats
    */
   public initializeVisibility(): void {
+    console.log("FogOfWarRenderer.initializeVisibility() called");
     const activePlayerId = playerActions.getActivePlayerId();
-    const initialVisibleTiles = playerActions.getInitialVisibleTiles(activePlayerId);
+    console.log("FogOfWarRenderer.initializeVisibility() - activePlayerId:", activePlayerId);
+    const initialVisibleTiles = playerActions.getInitialVisibleTiles();
+    console.log("FogOfWarRenderer.initializeVisibility() - initialVisibleTiles count:", initialVisibleTiles.length);
+    console.log("FogOfWarRenderer.initializeVisibility() - first few tiles:", initialVisibleTiles.slice(0, 5));
     if (initialVisibleTiles.length > 0) {
+      console.log("FogOfWarRenderer.initializeVisibility() - calling revealAndUpdateState");
       this.revealAndUpdateState(initialVisibleTiles);
+      console.log("FogOfWarRenderer.initializeVisibility() - revealAndUpdateState completed");
+    } else {
+      console.warn("FogOfWarRenderer.initializeVisibility() - NO INITIAL VISIBLE TILES!");
     }
   }
 
