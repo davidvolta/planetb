@@ -1,5 +1,5 @@
 import { useGameStore } from '../store/gameStore';
-import { getPlayerView, getActivePlayerView } from './getPlayerView';
+import { getActivePlayerView } from './getPlayerView';
 import type { Animal, Biome, Egg, Resource, Board } from '../store/gameStore';
 
 /**
@@ -160,11 +160,13 @@ export function isMoveMode(): boolean {
  * Get tiles for a specific biome (only visible tiles)
  * Replaces omniscient actions.getTilesForBiome()
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getTilesForBiome(biomeId: string): Array<{ x: number; y: number; tile: any }> {
   const state = useGameStore.getState();
   const playerView = getActivePlayerView(state);
   if (!playerView || !playerView.board) return [];
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tiles: Array<{ x: number; y: number; tile: any }> = [];
   
   for (let y = 0; y < playerView.board.height; y++) {
@@ -226,11 +228,13 @@ export function doesPlayerOwnBiome(biomeId: string): boolean {
 /**
  * Get visible habitat tiles for the active player
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getHabitatTiles(): Array<{ x: number; y: number; tile: any }> {
   const state = useGameStore.getState();
   const playerView = getActivePlayerView(state);
   if (!playerView || !playerView.board) return [];
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tiles: Array<{ x: number; y: number; tile: any }> = [];
   
   for (let y = 0; y < playerView.board.height; y++) {

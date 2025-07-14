@@ -1,4 +1,7 @@
 import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
+import { getPlayerView } from '../selectors/getPlayerView';
+import { getFullGameState } from '../store/actions';
 import { RoundController } from '../controllers/RoundController';
 import { GameController } from './GameController';
 import { AIController } from '../controllers/AIController';
@@ -26,12 +29,12 @@ export class TurnController {
    * Advance to next player's move, or start a new round if all players have acted.
    */
   public async next(): Promise<void> {
-    const prevPlayerId = actions.getActivePlayerId();
+    const prevPlayerId = playerActions.getActivePlayerId();
 
     await this.gameController.endCurrentPlayerTurn();
     actions.markPlayerUnitsMoved(prevPlayerId);
 
-    const players = actions.getPlayers();
+    const players = playerActions.getPlayers();
     const currentIndex = players.findIndex(p => p.id === prevPlayerId);
     if (currentIndex === -1) return;
 
@@ -81,11 +84,21 @@ export class TurnController {
   }
 
   private async handleAITurn(playerId: number): Promise<void> {
-    const board = actions.getBoard();
-    const animals = actions.getAnimals();
-    const biomes = actions.getBiomes();
-    const eggs = actions.getEggs();
-    const gameState = { board, animals, biomes, eggs };
+    // SECURITY: Only give AI access to player-scoped data, not omniscient state
+    const fullState = getFullGameState();
+    const playerView = getPlayerView(fullState, playerId);
+    
+    if (!playerView) {
+      console.error(`No player view available for AI player ${playerId}`);
+      return;
+    }
+    
+    const gameState = {
+      board: playerView.board,
+      animals: playerView.animals,
+      biomes: playerView.biomes,
+      eggs: playerView.eggs
+    };
 
     // Log the prompt for debugging
     //console.log(PromptBuilder.buildPrompt(gameState, playerId));

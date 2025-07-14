@@ -184,6 +184,7 @@ export function doesPlayerOwnBiome(state: GameState, playerId: number, biomeId: 
 /**
  * ADMIN/DEBUG FUNCTIONS - Only for debugging/admin interfaces
  */
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace AdminView {
   /**
    * Get full omniscient state - ONLY for debugging/admin use

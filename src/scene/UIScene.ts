@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { StateObserver } from '../utils/stateObserver';
 import * as playerActions from '../selectors/playerActions';
-import * as actions from '../store/actions'; // For mutations only
 import { GameState, Biome } from '../store/gameStore';
 import type BoardScene from './BoardScene';
 import { TurnController } from '../game/TurnController';

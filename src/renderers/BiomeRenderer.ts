@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
-import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
 import { StateObserver } from '../utils/stateObserver';
 import type { Board, Biome, Player } from '../store/gameStore';
 import { MAX_LUSHNESS, EGG_PRODUCTION_THRESHOLD } from '../constants/gameConfig';
@@ -47,9 +47,9 @@ export class BiomeRenderer extends BaseRenderer {
           const biomesArray = Array.from(biomes.values());
           this.renderBiomes(biomesArray);
           if (this.scene instanceof BoardScene) { // Ensure scene is BoardScene
-            const board = actions.getBoard();
-            const players = actions.getPlayers();
-            const playerId = actions.getActivePlayerId();
+            const board = playerActions.getBoard();
+            const players = playerActions.getPlayers();
+            const playerId = playerActions.getActivePlayerId();
             if (board && players.length > 0) {
               // Call renderOutlines directly on this instance
               this.renderOutlines(board, biomes, players, playerId);
@@ -65,16 +65,16 @@ export class BiomeRenderer extends BaseRenderer {
 
             if (ownerChanged) {
                if (this.scene instanceof BoardScene) { // Ensure scene is BoardScene
-                // Reveal fog on capture
-                actions.revealBiomeTiles(id);
+                // Reveal fog on capture (this needs omniscient access for mutations)
+                import('../store/actions').then(actions => actions.revealBiomeTiles(id));
 
                 // Update ownership visuals
                 this.updateBiomeOwnership(id);
 
                 // Redraw biome outlines
-                const board = actions.getBoard();
-                const players = actions.getPlayers();
-                const playerId = actions.getActivePlayerId();
+                const board = playerActions.getBoard();
+                const players = playerActions.getPlayers();
+                const playerId = playerActions.getActivePlayerId();
                 if (board && players.length > 0) {
                   // Call renderOutlines directly on this instance
                   this.renderOutlines(board, biomes, players, playerId);
@@ -114,7 +114,7 @@ export class BiomeRenderer extends BaseRenderer {
    */
   renderBiomes(biomes: Biome[]): void {
     const staticLayer = this.layerManager.getStaticObjectsLayer();
-    const board = actions.getBoard();
+    const board = playerActions.getBoard();
     if (!staticLayer || !board) {
       console.warn("Cannot render biomes - missing layer or board");
       return;
@@ -199,8 +199,8 @@ export class BiomeRenderer extends BaseRenderer {
     // --- PLAYER COLOR STROKE FOR OWNED HABITATS ---
     if (isCaptured && biomeId !== undefined) {
       // Get the player color from the game state
-      const players = actions.getPlayers();
-      const biome = actions.getBiomes().get(biomeId);
+      const players = playerActions.getPlayers();
+      const biome = playerActions.getBiomes().get(biomeId);
       const ownerId = biome?.ownerId;
       const player = players.find(p => p.id === ownerId);
       if (player && player.color) {
@@ -221,8 +221,8 @@ export class BiomeRenderer extends BaseRenderer {
     container.add(graphics);
 
     // --- LUSHNESS BAR (only for owned biomes and only for active player) ---
-    const biome = biomeId ? actions.getBiomes().get(biomeId) : undefined;
-    const activePlayerId = actions.getActivePlayerId();
+    const biome = biomeId ? playerActions.getBiomes().get(biomeId) : undefined;
+    const activePlayerId = playerActions.getActivePlayerId();
     const isPlayersBiome = biome && biome.ownerId === activePlayerId;
 
     if (isCaptured && isPlayersBiome) {
@@ -333,7 +333,7 @@ export class BiomeRenderer extends BaseRenderer {
    */
   updateBiomeOwnership(biomeId: string): void {
     const layer = this.layerManager.getStaticObjectsLayer();
-    const biome = actions.getBiomes().get(biomeId);
+    const biome = playerActions.getBiomes().get(biomeId);
     if (!layer || !biome) return;
 
     // Find and replace the existing biome graphic

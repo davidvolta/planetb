@@ -1,6 +1,6 @@
 import { Animal, Board, Coordinate } from "../store/gameStore";
 import { isTerrainCompatible, getSpeciesMoveRange } from "../utils/SpeciesUtils";
-import { getEggs } from "../store/actions";
+import { getEggs } from '../selectors/playerActions';
 import { DisplacementEvent, BLANK_DISPLACEMENT_EVENT } from "../types/events";
 
 export class MovementController {

@@ -3,6 +3,7 @@ import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { LayerManager } from '../managers/LayerManager';
 import { BaseRenderer } from './BaseRenderer';
 import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
 import { StateObserver } from '../utils/stateObserver';
 
 // Types of selection states to differentiate behavior
@@ -47,7 +48,7 @@ export class SelectionRenderer extends BaseRenderer {
         
         // Priority: unit, resource, biome
         if (sel.animalId) {
-          const unit = actions.getAnimals().find(a => a.id === sel.animalId);
+          const unit = playerActions.getAnimals().find(a => a.id === sel.animalId);
           if (unit) {
             const x = unit.position.x;
             const y = unit.position.y;
@@ -57,7 +58,7 @@ export class SelectionRenderer extends BaseRenderer {
         }
         
         if (sel.eggId) {
-          const egg = actions.getEggs()[sel.eggId];
+          const egg = playerActions.getEggs()[sel.eggId];
           if (egg) {
             const { x, y } = egg.position;
             this.showSelection(x, y, SelectionType.Action);
@@ -74,7 +75,7 @@ export class SelectionRenderer extends BaseRenderer {
         }
         
         if (sel.biomeId) {
-          const biome = actions.getBiomes().get(sel.biomeId);
+          const biome = playerActions.getBiomes().get(sel.biomeId);
           if (biome) {
             const { x, y } = biome.habitat.position;
             this.showSelection(x, y, SelectionType.Action);
@@ -271,8 +272,8 @@ export class SelectionRenderer extends BaseRenderer {
       color = 0xFFFFFF;
     } else {
       // Use active player's color
-      const playerId = actions.getActivePlayerId();
-      const player = actions.getPlayers().find(p => p.id === playerId);
+      const playerId = playerActions.getActivePlayerId();
+      const player = playerActions.getPlayers().find(p => p.id === playerId);
       if (player && player.color) {
         color = parseInt(player.color.replace('#', ''), 16);
       } else {

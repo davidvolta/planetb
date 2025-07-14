@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
 import { TILE_SIZE, TILE_HEIGHT, RESOURCE_GENERATION_PERCENTAGE } from '../constants/gameConfig';
 import { StateObserver } from '../utils/stateObserver';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
@@ -111,7 +112,7 @@ export default class BoardScene extends Phaser.Scene {
   update() {
     // Let the selection renderer handle hover updates
     const pointer = this.input.activePointer;
-    const board = actions.getBoard();
+    const board = this.currentPlayerView?.board;
 
     if (board) {
       // Only show hover indicator when not in move mode
@@ -180,7 +181,7 @@ export default class BoardScene extends Phaser.Scene {
     this.selectionRenderer.initialize(anchorX, anchorY);
     this.resourceRenderer.initialize(anchorX, anchorY);
 
-    if (actions.getFogOfWarEnabled()) {
+    if (playerActions.getFogOfWarEnabled()) {
       this.fogOfWarRenderer.createFogOfWar(board);
       this.fogOfWarRenderer.initializeVisibility();
     } else {
@@ -195,7 +196,7 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   private updatePlayerView(): void {
-    const playerId = actions.getActivePlayerId();
+    const playerId = playerActions.getActivePlayerId();
     const fullState = getFullGameState();
     this.currentPlayerView = getPlayerView(fullState, playerId);
 
@@ -285,7 +286,7 @@ export default class BoardScene extends Phaser.Scene {
     animalSprite.setPosition(startWorld.x, startWorld.y - 12); // same verticalOffset as renderer
 
     // Fog-of-war reveal using global flag
-    if (actions.getFogOfWarEnabled()) {
+    if (playerActions.getFogOfWarEnabled()) {
       this.fogOfWarRenderer.revealAround(toX, toY);
     }
 
@@ -298,11 +299,11 @@ export default class BoardScene extends Phaser.Scene {
   public handleSpawnEvent(animalId: string): void {
     if (!animalId) return;
 
-    // Get spawn animal data directly from global state
-    const animal = actions.getAnimals().find(a => a.id === animalId);
+    // Get spawn animal data from player view
+    const animal = this.currentPlayerView?.animals.find(a => a.id === animalId);
     
     // Reveal tiles directly through actions
-    if (animal && actions.getFogOfWarEnabled()) {
+    if (animal && playerActions.getFogOfWarEnabled()) {
       actions.revealTilesAround(animal.position.x, animal.position.y);
       }
     
@@ -316,9 +317,9 @@ export default class BoardScene extends Phaser.Scene {
   }
   // Public method to reset resources with current settings (accepts override)
   public resetResources(resourceChance: number = RESOURCE_GENERATION_PERCENTAGE): void {
-    // Get current board and biomes data
-    const board = actions.getBoard();
-    const biomes = actions.getBiomes();
+    // Get current board and biomes data from player view
+    const board = this.currentPlayerView?.board;
+    const biomes = this.currentPlayerView?.biomes;
 
     // Early exit if board or biomes are missing
     if (!board || !biomes || biomes.size === 0) {
@@ -451,9 +452,9 @@ export default class BoardScene extends Phaser.Scene {
           this.fogOfWarRenderer.updateFogForActivePlayer(activePlayerId);
         }
 
-        const board = actions.getBoard();
-        const biomes = actions.getBiomes();
-        const players = actions.getPlayers();
+        const board = this.currentPlayerView?.board;
+        const biomes = this.currentPlayerView?.biomes;
+        const players = playerActions.getPlayers();
         if (board && players.length > 0) {
           this.biomeRenderer.renderOutlines(board, biomes, players, activePlayerId);
           this.biomeRenderer.renderBiomes(Array.from(biomes.values()));

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import * as actions from "../store/actions";
+import * as playerActions from '../selectors/playerActions';
 import * as CoordinateUtils from "../utils/CoordinateUtils";
 import { Coordinate } from '../store/gameStore';
 
@@ -203,11 +203,11 @@ export class CameraManager {
   
   // Finds the first animal owned by the player
   private findFirstPlayerAnimal(): Coordinate | null {
-    const activePlayerId = actions.getActivePlayerId();
-    const eggsRecord = actions.getEggs();
+    const activePlayerId = playerActions.getActivePlayerId();
+    const eggsRecord = playerActions.getEggs();
 
     // Find the first active animal owned by the current player
-    const animal = actions.getAnimals().find(
+    const animal = playerActions.getAnimals().find(
       a => a.ownerId === activePlayerId && !(a.id in eggsRecord)
     );
 
@@ -223,11 +223,11 @@ export class CameraManager {
     anchorX: number,
     anchorY: number
   ): Promise<void> {
-    const activePlayerId = actions.getActivePlayerId();
-    const eggsRecord = actions.getEggs();
+    const activePlayerId = playerActions.getActivePlayerId();
+    const eggsRecord = playerActions.getEggs();
 
     // Get all active animals owned by the current player
-    const animals = actions.getAnimals().filter(
+    const animals = playerActions.getAnimals().filter(
       a => a.ownerId === activePlayerId && !(a.id in eggsRecord)
     );
 

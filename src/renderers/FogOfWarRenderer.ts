@@ -4,6 +4,7 @@ import { BaseRenderer } from './BaseRenderer';
 import * as CoordinateUtils from '../utils/CoordinateUtils';
 import { StateObserver } from '../utils/stateObserver';
 import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
 
 /**
  * Responsible for rendering and managing fog of war tiles
@@ -144,7 +145,7 @@ export class FogOfWarRenderer extends BaseRenderer {
    * @param playerId The active player ID
    */
   public updateFogForActivePlayer(playerId: number): void {
-    const board = actions.getBoard();
+    const board = playerActions.getBoard();
     if (!board) return;
     
     // Get the coordinates of tiles visible to this player
@@ -185,7 +186,8 @@ export class FogOfWarRenderer extends BaseRenderer {
    * Initialize visibility for starting units and habitats
    */
   public initializeVisibility(): void {
-    const initialVisibleTiles = actions.getInitialVisibleTiles();
+    const activePlayerId = playerActions.getActivePlayerId();
+    const initialVisibleTiles = playerActions.getInitialVisibleTiles(activePlayerId);
     if (initialVisibleTiles.length > 0) {
       this.revealAndUpdateState(initialVisibleTiles);
     }
@@ -278,7 +280,7 @@ export class FogOfWarRenderer extends BaseRenderer {
    * @param y Y coordinate of the center tile
    */
   public revealAround(x: number, y: number): void {
-    const board = actions.getBoard();
+    const board = playerActions.getBoard();
     if (!board) return;
     
     // Get adjacent tiles including the center tile

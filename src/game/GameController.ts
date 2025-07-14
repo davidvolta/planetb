@@ -1,4 +1,5 @@
 import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
 import type { Coordinate } from '../store/gameStore';
 import { AnimationController } from '../controllers/AnimationController';
 
@@ -16,7 +17,7 @@ export class GameController {
    */
   async moveAnimal(animalId: string, x: number, y: number): Promise<void> {
     // Get current position before movement
-    const unit = actions.getAnimals().find(a => a.id === animalId);
+    const unit = playerActions.getAnimals().find(a => a.id === animalId);
     if (!unit) {
       console.error(`[GameController] Cannot move animal ${animalId}: not found`);
       return;
