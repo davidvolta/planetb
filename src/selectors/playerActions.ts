@@ -347,11 +347,20 @@ export function getFogOfWarEnabled(): boolean {
  * Replaces omniscient actions.getInitialVisibleTiles()
  */
 export function getInitialVisibleTiles(): Coordinate[] {
+  console.log("getInitialVisibleTiles() called");
   const state = useGameStore.getState();
   const playerView = getActivePlayerView(state);
-  if (!playerView || !playerView.board) return [];
+  console.log("getInitialVisibleTiles() - playerView:", !!playerView);
+  console.log("getInitialVisibleTiles() - playerView.board:", !!playerView?.board);
+  if (!playerView || !playerView.board) {
+    console.warn("getInitialVisibleTiles() - early return, no playerView or board");
+    return [];
+  }
 
   const activePlayerId = playerView.activePlayerId;
+  console.log("getInitialVisibleTiles() - activePlayerId:", activePlayerId);
+  console.log("getInitialVisibleTiles() - animals count:", playerView.animals.length);
+  console.log("getInitialVisibleTiles() - biomes count:", playerView.biomes.size);
   
   // Collect tiles around non-egg animals
   const eggsRecord = playerView.eggs.reduce((acc, egg) => {
@@ -383,7 +392,11 @@ export function getInitialVisibleTiles(): Coordinate[] {
   const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
 
   // Combine all tiles
-  return [...uniqueUnitTiles, ...uniqueBiomeTiles];
+  const combinedTiles = [...uniqueUnitTiles, ...uniqueBiomeTiles];
+  console.log("getInitialVisibleTiles() - uniqueUnitTiles count:", uniqueUnitTiles.length);
+  console.log("getInitialVisibleTiles() - uniqueBiomeTiles count:", uniqueBiomeTiles.length);
+  console.log("getInitialVisibleTiles() - total combined tiles:", combinedTiles.length);
+  return combinedTiles;
 }
 
 // Re-export all the state-mutating actions that don't need filtering
