@@ -25,6 +25,53 @@
 
 
 ## REFACTORING
+
+### CRITICAL ARCHITECTURE FIXES (Fix First) 🔥
+- [x] **Omniscient State Access Pattern** - MOST CRITICAL ✅ **MAJOR PROGRESS**
+  - [x] Enhanced existing Player View Pattern in `src/selectors/getPlayerView.ts`
+  - [x] Created player-view-aware actions in `src/selectors/playerActions.ts`
+  - [x] Updated TileInteractionController to use filtered player views
+  - [x] Updated UIScene to use filtered player views
+  - [ ] Update remaining renderers and controllers (AnimationController, GameController, etc.)
+  - [ ] Fix fog-of-war security holes and performance issues
+- [ ] **Circular Dependencies & Tight Coupling**
+  - [ ] Create `src/store/commands/` for business logic
+  - [ ] Keep `actions/` for pure state mutations only
+  - [ ] Break action → controller → action circular dependencies
+- [ ] **Inconsistent Async Patterns**
+  - [ ] Make all state-changing actions async with clear boundaries
+  - [ ] Add proper loading states and action queuing
+  - [ ] Fix race conditions in state updates
+
+### HIGH PRIORITY FIXES ⚠️
+- [ ] **Error Boundaries**
+  - [ ] Create `src/utils/ErrorBoundary.ts` with proper error handling
+  - [ ] Wrap all actions with try/catch and fallback behaviors
+  - [ ] Add user-friendly error messages instead of crashes
+- [ ] **Animation/State Coordination**
+  - [ ] Separate AnimationController from state updates
+  - [ ] Make animations purely cosmetic, state updates immediate
+  - [ ] Fix desynchronization between visual and game state
+- [ ] **State Mutation Anti-patterns**
+  - [ ] Standardize state mutation patterns
+  - [ ] Remove direct setState calls mixed with pure functions
+  - [ ] Implement consistent state update flow
+
+### MEDIUM PRIORITY FIXES 📋
+- [ ] **Memory Leaks in State Subscriptions**
+  - [ ] Fix StateObserver subscription cleanup
+  - [ ] Add proper component disposal patterns
+  - [ ] Monitor and prevent subscription leaks
+- [ ] **Inconsistent Data Structures**
+  - [ ] Standardize animals/biomes/eggs data structures
+  - [ ] Choose between Arrays, Maps, Records consistently
+  - [ ] Optimize for performance and maintainability
+- [ ] **Testing Infrastructure**
+  - [ ] Add vitest or jest testing framework
+  - [ ] Create action unit tests
+  - [ ] Add controller integration tests
+
+### EXISTING REFACTORING TASKS
 - [ ] Rewrite TileInteractionController to fully route all click handling through the GameController facade
 
 ## TODO: Refactor Omniscient State Access to Use playerView

@@ -1,4 +1,3 @@
-import { TerrainType } from "../types/gameTypes";
 import { calculateManhattanDistance } from "./CoordinateUtils";
 
 /**

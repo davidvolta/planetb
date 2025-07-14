@@ -445,7 +445,7 @@ export default class BoardScene extends Phaser.Scene {
         turn: state.turn,
         fogOfWarEnabled: state.fogOfWarEnabled
       }),
-      ({ activePlayerId, visibleTiles, turn, fogOfWarEnabled }) => {
+      ({ activePlayerId, fogOfWarEnabled }) => {
         // Use FOWRenderer directly to update fog state for player change
         if (fogOfWarEnabled) {
           this.fogOfWarRenderer.updateFogForActivePlayer(activePlayerId);

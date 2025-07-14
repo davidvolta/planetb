@@ -1,10 +1,14 @@
-import type { GameState, Biome, Board, Tile, Resource } from '../store/gameStore';
+import type { GameState, Biome, Board, Tile, Resource, Animal, Egg } from '../store/gameStore';
 
 export interface ResourceView {
   resource: Resource;
   tile: Tile;
 }
 
+/**
+ * Comprehensive player view that replaces omniscient state access
+ * This function filters all game data based on what a player should see
+ */
 export function getPlayerView(state: GameState, playerId: number) {
   const player = state.players.find(p => p.id === playerId);
   if (!player || !state.board) return null;
@@ -93,6 +97,7 @@ export function getPlayerView(state: GameState, playerId: number) {
 
   return {
     playerId,
+    player,
     visibleTiles: player.visibleTiles,
     board,
     animals,
@@ -105,9 +110,87 @@ export function getPlayerView(state: GameState, playerId: number) {
     selectedAnimalID: state.selectedAnimalID,
     validMoves: state.validMoves,
     moveMode: state.moveMode,
+    selectedBiomeId: state.selectedBiomeId,
+    selectedResource: state.selectedResource,
     
     resourceView,
     blankTiles,
     resources: filteredResources
   };
+}
+
+/**
+ * Convenience function to get the active player's view
+ * Replaces omniscient state access in most common use cases
+ */
+export function getActivePlayerView(state: GameState) {
+  return getPlayerView(state, state.activePlayerId);
+}
+
+/**
+ * Check if a player can see a specific tile
+ */
+export function canPlayerSeeTile(state: GameState, playerId: number, x: number, y: number): boolean {
+  const player = state.players.find(p => p.id === playerId);
+  if (!player) return false;
+  
+  const tileKey = `${x},${y}`;
+  return player.visibleTiles.has(tileKey);
+}
+
+/**
+ * Get only the animals owned by a player (always visible)
+ */
+export function getOwnedAnimals(state: GameState, playerId: number): Animal[] {
+  return state.animals.filter(animal => animal.ownerId === playerId);
+}
+
+/**
+ * Get only the biomes owned by a player (always visible)
+ */
+export function getOwnedBiomes(state: GameState, playerId: number): Map<string, Biome> {
+  const ownedBiomes = new Map<string, Biome>();
+  state.biomes.forEach((biome, id) => {
+    if (biome.ownerId === playerId) {
+      ownedBiomes.set(id, biome);
+    }
+  });
+  return ownedBiomes;
+}
+
+/**
+ * Get only the eggs owned by a player (always visible)
+ */
+export function getOwnedEggs(state: GameState, playerId: number): Egg[] {
+  return Object.values(state.eggs).filter(egg => egg.ownerId === playerId);
+}
+
+/**
+ * Check if a player owns a specific animal
+ */
+export function doesPlayerOwnAnimal(state: GameState, playerId: number, animalId: string): boolean {
+  const animal = state.animals.find(a => a.id === animalId);
+  return animal ? animal.ownerId === playerId : false;
+}
+
+/**
+ * Check if a player owns a specific biome
+ */
+export function doesPlayerOwnBiome(state: GameState, playerId: number, biomeId: string): boolean {
+  const biome = state.biomes.get(biomeId);
+  return biome ? biome.ownerId === playerId : false;
+}
+
+/**
+ * ADMIN/DEBUG FUNCTIONS - Only for debugging/admin interfaces
+ */
+export namespace AdminView {
+  /**
+   * Get full omniscient state - ONLY for debugging/admin use
+   * @deprecated Use getPlayerView() instead for all gameplay code
+   */
+  export function getFullGameState(state: GameState) {
+    console.warn('AdminView.getFullGameState() called - this should only be used for debugging');
+    return state;
+  }
 }

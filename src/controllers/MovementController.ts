@@ -186,7 +186,7 @@ export class MovementController {
     displacementEvent: DisplacementEvent;
   } {
     // Start with a blank event structure
-    let dispEvent: DisplacementEvent = { ...BLANK_DISPLACEMENT_EVENT };
+    const dispEvent: DisplacementEvent = { ...BLANK_DISPLACEMENT_EVENT };
 
     // Look for an occupying animal
     const collider = animals.find(a => a.position.x === x && a.position.y === y);

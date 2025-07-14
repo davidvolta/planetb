@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { StateObserver } from '../utils/stateObserver';
-import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
+import * as actions from '../store/actions'; // For mutations only
 import { GameState, Biome } from '../store/gameStore';
 import type BoardScene from './BoardScene';
 import { TurnController } from '../game/TurnController';
@@ -79,8 +80,8 @@ export default class UIScene extends Phaser.Scene {
         // Show/hide biome capture button based on biome selection and animal presence
         if (this.captureBiomeButton) {
           const selectedBiomeId = data.selectedBiomeId;
-          const isAvailable = selectedBiomeId !== null && actions.isSelectedBiomeAvailableForCapture();
-          const canCapture = isAvailable && actions.canCaptureBiome(selectedBiomeId);
+          const isAvailable = selectedBiomeId !== null && playerActions.isSelectedBiomeAvailableForCapture();
+          const canCapture = isAvailable && playerActions.canCaptureBiome(selectedBiomeId);
           this.captureBiomeButton.setVisible(canCapture);
           
           // Update background size when button visibility changes
@@ -164,9 +165,7 @@ export default class UIScene extends Phaser.Scene {
 
   create() {
     // Create a container for UI elements that will be positioned in the top left
-    this.container = this.add.container(0, 0);
-    // Instantiate GameController facade
-    const boardScene = this.scene.get('BoardScene') as BoardScene;    
+    this.container = this.add.container(0, 0);    
     
     // Add a semi-transparent black background
     const uiBackground = this.add.rectangle(0, 0, 275, 100, 0x000000, 0.5);
@@ -218,8 +217,8 @@ export default class UIScene extends Phaser.Scene {
       .on('pointerout', () => buttonBg.setFillStyle(0x808080));
     
     // Create button text with keyboard shortcut and active player
-    const players = actions.getPlayers();
-    const currentId = actions.getActivePlayerId();
+    const players = playerActions.getPlayers();
+    const currentId = playerActions.getActivePlayerId();
     const currentPlayer = players.find(p => p.id === currentId);
     const currentName = currentPlayer ? currentPlayer.name : `Player ${currentId}`;
     const buttonText = this.add.text(75, 20, `End ${currentName} Turn`, {
@@ -348,7 +347,8 @@ export default class UIScene extends Phaser.Scene {
     this.isProcessingNextTurn = true;
     this.nextTurnButtonBg?.disableInteractive();
     // Capture the player whose turn is ending
-    const prevPlayerId = actions.getActivePlayerId();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _prevPlayerId = playerActions.getActivePlayerId();
     // Execute one full turn (human and optional AI)
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     await boardScene.getTurnController().next();
@@ -379,7 +379,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   public async handleCaptureBiome(): Promise<void> {
-    const selectedBiomeId = actions.getSelectedBiomeId();
+    const selectedBiomeId = playerActions.getSelectedBiomeId();
     if (!selectedBiomeId) return;
   
     const boardScene = this.scene.get('BoardScene') as BoardScene;
@@ -393,7 +393,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   public async handleHarvest(): Promise<void> {
-    const coord = actions.getSelectedResource();
+    const coord = playerActions.getSelectedResource();
     if (!coord) return;
   
     const boardScene = this.scene.get('BoardScene') as BoardScene;
@@ -461,7 +461,8 @@ export default class UIScene extends Phaser.Scene {
 
     // Get the current game size
     const width = this.scale.width;
-    const height = this.scale.height;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _height = this.scale.height;
     
     // Position the container in the top left with some padding
     const padding = 20;
@@ -583,7 +584,7 @@ export default class UIScene extends Phaser.Scene {
     
     // Egg count
     if (this.biomeInfoTexts['eggCount']) {
-      this.biomeInfoTexts['eggCount'].setText(actions.getEggCountForBiome(biome.id).toString());
+      this.biomeInfoTexts['eggCount'].setText(playerActions.getEggCountForBiome(biome.id).toString());
     }
     
     // Owner info

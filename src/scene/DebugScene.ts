@@ -154,7 +154,7 @@ export default class DebugScene extends Phaser.Scene {
     const trackWidth = this.resourceSliderTrack.width;
     
     // Calculate percentage based on click position
-    let percentage = Math.max(0, Math.min(1, x / trackWidth));
+    const percentage = Math.max(0, Math.min(1, x / trackWidth));
     this.updateSliderUI(percentage);
     
     // Update the resource percentage and reset resources
@@ -175,7 +175,7 @@ export default class DebugScene extends Phaser.Scene {
     const x = pointer.x - trackStart;
     
     // Calculate percentage based on drag position
-    let percentage = Math.max(0, Math.min(1, x / trackWidth));
+    const percentage = Math.max(0, Math.min(1, x / trackWidth));
     this.updateSliderUI(percentage);
     
     // Update the resource percentage and reset resources

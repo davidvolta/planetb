@@ -37,8 +37,15 @@ export class AnimalController {
           facingDirection: direction
         };
         
-        // Apply health changes using HealthController
-        return HealthController.applyHealthChanges(updatedAnimal, gameState.board!);
+        // Apply health changes when moving between biomes
+        const fromTile = gameState.board!.tiles[a.position.y][a.position.x];
+        const toTile = gameState.board!.tiles[targetY][targetX];
+        return HealthController.applyMovementHealthLoss(
+          updatedAnimal,
+          fromTile.biomeId,
+          toTile.biomeId,
+          gameState.biomes
+        );
       }
       return a;
     });

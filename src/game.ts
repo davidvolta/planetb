@@ -3,7 +3,7 @@ import BoardScene, { EVENTS } from './scene/BoardScene';
 import DebugScene from './scene/DebugScene';
 import UIScene from './scene/UIScene';
 import * as actions from './store/actions';
-import { TILE_SIZE, TILE_HEIGHT } from './constants/gameConfig';
+// Note: TILE_SIZE and TILE_HEIGHT imports removed as they're unused in this file
 import { StateObserver } from './utils/stateObserver';
 import { GameEnvironment } from './env/GameEnvironment';
 
@@ -100,6 +100,11 @@ export function createPhaserEngine(): Phaser.Game {
   
   // Set up the state observer
   setupStateObserver(game);
+  
+  // Add debug utilities for development
+  if (process.env.NODE_ENV === 'development' || GameEnvironment.mode !== 'production') {
+    StateObserver.addConsoleDebugUtilities();
+  }
   
   // Set up asset loaded listener with polling if needed
   if (!setupAssetLoadedListener(game)) {

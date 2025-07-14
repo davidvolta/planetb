@@ -316,11 +316,11 @@ export class EcosystemController {
     coord: Coordinate,
     board: Board,
     resources: Record<string, import('../store/gameStore').Resource>,
-    players: any[],
+    players: Player[],
     currentPlayerId: number,
     biomes: Map<string, Biome>,
     amount: number
-  ): { board: Board; resources: Record<string, import('../store/gameStore').Resource>; players: any[]; biomes: Map<string, Biome> } {
+  ): { board: Board; resources: Record<string, import('../store/gameStore').Resource>; players: Player[]; biomes: Map<string, Biome> } {
     // Deep copy of board
     const newBoard: Board = {
       ...board,

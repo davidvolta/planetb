@@ -85,7 +85,7 @@ export class TurnController {
     const animals = actions.getAnimals();
     const biomes = actions.getBiomes();
     const eggs = actions.getEggs();
-    const gameState = { board, animals, biomes, eggs } as any;
+    const gameState = { board, animals, biomes, eggs };
 
     // Log the prompt for debugging
     //console.log(PromptBuilder.buildPrompt(gameState, playerId));

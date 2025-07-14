@@ -32,12 +32,13 @@ export class CommandExecutor {
         this.gc.spawnAnimal(cmd.animalId);
         actions.deselectUnit();
         break;
-      case 'harvest':
+      case 'harvest': {
         const { x, y, amount = 3 } = cmd;
         this.gc.harvestTile({ x, y }, amount);
         break;
+      }
       default:
-        throw new Error(`CommandExecutor: unknown command type '${(cmd as any).type}'`);
+        throw new Error(`CommandExecutor: unknown command type '${(cmd as { type: string }).type}'`);
     }
   }
 

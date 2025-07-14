@@ -34,7 +34,7 @@ export function initializeBoard(
   }
   const board: Board = { width, height, tiles };
 
-  let animals: Animal[] = [];
+  const animals: Animal[] = [];
   const voronoiNodes: VoronoiNode[] = [];
   const terrainTypesWithNodes = new Set<TerrainType>();
 

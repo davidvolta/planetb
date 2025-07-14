@@ -63,7 +63,7 @@ Rules:
 
     if (commands.length > 0 && legalCommands.length < commands.length) {
         console.warn('⚠️ Some LLM commands were invalid and filtered out:');
-      console.table(commands.map((c, i) => ({
+      console.table(commands.map((c) => ({
         ...c,
         valid: canExecuteCommand(c, state, playerId)
       })));

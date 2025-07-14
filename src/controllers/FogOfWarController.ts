@@ -9,7 +9,7 @@ export class FogOfWarController {
     board: Board,
     animals: Animal[],
     biomes: Map<string, Biome>,
-    eggs: Record<string, any>
+    eggs: Record<string, import('../store/gameStore').Egg>
   ): Player[] {
     return players.map(player => {
       const coordSet = new Set<string>();
@@ -79,7 +79,7 @@ export class FogOfWarController {
       board: Board | null;
       animals: Animal[];
       biomes: Map<string, Biome>;
-      eggs: Record<string, any>;
+      eggs: Record<string, import('../store/gameStore').Egg>;
     }
   ): { fogOfWarEnabled: boolean; players: Player[] } {
     if (!currentState.board) {

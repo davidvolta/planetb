@@ -1,4 +1,5 @@
-import * as actions from '../store/actions';
+import * as playerActions from '../selectors/playerActions';
+import * as actions from '../store/actions'; // For mutations only
 import { Biome, Animal, Egg, Tile, Resource } from '../store/gameStore';
 import type BoardScene from '../scene/BoardScene';
 
@@ -39,14 +40,14 @@ export class TileInteractionController {
   }
 
   private isValidClick(x: number, y: number): boolean {
-    const playerId = actions.getActivePlayerId();
-    const board = actions.getBoard();
+    const playerId = playerActions.getActivePlayerId();
+    const board = playerActions.getBoard();
     
     if (!board?.tiles[y]?.[x]) {
       return false;
     }
 
-    const visibleCoords = actions.getVisibleTilesForPlayer(playerId);
+    const visibleCoords = playerActions.getVisibleTilesForPlayer(playerId);
     return visibleCoords.some(coord => coord.x === x && coord.y === y);
   }
 
@@ -61,8 +62,8 @@ export class TileInteractionController {
       return false;
     }
 
-    const selectedAnimalId = actions.getSelectedAnimalID();
-    const animals = actions.getAnimals();
+    const selectedAnimalId = playerActions.getSelectedAnimalID();
+    const animals = playerActions.getAnimals();
     const selectedAnimal = animals.find((a: Animal) => a.id === selectedAnimalId);
 
     if (selectedAnimalId && selectedAnimal) {
@@ -84,14 +85,14 @@ export class TileInteractionController {
   }
 
   private buildClickHandlers(x: number, y: number): ClickHandler[] {
-    const playerId = actions.getActivePlayerId();
+    const playerId = playerActions.getActivePlayerId();
     const handlers: ClickHandler[] = [];
 
     // Get all relevant game state
     const animalsAtTile = this.getPlayerAnimalsAtTile(x, y, playerId);
     const eggsAtTile = this.getPlayerEggsAtTile(x, y, playerId);
     const biomesAtLocation = this.getBiomesAtLocation(x, y);
-    const board = actions.getBoard();
+    const board = playerActions.getBoard();
     if (!board) return handlers;
     const tile = board.tiles[y][x];
 
@@ -106,17 +107,17 @@ export class TileInteractionController {
   }
 
   private getPlayerAnimalsAtTile(x: number, y: number, playerId: number): Animal[] {
-    return actions.getAnimalsAt(x, y).filter(a => a.ownerId === playerId);
+    return playerActions.getAnimalsAt(x, y).filter(a => a.ownerId === playerId);
   }
 
   private getPlayerEggsAtTile(x: number, y: number, playerId: number): Egg[] {
-    return actions.getEggsAt(x, y).filter(e => e.ownerId === playerId);
+    return playerActions.getEggsAt(x, y).filter(e => e.ownerId === playerId);
   }
 
   private getBiomesAtLocation(x: number, y: number): Biome[] {
-    const habitatTiles = actions.getHabitatTiles().filter(t => t.x === x && t.y === y);
+    const habitatTiles = playerActions.getHabitatTiles().filter(t => t.x === x && t.y === y);
     return habitatTiles
-      .map(({ tile }) => actions.getBiomes().get(tile.biomeId!))
+      .map(({ tile }) => playerActions.getBiomes().get(tile.biomeId!))
       .filter((b): b is Biome => !!b);
   }
 
@@ -144,9 +145,9 @@ export class TileInteractionController {
     animalsAtTile: Animal[],
     playerId: number
   ): void {
-    const resource: Resource | undefined = actions.getResourceAt(tile.coordinate.x, tile.coordinate.y);
+    const resource: Resource | undefined = playerActions.getResourceAt(tile.coordinate.x, tile.coordinate.y);
     if (resource && resource.active && resource.biomeId) {
-      const biome = actions.getBiomes().get(resource.biomeId);
+      const biome = playerActions.getBiomes().get(resource.biomeId);
       const animalHere = animalsAtTile.find(a => a.ownerId === playerId && !a.hasMoved);
 
       if (biome?.ownerId === playerId && animalHere) {

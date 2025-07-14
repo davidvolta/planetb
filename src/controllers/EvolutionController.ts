@@ -93,7 +93,8 @@ export class EvolutionController {
     // ---------------------------------------------------------------------
     // Remove egg from record
     // ---------------------------------------------------------------------
-    const { [eggId]: _removed, ...remainingEggs } = eggs;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [eggId]: _, ...remainingEggs } = eggs;
 
     return {
       animals: finalAnimals,

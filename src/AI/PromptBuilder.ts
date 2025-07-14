@@ -25,7 +25,7 @@ export class PromptBuilder {
       .filter((e: Egg) => e.ownerId === playerId)
       .map((e: Egg) => ({
         id: e.id,
-        species: (e as any).species, // If Egg has no species, this will be undefined
+        species: undefined, // Eggs don't have species in the current interface
         biomeId: e.biomeId,
         position: e.position
       }));

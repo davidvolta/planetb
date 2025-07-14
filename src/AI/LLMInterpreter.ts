@@ -30,7 +30,7 @@ export class LLMResponseInterpreter {
     for (const cmd of parsed) {
       if (!cmd || typeof cmd !== 'object') continue;
 
-      const { type } = cmd as any;
+      const { type } = cmd as { type: string };
 
       if (type === 'move' && 'animalId' in cmd && 'x' in cmd && 'y' in cmd) {
         valid.push(cmd as GameCommand);

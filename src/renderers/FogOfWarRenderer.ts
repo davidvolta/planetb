@@ -207,7 +207,7 @@ export class FogOfWarRenderer extends BaseRenderer {
         // Add turn to trigger updates when capturing biomes or spawning animals
         turn: state.turn
       }),
-      ({ board, activePlayerId, visibleTiles, fogOfWarEnabled, turn }, prev) => {
+      ({ board, activePlayerId, visibleTiles, fogOfWarEnabled }, prev) => {
         if (!board) return;
 
         // Handle fog of war toggle

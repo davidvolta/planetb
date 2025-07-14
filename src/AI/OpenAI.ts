@@ -6,7 +6,7 @@ export class OpenAIClient {
     model?: string;
     temperature?: number;
   }): Promise<{ content: string }> {
-    // @ts-ignore
+    // @ts-expect-error - Vite environment variables are not typed by default
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
     if (!apiKey) throw new Error('Missing OpenAI API key');
 

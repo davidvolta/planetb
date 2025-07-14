@@ -151,7 +151,7 @@ export interface GameState {
   addAnimal: (animal: Animal) => void;
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
+export const useGameStore = create<GameState>((set) => ({
   turn: 1,
   players: [],
   activePlayerId: 0,

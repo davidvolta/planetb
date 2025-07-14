@@ -20,7 +20,7 @@ export class TileRenderer extends BaseRenderer {
   }
 
   public renderBoard(
-    board: { width: number, height: number, tiles: any[][] },
+    board: { width: number, height: number, tiles: import('../store/gameStore').Tile[][] },
     centerX?: number,
     centerY?: number
   ): void {
