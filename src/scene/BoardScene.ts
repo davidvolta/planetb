@@ -137,11 +137,13 @@ export default class BoardScene extends Phaser.Scene {
 
     this.turnController = new TurnController(this.gameController, GameEnvironment.mode);
 
+    // Update player view BEFORE setting up subscriptions to ensure data is available
+    this.updatePlayerView();
+    
     // Set up subscriptions
     this.setupAllSubscriptions();
     this.setupVisibilitySubscriptions();
     this.setupInputHandlers();
-    this.updatePlayerView();
 
     const board = this.currentPlayerView?.board;
     if (board) {
