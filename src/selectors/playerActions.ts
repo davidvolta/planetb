@@ -345,12 +345,45 @@ export function getFogOfWarEnabled(): boolean {
 /**
  * Get initial visible tiles for the active player
  * Replaces omniscient actions.getInitialVisibleTiles()
- * TEMPORARY: Use omniscient access until we can debug the player view issue
  */
 export function getInitialVisibleTiles(): Coordinate[] {
-  // TEMPORARY FIX: Import and use the original omniscient function
-  const { getInitialVisibleTiles: omniscientGetInitialVisibleTiles } = require('../store/actions');
-  return omniscientGetInitialVisibleTiles();
+  const state = useGameStore.getState();
+  const playerView = getActivePlayerView(state);
+  if (!playerView || !playerView.board) return [];
+
+  const activePlayerId = playerView.activePlayerId;
+  
+  // Collect tiles around non-egg animals
+  const eggsRecord = playerView.eggs.reduce((acc, egg) => {
+    acc[egg.id] = egg;
+    return acc;
+  }, {} as Record<string, Egg>);
+  
+  const unitAdjacents = playerView.animals
+    .filter(a => a.ownerId === activePlayerId && !(a.id in eggsRecord))
+    .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, playerView.board!.width, playerView.board!.height));
+  const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
+
+  // Collect tiles of owned biomes  
+  const biomeTiles = Array.from(playerView.biomes.entries())
+    .filter(([, b]) => b.ownerId === activePlayerId)
+    .flatMap(([id]) => {
+      // Get tiles for biome
+      const tiles = [];
+      for (let y = 0; y < playerView.board!.height; y++) {
+        for (let x = 0; x < playerView.board!.width; x++) {
+          const tile = playerView.board!.tiles[y][x];
+          if (tile.biomeId === id) {
+            tiles.push({ x, y });
+          }
+        }
+      }
+      return tiles;
+    });
+  const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
+
+  // Combine all tiles
+  return [...uniqueUnitTiles, ...uniqueBiomeTiles];
 }
 
 // Re-export all the state-mutating actions that don't need filtering
