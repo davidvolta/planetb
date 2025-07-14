@@ -357,8 +357,9 @@ export function getInitialVisibleTiles(): Coordinate[] {
     return [];
   }
 
-  const activePlayerId = playerView.activePlayerId;
-  console.log("getInitialVisibleTiles() - activePlayerId:", activePlayerId);
+  // Get activePlayerId from state, not playerView (it's not included in playerView)
+  const activePlayerId = state.activePlayerId;
+  console.log("getInitialVisibleTiles() - activePlayerId from state:", activePlayerId);
   console.log("getInitialVisibleTiles() - animals count:", playerView.animals.length);
   console.log("getInitialVisibleTiles() - biomes count:", playerView.biomes.size);
   
