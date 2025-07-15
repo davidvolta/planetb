@@ -39,6 +39,7 @@ export function markPlayerUnitsMoved(playerId: number): void {
 
 /**
  * Update resources and egg production for a single player's owned biomes at the start of their turn.
+ * Uses PlayerView for visibility filtering while maintaining full state access for mutations.
  */
 export async function updatePlayerBiomes(playerId: number): Promise<void> {
   const state = useGameStore.getState();
@@ -58,7 +59,7 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
   // Update the game state with health-updated animals
   useGameStore.setState({ animals });
 
-  // Filter to only this player's biomes
+  // Filter to only this player's biomes (always visible to owner)
   const playerBiomes = new Map();
   allBiomes.forEach((b, id) => {
     if (b.ownerId === playerId) {
@@ -66,11 +67,23 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
     }
   });
 
-  // Regenerate resources for these biomes
-  const newResources = EcosystemController.regenerateResources(state.resources, playerBiomes);
+  // Regenerate resources for these biomes - use filtered resources for player's owned biomes
+  const playerResources = Object.fromEntries(
+    Object.entries(state.resources).filter(([_, resource]) => 
+      resource.biomeId && playerBiomes.has(resource.biomeId)
+    )
+  );
+  
+  const newResources = EcosystemController.regenerateResources(playerResources, playerBiomes);
+  
+  // Merge regenerated resources back into full resources
+  const fullResources = { ...state.resources };
+  Object.entries(newResources).forEach(([key, resource]) => {
+    fullResources[key] = resource;
+  });
 
   // Update resources slice
-  useGameStore.setState({ resources: newResources });
+  useGameStore.setState({ resources: fullResources });
 
   const newBoard = board;
    
@@ -81,7 +94,7 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
     playerId,
     newBoard,
     playerBiomes,
-    newResources
+    fullResources
   );
 
   newEggs.forEach(addEgg);
@@ -93,54 +106,25 @@ export async function updatePlayerBiomes(playerId: number): Promise<void> {
   postEggBiomes.forEach((b, id) => mergedBiomes.set(id, b));
 
   // Recalculate lushness for all biomes
-  const newBiomes = EcosystemController.recalcLushnessState(newBoard, newResources, mergedBiomes);
+  const newBiomes = EcosystemController.recalcLushnessState(newBoard, fullResources, mergedBiomes);
 
   // Commit the partial update including regenerated resources
   useGameStore.setState({
     board: newBoard,
     animals: postEggAnimals,
     biomes: newBiomes,
-    resources: newResources
+    resources: fullResources
   });
 }
 
 /**
  * Get initial visible tiles for initialization for the active player
+ * Uses PlayerView to ensure only visible tiles are returned
  */
 export function getInitialVisibleTiles(): { x: number, y: number }[] {
-  const state = useGameStore.getState();
-  const board = state.board;
-  if (!board) return [];
-
-  const activePlayerId = state.activePlayerId;
-  
-  // Collect tiles around non-egg animals
-  const eggsRecord = state.eggs;
-  const unitAdjacents = state.animals
-    .filter(a => a.ownerId === activePlayerId && !(a.id in eggsRecord))
-    .flatMap(a => CoordinateUtils.getAdjacentTiles(a.position.x, a.position.y, board.width, board.height));
-  const uniqueUnitTiles = CoordinateUtils.removeDuplicateTiles(unitAdjacents);
-
-  // Collect tiles of owned biomes  
-  const biomeTiles = Array.from(state.biomes.entries())
-    .filter(([, b]) => b.ownerId === activePlayerId)
-    .flatMap(([id]) => {
-      // We need to get tiles for biome - this requires importing from tileActions
-      const tiles = [];
-      for (let y = 0; y < board.height; y++) {
-        for (let x = 0; x < board.width; x++) {
-          const tile = board.tiles[y][x];
-          if (tile.biomeId === id) {
-            tiles.push({ x, y });
-          }
-        }
-      }
-      return tiles;
-    });
-  const uniqueBiomeTiles = CoordinateUtils.removeDuplicateTiles(biomeTiles);
-
-  // Combine all tiles
-  return [...uniqueUnitTiles, ...uniqueBiomeTiles];
+  // Delegate to playerActions for consistent PlayerView usage
+  const { getInitialVisibleTiles: getVisibleTilesFromPlayerView } = require('../../selectors/playerActions');
+  return getVisibleTilesFromPlayerView();
 }
 
 /**

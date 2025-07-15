@@ -9,12 +9,21 @@ export function isSelectedBiomeAvailableForCapture(): boolean {
   const state = useGameStore.getState();
   const biomeId = state.selectedBiomeId;
   if (!biomeId || !state.board) return false;
+  
+  // Filter animals to only those visible/owned by active player
+  const activePlayerId = state.activePlayerId;
+  const relevantAnimals = state.animals.filter(a => 
+    a.ownerId === activePlayerId || 
+    // Include animals on the biome's habitat tiles
+    (state.board!.tiles[a.position.y]?.[a.position.x]?.biomeId === biomeId)
+  );
+  
   return EcosystemController.computeCanCapture(
     biomeId,
     state.board,
-    state.animals,
+    relevantAnimals,
     state.biomes,
-    state.activePlayerId
+    activePlayerId
   );
 }
 
@@ -26,12 +35,21 @@ export function isSelectedBiomeAvailableForCapture(): boolean {
  */
 export function canCaptureBiome(biomeId: string): boolean {
   const state = useGameStore.getState();
+  
+  // Filter animals to only those relevant for capture check
+  const activePlayerId = state.activePlayerId;
+  const relevantAnimals = state.animals.filter(a => 
+    a.ownerId === activePlayerId || 
+    // Include animals on the biome's habitat tiles
+    (state.board!.tiles[a.position.y]?.[a.position.x]?.biomeId === biomeId)
+  );
+  
   return EcosystemController.computeCanCapture(
     biomeId,
     state.board!,
-    state.animals,
+    relevantAnimals,
     state.biomes,
-    state.activePlayerId
+    activePlayerId
   );
 }
 
@@ -44,14 +62,23 @@ export async function captureBiome(biomeId: string): Promise<void> {
     throw new Error(`CaptureBiome failed: cannot capture biome ${biomeId}`);
   }
   const state = useGameStore.getState();
+  
+  // Filter animals to relevant ones for capture computation
+  const activePlayerId = state.activePlayerId;
+  const relevantAnimals = state.animals.filter(a => 
+    a.ownerId === activePlayerId || 
+    // Include animals on the biome's habitat tiles
+    (state.board!.tiles[a.position.y]?.[a.position.x]?.biomeId === biomeId)
+  );
+  
   // Compute capture effects purely
   const { animals: newAnimals, biomes: newBiomes } =
     EcosystemController.computeCapture(
       biomeId,
-      state.animals,
+      relevantAnimals,
       state.biomes,
       state.board!,
-      state.activePlayerId,
+      activePlayerId,
       state.turn
     );
 

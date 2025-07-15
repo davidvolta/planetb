@@ -1,48 +1,57 @@
 import type { GameState, Animal, Biome, Egg, Resource } from '../store/gameStore';
+import { getPlayerView } from '../selectors/getPlayerView';
 import { isTerrainCompatible } from '../utils/SpeciesUtils';
 import type { GameCommand } from '../game/CommandExecutor';
 import { MovementController } from './MovementController';
 
 /**
  * AIController generates a sequence of commands for an AI player.
+ * Uses PlayerView to ensure AI has the same limited information as human players.
  */
 export class AIController {
-  // No longer a single seeker; use a map for multiple seekers
   private seekerAssignments: Record<string, string> = {}; // animalId -> biomeId
+  private playerView: ReturnType<typeof getPlayerView>;
 
-  constructor(private gameState: GameState, private playerId: number) {}
+  constructor(private gameState: GameState, private playerId: number) {
+    this.playerView = getPlayerView(gameState, playerId);
+  }
 
   /**
    * Build a list of move, capture, and harvest commands for all active, unmoved AI units.
+   * Uses PlayerView data to ensure AI has the same limited information as human players.
    */
   public generateCommands(): GameCommand[] {
     const commands: GameCommand[] = [];
-    const board = this.gameState.board;
-    if (!board) return commands;
+    
+    if (!this.playerView || !this.playerView.board) return commands;
 
-    // Fallback for missing resources slice (during early initialization)
-    const resourcesRec: Record<string, Resource> = this.gameState.resources ?? {};
+    const board = this.playerView.board;
+    const resourcesRec: Record<string, Resource> = {};
+    this.playerView.resources.forEach(r => {
+      resourcesRec[`${r.position.x},${r.position.y}`] = r;
+    });
 
-    // Work on a local copy of animals so we can update positions/states as commands are generated
-    let workingAnimals = this.gameState.animals.map(a => ({ ...a }));
+    // Work on a local copy of visible animals
+    let workingAnimals = this.playerView.animals.map(a => ({ ...a }));
 
-    // Helper: Get all biomes owned by this player
-    const ownedBiomes = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId === this.playerId);
-    // Helper: Get all capturable biomes
-    const capturable = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId !== this.playerId);
+    // Helper: Get all biomes owned by this player (always visible)
+    const ownedBiomes = Array.from(this.playerView.biomes.values()).filter(b => b.ownerId === this.playerId);
+    
+    // Helper: Get all capturable biomes (only visible enemy biomes)
+    const capturable = Array.from(this.playerView.biomes.values()).filter(b => b.ownerId !== this.playerId && b.ownerId !== null);
 
-    // Helper: Track egg presence per biome (from egg record)
+    // Helper: Track egg presence per biome (only visible eggs)
     const biomeHasEgg = new Map<string, boolean>();
-    Object.values(this.gameState.eggs).forEach((egg: Egg) => {
+    this.playerView.eggs.forEach((egg: Egg) => {
       biomeHasEgg.set(egg.biomeId, true);
     });
 
     // --- EGG SPAWNING LOGIC ---
-    // Gather eggs from record that meet hatching criteria
+    // Gather visible eggs that meet hatching criteria
     const eggsToConsider: { id: string; posX: number; posY: number; biomeId: string }[] = [];
-    Object.values(this.gameState.eggs).forEach((egg) => {
+    this.playerView.eggs.forEach((egg) => {
       if (egg.ownerId !== this.playerId) return;
-      const biome = this.gameState.biomes.get(egg.biomeId);
+      const biome = this.playerView.biomes.get(egg.biomeId);
       if (biome && biome.totalLushness >= 9.0) {
         eggsToConsider.push({ id: egg.id, posX: egg.position.x, posY: egg.position.y, biomeId: egg.biomeId });
       }
@@ -58,19 +67,26 @@ export class AIController {
     });
 
     // Eligible units: active, owned by this AI, and not moved yet
-    const eggsRecord3 = this.gameState.eggs || {};
-    const units = workingAnimals.filter(a => a.ownerId === this.playerId && !(a.id in eggsRecord3) && !a.hasMoved);
+    // Only use animals that are visible to this player (should be all owned animals)
+    const ownedAnimalIds = new Set(this.playerView.animals.filter(a => a.ownerId === this.playerId).map(a => a.id));
+    const units = workingAnimals.filter(a => a.ownerId === this.playerId && ownedAnimalIds.has(a.id) && !a.hasMoved);
 
     // --- DEFENSE ASSIGNMENT ---
     const defenderAssignments: Record<string, string> = {};
     const defenderAssignedUnits = new Set<string>();
-    const aiOwnedBiomes = Array.from(this.gameState.biomes.values()).filter(b => b.ownerId === this.playerId);
-    for (const b of aiOwnedBiomes) {
+    
+    // Only consider visible enemy animals for threat detection
+    for (const b of ownedBiomes) {
       const hx = b.habitat.position.x;
       const hy = b.habitat.position.y;
-      // Threat if any enemy unit within 2 tiles
-      const threat = workingAnimals.some(a => a.ownerId !== this.playerId && Math.abs(a.position.x - hx) + Math.abs(a.position.y - hy) <= 2);
+      
+      // Threat if any visible enemy unit within 2 tiles
+      const threat = workingAnimals.some(a =
+        a.ownerId !== this.playerId && 
+        Math.abs(a.position.x - hx) + Math.abs(a.position.y - hy) <= 2
+      );
       if (!threat) continue;
+      
       let bestUnit: Animal | null = null;
       let bestDist = Infinity;
       for (const unit of units) {
@@ -145,7 +161,7 @@ export class AIController {
       // Defense override
       const defendTarget = defenderAssignments[unit.id];
       if (defendTarget) {
-        const { x: bx, y: by } = this.gameState.biomes.get(defendTarget)!.habitat.position;
+        const { x: bx, y: by } = this.playerView.biomes.get(defendTarget)!.habitat.position;
         // Move back to habitat if not already there
         if (ux !== bx || uy !== by) {
           const legal = MovementController.calculateValidMoves(unit, board, workingAnimals);
@@ -174,7 +190,7 @@ export class AIController {
 
       // --- SEEKER LOGIC ---
       if (isSeeker) {
-        const targetBiome = seekerTargetBiomeId ? this.gameState.biomes.get(seekerTargetBiomeId) : null;
+        const targetBiome = seekerTargetBiomeId ? this.playerView.biomes.get(seekerTargetBiomeId) : null;
         if (targetBiome) {
           const { x: bx, y: by } = targetBiome.habitat.position;
           if (ux === bx && uy === by && tile?.isHabitat && tile.biomeId === targetBiome.id) {
@@ -206,7 +222,7 @@ export class AIController {
       // --- HARVESTER LOGIC ---
       // If not on a biome, skip
       if (!biomeId) continue;
-      const lushness = this.gameState.biomes.get(biomeId)!.totalLushness;
+      const lushness = this.playerView.biomes.get(biomeId)!.totalLushness;
       const hasEgg = biomeHasEgg.get(biomeId) || false;
       // If lushness <= 6.0 and no egg, move to a new biome with lushness > 6.0 and resources
       if (lushness <= 6.0 && !hasEgg) {
@@ -214,7 +230,7 @@ export class AIController {
         let targetBiome: Biome | null = null;
         let bestDist = Infinity;
         for (const b of ownedBiomes) {
-          const targetBiomeLushness = this.gameState.biomes.get(b.id)!.totalLushness;
+          const targetBiomeLushness = this.playerView.biomes.get(b.id)!.totalLushness;
           if (targetBiomeLushness > 6.0) {
             // Check for available resources in this biome
             const resourceTiles = this.getResourceTilesForBiome(b, resourcesRec);
@@ -255,7 +271,7 @@ export class AIController {
         continue;
       }
       // If lushness > 6.0 or egg produced, harvest if on a resource tile, else move to one
-      const resourceTiles = this.getResourceTilesForBiome(this.gameState.biomes.get(biomeId)!, resourcesRec);
+      const resourceTiles = this.getResourceTilesForBiome(this.playerView.biomes.get(biomeId)!, resourcesRec);
       // If on a resource tile, harvest
       if (resourceHere && resourceHere.active && resourceHere.value > 0) {
         commands.push({ type: 'harvest', x: ux, y: uy, amount: 3 });
@@ -288,10 +304,10 @@ export class AIController {
     return commands;
   }
 
-  // Helper: Get all resource tiles for a biome
+  // Helper: Get all resource tiles for a biome using visible resources
   private getResourceTilesForBiome(biome: Biome, resources: Record<string, Resource>): { x: number; y: number }[] {
     const tiles: { x: number; y: number }[] = [];
-    Object.values(resources).forEach(r => {
+    this.playerView.resources.forEach(r => {
       if (r.biomeId === biome.id && r.active && r.value > 0) {
         tiles.push({ x: r.position.x, y: r.position.y });
       }
