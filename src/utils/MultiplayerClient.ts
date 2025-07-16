@@ -145,6 +145,39 @@ export class MultiplayerClient {
     return response.json();
   }
 
+  async submitInitialState(gameState: any): Promise<void> {
+    if (!this.isHost || !this.roomId) {
+      throw new Error('Only host can submit initial state');
+    }
+
+    const response = await fetch(`${API_BASE}/rooms/${this.roomId}/initial-state`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerId: this.playerId,
+        gameState
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to submit initial state');
+    }
+  }
+
+  async getInitialState(): Promise<{ gameState: any }> {
+    if (!this.roomId) {
+      throw new Error('Not connected to a room');
+    }
+
+    const response = await fetch(`${API_BASE}/rooms/${this.roomId}/initial-state`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to get initial state');
+    }
+    
+    return response.json();
+  }
+
   startPolling(onStateUpdate: (state: GameStateResponse) => void, interval: number = 2000) {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);

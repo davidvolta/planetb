@@ -1,0 +1,96 @@
+import express from 'express';
+import cors from 'cors';
+
+const app = express();
+const PORT = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+// In-memory storage for initial game states
+const initialStates = new Map();
+
+// Room management (extend existing room structure)
+const rooms = new Map();
+
+// POST initial game state (host only)
+app.post('/api/rooms/:roomId/initial-state', (req, res) => {
+  const { roomId } = req.params;
+  const { playerId, gameState } = req.body;
+  
+  if (!rooms.has(roomId)) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  const room = rooms.get(roomId);
+  if (room.host?.id !== playerId) {
+    return res.status(403).json({ error: 'Only host can set initial state' });
+  }
+  
+  initialStates.set(roomId, gameState);
+  console.log(`Initial state set for room ${roomId}`);
+  res.json({ success: true });
+});
+
+// GET initial game state
+app.get('/api/rooms/:roomId/initial-state', (req, res) => {
+  const { roomId } = req.params;
+  
+  if (!initialStates.has(roomId)) {
+    return res.status(404).json({ error: 'Initial state not set' });
+  }
+  
+  res.json({ gameState: initialStates.get(roomId) });
+});
+
+// Existing room endpoints
+app.post('/api/rooms', (req, res) => {
+  const roomId = 'b' + Math.random().toString(36).substr(2, 6);
+  rooms.set(roomId, {
+    id: roomId,
+    host: null,
+    guest: null,
+    gameState: null
+  });
+  res.json({ roomId, joinUrl: `http://localhost:5175/planet/${roomId}` });
+});
+
+app.post('/api/rooms/:roomId/join', (req, res) => {
+  const { roomId } = req.params;
+  const { playerId, playerName } = req.body;
+  
+  if (!rooms.has(roomId)) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  const room = rooms.get(roomId);
+  
+  if (!room.host) {
+    room.host = { id: playerId, name: playerName };
+    res.json({ role: 'host', room });
+  } else if (!room.guest) {
+    room.guest = { id: playerId, name: playerName };
+    res.json({ role: 'guest', room });
+  } else {
+    res.status(400).json({ error: 'Room is full' });
+  }
+});
+
+app.get('/api/rooms/:roomId/state', (req, res) => {
+  const { roomId } = req.params;
+  const room = rooms.get(roomId);
+  
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  res.json({
+    host: room.host,
+    guest: room.guest,
+    gameState: room.gameState
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`🌍 Planet B Server running on http://localhost:${PORT}`);
+});

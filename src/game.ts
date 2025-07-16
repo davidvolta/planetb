@@ -35,7 +35,22 @@ let gameInstance: Phaser.Game | null = null;
 /**
  * Set up the initial game state with default settings
  */
-function setupGameState() {
+async function setupGameState() {
+  const multiplayerContext = (window as any).gameMultiplayerContext;
+  
+  if (multiplayerContext) {
+    // Multiplayer mode - use shared initial state
+    await setupMultiplayerGameState(multiplayerContext);
+  } else {
+    // Single player mode - generate locally
+    setupSinglePlayerGameState();
+  }
+}
+
+/**
+ * Set up single player game state (local generation)
+ */
+function setupSinglePlayerGameState() {
   // Add players based on GameEnvironment config
   for (const player of GameEnvironment.playerConfigs) {
     actions.addPlayer(player.name, player.color);
@@ -51,6 +66,91 @@ function setupGameState() {
   if (!GameEnvironment.fogOfWarEnabled) {
     actions.setFogOfWarEnabled(false);
   }
+}
+
+/**
+ * Set up multiplayer game state with shared initial state
+ */
+async function setupMultiplayerGameState(multiplayerContext: { roomId: string, isHost: boolean }) {
+  const { MultiplayerClient } = await import('./utils/MultiplayerClient');
+  const client = new MultiplayerClient();
+  
+  let initialState;
+  
+  if (multiplayerContext.isHost) {
+    // Host: generate state and submit to server
+    console.log('Host generating initial game state...');
+    
+    // Generate the initial state locally
+    for (const player of GameEnvironment.playerConfigs) {
+      actions.addPlayer(player.name, player.color);
+    }
+    
+    const gameState = await generateInitialGameState();
+    
+    // Submit to server
+    await client.submitInitialState(gameState);
+    initialState = gameState;
+    
+  } else {
+    // Guest: load shared state from server
+    console.log('Guest loading shared game state...');
+    
+    const response = await client.getInitialState();
+    initialState = response.gameState;
+    
+    // Apply the shared state
+    await applySharedGameState(initialState);
+  }
+  
+  // Set fog-of-war mode if needed
+  if (!GameEnvironment.fogOfWarEnabled) {
+    actions.setFogOfWarEnabled(false);
+  }
+}
+
+/**
+ * Generate initial game state (used by host)
+ */
+async function generateInitialGameState() {
+  // This replicates the existing setupGameBoard behavior
+  for (const player of GameEnvironment.playerConfigs) {
+    actions.addPlayer(player.name, player.color);
+  }
+  
+  const { BoardController } = await import('./controllers/BoardController');
+  const result = BoardController.initializeBoard({
+    width: GameEnvironment.boardWidth,
+    height: GameEnvironment.boardHeight
+  });
+  
+  return {
+    board: result.board,
+    animals: result.animals,
+    biomes: Array.from(result.biomes.entries()),
+    players: result.updatedPlayers
+  };
+}
+
+/**
+ * Apply shared game state (used by guest)
+ */
+async function applySharedGameState(initialState: any) {
+  // Apply the shared state to the game store
+  const { Board, Animal, Biome } = await import('./store/gameStore');
+  
+  // Add players
+  for (const player of initialState.players) {
+    actions.addPlayer(player);
+  }
+  
+  // Apply the shared board state
+  actions.initializeBoard(
+    initialState.board,
+    initialState.animals,
+    new Map(initialState.biomes),
+    initialState.players
+  );
 }
 
 /**
@@ -71,14 +171,16 @@ function setupStateObserver(game: Phaser.Game) {
 /**
  * Set up asset loading listener for the board scene
  */
-function setupAssetLoadedListener(game: Phaser.Game) {
+async function setupAssetLoadedListener(game: Phaser.Game) {
   const boardScene = game.scene.getScene('BoardScene') as BoardScene;
   if (boardScene) {
     // Remove any existing listeners first
     boardScene.events.removeAllListeners(EVENTS.ASSETS_LOADED);
     
     // Listen for assets loaded event to initialize the game board
-    boardScene.events.on(EVENTS.ASSETS_LOADED, setupGameState);
+    boardScene.events.on(EVENTS.ASSETS_LOADED, async () => {
+      await setupGameState();
+    });
     
     return true;
   }
@@ -108,8 +210,8 @@ export function createPhaserEngine(): Phaser.Game {
   
   // Set up asset loaded listener with polling if needed
   if (!setupAssetLoadedListener(game)) {
-    const interval = setInterval(() => {
-      if (setupAssetLoadedListener(game)) {
+    const interval = setInterval(async () => {
+      if (await setupAssetLoadedListener(game)) {
         clearInterval(interval);
       }
     }, 100);
