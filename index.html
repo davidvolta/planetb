@@ -543,14 +543,31 @@
       
       // Load actual Planet B game after fade
       setTimeout(() => {
-        // Replace the current content with the Phaser game
-        document.body.innerHTML = '<div id="phaser-game"></div>';
+        // Replace the current content with the green square placeholder
+        document.body.innerHTML = `
+          <div style="
+            width: 100vw; 
+            height: 100vh; 
+            background: #00cc99; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: 'Orbitron', monospace;
+            color: white;
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+          ">
+            PLANET B GAME
+          </div>
+        `;
         
-        // Load the game script
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = '/src/index.ts';
-        document.head.appendChild(script);
+        // TODO: Load the actual game script
+        // const script = document.createElement('script');
+        // script.type = 'module';
+        // script.src = '/src/index.ts';
+        // document.head.appendChild(script);
       }, 2000);
     };
 
