@@ -85,6 +85,7 @@
 <body>
   <div class="title">PLANET B</div>
   <button class="play-button" onclick="joinPlanet()">START</button>
+  <button class="play-button" onclick="devMultiplayer()" style="bottom: 80px; background: rgba(255,0,0,0.2);">DEV: SKIP TO MULTIPLAYER</button>
   <script type="module">
     import * as THREE from '/node_modules/three/build/three.module.js';
     
@@ -697,6 +698,21 @@
         console.error('Failed to create room:', error);
         alert('Failed to connect to multiplayer server. Please try again.');
       }
+    };
+    
+    // DEV SHORTCUT: Skip directly to multiplayer game
+    window.devMultiplayer = function() {
+      console.log('DEV: Skipping to multiplayer game...');
+      
+      // Set fake multiplayer context
+      window.multiplayerInfo = {
+        roomId: 'dev-room',
+        isHost: Math.random() > 0.5, // Random host/guest
+        playerId: 'dev-player-' + Math.random().toString(36).substr(2, 5)
+      };
+      
+      // Skip directly to game
+      window.startPlanetBGame();
     };
   </script>
 </body>

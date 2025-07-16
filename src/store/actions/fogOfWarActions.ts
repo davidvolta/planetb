@@ -68,7 +68,12 @@ export async function updateTilesVisibility(tiles: { x: number; y: number; visib
     const activePlayerId = state.activePlayerId;
     const updatedPlayers = state.players.map(player => {
       if (player.id !== activePlayerId) return player;
-      const newVisible = new Set(player.visibleTiles);
+      // Handle serialization - visibleTiles might be a Set, array, or object
+      const newVisible = new Set(
+        Array.isArray(player.visibleTiles) ? player.visibleTiles : 
+        player.visibleTiles instanceof Set ? player.visibleTiles :
+        []
+      );
       for (const { x, y, visible } of tiles) {
         const key = `${x},${y}`;
         if (visible) newVisible.add(key);

@@ -52,7 +52,14 @@ export default class LoadingScene extends Phaser.Scene {
     
     if (multiplayerContext) {
       console.log('Loading multiplayer state...');
-      await this.loadMultiplayerState(multiplayerContext);
+      
+      // DEV MODE: Skip server for dev-room
+      if (multiplayerContext.roomId === 'dev-room') {
+        console.log('DEV MODE: Generating local multiplayer state...');
+        await this.generateDevMultiplayerState(multiplayerContext);
+      } else {
+        await this.loadMultiplayerState(multiplayerContext);
+      }
       
       // Small delay to ensure state observers have propagated
       console.log('Waiting for state to propagate...');
@@ -145,6 +152,12 @@ export default class LoadingScene extends Phaser.Scene {
 
     console.log('BoardController.initializeBoard result.updatedPlayers:', result.updatedPlayers.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
     
+    // Debug host board generation
+    console.log('Host generated board size:', result.board?.tiles?.length);
+    console.log('Host generated board first tile:', result.board?.tiles?.[0]);
+    console.log('Host generated animals count:', result.animals?.length);
+    console.log('Host generated biomes count:', result.biomes?.size);
+    
     const gameState = {
       board: result.board,
       animals: result.animals,
@@ -188,6 +201,12 @@ export default class LoadingScene extends Phaser.Scene {
     console.log('Applying shared state players:', initialState.players);
     console.log('Shared state player IDs:', initialState.players.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
     
+    // Debug board sync - check if guest gets same board as host
+    console.log('Shared state board size:', initialState.board?.tiles?.length);
+    console.log('Shared state board first tile:', initialState.board?.tiles?.[0]);
+    console.log('Shared state animals count:', initialState.animals?.length);
+    console.log('Shared state biomes count:', initialState.biomes?.length);
+    
     // Apply the shared board state using store method directly
     useGameStore.getState().initializeBoard(
       initialState.board,
@@ -204,5 +223,43 @@ export default class LoadingScene extends Phaser.Scene {
     const activePlayerId = multiplayerContext.isHost ? 0 : 1; // Host = Player 1 (ID 0), Guest = Player 2 (ID 1)
     console.log(`Setting activePlayerId to ${activePlayerId} for ${multiplayerContext.isHost ? 'host' : 'guest'}`);
     useGameStore.getState().setActivePlayer(initialState.players, activePlayerId);
+  }
+
+  // DEV MODE: Generate multiplayer state locally without server
+  async generateDevMultiplayerState(multiplayerContext: { isHost: boolean }) {
+    console.log('Generating DEV multiplayer state locally...');
+    
+    // Reuse the host generation logic but apply locally
+    const { BoardController } = await import('../controllers/BoardController');
+    const { GameEnvironment } = await import('../env/GameEnvironment');
+    const { PlayerController } = await import('../controllers/PlayerController');
+    
+    // Create proper Player objects with IDs
+    const playerConfigs = GameEnvironment.playerConfigs;
+    const players: any[] = [];
+    for (const config of playerConfigs) {
+      const player = PlayerController.createPlayer(config.name, config.color, players);
+      players.push(player);
+    }
+    
+    console.log('DEV: Created players with IDs:', players.map(p => `${p.name}: ID=${p.id}`));
+    
+    const result = BoardController.initializeBoard(
+      GameEnvironment.boardWidth,
+      GameEnvironment.boardHeight,
+      players
+    );
+    
+    const gameState = {
+      board: result.board,
+      animals: result.animals,
+      biomes: Array.from(result.biomes.entries()),
+      players: result.updatedPlayers
+    };
+    
+    // Apply directly to store
+    await this.applyStateToStore(gameState, multiplayerContext);
+    
+    console.log('DEV: Multiplayer state generated and applied locally');
   }
 }

@@ -13,7 +13,12 @@ export function getPlayerView(state: GameState, playerId: number) {
   const player = state.players.find(p => p.id === playerId);
   if (!player || !state.board) return null;
 
-  const visibleTiles = new Set(player.visibleTiles);
+  // Handle case where visibleTiles might be a Set or array after serialization
+  const visibleTiles = new Set(
+    Array.isArray(player.visibleTiles) ? player.visibleTiles : 
+    player.visibleTiles instanceof Set ? player.visibleTiles :
+    []
+  );
   const isVisible = (x: number, y: number) => visibleTiles.has(`${x},${y}`);
   const coordKey = (x: number, y: number) => `${x},${y}`;
 
