@@ -65,35 +65,35 @@ export default class BoardScene extends Phaser.Scene {
 
   // Preload assets needed for the scene
   preload() {
-    // Load all animal sprites
-    this.load.image("egg", "assets/egg.png");
-    this.load.image("buffalo", "assets/animals/buffalo/buffalo.png");
-    this.load.image("bird", "assets/animals/bird/bird.png");
-    this.load.image("snake", "assets/animals/snake/snake.png");
-    this.load.image("octopus", "assets/animals/octopus/octopus.png");
-    this.load.image("turtle", "assets/animals/turtle/turtle.png");
-    this.load.image("forest", "assets/resources/forest.png");
-    this.load.image("kelp", "assets/resources/kelp.png");
-    this.load.image("insects", "assets/resources/insects.png");
-    this.load.image("plankton", "assets/resources/plankton.png");
-    this.load.image("blank", "assets/blank.png");
-    this.load.image("beach", "assets/beach.png");
-    this.load.image("grass", "assets/grass.png");
-    this.load.image("water", "assets/water.png");
-    this.load.image("mountain", "assets/mountain.png");
-    this.load.image("underwater", "assets/underwater.png");
+    // Load all animal sprites with absolute paths
+    this.load.image("egg", "/assets/egg.png");
+    this.load.image("buffalo", "/assets/animals/buffalo/buffalo.png");
+    this.load.image("bird", "/assets/animals/bird/bird.png");
+    this.load.image("snake", "/assets/animals/snake/snake.png");
+    this.load.image("octopus", "/assets/animals/octopus/octopus.png");
+    this.load.image("turtle", "/assets/animals/turtle/turtle.png");
+    this.load.image("forest", "/assets/resources/forest.png");
+    this.load.image("kelp", "/assets/resources/kelp.png");
+    this.load.image("insects", "/assets/resources/insects.png");
+    this.load.image("plankton", "/assets/resources/plankton.png");
+    this.load.image("blank", "/assets/blank.png");
+    this.load.image("beach", "/assets/beach.png");
+    this.load.image("grass", "/assets/grass.png");
+    this.load.image("water", "/assets/water.png");
+    this.load.image("mountain", "/assets/mountain.png");
+    this.load.image("underwater", "/assets/underwater.png");
 
     // Preload colored animal sprites for both players
-    this.load.image("snake-pink", "assets/animals/snake/snake-pink.png");
-    this.load.image("snake-blue", "assets/animals/snake/snake-blue.png");
-    this.load.image("bird-pink", "assets/animals/bird/bird-pink.png");
-    this.load.image("bird-blue", "assets/animals/bird/bird-blue.png");
-    this.load.image("buffalo-pink", "assets/animals/buffalo/buffalo-pink.png");
-    this.load.image("buffalo-blue", "assets/animals/buffalo/buffalo-blue.png");
-    this.load.image("octopus-pink", "assets/animals/octopus/octopus-pink.png");
-    this.load.image("octopus-blue", "assets/animals/octopus/octopus-blue.png");
-    this.load.image("turtle-pink", "assets/animals/turtle/turtle-pink.png");
-    this.load.image("turtle-blue", "assets/animals/turtle/turtle-blue.png");
+    this.load.image("snake-pink", "/assets/animals/snake/snake-pink.png");
+    this.load.image("snake-blue", "/assets/animals/snake/snake-blue.png");
+    this.load.image("bird-pink", "/assets/animals/bird/bird-pink.png");
+    this.load.image("bird-blue", "/assets/animals/bird/bird-blue.png");
+    this.load.image("buffalo-pink", "/assets/animals/buffalo/buffalo-pink.png");
+    this.load.image("buffalo-blue", "/assets/animals/buffalo/buffalo-blue.png");
+    this.load.image("octopus-pink", "/assets/animals/octopus/octopus-pink.png");
+    this.load.image("octopus-blue", "/assets/animals/octopus/octopus-blue.png");
+    this.load.image("turtle-pink", "/assets/animals/turtle/turtle-pink.png");
+    this.load.image("turtle-blue", "/assets/animals/turtle/turtle-blue.png");
 
     this.load.on('complete', () => {
       // Set nearest filter on all loaded textures to preserve pixel-art for sprites
