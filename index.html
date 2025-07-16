@@ -16,7 +16,7 @@
     
     .title {
       position: fixed;
-      bottom: 30px;
+      bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
       font-family: 'Orbitron', monospace;
@@ -32,10 +32,58 @@
       letter-spacing: 4px;
       z-index: 1000;
     }
+    
+    .play-button {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 24px;
+      color: white;
+      background: transparent;
+      border: 3px solid white;
+      border-radius: 15px;
+      padding: 12px 30px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+      box-shadow: 
+        0 0 0 2px #000,
+        0 0 15px rgba(255,255,255,0.3);
+      transition: box-shadow 0.1s ease;
+      z-index: 1000;
+    }
+    
+    .play-button:hover {
+      background: rgba(255,255,255,0.15);
+      box-shadow: 
+        0 0 0 2px #000,
+        0 0 35px rgba(255,255,255,0.9);
+    }
+    
+    .play-button:active {
+      background: rgba(255,255,255,0.2);
+      box-shadow: 
+        0 0 0 2px #000,
+        0 0 35px rgba(255,255,255,0.9);
+      transform: translateX(-50%) scale(0.98);
+    }
+    
+    .fade-out {
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
   </style>
 </head>
 <body>
   <div class="title">PLANET B</div>
+  <button class="play-button" onclick="startGame()">PLAY</button>
   <script type="module">
     import * as THREE from '/node_modules/three/build/three.module.js';
     
@@ -85,7 +133,7 @@
         transparent: true,
         opacity: 0.8,
         emissive: 0x000000  // No self-illumination
-      });
+      }).clone(); // Each vertex gets its own material instance
       
       const vertexSphere = new THREE.Mesh(vertexGeometry, vertexMaterial);
       
@@ -210,6 +258,328 @@
 
     animate();
     console.log('Should see rotating green wireframe sphere');
+    
+    // Make lights, materials, vertex spheres, and camera globally accessible for startGame
+    window.sunLight = sunLight;
+    window.ambientLight = ambientLight;
+    window.sphereMaterial = material;
+    window.vertexSpheres = vertexSpheres;
+    window.camera = camera;
+    
+    // Show multiplayer lobby
+    function showLobby(roomId, isHost) {
+      document.body.innerHTML = `
+        <style>
+          body { 
+            margin: 0; 
+            padding: 0;
+            background: #000;
+            font-family: 'Orbitron', monospace;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+          }
+          
+          .lobby-container {
+            text-align: center;
+            max-width: 600px;
+          }
+          
+          .room-id {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #00ffcc;
+            letter-spacing: 2px;
+          }
+          
+          .share-url {
+            font-size: 14px;
+            margin-bottom: 40px;
+            color: #888;
+            word-break: break-all;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+          }
+          
+          .players-container {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin: 40px 0;
+          }
+          
+          .player-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 900;
+            border: 3px solid white;
+            background: rgba(255,255,255,0.1);
+          }
+          
+          .player-circle.connected {
+            background: #00ffcc;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0,255,204,0.5);
+          }
+          
+          .player-circle.waiting {
+            border-style: dashed;
+            color: #666;
+          }
+          
+          .player-label {
+            margin-top: 10px;
+            font-size: 16px;
+          }
+          
+          .start-button {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 24px;
+            color: white;
+            background: transparent;
+            border: 3px solid white;
+            border-radius: 15px;
+            padding: 12px 30px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            margin-top: 40px;
+            transition: all 0.2s ease;
+          }
+          
+          .start-button:hover {
+            background: rgba(0,255,204,0.2);
+            border-color: #00ffcc;
+            box-shadow: 0 0 20px rgba(0,255,204,0.3);
+          }
+          
+          .start-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+          }
+          
+          .waiting-text {
+            color: #888;
+            font-size: 16px;
+            margin-top: 20px;
+          }
+        </style>
+        
+        <div class="lobby-container">
+          <div class="room-id">ROOM: ${roomId.toUpperCase()}</div>
+          <div class="share-url">Share: ${window.location.origin}/planet/${roomId}</div>
+          
+          <div class="players-container">
+            <div class="player-slot">
+              <div class="player-circle connected" id="player1">1</div>
+              <div class="player-label">${isHost ? 'You (Host)' : 'Host'}</div>
+            </div>
+            <div class="player-slot">
+              <div class="player-circle waiting" id="player2">2</div>
+              <div class="player-label" id="player2-label">Waiting...</div>
+            </div>
+          </div>
+          
+          <button class="start-button" id="startGameBtn" disabled onclick="startPlanetBGame()">
+            START GAME
+          </button>
+          <div class="waiting-text" id="waitingText">
+            Waiting for second player to join...
+          </div>
+        </div>
+      `;
+      
+      // Start polling for room updates
+      window.lobbyPolling = setInterval(async () => {
+        try {
+          const response = await fetch('http://localhost:3001/api/rooms/' + roomId + '/state');
+          const data = await response.json();
+          
+          const player2Circle = document.getElementById('player2');
+          const player2Label = document.getElementById('player2-label');
+          const startBtn = document.getElementById('startGameBtn');
+          const waitingText = document.getElementById('waitingText');
+          
+          if (data.host && data.guest) {
+            // Both players connected
+            player2Circle.classList.remove('waiting');
+            player2Circle.classList.add('connected');
+            player2Label.textContent = isHost ? 'Guest' : 'You (Guest)';
+            startBtn.disabled = false;
+            waitingText.style.display = 'none';
+          }
+        } catch (error) {
+          console.error('Lobby polling error:', error);
+        }
+      }, 1000);
+    }
+    
+    // Start the actual Planet B game
+    window.startPlanetBGame = function() {
+      console.log('Starting Planet B game...');
+      
+      // Stop lobby polling
+      if (window.lobbyPolling) {
+        clearInterval(window.lobbyPolling);
+      }
+      
+      // Replace with game
+      document.body.innerHTML = '<div id="phaser-game"></div>';
+      
+      // Load the game script
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = '/src/index.ts';
+      document.head.appendChild(script);
+    };
+
+    // Start game function - now handles multiplayer room creation/joining
+    window.startGame = async function() {
+      console.log('Starting game transition...');
+      
+      // Check if this is a room join URL (e.g., /planet/b123456)
+      const path = window.location.pathname;
+      const roomMatch = path.match(/^\/planet\/(b[a-f0-9]{6})$/);
+      
+      try {
+        let roomId = null;
+        let isHost = false;
+        
+        if (roomMatch) {
+          // Joining existing room
+          roomId = roomMatch[1];
+          console.log(`Joining room: ${roomId}`);
+          
+          const response = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              playerId: 'player_' + Math.random().toString(36).substr(2, 9),
+              playerName: 'Guest Player'
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to join room');
+          }
+          
+          const joinData = await response.json();
+          isHost = joinData.role === 'host';
+          console.log(`Joined as ${joinData.role}`);
+        } else {
+          // Creating new room
+          console.log('Creating new room...');
+          
+          const response = await fetch('http://localhost:3001/api/rooms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to create room');
+          }
+          
+          const roomData = await response.json();
+          roomId = roomData.roomId;
+          
+          console.log(`Created room: ${roomId}`);
+          console.log(`Share this URL: ${window.location.origin}/planet/${roomId}`);
+          
+          // Update URL without refresh
+          window.history.pushState({}, '', `/planet/${roomId}`);
+          
+          // Join the room as host
+          const joinResponse = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              playerId: 'player_' + Math.random().toString(36).substr(2, 9),
+              playerName: 'Host Player'
+            })
+          });
+          
+          if (!joinResponse.ok) {
+            throw new Error('Failed to join own room');
+          }
+          
+          const joinData = await joinResponse.json();
+          isHost = joinData.role === 'host';
+        }
+        
+        // Store multiplayer info globally for the game
+        window.multiplayerInfo = {
+          roomId: roomId,
+          isHost: isHost
+        };
+        
+        // Fade out UI elements AND start planet fade simultaneously
+        document.querySelector('.title').classList.add('fade-out');
+        document.querySelector('.play-button').classList.add('fade-out');
+        
+        // Immediately turn off the sun and start planet fade
+        console.log('Killing the sun...');
+        window.sunLight.intensity = 0;
+        window.ambientLight.intensity = 0;
+        
+        // Start wireframe and vertex fade with slow center zoom
+        let fadeStep = 0;
+        const initialCameraPos = {
+          x: window.camera.position.x,
+          y: window.camera.position.y, 
+          z: window.camera.position.z
+        };
+        const targetCameraPos = {
+          x: 0,  // Center on planet
+          y: 0,  // Center on planet
+          z: initialCameraPos.z * 0.96  // Barely perceptible 4% zoom
+        };
+        
+        const fadeInterval = setInterval(() => {
+          fadeStep += 0.02; // Slower fade
+          window.sphereMaterial.opacity = Math.max(0, 0.8 - fadeStep);
+          
+          // Gradually remove vertex spheres by scaling them down
+          window.vertexSpheres.forEach((vertexSphere) => {
+            const scale = Math.max(0, 1 - fadeStep);
+            vertexSphere.scale.setScalar(scale);
+            // Hide completely when they get small
+            if (scale <= 0.3) {
+              vertexSphere.visible = false;
+            }
+          });
+          
+          // Slow zoom straight into center
+          const zoomProgress = Math.min(1, fadeStep / 0.8);
+          window.camera.position.x = initialCameraPos.x + (targetCameraPos.x - initialCameraPos.x) * zoomProgress;
+          window.camera.position.y = initialCameraPos.y + (targetCameraPos.y - initialCameraPos.y) * zoomProgress;
+          window.camera.position.z = initialCameraPos.z + (targetCameraPos.z - initialCameraPos.z) * zoomProgress;
+          window.camera.lookAt(0, 0, 0);
+          
+          if (fadeStep >= 0.8) {
+            clearInterval(fadeInterval);
+          }
+        }, 50);
+        
+        // Show lobby after fade
+        setTimeout(() => {
+          console.log('Showing multiplayer lobby...');
+          showLobby(roomId, isHost);
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Failed to start multiplayer game:', error);
+        alert('Failed to connect to multiplayer server. Please try again.');
+      }
+    };
   </script>
 </body>
 </html>

@@ -106,6 +106,13 @@ export interface GameState {
   resources: Record<string, Resource>;
   selectedEggId: string | null;
   
+  // Multiplayer state
+  isHost: boolean;
+  isGuest: boolean;
+  roomId: string | null;
+  connectedPlayers: Player[];
+  isMultiplayer: boolean;
+  
   // Movement state
   selectedAnimalID: string | null;
   validMoves: ValidMove[];
@@ -161,6 +168,13 @@ export const useGameStore = create<GameState>((set) => ({
   eggs: {},
   resources: {},
   selectedEggId: null,
+  
+  // Multiplayer state defaults
+  isHost: false,
+  isGuest: false,
+  roomId: null,
+  connectedPlayers: [],
+  isMultiplayer: false,
   
   selectedAnimalID: null,
   validMoves: [],
