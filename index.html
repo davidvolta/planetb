@@ -392,6 +392,7 @@
               0 0 15px rgba(255,255,255,0.3);
             transition: box-shadow 0.1s ease;
             z-index: 1000;
+            pointer-events: auto;
           }
           
           .start-button:hover {
@@ -434,7 +435,7 @@
           </div>
         </div>
         
-        <button class="start-button" id="startGameBtn" disabled onclick="startPlanetBGame()">
+        <button class="start-button" id="startGameBtn" disabled>
           PLAY
         </button>
       `;
@@ -465,6 +466,15 @@
           const player2Label = document.getElementById('player2-label');
           const startBtn = document.getElementById('startGameBtn');
           
+          if (!player2Circle || !player2Label || !startBtn) {
+            // Elements not found, stop polling
+            if (window.lobbyPolling) {
+              clearInterval(window.lobbyPolling);
+              window.lobbyPolling = null;
+            }
+            return;
+          }
+          
           if (data.host && data.guest) {
             // Both players connected
             player2Circle.classList.remove('waiting');
@@ -472,12 +482,17 @@
             player2Label.textContent = isHost ? 'Guest' : 'You';
             player2Label.style.color = 'white';
             startBtn.disabled = false;
-            startBtn.style.pointerEvents = 'auto';
             
-            // Add click handler directly as backup
-            startBtn.addEventListener('click', function() {
-              window.startPlanetBGame();
-            });
+            // Add click handler only when enabled
+            if (!startBtn.hasEventListener) {
+              startBtn.addEventListener('click', () => {
+                console.log('Play button clicked - starting transition');
+                window.startPlanetBGame();
+              });
+              startBtn.hasEventListener = true;
+            }
+            
+            console.log('Start button enabled for both players');
           }
         } catch (error) {
           console.error('Lobby polling error:', error);
@@ -552,7 +567,7 @@
         document.body.innerHTML = '<div id="game-container"></div>';
         
         // Import and initialize the actual Phaser game
-        import('/src/game.js').then(module => {
+        import('/src/game.ts').then(module => {
           // Initialize the game with multiplayer context
           const game = module.initializeGame();
           
@@ -611,7 +626,8 @@
         // Store multiplayer info globally for the game
         window.multiplayerInfo = {
           roomId: roomId,
-          isHost: isHost
+          isHost: isHost,
+          playerId: isHost ? joinData.host?.id : joinData.guest?.id
         };
         
         // Show lobby overlay immediately (globe keeps spinning behind)
@@ -667,7 +683,8 @@
         // Store multiplayer info globally for the game
         window.multiplayerInfo = {
           roomId: roomId,
-          isHost: isHost
+          isHost: isHost,
+          playerId: isHost ? joinData.host?.id : joinData.guest?.id
         };
         
         // Show lobby overlay immediately (globe keeps spinning behind)
