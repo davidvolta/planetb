@@ -24,6 +24,40 @@
 - [ ] Make Biomes a Record, not a Map
 
 
+## MULTIPLAYER "PLAY WITH A FRIEND" IMPLEMENTATION 🎮
+
+### NEXT STEPS - HIGH PRIORITY 🔥
+- [ ] **Simple Room System**
+  - [ ] Create basic Express server for room management
+  - [ ] Room URLs: `/planet/{roomId}` (6-char random IDs like `b21244`)
+  - [ ] Host creates room → gets shareable URL
+  - [ ] Guest joins via URL → instant play
+- [ ] **HTTP Polling Architecture**
+  - [ ] Host authority: Host player's browser = game server
+  - [ ] Data flow: Guest sends action → Host validates → Host updates state → Guest polls new state
+  - [ ] Polling every 1-2 seconds (simple, works everywhere)
+- [ ] **Multiplayer State Management**
+  - [ ] Extend existing Zustand store with multiplayer fields:
+    - [ ] `isHost: boolean`
+    - [ ] `roomId: string`
+    - [ ] `connectedPlayers: Player[]`
+  - [ ] Host maintains authoritative game state
+  - [ ] Guest receives state snapshots
+- [ ] **Turn Synchronization**
+  - [ ] Leverage existing `activePlayerId` system  
+  - [ ] Host enforces turn order and action validation
+  - [ ] Actions blocked if not your turn
+- [ ] **Game Integration**
+  - [ ] Wire PLAY button to create/join room flow
+  - [ ] Replace wireframe planet with actual Planet B game after room join
+  - [ ] Use existing ecosystem simulation + Phaser rendering
+  - [ ] TODO: Use direct GameState access (mark with `// TODO: PlayerView when needed`)
+
+### FOUNDATION COMPLETED ✅
+- [x] **Beautiful Wireframe Homepage** - Orbitron font, interactive planet, cinematic transitions
+- [x] **Ecosystem Architecture** - All game mechanics ready for multiplayer
+- [x] **Pragmatic PlayerView Strategy** - Ship features over architectural purity
+
 ## REFACTORING
 
 ### CRITICAL ARCHITECTURE FIXES (Fix First) 🔥

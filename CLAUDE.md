@@ -100,3 +100,6 @@ Key documentation files (always read these first):
 
 ## Personal Goals
 - New goal: play with a friend.
+
+## Game Design Details
+- Font for the game is Orbitron for display

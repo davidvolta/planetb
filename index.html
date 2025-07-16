@@ -83,7 +83,7 @@
 </head>
 <body>
   <div class="title">PLANET B</div>
-  <button class="play-button" onclick="startGame()">PLAY</button>
+  <button class="play-button" onclick="joinPlanet()">JOIN THIS PLANET</button>
   <script type="module">
     import * as THREE from '/node_modules/three/build/three.module.js';
     
@@ -266,26 +266,42 @@
     window.vertexSpheres = vertexSpheres;
     window.camera = camera;
     
-    // Show multiplayer lobby
+    // Show multiplayer lobby overlay
     function showLobby(roomId, isHost) {
-      document.body.innerHTML = `
+      // Hide the initial UI elements
+      document.querySelector('.title').style.display = 'none';
+      document.querySelector('.play-button').style.display = 'none';
+      
+      // Create overlay div that sits on top of the spinning globe
+      const overlay = document.createElement('div');
+      overlay.id = 'lobby-overlay';
+      overlay.innerHTML = `
         <style>
-          body { 
-            margin: 0; 
-            padding: 0;
-            background: #000;
-            font-family: 'Orbitron', monospace;
-            color: white;
+          #lobby-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            pointer-events: none;
           }
           
           .lobby-container {
+            pointer-events: auto;
+            background: rgba(0,0,0,0.7);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
             text-align: center;
             max-width: 600px;
+            font-family: 'Orbitron', monospace;
+            color: white;
           }
           
           .room-id {
@@ -398,6 +414,9 @@
         </div>
       `;
       
+      // Add overlay to the body (globe keeps spinning behind it)
+      document.body.appendChild(overlay);
+      
       // Start polling for room updates
       window.lobbyPolling = setInterval(async () => {
         try {
@@ -423,28 +442,82 @@
       }, 1000);
     }
     
-    // Start the actual Planet B game
+    // Start the actual Planet B game with transition
     window.startPlanetBGame = function() {
-      console.log('Starting Planet B game...');
+      console.log('Starting Planet B game transition...');
       
       // Stop lobby polling
       if (window.lobbyPolling) {
         clearInterval(window.lobbyPolling);
       }
       
-      // Replace with game
-      document.body.innerHTML = '<div id="phaser-game"></div>';
+      // Remove lobby overlay
+      const overlay = document.getElementById('lobby-overlay');
+      if (overlay) {
+        overlay.remove();
+      }
       
-      // Load the game script
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = '/src/index.ts';
-      document.head.appendChild(script);
+      // Start transition: turn off the sun and start planet fade
+      console.log('Killing the sun...');
+      window.sunLight.intensity = 0;
+      window.ambientLight.intensity = 0;
+      
+      // Start wireframe and vertex fade with slow center zoom
+      let fadeStep = 0;
+      const initialCameraPos = {
+        x: window.camera.position.x,
+        y: window.camera.position.y, 
+        z: window.camera.position.z
+      };
+      const targetCameraPos = {
+        x: 0,  // Center on planet
+        y: 0,  // Center on planet
+        z: initialCameraPos.z * 0.96  // Barely perceptible 4% zoom
+      };
+      
+      const fadeInterval = setInterval(() => {
+        fadeStep += 0.02; // Slower fade
+        window.sphereMaterial.opacity = Math.max(0, 0.8 - fadeStep);
+        
+        // Gradually remove vertex spheres by scaling them down
+        window.vertexSpheres.forEach((vertexSphere) => {
+          const scale = Math.max(0, 1 - fadeStep);
+          vertexSphere.scale.setScalar(scale);
+          // Hide completely when they get small
+          if (scale <= 0.3) {
+            vertexSphere.visible = false;
+          }
+        });
+        
+        // Slow zoom straight into center
+        const zoomProgress = Math.min(1, fadeStep / 0.8);
+        window.camera.position.x = initialCameraPos.x + (targetCameraPos.x - initialCameraPos.x) * zoomProgress;
+        window.camera.position.y = initialCameraPos.y + (targetCameraPos.y - initialCameraPos.y) * zoomProgress;
+        window.camera.position.z = initialCameraPos.z + (targetCameraPos.z - initialCameraPos.z) * zoomProgress;
+        window.camera.lookAt(0, 0, 0);
+        
+        if (fadeStep >= 0.8) {
+          clearInterval(fadeInterval);
+        }
+      }, 50);
+      
+      // Load actual Planet B game after fade
+      setTimeout(() => {
+        console.log('Loading Planet B game...');
+        // Replace the current content with the Phaser game
+        document.body.innerHTML = '<div id="phaser-game"></div>';
+        
+        // Load the game script
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = '/src/index.ts';
+        document.head.appendChild(script);
+      }, 2000);
     };
 
-    // Start game function - now handles multiplayer room creation/joining
-    window.startGame = async function() {
-      console.log('Starting game transition...');
+    // Join planet function - handles multiplayer room creation/joining
+    window.joinPlanet = async function() {
+      console.log('Joining planet...');
       
       // Check if this is a room join URL (e.g., /planet/b123456)
       const path = window.location.pathname;
@@ -521,59 +594,9 @@
           isHost: isHost
         };
         
-        // Fade out UI elements AND start planet fade simultaneously
-        document.querySelector('.title').classList.add('fade-out');
-        document.querySelector('.play-button').classList.add('fade-out');
-        
-        // Immediately turn off the sun and start planet fade
-        console.log('Killing the sun...');
-        window.sunLight.intensity = 0;
-        window.ambientLight.intensity = 0;
-        
-        // Start wireframe and vertex fade with slow center zoom
-        let fadeStep = 0;
-        const initialCameraPos = {
-          x: window.camera.position.x,
-          y: window.camera.position.y, 
-          z: window.camera.position.z
-        };
-        const targetCameraPos = {
-          x: 0,  // Center on planet
-          y: 0,  // Center on planet
-          z: initialCameraPos.z * 0.96  // Barely perceptible 4% zoom
-        };
-        
-        const fadeInterval = setInterval(() => {
-          fadeStep += 0.02; // Slower fade
-          window.sphereMaterial.opacity = Math.max(0, 0.8 - fadeStep);
-          
-          // Gradually remove vertex spheres by scaling them down
-          window.vertexSpheres.forEach((vertexSphere) => {
-            const scale = Math.max(0, 1 - fadeStep);
-            vertexSphere.scale.setScalar(scale);
-            // Hide completely when they get small
-            if (scale <= 0.3) {
-              vertexSphere.visible = false;
-            }
-          });
-          
-          // Slow zoom straight into center
-          const zoomProgress = Math.min(1, fadeStep / 0.8);
-          window.camera.position.x = initialCameraPos.x + (targetCameraPos.x - initialCameraPos.x) * zoomProgress;
-          window.camera.position.y = initialCameraPos.y + (targetCameraPos.y - initialCameraPos.y) * zoomProgress;
-          window.camera.position.z = initialCameraPos.z + (targetCameraPos.z - initialCameraPos.z) * zoomProgress;
-          window.camera.lookAt(0, 0, 0);
-          
-          if (fadeStep >= 0.8) {
-            clearInterval(fadeInterval);
-          }
-        }, 50);
-        
-        // Show lobby after fade
-        setTimeout(() => {
-          console.log('Showing multiplayer lobby...');
-          showLobby(roomId, isHost);
-        }, 2000);
+        // Show lobby overlay immediately (globe keeps spinning behind)
+        console.log('Showing multiplayer lobby...');
+        showLobby(roomId, isHost);
         
       } catch (error) {
         console.error('Failed to start multiplayer game:', error);

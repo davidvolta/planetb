@@ -22,7 +22,8 @@
       "Bash(npm run dev:*)",
       "Bash(pkill:*)",
       "Bash(open planet_standalone.html)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }
