@@ -23,5 +23,5 @@
     "noUncheckedSideEffectImports": true,
     "types": ["vite/client"]
   },
-  "include": ["src"]
+  "include": ["src", "tic-tac-toe-test/server.js", "tic-tac-toe-test/hostServer.js", "tic-tac-toe-test/gameLogic.js", "tic-tac-toe-test/public"]
 }

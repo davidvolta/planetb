@@ -27,11 +27,7 @@
 ## MULTIPLAYER "PLAY WITH A FRIEND" IMPLEMENTATION 🎮
 
 ### NEXT STEPS - HIGH PRIORITY 🔥
-- [ ] **Simple Room System**
-  - [ ] Create basic Express server for room management
-  - [ ] Room URLs: `/planet/{roomId}` (6-char random IDs like `b21244`)
-  - [ ] Host creates room → gets shareable URL
-  - [ ] Guest joins via URL → instant play
+- [X] **Simple Room System**
 - [ ] **HTTP Polling Architecture**
   - [ ] Host authority: Host player's browser = game server
   - [ ] Data flow: Guest sends action → Host validates → Host updates state → Guest polls new state
@@ -53,10 +49,6 @@
   - [ ] Use existing ecosystem simulation + Phaser rendering
   - [ ] TODO: Use direct GameState access (mark with `// TODO: PlayerView when needed`)
 
-### FOUNDATION COMPLETED ✅
-- [x] **Beautiful Wireframe Homepage** - Orbitron font, interactive planet, cinematic transitions
-- [x] **Ecosystem Architecture** - All game mechanics ready for multiplayer
-- [x] **Pragmatic PlayerView Strategy** - Ship features over architectural purity
 
 ## REFACTORING
 
