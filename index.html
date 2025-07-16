@@ -5,15 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Planet B 🌍</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
+    
     body { 
       margin: 0; 
       padding: 0;
       overflow: hidden; 
       background: #000;
     }
+    
+    .title {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 48px;
+      color: white;
+      text-shadow: 
+        -2px -2px 0 #000,
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        2px 2px 0 #000,
+        0 0 10px rgba(255,255,255,0.5);
+      letter-spacing: 4px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
+  <div class="title">PLANET B</div>
   <script type="module">
     import * as THREE from '/node_modules/three/build/three.module.js';
     
