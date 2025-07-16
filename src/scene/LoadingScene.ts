@@ -53,10 +53,15 @@ export default class LoadingScene extends Phaser.Scene {
     if (multiplayerContext) {
       console.log('Loading multiplayer state...');
       await this.loadMultiplayerState(multiplayerContext);
+      
+      // Small delay to ensure state observers have propagated
+      console.log('Waiting for state to propagate...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } else {
+      // Only setup local game state if not in multiplayer mode
+      this.setupGameState();
     }
     
-    // Always start with standard setup (will use shared state if available)
-    this.setupGameState();
     this.scene.start('BoardScene');
   }
 
@@ -120,13 +125,24 @@ export default class LoadingScene extends Phaser.Scene {
     const { GameEnvironment } = await import('../env/GameEnvironment');
     
     // Generate initial state with proper parameters
-    const players = GameEnvironment.playerConfigs;
+    // Create proper Player objects with IDs from playerConfigs
+    const { PlayerController } = await import('../controllers/PlayerController');
+    const playerConfigs = GameEnvironment.playerConfigs;
+    
+    const players = playerConfigs.map((config, index) => 
+      PlayerController.createPlayer(config.name, config.color, [], index)
+    );
+    
+    console.log('Created players with IDs:', players.map(p => `${p.name}: ID=${p.id}`));
+    
     const result = BoardController.initializeBoard(
       GameEnvironment.boardWidth,
       GameEnvironment.boardHeight,
       players
     );
 
+    console.log('BoardController.initializeBoard result.updatedPlayers:', result.updatedPlayers.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
+    
     const gameState = {
       board: result.board,
       animals: result.animals,
@@ -138,7 +154,7 @@ export default class LoadingScene extends Phaser.Scene {
     await client.submitInitialState(gameState);
     
     // Apply to game store
-    await this.applyStateToStore(gameState);
+    await this.applyStateToStore(gameState, multiplayerContext);
   }
 
   async loadSharedState(multiplayerContext: any, client: any) {
@@ -147,7 +163,7 @@ export default class LoadingScene extends Phaser.Scene {
       try {
         const response = await client.getInitialState();
         if (response.gameState) {
-          await this.applyStateToStore(response.gameState);
+          await this.applyStateToStore(response.gameState, multiplayerContext);
           return;
         }
       } catch (error) {
@@ -161,20 +177,30 @@ export default class LoadingScene extends Phaser.Scene {
     throw new Error('Timed out waiting for initial state');
   }
 
-  async applyStateToStore(initialState: any) {
+  async applyStateToStore(initialState: any, multiplayerContext: { isHost: boolean }) {
     const actions = await import('../store/actions');
+    const { useGameStore } = await import('../store/gameStore');
     
-    // Add players
-    for (const player of initialState.players) {
-      actions.addPlayer(player);
-    }
+    // Don't use actions.addPlayer() - it creates new IDs
+    // Instead, directly use the players from shared state to preserve IDs
+    console.log('Applying shared state players:', initialState.players);
+    console.log('Shared state player IDs:', initialState.players.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
     
-    // Apply the shared board state
-    actions.initializeBoard(
+    // Apply the shared board state using store method directly
+    useGameStore.getState().initializeBoard(
       initialState.board,
       initialState.animals,
       new Map(initialState.biomes),
       initialState.players
     );
+    
+    // Debug: Check what's in store after initializeBoard
+    const storeState = useGameStore.getState();
+    console.log('After initializeBoard - store player IDs:', storeState.players.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
+    
+    // 🎯 KEY FIX: Set correct activePlayerId based on host/guest
+    const activePlayerId = multiplayerContext.isHost ? 0 : 1; // Host = Player 1 (ID 0), Guest = Player 2 (ID 1)
+    console.log(`Setting activePlayerId to ${activePlayerId} for ${multiplayerContext.isHost ? 'host' : 'guest'}`);
+    useGameStore.getState().setActivePlayer(initialState.players, activePlayerId);
   }
 }

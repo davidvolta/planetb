@@ -218,7 +218,18 @@ export default class BoardScene extends Phaser.Scene {
   private updatePlayerView(): void {
     const playerId = playerActions.getActivePlayerId();
     const fullState = getFullGameState();
+    console.log('updatePlayerView() - playerId:', playerId);
+    console.log('updatePlayerView() - fullState.players:', fullState.players);
+    console.log('updatePlayerView() - player IDs:', fullState.players.map(p => p.id));
+    console.log('updatePlayerView() - fullState.board:', !!fullState.board);
+    console.log('updatePlayerView() - fullState.activePlayerId:', fullState.activePlayerId);
+    
+    const targetPlayer = fullState.players.find(p => p.id === playerId);
+    console.log('updatePlayerView() - targetPlayer:', targetPlayer);
+    console.log('updatePlayerView() - targetPlayer.visibleTiles:', targetPlayer?.visibleTiles);
+    
     this.currentPlayerView = getPlayerView(fullState, playerId);
+    console.log('updatePlayerView() - currentPlayerView result:', !!this.currentPlayerView);
 
     // Trigger re-rendering for player-visible resource set
     const visibleResources = this.currentPlayerView?.resources ?? [];
