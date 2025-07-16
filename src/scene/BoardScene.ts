@@ -140,9 +140,6 @@ export default class BoardScene extends Phaser.Scene {
     // Update player view BEFORE setting up subscriptions to ensure data is available
     this.updatePlayerView();
     
-    // Debug: Check if player view is available
-    console.log("BoardScene.create() - currentPlayerView:", !!this.currentPlayerView);
-    console.log("BoardScene.create() - currentPlayerView.board:", !!this.currentPlayerView?.board);
     
     // Set up subscriptions
     this.setupAllSubscriptions();
@@ -150,9 +147,7 @@ export default class BoardScene extends Phaser.Scene {
     this.setupInputHandlers();
 
     const board = this.currentPlayerView?.board;
-    console.log("BoardScene.create() - board for createTiles:", !!board);
     if (board) {
-      console.log("BoardScene.create() - calling createTiles()");
       this.createTiles();
       this.cameraManager.centerCameraOnPlayerAnimal(
         this.tileSize,
@@ -169,7 +164,6 @@ export default class BoardScene extends Phaser.Scene {
 
   // Create tiles for the board
   private createTiles() {
-    console.log("createTiles() called");
     const board = this.currentPlayerView?.board;
     if (!board) {
       console.warn("No board available");
@@ -180,31 +174,20 @@ export default class BoardScene extends Phaser.Scene {
       return;
     }
 
-    console.log("createTiles() - board dimensions:", board.width, "x", board.height);
-    console.log("createTiles() - about to call tileRenderer.renderBoard()");
-    console.log("createTiles() - anchorX:", this.anchorX, "anchorY:", this.anchorY);
-
     const anchorX = this.cameras.main.width / 2;
     const anchorY = this.cameras.main.height / 2;
 
     this.anchorX = anchorX;
     this.anchorY = anchorY;
 
-    console.log("createTiles() - calling tileRenderer.renderBoard() with anchorX:", anchorX, "anchorY:", anchorY);
     this.tileRenderer.renderBoard(board, anchorX, anchorY);
-    console.log("createTiles() - tileRenderer.renderBoard() completed");
     this.selectionRenderer.initialize(anchorX, anchorY);
     this.resourceRenderer.initialize(anchorX, anchorY);
 
-    console.log("createTiles() - fog of war enabled:", playerActions.getFogOfWarEnabled());
     if (playerActions.getFogOfWarEnabled()) {
-      console.log("createTiles() - creating fog of war");
       this.fogOfWarRenderer.createFogOfWar(board);
-      console.log("createTiles() - initializing fog visibility");
       this.fogOfWarRenderer.initializeVisibility();
-      console.log("createTiles() - fog of war setup completed");
     } else {
-      console.log("createTiles() - clearing fog of war");
       this.fogOfWarRenderer.clearFogOfWar();
     }
 
@@ -218,18 +201,7 @@ export default class BoardScene extends Phaser.Scene {
   private updatePlayerView(): void {
     const playerId = playerActions.getActivePlayerId();
     const fullState = getFullGameState();
-    console.log('updatePlayerView() - playerId:', playerId);
-    console.log('updatePlayerView() - fullState.players:', fullState.players);
-    console.log('updatePlayerView() - player IDs:', fullState.players.map(p => p.id));
-    console.log('updatePlayerView() - fullState.board:', !!fullState.board);
-    console.log('updatePlayerView() - fullState.activePlayerId:', fullState.activePlayerId);
-    
-    const targetPlayer = fullState.players.find(p => p.id === playerId);
-    console.log('updatePlayerView() - targetPlayer:', targetPlayer);
-    console.log('updatePlayerView() - targetPlayer.visibleTiles:', targetPlayer?.visibleTiles);
-    
     this.currentPlayerView = getPlayerView(fullState, playerId);
-    console.log('updatePlayerView() - currentPlayerView result:', !!this.currentPlayerView);
 
     // Trigger re-rendering for player-visible resource set
     const visibleResources = this.currentPlayerView?.resources ?? [];

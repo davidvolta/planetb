@@ -51,18 +51,14 @@ export default class LoadingScene extends Phaser.Scene {
     const multiplayerContext = (window as any).gameMultiplayerContext;
     
     if (multiplayerContext) {
-      console.log('Loading multiplayer state...');
-      
       // DEV MODE: Skip server for dev-room
       if (multiplayerContext.roomId === 'dev-room') {
-        console.log('DEV MODE: Generating local multiplayer state...');
         await this.generateDevMultiplayerState(multiplayerContext);
       } else {
         await this.loadMultiplayerState(multiplayerContext);
       }
       
       // Small delay to ensure state observers have propagated
-      console.log('Waiting for state to propagate...');
       await new Promise(resolve => setTimeout(resolve, 100));
     } else {
       // Only setup local game state if not in multiplayer mode
@@ -91,33 +87,20 @@ export default class LoadingScene extends Phaser.Scene {
   }
 
   async loadMultiplayerState(multiplayerContext: { roomId: string, isHost: boolean, playerId?: string }) {
-    console.log('Loading multiplayer state...', multiplayerContext);
-    
     const { MultiplayerClient } = await import('../utils/MultiplayerClient');
     const client = new MultiplayerClient();
     
     // Override the playerId if provided in context
     if (multiplayerContext.playerId) {
-      console.log('Using provided playerId:', multiplayerContext.playerId);
       (client as any).playerId = multiplayerContext.playerId;
-    } else {
-      console.log('No playerId provided, using generated:', (client as any).playerId);
     }
     (client as any).roomId = multiplayerContext.roomId;
     (client as any).isHost = multiplayerContext.isHost;
     
-    console.log('Client setup:', {
-      playerId: (client as any).playerId,
-      roomId: (client as any).roomId,
-      isHost: (client as any).isHost
-    });
-    
     try {
       if (multiplayerContext.isHost) {
-        console.log('Host generating initial state...');
         await this.generateAndSubmitInitialState(multiplayerContext, client);
       } else {
-        console.log('Guest loading shared state...');
         await this.loadSharedState(multiplayerContext, client);
       }
     } catch (error) {
@@ -142,21 +125,11 @@ export default class LoadingScene extends Phaser.Scene {
       players.push(player);
     }
     
-    console.log('Created players with IDs:', players.map(p => `${p.name}: ID=${p.id}`));
-    
     const result = BoardController.initializeBoard(
       GameEnvironment.boardWidth,
       GameEnvironment.boardHeight,
       players
     );
-
-    console.log('BoardController.initializeBoard result.updatedPlayers:', result.updatedPlayers.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
-    
-    // Debug host board generation
-    console.log('Host generated board size:', result.board?.tiles?.length);
-    console.log('Host generated board first tile:', result.board?.tiles?.[0]);
-    console.log('Host generated animals count:', result.animals?.length);
-    console.log('Host generated biomes count:', result.biomes?.size);
     
     const gameState = {
       board: result.board,
@@ -182,7 +155,7 @@ export default class LoadingScene extends Phaser.Scene {
           return;
         }
       } catch (error) {
-        console.log('Waiting for host to submit state...', attempts + 1);
+        // Waiting for host to submit state
       }
       
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -198,14 +171,6 @@ export default class LoadingScene extends Phaser.Scene {
     
     // Don't use actions.addPlayer() - it creates new IDs
     // Instead, directly use the players from shared state to preserve IDs
-    console.log('Applying shared state players:', initialState.players);
-    console.log('Shared state player IDs:', initialState.players.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
-    
-    // Debug board sync - check if guest gets same board as host
-    console.log('Shared state board size:', initialState.board?.tiles?.length);
-    console.log('Shared state board first tile:', initialState.board?.tiles?.[0]);
-    console.log('Shared state animals count:', initialState.animals?.length);
-    console.log('Shared state biomes count:', initialState.biomes?.length);
     
     // Apply the shared board state using store method directly
     useGameStore.getState().initializeBoard(
@@ -215,20 +180,13 @@ export default class LoadingScene extends Phaser.Scene {
       initialState.players
     );
     
-    // Debug: Check what's in store after initializeBoard
-    const storeState = useGameStore.getState();
-    console.log('After initializeBoard - store player IDs:', storeState.players.map(p => `${p.name}: ID=${p.id} (type: ${typeof p.id})`));
-    
-    // 🎯 KEY FIX: Set correct activePlayerId based on host/guest
+    // Set correct activePlayerId based on host/guest
     const activePlayerId = multiplayerContext.isHost ? 0 : 1; // Host = Player 1 (ID 0), Guest = Player 2 (ID 1)
-    console.log(`Setting activePlayerId to ${activePlayerId} for ${multiplayerContext.isHost ? 'host' : 'guest'}`);
     useGameStore.getState().setActivePlayer(initialState.players, activePlayerId);
   }
 
   // DEV MODE: Generate multiplayer state locally without server
   async generateDevMultiplayerState(multiplayerContext: { isHost: boolean }) {
-    console.log('Generating DEV multiplayer state locally...');
-    
     // Reuse the host generation logic but apply locally
     const { BoardController } = await import('../controllers/BoardController');
     const { GameEnvironment } = await import('../env/GameEnvironment');
@@ -241,8 +199,6 @@ export default class LoadingScene extends Phaser.Scene {
       const player = PlayerController.createPlayer(config.name, config.color, players);
       players.push(player);
     }
-    
-    console.log('DEV: Created players with IDs:', players.map(p => `${p.name}: ID=${p.id}`));
     
     const result = BoardController.initializeBoard(
       GameEnvironment.boardWidth,
@@ -259,7 +215,5 @@ export default class LoadingScene extends Phaser.Scene {
     
     // Apply directly to store
     await this.applyStateToStore(gameState, multiplayerContext);
-    
-    console.log('DEV: Multiplayer state generated and applied locally');
   }
 }

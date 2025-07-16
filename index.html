@@ -487,13 +487,11 @@
             // Add click handler only when enabled
             if (!startBtn.hasEventListener) {
               startBtn.addEventListener('click', () => {
-                console.log('Play button clicked - starting transition');
                 window.startPlanetBGame();
               });
               startBtn.hasEventListener = true;
             }
             
-            console.log('Start button enabled for both players');
           }
         } catch (error) {
           console.error('Lobby polling error:', error);
@@ -702,8 +700,6 @@
     
     // DEV SHORTCUT: Skip directly to multiplayer game
     window.devMultiplayer = function() {
-      console.log('DEV: Skipping to multiplayer game...');
-      
       // Set fake multiplayer context
       window.multiplayerInfo = {
         roomId: 'dev-room',
