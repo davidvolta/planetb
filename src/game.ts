@@ -11,6 +11,9 @@ import { GameEnvironment } from './env/GameEnvironment';
 const GAME_WIDTH = 1080; //TILE_SIZE * GameEnvironment.boardWidth;
 const GAME_HEIGHT = 720; //TILE_HEIGHT * (GameEnvironment.boardHeight + 10); // Add padding for UI elements
 
+// Import loading scene
+import LoadingScene from './scene/LoadingScene';
+
 // Game configuration
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -18,7 +21,7 @@ const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   height: GAME_HEIGHT,
   backgroundColor: '#1c1117',
   parent: 'game-container',
-  scene: [BoardScene, DebugScene, UIScene],
+  scene: [LoadingScene, BoardScene, DebugScene, UIScene],
   pixelArt: true,
   antialias: false,
   scale: {
@@ -35,15 +38,21 @@ let gameInstance: Phaser.Game | null = null;
 /**
  * Set up the initial game state with default settings
  */
-async function setupGameState() {
-  const multiplayerContext = (window as any).gameMultiplayerContext;
-  
-  if (multiplayerContext) {
-    // Multiplayer mode - use shared initial state
-    await setupMultiplayerGameState(multiplayerContext);
-  } else {
-    // Single player mode - generate locally
-    setupSinglePlayerGameState();
+function setupGameState() {
+  // Add players based on GameEnvironment config
+  for (const player of GameEnvironment.playerConfigs) {
+    actions.addPlayer(player.name, player.color);
+  }
+
+  // Set up the board with configured dimensions
+  actions.setupGameBoard({
+    width: GameEnvironment.boardWidth,
+    height: GameEnvironment.boardHeight
+  });
+
+  // Set fog-of-war mode if needed
+  if (!GameEnvironment.fogOfWarEnabled) {
+    actions.setFogOfWarEnabled(false);
   }
 }
 
