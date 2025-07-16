@@ -75,6 +75,7 @@
       transform: translateX(-50%) scale(0.98);
     }
     
+    
     .fade-out {
       opacity: 0;
       transition: opacity 1s ease;
@@ -83,7 +84,7 @@
 </head>
 <body>
   <div class="title">PLANET B</div>
-  <button class="play-button" onclick="joinPlanet()">JOIN THIS PLANET</button>
+  <button class="play-button" onclick="joinPlanet()">START</button>
   <script type="module">
     import * as THREE from '/node_modules/three/build/three.module.js';
     
@@ -114,7 +115,7 @@
     scene.add(ambientLight);
     
     const material = new THREE.MeshLambertMaterial({ 
-      color: 0x00ffcc,
+      color: 0x00cc99,
       wireframe: true,
       transparent: true,
       opacity: 0.8
@@ -129,7 +130,7 @@
     for (let i = 0; i < vertexPositions.length; i += 3) {
       const vertexGeometry = new THREE.SphereGeometry(0.0125, 8, 6);
       const vertexMaterial = new THREE.MeshLambertMaterial({
-        color: 0x00ffcc,
+        color: 0x00cc99,
         transparent: true,
         opacity: 0.8,
         emissive: 0x000000  // No self-illumination
@@ -302,7 +303,7 @@
           .room-id {
             font-size: 24px;
             margin-bottom: 40px;
-            color: #00ffcc;
+            color: #00cc99;
             letter-spacing: 2px;
             display: flex;
             align-items: center;
@@ -316,7 +317,7 @@
             transition: opacity 0.2s ease;
             width: 20px;
             height: 20px;
-            border: 2px solid #00ffcc;
+            border: 2px solid #00cc99;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -326,7 +327,7 @@
           
           .copy-icon:hover {
             opacity: 1;
-            background: rgba(0,255,204,0.1);
+            background: rgba(0,204,153,0.1);
           }
           
           .players-container {
@@ -350,9 +351,9 @@
           }
           
           .player-circle.connected {
-            background: #00ffcc;
+            background: #00cc99;
             color: #000;
-            box-shadow: 0 0 20px rgba(0,255,204,0.5);
+            box-shadow: 0 0 20px rgba(0,204,153,0.5);
           }
           
           .player-circle.waiting {
@@ -424,7 +425,7 @@
           <div class="players-container">
             <div class="player-slot">
               <div class="player-circle connected" id="player1">1</div>
-              <div class="player-label">${isHost ? 'You (Host)' : 'Host'}</div>
+              <div class="player-label">${isHost ? 'You' : 'Host'}</div>
             </div>
             <div class="player-slot">
               <div class="player-circle waiting" id="player2">2</div>
@@ -466,21 +467,17 @@
           
           if (data.host && data.guest) {
             // Both players connected
-            console.log('Both players connected! Enabling PLAY button...');
             player2Circle.classList.remove('waiting');
             player2Circle.classList.add('connected');
-            player2Label.textContent = isHost ? 'Guest' : 'You (Guest)';
+            player2Label.textContent = isHost ? 'Guest' : 'You';
             player2Label.style.color = 'white';
             startBtn.disabled = false;
             startBtn.style.pointerEvents = 'auto';
             
             // Add click handler directly as backup
             startBtn.addEventListener('click', function() {
-              console.log('Direct click handler triggered!');
               window.startPlanetBGame();
             });
-            
-            console.log('Button enabled:', !startBtn.disabled);
           }
         } catch (error) {
           console.error('Lobby polling error:', error);
@@ -490,8 +487,6 @@
     
     // Start the actual Planet B game with transition
     window.startPlanetBGame = function() {
-      console.log('PLAY button clicked! Starting Planet B game transition...');
-      
       // Stop lobby polling
       if (window.lobbyPolling) {
         clearInterval(window.lobbyPolling);
@@ -504,7 +499,6 @@
       }
       
       // Start transition: turn off the sun and start planet fade
-      console.log('Killing the sun...');
       window.sunLight.intensity = 0;
       window.ambientLight.intensity = 0;
       
@@ -549,7 +543,6 @@
       
       // Load actual Planet B game after fade
       setTimeout(() => {
-        console.log('Loading Planet B game...');
         // Replace the current content with the Phaser game
         document.body.innerHTML = '<div id="phaser-game"></div>';
         
@@ -561,78 +554,38 @@
       }, 2000);
     };
 
-    // Join planet function - handles multiplayer room creation/joining
-    window.joinPlanet = async function() {
-      console.log('Joining planet...');
-      
-      // Check if this is a room join URL (e.g., /planet/b123456)
+    // Auto-join if visiting room URL, otherwise show START button
+    window.addEventListener('DOMContentLoaded', function() {
       const path = window.location.pathname;
       const roomMatch = path.match(/^\/planet\/(b[a-f0-9]{6})$/);
       
+      if (roomMatch) {
+        // Player 2 visiting room URL - auto-join immediately
+        autoJoinRoom(roomMatch[1]);
+      }
+      // Otherwise show normal homepage with START button
+    });
+
+    async function autoJoinRoom(roomId) {
+      console.log(`Auto-joining room: ${roomId}`);
+      
       try {
-        let roomId = null;
-        let isHost = false;
+        const response = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerId: 'player_' + Math.random().toString(36).substr(2, 9),
+            playerName: 'Guest Player'
+          })
+        });
         
-        if (roomMatch) {
-          // Joining existing room
-          roomId = roomMatch[1];
-          console.log(`Joining room: ${roomId}`);
-          
-          const response = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              playerId: 'player_' + Math.random().toString(36).substr(2, 9),
-              playerName: 'Guest Player'
-            })
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to join room');
-          }
-          
-          const joinData = await response.json();
-          isHost = joinData.role === 'host';
-          console.log(`Joined as ${joinData.role}`);
-        } else {
-          // Creating new room
-          console.log('Creating new room...');
-          
-          const response = await fetch('http://localhost:3001/api/rooms', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to create room');
-          }
-          
-          const roomData = await response.json();
-          roomId = roomData.roomId;
-          
-          console.log(`Created room: ${roomId}`);
-          console.log(`Share this URL: ${window.location.origin}/planet/${roomId}`);
-          
-          // Update URL without refresh
-          window.history.pushState({}, '', `/planet/${roomId}`);
-          
-          // Join the room as host
-          const joinResponse = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              playerId: 'player_' + Math.random().toString(36).substr(2, 9),
-              playerName: 'Host Player'
-            })
-          });
-          
-          if (!joinResponse.ok) {
-            throw new Error('Failed to join own room');
-          }
-          
-          const joinData = await joinResponse.json();
-          isHost = joinData.role === 'host';
+        if (!response.ok) {
+          throw new Error('Failed to join room');
         }
+        
+        const joinData = await response.json();
+        const isHost = joinData.role === 'host';
+        console.log(`Joined as ${joinData.role}`);
         
         // Store multiplayer info globally for the game
         window.multiplayerInfo = {
@@ -645,7 +598,63 @@
         showLobby(roomId, isHost);
         
       } catch (error) {
-        console.error('Failed to start multiplayer game:', error);
+        console.error('Failed to join room:', error);
+        alert('Failed to join room. Please try again.');
+      }
+    }
+
+    // Join planet function - handles room creation for START button
+    window.joinPlanet = async function() {
+      console.log('Creating new room...');
+      
+      try {
+        const response = await fetch('http://localhost:3001/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to create room');
+        }
+        
+        const roomData = await response.json();
+        const roomId = roomData.roomId;
+        
+        console.log(`Created room: ${roomId}`);
+        console.log(`Share this URL: ${window.location.origin}/planet/${roomId}`);
+        
+        // Update URL without refresh
+        window.history.pushState({}, '', `/planet/${roomId}`);
+        
+        // Join the room as host
+        const joinResponse = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerId: 'player_' + Math.random().toString(36).substr(2, 9),
+            playerName: 'Host Player'
+          })
+        });
+        
+        if (!joinResponse.ok) {
+          throw new Error('Failed to join own room');
+        }
+        
+        const joinData = await joinResponse.json();
+        const isHost = joinData.role === 'host';
+        
+        // Store multiplayer info globally for the game
+        window.multiplayerInfo = {
+          roomId: roomId,
+          isHost: isHost
+        };
+        
+        // Show lobby overlay immediately (globe keeps spinning behind)
+        console.log('Showing multiplayer lobby...');
+        showLobby(roomId, isHost);
+        
+      } catch (error) {
+        console.error('Failed to create room:', error);
         alert('Failed to connect to multiplayer server. Please try again.');
       }
     };
