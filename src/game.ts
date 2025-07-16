@@ -129,9 +129,8 @@ export function destroyGame() {
   }
 }
 
-// Initialize the game when the window loads
-if (typeof window !== 'undefined') {
-  window.addEventListener('load', () => {
-    createPhaserEngine();
-  });
+// Export initialization function for manual control
+// (Lobby will call this when ready)
+export function initializeGame() {
+  return createPhaserEngine();
 } 

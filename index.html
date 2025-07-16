@@ -543,31 +543,28 @@
       
       // Load actual Planet B game after fade
       setTimeout(() => {
-        // Replace the current content with the green square placeholder
-        document.body.innerHTML = `
-          <div style="
-            width: 100vw; 
-            height: 100vh; 
-            background: #00cc99; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-family: 'Orbitron', monospace;
-            color: white;
-            font-size: 48px;
-            font-weight: 900;
-            letter-spacing: 4px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-          ">
-            PLANET B GAME
-          </div>
-        `;
+        // Clean up Three.js scene
+        if (window.renderer) {
+          window.renderer.dispose();
+        }
         
-        // TODO: Load the actual game script
-        // const script = document.createElement('script');
-        // script.type = 'module';
-        // script.src = '/src/index.ts';
-        // document.head.appendChild(script);
+        // Clear the body and create proper game container
+        document.body.innerHTML = '<div id="game-container"></div>';
+        
+        // Import and initialize the actual Phaser game
+        import('/src/game.js').then(module => {
+          // Initialize the game with multiplayer context
+          const game = module.initializeGame();
+          
+          // Store multiplayer info for the game to use
+          if (window.multiplayerInfo) {
+            window.gameMultiplayerContext = window.multiplayerInfo;
+          }
+          
+          console.log('Planet B Phaser game initialized successfully');
+        }).catch(error => {
+          console.error('Failed to load Planet B game:', error);
+        });
       }, 2000);
     };
 
