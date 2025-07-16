@@ -41,17 +41,23 @@ export default class UIScene extends Phaser.Scene {
     this.gameController = boardScene.getGameController();
     this.turnController = boardScene.getTurnController();
 
-    // Subscribe to state changes
+    // Subscribe to state changes with multiplayer awareness
     StateObserver.subscribe(
       'ui-turn',
       (state: GameState) => {
         const player = state.players.find(p => p.id === state.activePlayerId);
+        const multiplayerInfo = (window as any).multiplayerInfo;
+        const localPlayerId = multiplayerInfo ? multiplayerInfo.localPlayerId : 0;
+        const isMyTurn = state.activePlayerId === localPlayerId;
+        
         return {
           turn: state.turn,
           selectedAnimal: state.selectedAnimalID ? state.animals.find(a => a.id === state.selectedAnimalID) : null,
           selectedEggId: state.selectedEggId,
           selectedBiomeId: state.selectedBiomeId,
-          activePlayerName: player ? player.name : `Player ${state.activePlayerId}`
+          activePlayerName: player ? player.name : `Player ${state.activePlayerId}`,
+          isMyTurn,
+          localPlayerId
         };
       },
       (data) => {
@@ -60,32 +66,73 @@ export default class UIScene extends Phaser.Scene {
           this.turnText.setText(`Turn: ${data.turn}`);
         }
         
-        // Update End Turn button label
-        if (this.nextTurnText) {
-          this.nextTurnText.setText(`End ${data.activePlayerName} Turn`);
+        // Update End Turn button based on turn ownership
+        if (this.nextTurnText && this.nextTurnButtonBg) {
+          if (data.isMyTurn) {
+            this.nextTurnText.setText(`End ${data.activePlayerName} Turn`);
+            this.nextTurnButtonBg.setInteractive({ useHandCursor: true });
+            this.nextTurnButtonBg.setFillStyle(0x808080); // Active color
+          } else {
+            this.nextTurnText.setText(`Waiting for ${data.activePlayerName}`);
+            this.nextTurnButtonBg.disableInteractive();
+            this.nextTurnButtonBg.setFillStyle(0x404040); // Disabled color
+          }
         }
         
         // Update selected animal details
         this.selectedAnimalID = data.selectedAnimal?.id || null;
         this.selectedEggId = data.selectedEggId || null;
         
-        // Show/hide spawn button based on selection
+        // Show/hide spawn button based on selection and turn
         if (this.spawnButton) {
-          this.spawnButton.setVisible(!!data.selectedEggId);
-          // Update background size when button visibility changes
-          this.updateBackgroundSize();
+          const canSpawn = !!data.selectedEggId && data.isMyTurn;
+          this.spawnButton.setVisible(canSpawn);
+          if (this.spawnButton.list[0]) {
+            const buttonBg = this.spawnButton.list[0] as Phaser.GameObjects.Rectangle;
+            if (data.isMyTurn) {
+              buttonBg.setInteractive({ useHandCursor: true });
+              buttonBg.setFillStyle(0x808080);
+            } else {
+              buttonBg.disableInteractive();
+              buttonBg.setFillStyle(0x404040);
+            }
+          }
         }
         
-        // Show/hide biome capture button based on biome selection and animal presence
+        // Show/hide biome capture button based on selection and turn
         if (this.captureBiomeButton) {
           const selectedBiomeId = data.selectedBiomeId;
           const isAvailable = selectedBiomeId !== null && playerActions.isSelectedBiomeAvailableForCapture();
-          const canCapture = isAvailable && playerActions.canCaptureBiome(selectedBiomeId);
+          const canCapture = isAvailable && playerActions.canCaptureBiome(selectedBiomeId) && data.isMyTurn;
           this.captureBiomeButton.setVisible(canCapture);
-          
-          // Update background size when button visibility changes
-          this.updateBackgroundSize();
+          if (this.captureBiomeButton.list[0]) {
+            const buttonBg = this.captureBiomeButton.list[0] as Phaser.GameObjects.Rectangle;
+            if (data.isMyTurn) {
+              buttonBg.setInteractive({ useHandCursor: true });
+              buttonBg.setFillStyle(0x808080);
+            } else {
+              buttonBg.disableInteractive();
+              buttonBg.setFillStyle(0x404040);
+            }
+          }
         }
+        
+        // Update harvest button based on turn
+        if (this.harvestButton) {
+          if (this.harvestButton.list[0]) {
+            const buttonBg = this.harvestButton.list[0] as Phaser.GameObjects.Rectangle;
+            if (data.isMyTurn) {
+              buttonBg.setInteractive({ useHandCursor: true });
+              buttonBg.setFillStyle(0x808080);
+            } else {
+              buttonBg.disableInteractive();
+              buttonBg.setFillStyle(0x404040);
+            }
+          }
+        }
+        
+        // Update background size when button visibility changes
+        this.updateBackgroundSize();
       }
     );
 
@@ -343,6 +390,26 @@ export default class UIScene extends Phaser.Scene {
 
   async handleNextTurn(): Promise<void> {
     if (this.isProcessingNextTurn) return;
+    
+    // Validate turn ownership
+    const multiplayerInfo = (window as any).multiplayerInfo;
+    if (multiplayerInfo) {
+      const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
+      const { MultiplayerClient } = await import('../utils/MultiplayerClient');
+      const client = new MultiplayerClient();
+      
+      const turnController = new MultiplayerTurnController(
+        multiplayerInfo.isHost,
+        multiplayerInfo.localPlayerId,
+        client
+      );
+      
+      if (!turnController.isMyTurn()) {
+        console.warn('Not your turn!');
+        return;
+      }
+    }
+    
     this.isProcessingNextTurn = true;
     this.nextTurnButtonBg?.disableInteractive();
     
@@ -350,11 +417,9 @@ export default class UIScene extends Phaser.Scene {
     const { GameEnvironment } = await import('../env/GameEnvironment');
     if (GameEnvironment.mode === 'pvponline') {
       // Use multiplayer turn handling
-      const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
-      
-      // Get multiplayer context from window
       const multiplayerInfo = (window as any).multiplayerInfo;
       if (multiplayerInfo) {
+        const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
         const { MultiplayerClient } = await import('../utils/MultiplayerClient');
         const client = new MultiplayerClient();
         
@@ -394,6 +459,25 @@ export default class UIScene extends Phaser.Scene {
 
   public async handleSpawnUnit(): Promise<void> {
     if (!this.selectedEggId) return;
+    
+    // Validate turn ownership
+    const multiplayerInfo = (window as any).multiplayerInfo;
+    if (multiplayerInfo) {
+      const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
+      const { MultiplayerClient } = await import('../utils/MultiplayerClient');
+      const client = new MultiplayerClient();
+      
+      const turnController = new MultiplayerTurnController(
+        multiplayerInfo.isHost,
+        multiplayerInfo.localPlayerId,
+        client
+      );
+      
+      if (!turnController.isMyTurn()) {
+        console.warn('Not your turn!');
+        return;
+      }
+    }
   
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     const gameController = boardScene.getGameController();
@@ -408,6 +492,25 @@ export default class UIScene extends Phaser.Scene {
   public async handleCaptureBiome(): Promise<void> {
     const selectedBiomeId = playerActions.getSelectedBiomeId();
     if (!selectedBiomeId) return;
+    
+    // Validate turn ownership
+    const multiplayerInfo = (window as any).multiplayerInfo;
+    if (multiplayerInfo) {
+      const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
+      const { MultiplayerClient } = await import('../utils/MultiplayerClient');
+      const client = new MultiplayerClient();
+      
+      const turnController = new MultiplayerTurnController(
+        multiplayerInfo.isHost,
+        multiplayerInfo.localPlayerId,
+        client
+      );
+      
+      if (!turnController.isMyTurn()) {
+        console.warn('Not your turn!');
+        return;
+      }
+    }
   
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     const gameController = boardScene.getGameController();
@@ -422,6 +525,25 @@ export default class UIScene extends Phaser.Scene {
   public async handleHarvest(): Promise<void> {
     const coord = playerActions.getSelectedResource();
     if (!coord) return;
+    
+    // Validate turn ownership
+    const multiplayerInfo = (window as any).multiplayerInfo;
+    if (multiplayerInfo) {
+      const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
+      const { MultiplayerClient } = await import('../utils/MultiplayerClient');
+      const client = new MultiplayerClient();
+      
+      const turnController = new MultiplayerTurnController(
+        multiplayerInfo.isHost,
+        multiplayerInfo.localPlayerId,
+        client
+      );
+      
+      if (!turnController.isMyTurn()) {
+        console.warn('Not your turn!');
+        return;
+      }
+    }
   
     const boardScene = this.scene.get('BoardScene') as BoardScene;
     const gameController = boardScene.getGameController();

@@ -163,6 +163,13 @@ export class MultiplayerTurnController {
   }
 
   /**
+   * Get the local player ID for this client
+   */
+  public getLocalPlayerId(): number {
+    return this.localPlayerId;
+  }
+
+  /**
    * Get current turn status for UI
    */
   public getTurnStatus(): {
