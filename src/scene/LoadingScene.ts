@@ -63,10 +63,12 @@ export default class LoadingScene extends Phaser.Scene {
   async setupGameState() {
     // Use existing setup - LoadingScene handles async coordination
     const { GameEnvironment } = await import('../env/GameEnvironment');
-    const { setupGameBoard } = await import('../store/actions');
+    const { BoardController } = await import('../controllers/BoardController');
+    
+    // Import actions dynamically
+    const { addPlayer, setupGameBoard } = await import('../store/actions');
     
     for (const player of GameEnvironment.playerConfigs) {
-      const { addPlayer } = await import('../store/actions');
       addPlayer(player.name, player.color);
     }
 
@@ -101,11 +103,13 @@ export default class LoadingScene extends Phaser.Scene {
     const { BoardController } = await import('../controllers/BoardController');
     const { GameEnvironment } = await import('../env/GameEnvironment');
     
-    // Generate initial state
-    const result = BoardController.initializeBoard({
-      width: GameEnvironment.boardWidth,
-      height: GameEnvironment.boardHeight
-    });
+    // Generate initial state with proper parameters
+    const players = GameEnvironment.playerConfigs;
+    const result = BoardController.initializeBoard(
+      GameEnvironment.boardWidth,
+      GameEnvironment.boardHeight,
+      players
+    );
 
     const gameState = {
       board: result.board,
