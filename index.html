@@ -293,11 +293,6 @@
           
           .lobby-container {
             pointer-events: auto;
-            background: rgba(0,0,0,0.7);
-            border-radius: 20px;
-            padding: 40px;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255,255,255,0.2);
             text-align: center;
             max-width: 600px;
             font-family: 'Orbitron', monospace;
@@ -306,19 +301,32 @@
           
           .room-id {
             font-size: 24px;
-            margin-bottom: 20px;
+            margin-bottom: 40px;
             color: #00ffcc;
             letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
           }
           
-          .share-url {
-            font-size: 14px;
-            margin-bottom: 40px;
-            color: #888;
-            word-break: break-all;
-            padding: 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 5px;
+          .copy-icon {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ffcc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+          }
+          
+          .copy-icon:hover {
+            opacity: 1;
+            background: rgba(0,255,204,0.1);
           }
           
           .players-container {
@@ -349,6 +357,7 @@
           
           .player-circle.waiting {
             border-style: dashed;
+            border-color: #666;
             color: #666;
           }
           
@@ -358,6 +367,10 @@
           }
           
           .start-button {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
             font-family: 'Orbitron', monospace;
             font-weight: 900;
             font-size: 24px;
@@ -368,31 +381,45 @@
             padding: 12px 30px;
             cursor: pointer;
             letter-spacing: 2px;
-            margin-top: 40px;
-            transition: all 0.2s ease;
+            text-shadow: 
+              -1px -1px 0 #000,
+              1px -1px 0 #000,
+              -1px 1px 0 #000,
+              1px 1px 0 #000;
+            box-shadow: 
+              0 0 0 2px #000,
+              0 0 15px rgba(255,255,255,0.3);
+            transition: box-shadow 0.1s ease;
+            z-index: 1000;
           }
           
           .start-button:hover {
-            background: rgba(0,255,204,0.2);
-            border-color: #00ffcc;
-            box-shadow: 0 0 20px rgba(0,255,204,0.3);
+            background: rgba(255,255,255,0.15);
+            box-shadow: 
+              0 0 0 2px #000,
+              0 0 35px rgba(255,255,255,0.9);
+          }
+          
+          .start-button:active {
+            background: rgba(255,255,255,0.2);
+            box-shadow: 
+              0 0 0 2px #000,
+              0 0 35px rgba(255,255,255,0.9);
+            transform: translateX(-50%) scale(0.98);
           }
           
           .start-button:disabled {
             opacity: 0.3;
             cursor: not-allowed;
-          }
-          
-          .waiting-text {
-            color: #888;
-            font-size: 16px;
-            margin-top: 20px;
+            pointer-events: none;
           }
         </style>
         
         <div class="lobby-container">
-          <div class="room-id">ROOM: ${roomId.toUpperCase()}</div>
-          <div class="share-url">Share: ${window.location.origin}/planet/${roomId}</div>
+          <div class="room-id">
+            PLANET ${roomId.toUpperCase()}
+            <span class="copy-icon" onclick="copyRoomUrl('${roomId}')">⧉</span>
+          </div>
           
           <div class="players-container">
             <div class="player-slot">
@@ -401,21 +428,31 @@
             </div>
             <div class="player-slot">
               <div class="player-circle waiting" id="player2">2</div>
-              <div class="player-label" id="player2-label">Waiting...</div>
+              <div class="player-label" id="player2-label" style="color: #666;">Player 2</div>
             </div>
           </div>
-          
-          <button class="start-button" id="startGameBtn" disabled onclick="startPlanetBGame()">
-            START GAME
-          </button>
-          <div class="waiting-text" id="waitingText">
-            Waiting for second player to join...
-          </div>
         </div>
+        
+        <button class="start-button" id="startGameBtn" disabled onclick="startPlanetBGame()">
+          PLAY
+        </button>
       `;
       
       // Add overlay to the body (globe keeps spinning behind it)
       document.body.appendChild(overlay);
+      
+      // Copy room URL function
+      window.copyRoomUrl = function(roomId) {
+        const url = window.location.origin + '/planet/' + roomId;
+        navigator.clipboard.writeText(url).then(() => {
+          const icon = document.querySelector('.copy-icon');
+          const originalText = icon.textContent;
+          icon.textContent = '✓';
+          setTimeout(() => {
+            icon.textContent = originalText;
+          }, 1000);
+        });
+      };
       
       // Start polling for room updates
       window.lobbyPolling = setInterval(async () => {
@@ -426,15 +463,24 @@
           const player2Circle = document.getElementById('player2');
           const player2Label = document.getElementById('player2-label');
           const startBtn = document.getElementById('startGameBtn');
-          const waitingText = document.getElementById('waitingText');
           
           if (data.host && data.guest) {
             // Both players connected
+            console.log('Both players connected! Enabling PLAY button...');
             player2Circle.classList.remove('waiting');
             player2Circle.classList.add('connected');
             player2Label.textContent = isHost ? 'Guest' : 'You (Guest)';
+            player2Label.style.color = 'white';
             startBtn.disabled = false;
-            waitingText.style.display = 'none';
+            startBtn.style.pointerEvents = 'auto';
+            
+            // Add click handler directly as backup
+            startBtn.addEventListener('click', function() {
+              console.log('Direct click handler triggered!');
+              window.startPlanetBGame();
+            });
+            
+            console.log('Button enabled:', !startBtn.disabled);
           }
         } catch (error) {
           console.error('Lobby polling error:', error);
@@ -444,7 +490,7 @@
     
     // Start the actual Planet B game with transition
     window.startPlanetBGame = function() {
-      console.log('Starting Planet B game transition...');
+      console.log('PLAY button clicked! Starting Planet B game transition...');
       
       // Stop lobby polling
       if (window.lobbyPolling) {
