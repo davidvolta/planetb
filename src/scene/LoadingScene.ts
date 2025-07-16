@@ -129,9 +129,11 @@ export default class LoadingScene extends Phaser.Scene {
     const { PlayerController } = await import('../controllers/PlayerController');
     const playerConfigs = GameEnvironment.playerConfigs;
     
-    const players = playerConfigs.map((config, index) => 
-      PlayerController.createPlayer(config.name, config.color, [], index)
-    );
+    const players: any[] = [];
+    for (const config of playerConfigs) {
+      const player = PlayerController.createPlayer(config.name, config.color, players);
+      players.push(player);
+    }
     
     console.log('Created players with IDs:', players.map(p => `${p.name}: ID=${p.id}`));
     

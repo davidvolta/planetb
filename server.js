@@ -35,6 +35,7 @@ app.post('/api/rooms/:roomId/initial-state', (req, res) => {
     return res.status(403).json({ error: 'Only host can set initial state' });
   }
   
+  console.log('Received gameState.players:', JSON.stringify(gameState.players.map(p => ({ name: p.name, id: p.id })), null, 2));
   initialStates.set(roomId, gameState);
   console.log(`Initial state set for room ${roomId}`);
   res.json({ success: true });
@@ -48,7 +49,9 @@ app.get('/api/rooms/:roomId/initial-state', (req, res) => {
     return res.status(404).json({ error: 'Initial state not set' });
   }
   
-  res.json({ gameState: initialStates.get(roomId) });
+  const gameState = initialStates.get(roomId);
+  console.log('Sending gameState.players:', JSON.stringify(gameState.players.map(p => ({ name: p.name, id: p.id })), null, 2));
+  res.json({ gameState });
 });
 
 // Existing room endpoints
