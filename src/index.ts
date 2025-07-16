@@ -40,10 +40,10 @@ function initializePlanet() {
   
   // Main wireframe sphere
   const wireframeMat = new (window as any).THREE.MeshBasicMaterial({ 
-    color: 0x2ecc71,
+    color: 0x00ff88,
     wireframe: true,
     transparent: true,
-    opacity: 0.8
+    opacity: 1.0
   });
   const wireframeSphere = new (window as any).THREE.Mesh(icosphereGeo, wireframeMat);
   scene.add(wireframeSphere);
@@ -51,9 +51,9 @@ function initializePlanet() {
   // Glow effect sphere (slightly larger)
   const glowGeo = new (window as any).THREE.IcosahedronGeometry(3.1, 1);
   const glowMat = new (window as any).THREE.MeshBasicMaterial({
-    color: 0x27ae60,
+    color: 0x00ff88,
     transparent: true,
-    opacity: 0.15,
+    opacity: 0.3,
     side: (window as any).THREE.BackSide
   });
   const glowSphere = new (window as any).THREE.Mesh(glowGeo, glowMat);
@@ -76,10 +76,10 @@ function initializePlanet() {
   particleGeo.setAttribute('position', vertices);
   
   const particleMat = new (window as any).THREE.PointsMaterial({
-    color: 0x7dffaa,
-    size: 4,
+    color: 0x00ffcc,
+    size: 6,
     transparent: true,
-    opacity: 0.6,
+    opacity: 0.9,
     blending: (window as any).THREE.AdditiveBlending
   });
   
