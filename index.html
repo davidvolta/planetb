@@ -17,37 +17,42 @@
   <script type="module">
     import * as THREE from '/node_modules/three/build/three.module.js';
     
-    console.log('Three.js module loaded');
+    console.log('Starting fresh...');
     
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 0);
     document.body.appendChild(renderer.domElement);
 
-    // Clean beautiful wireframe sphere
-    const geometry = new THREE.IcosahedronGeometry(2.5, 3);
+    // FOUR TILING GEOMETRIES FOR DIFFERENT GAME SYSTEMS
+    const geometries = [
+      new THREE.IcosahedronGeometry(2.5, 4),   // Triangular tiling - organic ecosystems
+      new THREE.BoxGeometry(2.5, 2.5, 2.5, 8, 8, 8),  // Square grid - structured civilization  
+      new THREE.OctahedronGeometry(2, 4),      // Diamond tiling - resource networks
+      new THREE.DodecahedronGeometry(2, 3)     // Pentagonal - complex biome interactions
+    ];
     
-    // Main wireframe 
-    const wireframeMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x00ffaa,
-      wireframe: true
-    });
-    const wireframeSphere = new THREE.Mesh(geometry, wireframeMaterial);
-    scene.add(wireframeSphere);
+    let currentGeo = 0;
+    // Add sun lighting
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    sunLight.position.set(5, 3, 5);
+    scene.add(sunLight);
     
-    // Inner wireframe layer
-    const innerGeometry = new THREE.IcosahedronGeometry(2.2, 2);
-    const innerMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00cc88,
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+    scene.add(ambientLight);
+    
+    const material = new THREE.MeshLambertMaterial({ 
+      color: 0x00ffcc,
       wireframe: true,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.8
     });
-    const innerSphere = new THREE.Mesh(innerGeometry, innerMaterial);
-    scene.add(innerSphere);
+    const sphere = new THREE.Mesh(geometries[currentGeo], material);
+    scene.add(sphere);
+    
+    // Pentagon locked! No more cycling
 
     camera.position.z = 5;
 
@@ -90,12 +95,11 @@
     
     function animate() {
       requestAnimationFrame(animate);
-      
-      time += 0.01;
+      time += 0.02;
       
       // Apply rotation from drag momentum
-      wireframeSphere.rotation.x += velocityX;
-      wireframeSphere.rotation.y += velocityY;
+      sphere.rotation.x += velocityX;
+      sphere.rotation.y += velocityY;
       
       // Slow down momentum when not dragging
       if (!isDragging) {
@@ -103,24 +107,44 @@
         velocityY *= 0.95;
         
         // Very slow drift of time itself
-        wireframeSphere.rotation.y += 0.0005;
+        sphere.rotation.y += 0.0005;
       }
       
-      // Inner sphere gentle independent movement  
-      innerSphere.rotation.y -= 0.001;
-      innerSphere.rotation.x += 0.0005;
+      // Sun pulsing with life energy
+      const sunPulse = Math.sin(time * 0.8) * 0.3 + 0.9;
+      sunLight.intensity = sunPulse * 1.2;
       
-      // Gentle floating motion
-      const float = Math.sin(time * 0.5) * 0.1;
-      wireframeSphere.position.y = float;
-      glowSphere.position.y = float;
-      particles.position.y = float;
+      // Ecosystem breathing - from deep ocean to mountain peaks
+      const cycle = Math.sin(time * 0.3) * 0.5 + 0.5;
+      
+      // Define ecosystem gradient: deep sea → kelp → grass → forest → mountain
+      const colors = [
+        { r: 0.05, g: 0.2, b: 0.4 },   // Deep ocean blue
+        { r: 0.1, g: 0.4, b: 0.3 },    // Kelp green-blue  
+        { r: 0.2, g: 0.6, b: 0.2 },    // Grassland green
+        { r: 0.15, g: 0.5, b: 0.1 },   // Forest deep green
+        { r: 0.4, g: 0.4, b: 0.35 }    // Mountain stone
+      ];
+      
+      // Smooth interpolation through ecosystem layers
+      const pos = cycle * (colors.length - 1);
+      const index = Math.floor(pos);
+      const fraction = pos - index;
+      
+      const color1 = colors[index];
+      const color2 = colors[Math.min(index + 1, colors.length - 1)];
+      
+      const r = color1.r + (color2.r - color1.r) * fraction;
+      const g = color1.g + (color2.g - color1.g) * fraction;
+      const b = color1.b + (color2.b - color1.b) * fraction;
+      
+      material.color.setRGB(r, g, b);
       
       renderer.render(scene, camera);
     }
 
     animate();
-    console.log('Green wireframe sphere should be visible');
+    console.log('Should see rotating green wireframe sphere');
   </script>
 </body>
 </html>
