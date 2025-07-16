@@ -18,12 +18,20 @@ app.post('/api/rooms/:roomId/initial-state', (req, res) => {
   const { roomId } = req.params;
   const { playerId, gameState } = req.body;
   
+  console.log(`POST /api/rooms/${roomId}/initial-state`);
+  console.log('Request playerId:', playerId);
+  
   if (!rooms.has(roomId)) {
+    console.log('Room not found:', roomId);
     return res.status(404).json({ error: 'Room not found' });
   }
   
   const room = rooms.get(roomId);
+  console.log('Room host:', room.host);
+  console.log('Room guest:', room.guest);
+  
   if (room.host?.id !== playerId) {
+    console.log(`Authorization failed: host.id='${room.host?.id}' vs playerId='${playerId}'`);
     return res.status(403).json({ error: 'Only host can set initial state' });
   }
   

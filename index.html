@@ -606,11 +606,12 @@
       console.log(`Auto-joining room: ${roomId}`);
       
       try {
+        const guestPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
         const response = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            playerId: 'player_' + Math.random().toString(36).substr(2, 9),
+            playerId: guestPlayerId,
             playerName: 'Guest Player'
           })
         });
@@ -627,7 +628,7 @@
         window.multiplayerInfo = {
           roomId: roomId,
           isHost: isHost,
-          playerId: isHost ? joinData.host?.id : joinData.guest?.id
+          playerId: guestPlayerId
         };
         
         // Show lobby overlay immediately (globe keeps spinning behind)
@@ -664,11 +665,12 @@
         window.history.pushState({}, '', `/planet/${roomId}`);
         
         // Join the room as host
+        const hostPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
         const joinResponse = await fetch(`http://localhost:3001/api/rooms/${roomId}/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            playerId: 'player_' + Math.random().toString(36).substr(2, 9),
+            playerId: hostPlayerId,
             playerName: 'Host Player'
           })
         });
@@ -684,7 +686,7 @@
         window.multiplayerInfo = {
           roomId: roomId,
           isHost: isHost,
-          playerId: isHost ? joinData.host?.id : joinData.guest?.id
+          playerId: hostPlayerId
         };
         
         // Show lobby overlay immediately (globe keeps spinning behind)

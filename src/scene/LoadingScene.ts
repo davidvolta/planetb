@@ -78,11 +78,27 @@ export default class LoadingScene extends Phaser.Scene {
     });
   }
 
-  async loadMultiplayerState(multiplayerContext: { roomId: string, isHost: boolean }) {
-    console.log('Loading multiplayer state...');
+  async loadMultiplayerState(multiplayerContext: { roomId: string, isHost: boolean, playerId?: string }) {
+    console.log('Loading multiplayer state...', multiplayerContext);
     
     const { MultiplayerClient } = await import('../utils/MultiplayerClient');
     const client = new MultiplayerClient();
+    
+    // Override the playerId if provided in context
+    if (multiplayerContext.playerId) {
+      console.log('Using provided playerId:', multiplayerContext.playerId);
+      (client as any).playerId = multiplayerContext.playerId;
+    } else {
+      console.log('No playerId provided, using generated:', (client as any).playerId);
+    }
+    (client as any).roomId = multiplayerContext.roomId;
+    (client as any).isHost = multiplayerContext.isHost;
+    
+    console.log('Client setup:', {
+      playerId: (client as any).playerId,
+      roomId: (client as any).roomId,
+      isHost: (client as any).isHost
+    });
     
     try {
       if (multiplayerContext.isHost) {
