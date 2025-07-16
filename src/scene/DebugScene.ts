@@ -41,8 +41,9 @@ export default class DebugScene extends Phaser.Scene {
 
   create() {
     const padding = 10;
-    const offsetX = 30; // Move everything right by 20px
+    const leftX = 30;
     const bottomY = this.cameras.main.height - 10;
+    const lineHeight = 25;
     
     // Get the board scene
     this.boardScene = this.scene.get('BoardScene') as BoardScene;
@@ -50,8 +51,11 @@ export default class DebugScene extends Phaser.Scene {
     // Initialize FOW toggle from store
     this.fowEnabled = getFogOfWarEnabled();
     
-    // Create game mode display
-    const modeText = this.add.text(offsetX + padding, bottomY, `Mode: ${GameEnvironment.mode}`, {
+    // Stack all controls vertically on the left
+    let currentY = bottomY;
+    
+    // Create game mode display (bottom of stack)
+    const modeText = this.add.text(leftX, currentY, `Mode: ${GameEnvironment.mode}`, {
       fontSize: "14px",
       fontFamily: "monospace",
       color: "#00FF00",
@@ -62,18 +66,24 @@ export default class DebugScene extends Phaser.Scene {
     .setDepth(1000)
     .setOrigin(0, 1);
     
-    // Create FOW checkbox
-    this.createFowCheckbox(modeText.x + modeText.width + padding, bottomY);
+    currentY -= lineHeight;
     
     // Create resource slider
-    this.createResourceSlider(this.fowCheckbox.x + this.fowCheckbox.width + padding, bottomY);
+    this.createResourceSlider(leftX, currentY);
+    
+    currentY -= lineHeight;
+    
+    // Create FOW checkbox
+    this.createFowCheckbox(leftX, currentY);
+    
+    currentY -= lineHeight;
     
     // Create pause button if in SIM mode
     if (GameEnvironment.mode === 'sim') {
-      this.createPauseButton(this.resourceSlider.x + this.resourceSlider.width + padding, bottomY);
+      this.createPauseButton(leftX, currentY);
     }
     
-    // Create FPS display on the far right
+    // Create FPS display on the far right (unchanged)
     this.fpsText = this.add.text(this.cameras.main.width - padding, bottomY, "FPS: 0", {
       fontSize: "14px",
       fontFamily: "monospace",
@@ -84,6 +94,9 @@ export default class DebugScene extends Phaser.Scene {
     .setScrollFactor(0)
     .setDepth(1000)
     .setOrigin(1, 1);
+    
+    // Store reference to mode text for resize handler
+    (this as any).modeText = modeText;
     
     // Listen for resize events to reposition the debug elements
     this.scale.on('resize', this.handleResize, this);
@@ -110,9 +123,9 @@ export default class DebugScene extends Phaser.Scene {
     // Get width of text to position slider after it
     const textWidth = this.resourceSliderText.width;
     
-    // Create slider track
+    // Create slider track with matching height
     const trackWidth = 100;
-    this.resourceSliderTrack = this.add.rectangle(textWidth + 15, 0, trackWidth, 10, 0x333333)
+    this.resourceSliderTrack = this.add.rectangle(textWidth + 15, 0, trackWidth, 16, 0x333333)
       .setStrokeStyle(1, 0x00FF00)
       .setOrigin(0, 1); // Align with bottom
     
@@ -237,10 +250,9 @@ export default class DebugScene extends Phaser.Scene {
       .setOrigin(0, 1) // Align with bottom
       .setInteractive({ useHandCursor: true });
     
-    // Create checkbox inner fill
-    this.fowCheckboxInner = this.add.rectangle(0, 0, 10, 10, 0x00FF00, 1)
-      .setOrigin(0, 1) // Align with bottom
-      .setPosition(3, 0);
+    // Create checkbox inner fill (centered in the 16x16 box)
+    this.fowCheckboxInner = this.add.rectangle(8, -8, 10, 10, 0x00FF00, 1)
+      .setOrigin(0.5, 0.5); // Center the inner square
     this.fowCheckboxInner.setVisible(this.fowEnabled);
     
     // Create label to the right of checkbox
@@ -305,38 +317,39 @@ export default class DebugScene extends Phaser.Scene {
     const height = this.cameras.main.height;
     const bottomY = height - 10;
     const padding = 10;
-    const offsetX = 30; // Move everything right by 20px
-    let xOffset = offsetX + padding;
+    const leftX = 30;
+    const lineHeight = 25;
     
-    // Position game mode display
-    const modeText = this.children.list.find(child => 
-      child instanceof Phaser.GameObjects.Text && 
-      child.text.startsWith('Mode:')
-    ) as Phaser.GameObjects.Text;
+    let currentY = bottomY;
     
+    // Position game mode display (bottom of stack)
+    const modeText = (this as any).modeText;
     if (modeText) {
-      modeText.setPosition(offsetX + padding, bottomY);
-      xOffset = modeText.x + modeText.width + padding;
+      modeText.setPosition(leftX, currentY);
     }
     
-    // Position FOW checkbox
-    if (this.fowCheckbox) {
-      this.fowCheckbox.setPosition(xOffset, bottomY);
-      xOffset = this.fowCheckbox.x + this.fowCheckbox.width + padding;
-    }
+    currentY -= lineHeight;
     
     // Position resource slider
     if (this.resourceSlider) {
-      this.resourceSlider.setPosition(xOffset, bottomY);
-      xOffset = this.resourceSlider.x + this.resourceSlider.width + padding;
+      this.resourceSlider.setPosition(leftX, currentY);
     }
+    
+    currentY -= lineHeight;
+    
+    // Position FOW checkbox
+    if (this.fowCheckbox) {
+      this.fowCheckbox.setPosition(leftX, currentY);
+    }
+    
+    currentY -= lineHeight;
     
     // Position pause button
     if (this.pauseButton) {
-      this.pauseButton.setPosition(xOffset, bottomY);
+      this.pauseButton.setPosition(leftX, currentY);
     }
     
-    // Position FPS on the far right
+    // Position FPS on the far right (unchanged)
     this.fpsText.setPosition(width - padding, bottomY);
   }
 
