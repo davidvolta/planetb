@@ -27,9 +27,6 @@
 ## REFACTORING
 
 ### CRITICAL ARCHITECTURE FIXES (Fix First) 🔥
-- [x] **Omniscient State Access Pattern** - MOST CRITICAL ✅ **COMPLETED**
-  - [ ] Update remaining renderers and controllers (AnimationController, GameController, etc.)
-  - [ ] Fix fog-of-war security holes and performance issues
 - [ ] **Circular Dependencies & Tight Coupling**
   - [ ] Create `src/store/commands/` for business logic
   - [ ] Keep `actions/` for pure state mutations only
@@ -53,6 +50,7 @@
   - [ ] Remove direct setState calls mixed with pure functions
   - [ ] Implement consistent state update flow
 
+
 ### MEDIUM PRIORITY FIXES 📋
 - [ ] **Memory Leaks in State Subscriptions**
   - [ ] Fix StateObserver subscription cleanup
@@ -70,7 +68,6 @@
 ### EXISTING REFACTORING TASKS
 - [ ] Rewrite TileInteractionController to fully route all click handling through the GameController facade
 
-## COMPLETED: Omniscient State Access Refactor ✅
 
 **Remaining files to update (lower priority):**
 - [ ] `src/scene/BoardScene.ts` (rendering optimizations)

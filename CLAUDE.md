@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**Architecture Philosophy**: You don't owe your art project the architecture of a AAA studio. You're building for expression, not for production-scale optimization or bulletproof networking. Build what feels good to play, not what impresses other developers.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
@@ -19,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Biome-Centric Design**: Biomes are primary data structures, habitats are embedded within biomes
 - **Observer Pattern**: StateObserver utility for efficient state subscriptions
 - **Component Lifecycle**: All components follow init/update/destroy pattern
+- **Turn Mechanics**: Strict alternating turns - players take sequential turns (not simultaneous)
 
 ### Directory Structure
 ```
@@ -85,3 +88,15 @@ Key documentation files (always read these first):
 - `docs/dev_checklist.md` - Development checklist
 - `docs/overview/` - Component-specific overviews
 - `.cursor/rules/cursor.mdc` - Project-specific development rules
+
+## PlayerView Architecture Approach
+
+**Pragmatic Strategy**: Stop refactoring pain, ship features.
+
+- **Keep existing PlayerView** where it's already working
+- **For new multiplayer code**: Use direct `GameState` access (mark with `// TODO: PlayerView when needed`)
+- **Don't retrofit** perfectly working code for architectural purity
+- **Focus on shipping** the multiplayer experience over perfect patterns
+
+## Personal Goals
+- New goal: play with a friend.
