@@ -571,13 +571,20 @@
     // Auto-join if visiting room URL, otherwise show START button
     window.addEventListener('DOMContentLoaded', function() {
       const path = window.location.pathname;
-      const roomMatch = path.match(/^\/planet\/(b[a-f0-9]{6})$/);
+      const fullPath = window.location.href;
+      console.log('Current path:', path);
+      console.log('Full URL:', fullPath);
+      
+      // Match /planet/ followed by room ID (b + any alphanumeric)
+      const roomMatch = path.match(/^\/planet\/(b[a-z0-9]+)$/i);
       
       if (roomMatch) {
         // Player 2 visiting room URL - auto-join immediately
+        console.log('Auto-joining room:', roomMatch[1]);
         autoJoinRoom(roomMatch[1]);
+      } else {
+        console.log('No room match, showing homepage');
       }
-      // Otherwise show normal homepage with START button
     });
 
     async function autoJoinRoom(roomId) {
