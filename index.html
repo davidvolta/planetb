@@ -80,12 +80,41 @@
       opacity: 0;
       transition: opacity 1s ease;
     }
+    
+    .dev-button {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 50px;
+      height: 30px;
+      font-family: 'Orbitron', monospace;
+      font-weight: 400;
+      font-size: 12px;
+      color: white;
+      background: rgba(255, 0, 0, 0.7);
+      border: 1px solid rgba(255, 0, 0, 0.9);
+      border-radius: 4px;
+      padding: 0;
+      cursor: pointer;
+      letter-spacing: 1px;
+      z-index: 1000;
+      transition: background 0.2s ease;
+    }
+    
+    .dev-button:hover {
+      background: rgba(255, 0, 0, 0.9);
+    }
+    
+    .dev-button:active {
+      background: rgba(255, 0, 0, 1);
+      transform: scale(0.95);
+    }
   </style>
 </head>
 <body>
   <div class="title">PLANET B</div>
   <button class="play-button" onclick="joinPlanet()">START</button>
-  <button class="play-button" onclick="devMultiplayer()" style="bottom: 80px; background: rgba(255,0,0,0.2);">DEV: SKIP TO MULTIPLAYER</button>
+  <button class="dev-button" onclick="devMultiplayer()">DEV</button>
   <script type="module">
     import * as THREE from '/node_modules/three/build/three.module.js';
     
