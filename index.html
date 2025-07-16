@@ -9,7 +9,7 @@
       margin: 0; 
       padding: 0;
       overflow: hidden; 
-      background: #111;
+      background: #000;
     }
   </style>
 </head>
@@ -24,24 +24,98 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x222222);
+    renderer.setClearColor(0x000000, 0);
     document.body.appendChild(renderer.domElement);
 
-    // Simple bright green wireframe sphere
-    const geometry = new THREE.IcosahedronGeometry(2, 2);
-    const material = new THREE.MeshBasicMaterial({ 
-      color: 0x00ff00,
-      wireframe: true 
+    // Clean beautiful wireframe sphere
+    const geometry = new THREE.IcosahedronGeometry(2.5, 3);
+    
+    // Main wireframe 
+    const wireframeMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffaa,
+      wireframe: true
     });
-    const sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
+    const wireframeSphere = new THREE.Mesh(geometry, wireframeMaterial);
+    scene.add(wireframeSphere);
+    
+    // Inner wireframe layer
+    const innerGeometry = new THREE.IcosahedronGeometry(2.2, 2);
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00cc88,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.6
+    });
+    const innerSphere = new THREE.Mesh(innerGeometry, innerMaterial);
+    scene.add(innerSphere);
 
     camera.position.z = 5;
 
+    // Click and drag interaction with momentum
+    let mouseX = 0;
+    let mouseY = 0;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+    let velocityX = 0;
+    let velocityY = 0;
+    let isDragging = false;
+
+    document.addEventListener('mousedown', (event) => {
+      isDragging = true;
+      lastMouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      lastMouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    document.addEventListener('mousemove', (event) => {
+      if (!isDragging) return;
+      
+      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      const deltaX = (mouseY - lastMouseY) * 2;
+      const deltaY = (mouseX - lastMouseX) * 2;
+      
+      velocityX = deltaX;
+      velocityY = deltaY;
+      
+      lastMouseX = mouseX;
+      lastMouseY = mouseY;
+    });
+
+    let time = 0;
+    
     function animate() {
       requestAnimationFrame(animate);
-      sphere.rotation.x += 0.01;
-      sphere.rotation.y += 0.01;
+      
+      time += 0.01;
+      
+      // Apply rotation from drag momentum
+      wireframeSphere.rotation.x += velocityX;
+      wireframeSphere.rotation.y += velocityY;
+      
+      // Slow down momentum when not dragging
+      if (!isDragging) {
+        velocityX *= 0.95;
+        velocityY *= 0.95;
+        
+        // Very slow drift of time itself
+        wireframeSphere.rotation.y += 0.0005;
+      }
+      
+      // Inner sphere gentle independent movement  
+      innerSphere.rotation.y -= 0.001;
+      innerSphere.rotation.x += 0.0005;
+      
+      // Gentle floating motion
+      const float = Math.sin(time * 0.5) * 0.1;
+      wireframeSphere.position.y = float;
+      glowSphere.position.y = float;
+      particles.position.y = float;
+      
       renderer.render(scene, camera);
     }
 
