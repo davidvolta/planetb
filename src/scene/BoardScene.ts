@@ -129,13 +129,35 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   // Create and set up the scene
-  public create(): void {
+  public async create(): Promise<void> {
     console.log("BoardScene create() called", this.scene.key);
 
     const initializer = new SceneInitializer(this);
     this.gameController = initializer.run();
 
-    this.turnController = new TurnController(this.gameController, GameEnvironment.mode);
+    // Initialize appropriate turn controller based on game mode
+    if (GameEnvironment.mode === 'pvponline') {
+      // Use multiplayer context if available
+      const multiplayerInfo = (window as any).multiplayerInfo;
+      if (multiplayerInfo) {
+        const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
+        const { MultiplayerClient } = await import('../utils/MultiplayerClient');
+        const client = new MultiplayerClient();
+        
+        this.turnController = new MultiplayerTurnController(
+          multiplayerInfo.isHost,
+          multiplayerInfo.localPlayerId,
+          client
+        ) as any; // Type assertion to match existing interface
+        
+        await (this.turnController as any).initialize();
+      } else {
+        // Fallback to regular turn controller
+        this.turnController = new TurnController(this.gameController, GameEnvironment.mode);
+      }
+    } else {
+      this.turnController = new TurnController(this.gameController, GameEnvironment.mode);
+    }
 
     // Update player view BEFORE setting up subscriptions to ensure data is available
     this.updatePlayerView();

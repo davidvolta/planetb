@@ -345,21 +345,49 @@ export default class UIScene extends Phaser.Scene {
     if (this.isProcessingNextTurn) return;
     this.isProcessingNextTurn = true;
     this.nextTurnButtonBg?.disableInteractive();
-    // Capture the player whose turn is ending
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _prevPlayerId = playerActions.getActivePlayerId();
-    // Execute one full turn (human and optional AI)
-    const boardScene = this.scene.get('BoardScene') as BoardScene;
-    await boardScene.getTurnController().next();
+    
+    // Check if we're in multiplayer mode
+    const { GameEnvironment } = await import('../env/GameEnvironment');
+    if (GameEnvironment.mode === 'pvponline') {
+      // Use multiplayer turn handling
+      const { MultiplayerTurnController } = await import('../game/MultiplayerTurnController');
+      
+      // Get multiplayer context from window
+      const multiplayerInfo = (window as any).multiplayerInfo;
+      if (multiplayerInfo) {
+        const { MultiplayerClient } = await import('../utils/MultiplayerClient');
+        const client = new MultiplayerClient();
+        
+        const turnController = new MultiplayerTurnController(
+          multiplayerInfo.isHost,
+          multiplayerInfo.localPlayerId,
+          client
+        );
+        
+        if (multiplayerInfo.isHost) {
+          // Host advances the turn
+          await turnController.nextTurn();
+        } else {
+          // Guest waits for host to advance
+          console.log('Waiting for host to end turn...');
+          await turnController.waitForTurnChange();
+        }
+      }
+    } else {
+      // Standard turn handling for local modes
+      const boardScene = this.scene.get('BoardScene') as BoardScene;
+      await boardScene.getTurnController().next();
 
-    // Pan camera to the next active player's closest active animal
-    const camMgr = boardScene.getCameraManager();
-    await camMgr.centerCameraOnClosestAnimal(
-      boardScene.getTileSize(),
-      boardScene.getTileHeight(),
-      boardScene.getAnchorX(),
-      boardScene.getAnchorY()
-    );
+      // Pan camera to the next active player's closest active animal
+      const camMgr = boardScene.getCameraManager();
+      await camMgr.centerCameraOnClosestAnimal(
+        boardScene.getTileSize(),
+        boardScene.getTileHeight(),
+        boardScene.getAnchorX(),
+        boardScene.getAnchorY()
+      );
+    }
+    
     this.nextTurnButtonBg?.setInteractive({ useHandCursor: true });
     this.isProcessingNextTurn = false;
   }

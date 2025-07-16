@@ -54,6 +54,13 @@ function setupGameState() {
   if (!GameEnvironment.fogOfWarEnabled) {
     actions.setFogOfWarEnabled(false);
   }
+
+  // Set up multiplayer context for turn synchronization
+  (window as any).multiplayerInfo = {
+    isHost: multiplayerContext.isHost,
+    localPlayerId: multiplayerContext.isHost ? 0 : 1, // Host is player 0, guest is player 1
+    roomId: multiplayerContext.roomId
+  };
 }
 
 /**
@@ -75,14 +82,24 @@ function setupSinglePlayerGameState() {
   if (!GameEnvironment.fogOfWarEnabled) {
     actions.setFogOfWarEnabled(false);
   }
+
+  // Set up multiplayer context for turn synchronization
+  (window as any).multiplayerInfo = {
+    isHost: multiplayerContext.isHost,
+    localPlayerId: multiplayerContext.isHost ? 0 : 1, // Host is player 0, guest is player 1
+    roomId: multiplayerContext.roomId
+  };
 }
 
 /**
- * Set up multiplayer game state with shared initial state
+ * Set up multiplayer game state with shared initial state (PVPONLINE mode)
  */
 async function setupMultiplayerGameState(multiplayerContext: { roomId: string, isHost: boolean }) {
   const { MultiplayerClient } = await import('./utils/MultiplayerClient');
   const client = new MultiplayerClient();
+  
+  // Set game mode to PVPONLINE for multiplayer
+  GameEnvironment.mode = 'pvponline';
   
   let initialState;
   
@@ -116,6 +133,13 @@ async function setupMultiplayerGameState(multiplayerContext: { roomId: string, i
   if (!GameEnvironment.fogOfWarEnabled) {
     actions.setFogOfWarEnabled(false);
   }
+
+  // Set up multiplayer context for turn synchronization
+  (window as any).multiplayerInfo = {
+    isHost: multiplayerContext.isHost,
+    localPlayerId: multiplayerContext.isHost ? 0 : 1, // Host is player 0, guest is player 1
+    roomId: multiplayerContext.roomId
+  };
 }
 
 /**

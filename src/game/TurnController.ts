@@ -76,7 +76,8 @@ export class TurnController {
 
   private isHuman(playerId: number): boolean {
     switch (this.mode) {
-      case 'pvp': return true;
+      case 'pvp':
+      case 'pvponline': return true;
       case 'pve': return playerId === 0;
       case 'sim': return false;
       default: return false;

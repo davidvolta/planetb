@@ -1,4 +1,4 @@
-export type GameMode = 'sim' | 'pvp' | 'pve';
+export type GameMode = 'sim' | 'pvp' | 'pve' | 'pvponline';
 
 export const GameEnvironment = {
   mode: 'pvp' as GameMode,

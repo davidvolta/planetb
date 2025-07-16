@@ -28,26 +28,33 @@
 
 ### NEXT STEPS - HIGH PRIORITY 🔥
 - [X] **Simple Room System**
-- [ ] **HTTP Polling Architecture**
-  - [ ] Host authority: Host player's browser = game server
-  - [ ] Data flow: Guest sends action → Host validates → Host updates state → Guest polls new state
-  - [ ] Polling every 1-2 seconds (simple, works everywhere)
-- [ ] **Multiplayer State Management**
-  - [ ] Extend existing Zustand store with multiplayer fields:
-    - [ ] `isHost: boolean`
-    - [ ] `roomId: string`
-    - [ ] `connectedPlayers: Player[]`
-  - [ ] Host maintains authoritative game state
-  - [ ] Guest receives state snapshots
-- [ ] **Turn Synchronization**
-  - [ ] Leverage existing `activePlayerId` system  
+- [X] **HTTP Polling Architecture** (Basic implementation complete)
+- [ ] **PVPONLINE Game Mode**
+  - [ ] Create new `PVPONLINE` game mode toggle
+  - [ ] Ensure existing PVP local mode remains intact
+  - [ ] Switch multiplayer games to use PVPONLINE mode
+- [ ] **Turn Synchronization for Online PVP**
+  - [ ] Rebuild turn controller for online alternating turns
   - [ ] Host enforces turn order and action validation
   - [ ] Actions blocked if not your turn
+  - [ ] Guest waits for host state updates between turns
 - [ ] **Game Integration**
   - [ ] Wire PLAY button to create/join room flow
   - [ ] Replace wireframe planet with actual Planet B game after room join
   - [ ] Use existing ecosystem simulation + Phaser rendering
   - [ ] TODO: Use direct GameState access (mark with `// TODO: PlayerView when needed`)
+
+### MULTIPLAYER IMPROVEMENTS (Future)
+- [ ] **State Serialization Improvements**
+  - [ ] Create serialization helpers for Map/Set structures
+  - [ ] Add state diffing to reduce payload size
+  - [ ] Implement delta updates instead of full state sync
+- [ ] **Action Queue System**
+  - [ ] Add simple action queue for async moves
+  - [ ] Handle action validation and rejection
+- [ ] **State Sharing Optimization**
+  - [ ] PlayerView-aware state filtering for privacy
+  - [ ] Compression for large game states
 
 
 ## REFACTORING
