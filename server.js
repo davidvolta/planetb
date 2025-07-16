@@ -91,6 +91,30 @@ app.get('/api/rooms/:roomId/state', (req, res) => {
   });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(), 
+    rooms: rooms.size,
+    uptime: process.uptime()
+  });
+});
+
+// Root health page
+app.get('/', (req, res) => {
+  res.json({ 
+    message: '🌍 Planet B Server Running',
+    endpoints: {
+      health: '/health',
+      rooms: '/api/rooms',
+      'create-room': 'POST /api/rooms',
+      'join-room': 'POST /api/rooms/:roomId/join',
+      'initial-state': 'POST/GET /api/rooms/:roomId/initial-state'
+    }
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🌍 Planet B Server running on http://localhost:${PORT}`);
 });
